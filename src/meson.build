@@ -1,0 +1,1 @@
+srcgui = files (['AnnotationCover.cpp', 'AuxFunc.cpp', 'AuxWindows.cpp', 'BookOpWindows.cpp', 'CollectionOpWindows.cpp', 'CreateCollection.cpp', 'CreateLeftGrid.cpp', 'CreateRightGrid.cpp', 'MainWindow.cpp', 'MyLibraryApplication.cpp', 'MyLibrary.cpp', 'RefreshCollection.cpp', 'SearchBook.cpp'])

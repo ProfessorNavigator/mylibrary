@@ -1,0 +1,15 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=MyLibrary
+Comment=Home librarian
+GenericName=MyLibrary
+Exec=mylibrary
+Icon=mylibrary
+Categories=Office;
+Terminal=false
+Type=Application
+Version=1.5
+Name[ru]=MyLibrary
+Comment[ru]=Домашний библиотекарь
+GenericName[ru]=MyLibrary
+Name[ru_RU]=MyLibrary
