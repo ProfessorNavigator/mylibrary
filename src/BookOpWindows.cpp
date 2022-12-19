@@ -127,6 +127,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::CENTER);
   window->set_child(*grid);
 
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
@@ -192,32 +193,29 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 	    grid->get_preferred_size(min, nat);
 	    window->set_default_size(nat.get_width(), nat.get_height());
 
-	    disp_finished->connect(
-		[window, mwl]
+	    disp_finished->connect([window, mwl]
+	    {
+	      mwl->prev_search_nm.clear();
+	      Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+	      Gtk::Paned *pn =
+		  dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+	      Gtk::Grid *right_grid =
+		  dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+	      Gtk::ScrolledWindow *sres_scrl =
+		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,0 ));
+	      Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
+	      double pos = adj->get_value();
+	      CreateRightGrid crgr(mwl);
+	      crgr.searchResultShow(1);
+	      Glib::RefPtr<Glib::MainContext> mc =
+		  Glib::MainContext::get_default();
+	      while(mc->pending())
 		{
-		  Gtk::Grid *main_grid =
-		      dynamic_cast<Gtk::Grid*>(mwl->get_child());
-		  Gtk::Paned *pn =
-		      dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-		  Gtk::Grid *right_grid =
-		      dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-		  Gtk::ScrolledWindow *sres_scrl =
-		      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(
-			  0, 0));
-		  Glib::RefPtr<Gtk::Adjustment> adj =
-		      sres_scrl->get_vadjustment();
-		  double pos = adj->get_value();
-		  CreateRightGrid crgr(mwl);
-		  crgr.searchResultShow(1);
-		  Glib::RefPtr<Glib::MainContext> mc =
-		      Glib::MainContext::get_default();
-		  while(mc->pending())
-		    {
-		      mc->iteration(true);
-		    }
-		  adj->set_value(pos);
-		  window->close();
-		});
+		  mc->iteration(true);
+		}
+	      adj->set_value(pos);
+	      window->close();
+	    });
 	    Gtk::Widget *widg = mwl->get_child();
 	    Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
 	    widg = main_grid->get_child_at(0, 1);
@@ -243,7 +241,8 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 			std::dynamic_pointer_cast<Gtk::ListStore>(
 			    sres->get_model());
 		    liststore->erase(iter);
-		    mwl->search_result_v.erase(mwl->search_result_v.begin() + id - 1);
+		    mwl->search_result_v.erase(
+			mwl->search_result_v.begin() + id - 1);
 		    Gtk::DrawingArea *drar =
 			dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(
 			    1, 1));
@@ -286,7 +285,8 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
     {
       yes->signal_clicked().connect([mwl, window]
       {
-	Glib::RefPtr<Gtk::TreeSelection> selection = mwl->bm_tv->get_selection();
+	Glib::RefPtr<Gtk::TreeSelection> selection =
+	    mwl->bm_tv->get_selection();
 	if(selection)
 	  {
 	    Gtk::TreeModel::iterator iter = selection->get_selected();

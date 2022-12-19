@@ -894,7 +894,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
   };
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
-  disp_finished->connect([win, lab, cancel, con]
+  disp_finished->connect([win, lab, cancel, con, this]
   {
     con->disconnect();
     lab->set_text(gettext("Book adding finished"));
@@ -903,6 +903,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
     {
       win->close();
     });
+    this->prev_search_nm.clear();
   });
   rc->refresh_finished = [disp_finished]
   {

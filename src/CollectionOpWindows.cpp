@@ -487,8 +487,9 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher;
   disp_cancel->connect(
-      [lab, con, cancel, window]
+      [lab, con, cancel, window, mwl]
       {
+	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing canceled"));
 	cancel->set_label(gettext("Close"));
@@ -502,8 +503,9 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
   disp_finished->connect(
-      [lab, con, cancel, window]
+      [lab, con, cancel, window, mwl]
       {
+	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing finished"));
 	cancel->set_label(gettext("Close"));
