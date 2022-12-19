@@ -798,7 +798,50 @@ MainWindow::bookmarkWindow()
 void
 MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
 {
+
   std::string coll_name(cmb->get_active_text());
+  int *cncl = new int(0);
+  RefreshCollection *rc = new RefreshCollection(coll_name, cncl);
+  Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
+      gettext("Choose a book"), *win, Gtk::FileChooser::Action::OPEN,
+      gettext("Open"), gettext("Cancel"));
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
+  fch->set_current_folder(fl);
+  fch->set_select_multiple(false);
+  Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".fb2, .epub, .zip");
+  fl_filter->add_pattern("*.fb2");
+  fl_filter->add_pattern("*.zip");
+  fl_filter->add_pattern("*.epub");
+  fch->add_filter(fl_filter);
+  fch->set_select_multiple(true);
+  fch->signal_response().connect([this, fch, rc, win, cncl]
+  (int resp)
+    {
+      if(resp == Gtk::ResponseType::ACCEPT)
+	{
+	  Glib::RefPtr<Gio::File> fl = fch->get_file();
+	  if(fl)
+	    {
+	      this->bookAddWinFunc(win, rc, cncl);
+	      std::thread *thr = new std::thread([rc, fl]
+		    {
+		      rc->addBook(fl->get_path());
+		    });
+	      thr->detach();
+	      delete thr;
+	    }
+	}
+    });
+  fch->show();
+}
+
+void
+MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
+{
   win->unset_child();
   Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
   while(mc->pending())
@@ -819,8 +862,6 @@ MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
   lab->set_text(gettext("Book adding in progress..."));
   grid->attach(*lab, 0, 0, 1, 1);
 
-  int *cncl = new int(0);
-
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
@@ -835,8 +876,6 @@ MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
   Gtk::Requisition min, nat;
   grid->get_preferred_size(min, nat);
   win->set_default_size(nat.get_width(), nat.get_height());
-
-  RefreshCollection *rc = new RefreshCollection(coll_name, cncl);
 
   Glib::Dispatcher *disp_canceled = new Glib::Dispatcher;
   disp_canceled->connect([win, lab, cancel, con]
@@ -883,48 +922,6 @@ MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
     {
       mc->iteration(true);
     }
-
-  Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
-      gettext("Choose a book"), *win, Gtk::FileChooser::Action::OPEN,
-      gettext("Open"), gettext("Cancel"));
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fch->set_current_folder(fl);
-  fch->set_select_multiple(false);
-  Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".fb2, .epub, .zip");
-  fl_filter->add_pattern("*.fb2");
-  fl_filter->add_pattern("*.zip");
-  fl_filter->add_pattern("*.epub");
-  fch->add_filter(fl_filter);
-  fch->signal_response().connect([fch, rc, win]
-  (int resp)
-    {
-      if(resp == Gtk::ResponseType::ACCEPT)
-	{
-	  Glib::RefPtr<Gio::File> fl = fch->get_file();
-	  if(fl)
-	    {
-	      std::thread *thr = new std::thread([rc, fl]
-		    {
-		      rc->addBook(fl->get_path());
-		    });
-	      thr->detach();
-	      delete thr;
-	    }
-	  else
-	    {
-	      win->close();
-	    }
-	}
-      else
-	{
-	  win->close();
-	}
-    });
-  fch->show();
 }
 
 void

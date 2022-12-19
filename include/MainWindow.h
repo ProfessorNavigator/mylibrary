@@ -87,6 +87,8 @@ private:
   void
   bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win);
   void
+  bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl);
+  void
   createBookmark();
   void
   bookmarkWindow();
