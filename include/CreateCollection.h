@@ -25,6 +25,8 @@
 #include <functional>
 #include <vector>
 #include <tuple>
+#include <unistd.h>
+#include <thread>
 #include <mutex>
 #include "AuxFunc.h"
 
@@ -32,7 +34,7 @@ class CreateCollection
 {
 public:
   CreateCollection(std::string coll_nm, std::filesystem::path book_p,
-		   int *cancel);
+		   unsigned int nm_thr, int *cancel);
   virtual
   ~CreateCollection();
   std::function<void
@@ -65,6 +67,17 @@ private:
   fb2Parser(std::string input);
   std::vector<std::tuple<std::string, std::string>>
   epubparser(std::filesystem::path input);
+  void
+  fb2ThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
+		std::filesystem::path fb2_hashp);
+  void
+  zipThreadFunc(
+      std::tuple<std::filesystem::path,
+	  std::vector<std::tuple<int, int, std::string>>> arch_tup,
+      std::filesystem::path filepath, std::filesystem::path zip_hashp);
+  void
+  epubThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
+		std::filesystem::path epub_hashp);
 
   std::string coll_nm;
   std::filesystem::path book_p;
@@ -73,8 +86,20 @@ private:
   std::vector<
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>>> zipvect;
-  int threadnum = 0;
+  unsigned int threadnum = 1;
   int *cancel = nullptr;
+  std::mutex fb2basemtx;
+  std::mutex fb2hashmtx;
+  std::mutex zipbasemtx;
+  std::mutex ziphashmtx;
+  std::mutex epubbasemtx;
+  std::mutex epubhashmtx;
+
+  std::mutex cmtx;
+  unsigned int num_thr_run = 0;
+  std::mutex num_thr_runmtx;
+  int file_count = 0;
+  std::mutex file_countmtx;
 };
 
 #endif // CREATECOLLECTION_H

@@ -84,6 +84,7 @@ CreateLeftGrid::formLeftGrid()
   surname_ent->set_halign(Gtk::Align::FILL);
   surname_ent->set_margin(5);
   surname_ent->set_max_length(50);
+  surname_ent->set_activates_default(true);
   left_gr->attach(*surname_ent, 0, 4, 2, 1);
 
   Gtk::Label *namelab = Gtk::make_managed<Gtk::Label>();
@@ -95,6 +96,7 @@ CreateLeftGrid::formLeftGrid()
   Gtk::Entry *name_ent = Gtk::make_managed<Gtk::Entry>();
   name_ent->set_halign(Gtk::Align::FILL);
   name_ent->set_margin(5);
+  name_ent->set_activates_default(true);
   left_gr->attach(*name_ent, 0, 6, 2, 1);
 
   Gtk::Label *secnamelab = Gtk::make_managed<Gtk::Label>();
@@ -106,6 +108,7 @@ CreateLeftGrid::formLeftGrid()
   Gtk::Entry *secname_ent = Gtk::make_managed<Gtk::Entry>();
   secname_ent->set_halign(Gtk::Align::FILL);
   secname_ent->set_margin(5);
+  secname_ent->set_activates_default(true);
   left_gr->attach(*secname_ent, 0, 8, 2, 1);
 
   Gtk::Label *booklab = Gtk::make_managed<Gtk::Label>();
@@ -123,6 +126,7 @@ CreateLeftGrid::formLeftGrid()
   Gtk::Entry *booknm_ent = Gtk::make_managed<Gtk::Entry>();
   booknm_ent->set_halign(Gtk::Align::FILL);
   booknm_ent->set_margin(5);
+  booknm_ent->set_activates_default(true);
   left_gr->attach(*booknm_ent, 0, 11, 2, 1);
 
   Gtk::Label *serlab = Gtk::make_managed<Gtk::Label>();
@@ -134,6 +138,7 @@ CreateLeftGrid::formLeftGrid()
   Gtk::Entry *ser_ent = Gtk::make_managed<Gtk::Entry>();
   ser_ent->set_halign(Gtk::Align::FILL);
   ser_ent->set_margin(5);
+  ser_ent->set_activates_default(true);
   left_gr->attach(*ser_ent, 0, 13, 2, 1);
 
   Gtk::Label *genrelab = Gtk::make_managed<Gtk::Label>();
@@ -238,6 +243,7 @@ CreateLeftGrid::formLeftGrid()
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::searchBook), collect_box,
 		 surname_ent, name_ent, secname_ent, booknm_ent, ser_ent));
   left_gr->attach(*searchbut, 0, 16, 1, 1);
+  mw->set_default_widget(*searchbut);
 
   Gtk::Button *clearbut = Gtk::make_managed<Gtk::Button>();
   clearbut->set_halign(Gtk::Align::CENTER);

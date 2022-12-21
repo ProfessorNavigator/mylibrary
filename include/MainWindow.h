@@ -63,7 +63,7 @@ private:
 		    Gtk::Window *win2);
   void
   collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
-		       Gtk::Window *par_win);
+		       Gtk::Entry *thr_ent, Gtk::Window *par_win);
   void
   creationPulseWin(Gtk::Window *window);
   void

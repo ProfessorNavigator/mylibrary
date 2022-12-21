@@ -35,7 +35,7 @@ public:
   collectionCreate();
   void
   collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
-		       Gtk::Window *par_win);
+		       Gtk::Entry *thr_ent, Gtk::Window *par_win);
   void
   openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant);
   void

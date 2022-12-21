@@ -39,7 +39,7 @@ AnnotationCover::fileRead()
       std::string ext = filepath.extension().u8string();
       AuxFunc af;
       af.stringToLower(ext);
-      if(std::filesystem::file_size(filepath) <= 50 * 1024 * 1024
+      if(std::filesystem::file_size(filepath) <= 104857600
 	  && ext != ".epub")
 	{
 	  std::fstream f;
@@ -57,7 +57,7 @@ AnnotationCover::fileRead()
 	}
       else
 	{
-	  if(std::filesystem::file_size(filepath) <= 50 * 1024 * 1024
+	  if(std::filesystem::file_size(filepath) <= 104857600
 	      && ext == ".epub")
 	    {
 	      epub_ch_f = true;
@@ -160,7 +160,7 @@ AnnotationCover::fileRead()
 	      std::filesystem::path p = dirit.path();
 	      if(!std::filesystem::is_directory(p)
 		  && p.extension().u8string() == ".fb2"
-		  && std::filesystem::file_size(p) <= 50 * 1024 * 1024)
+		  && std::filesystem::file_size(p) <= 104857600)
 		{
 		  std::fstream f;
 		  f.open(p, std::ios_base::in | std::ios_base::binary);
@@ -180,7 +180,7 @@ AnnotationCover::fileRead()
 		}
 	      if(!std::filesystem::is_directory(p)
 		  && p.extension().u8string() == ".epub"
-		  && std::filesystem::file_size(p) <= 50 * 1024 * 1024)
+		  && std::filesystem::file_size(p) <= 104857600)
 		{
 		  epub_ch_f = true;
 		  epub_path = filepath;

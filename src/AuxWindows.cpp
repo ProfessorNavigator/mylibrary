@@ -67,6 +67,10 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
     {
       warn_lab->set_text(gettext("Collection to import path is empty!"));
     }
+  if(type == 6)
+    {
+      warn_lab->set_text(gettext("Export path is empty!"));
+    }
   grid->attach(*warn_lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
@@ -248,7 +252,7 @@ AuxWindows::aboutProg()
   aboutd->set_application(mw->get_application());
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("1.0");
+  aboutd->set_version("1.1");
   aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());

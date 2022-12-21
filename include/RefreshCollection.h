@@ -33,13 +33,19 @@
 class RefreshCollection
 {
 public:
-  RefreshCollection(std::string collname, int *cancel);
+  RefreshCollection(std::string collname, unsigned int thr_num, int *cancel);
   virtual
   ~RefreshCollection();
   std::function<void
   ()> refresh_canceled;
   std::function<void
   ()> refresh_finished;
+  std::function<void
+  (int)> total_files;
+  std::function<void(int)>
+  total_hash;
+  std::function<void
+  (int)> files_added;
   void
   startRefreshing();
   void
@@ -65,6 +71,7 @@ private:
   std::vector<std::filesystem::path> fb2remove;
   std::vector<std::filesystem::path> zipremove;
   std::vector<std::filesystem::path> epubremove;
+  unsigned int thr_num = 1;
 };
 
 #endif /* REFRESHCOLLECTION_H_ */

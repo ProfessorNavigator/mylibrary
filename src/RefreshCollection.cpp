@@ -17,10 +17,13 @@
 
 #include "RefreshCollection.h"
 
-RefreshCollection::RefreshCollection(std::string collname, int *cancel)
+RefreshCollection::RefreshCollection(std::string collname, unsigned int thr_num,
+				     int *cancel)
 {
   this->collname = collname;
   this->cancel = cancel;
+  this->thr_num = thr_num;
+
 }
 
 RefreshCollection::~RefreshCollection()
@@ -59,7 +62,7 @@ RefreshCollection::readList()
       else
 	{
 	  int count = 0;
-	  while (!f.eof())
+	  while(!f.eof())
 	    {
 	      std::string line;
 	      getline(f, line);
@@ -99,7 +102,7 @@ RefreshCollection::readList()
       else
 	{
 	  int count = 0;
-	  while (!f.eof())
+	  while(!f.eof())
 	    {
 	      std::string line;
 	      getline(f, line);
@@ -139,7 +142,7 @@ RefreshCollection::readList()
       else
 	{
 	  int count = 0;
-	  while (!f.eof())
+	  while(!f.eof())
 	    {
 	      std::string line;
 	      getline(f, line);
@@ -235,6 +238,11 @@ RefreshCollection::readColl(std::string bookpath)
 	    }
 	}
     }
+  if(total_hash)
+    {
+      total_hash(static_cast<int>(fb2.size() + epub.size() + zip.size()));
+    }
+  size_t total_hashed = 0;
   for(size_t i = 0; i < fb2.size(); i++)
     {
       if(*cancel == 1)
@@ -264,6 +272,11 @@ RefreshCollection::readColl(std::string bookpath)
       if(itsh == saved_hashes.end())
 	{
 	  fb2parse.push_back(p);
+	}
+      total_hashed++;
+      if(files_added)
+	{
+	  files_added(static_cast<int>(total_hashed));
 	}
     }
 
@@ -297,6 +310,11 @@ RefreshCollection::readColl(std::string bookpath)
 	{
 	  epubparse.push_back(p);
 	}
+      total_hashed++;
+      if(files_added)
+	{
+	  files_added(static_cast<int>(total_hashed));
+	}
     }
 
   for(size_t i = 0; i < zip.size(); i++)
@@ -328,6 +346,11 @@ RefreshCollection::readColl(std::string bookpath)
       if(itsh == saved_hashes.end())
 	{
 	  zipparse.push_back(std::make_tuple(p, std::get<1>(zip[i])));
+	}
+      total_hashed++;
+      if(files_added)
+	{
+	  files_added(static_cast<int>(total_hashed));
 	}
     }
   for(size_t i = 0; i < saved_hashes.size(); i++)
@@ -581,7 +604,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string line = file_str.substr(
 	      0, file_str.find("<?L>") + std::string("<?L>").size());
@@ -601,7 +624,7 @@ RefreshCollection::collRefresh()
   else
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);
@@ -704,7 +727,15 @@ RefreshCollection::collRefresh()
       std::filesystem::remove_all(t_c_p);
     }
   std::filesystem::create_directories(t_c_p);
-  CreateCollection cc(rand, std::filesystem::u8path(bookpath), cancel);
+  CreateCollection cc(rand, std::filesystem::u8path(bookpath), thr_num, cancel);
+  if(total_files)
+    {
+      cc.total_files = total_files;
+    }
+  if(files_added)
+    {
+      cc.files_added = files_added;
+    }
   cc.createFileList(&fb2parse, &epubparse, &zipparse);
   filename = t_c_p.u8string();
   filename = filename + "/fb2base";
@@ -721,7 +752,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string line = file_str.substr(
 	      0, file_str.find("<?L>") + std::string("<?L>").size());
@@ -738,7 +769,7 @@ RefreshCollection::collRefresh()
   if(f.is_open())
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);
@@ -802,7 +833,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string archpath = file_str.substr(
 	      0, file_str.find("<?e>") + std::string("<?e>").size());
@@ -812,7 +843,7 @@ RefreshCollection::collRefresh()
 	  std::string archgr = file_str.substr(0, file_str.find("<?a>"));
 	  file_str.erase(0, archgr.size());
 	  std::vector<std::string> tv;
-	  while (!archgr.empty())
+	  while(!archgr.empty())
 	    {
 	      std::string line = archgr.substr(
 		  0, archgr.find("<?L>") + std::string("<?L>").size());
@@ -833,7 +864,7 @@ RefreshCollection::collRefresh()
   if(f.is_open())
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);
@@ -924,7 +955,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string archpath = file_str.substr(
 	      0, file_str.find("<?e>") + std::string("<?e>").size());
@@ -934,7 +965,7 @@ RefreshCollection::collRefresh()
 	  std::string archgr = file_str.substr(0, file_str.find("<?a>"));
 	  file_str.erase(0, archgr.size());
 	  std::vector<std::string> tv;
-	  while (!archgr.empty())
+	  while(!archgr.empty())
 	    {
 	      std::string line = archgr.substr(
 		  0, archgr.find("<?L>") + std::string("<?L>").size());
@@ -956,7 +987,7 @@ RefreshCollection::collRefresh()
   if(f.is_open())
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);
@@ -1029,7 +1060,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string line = file_str.substr(
 	      0, file_str.find("<?L>") + std::string("<?L>").size());
@@ -1045,7 +1076,7 @@ RefreshCollection::collRefresh()
   if(f.is_open())
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);
@@ -1156,7 +1187,7 @@ RefreshCollection::collRefresh()
       file_str.erase(0, bookpath.size());
       bookpath.erase(0, std::string("<bp>").size());
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
-      while (!file_str.empty())
+      while(!file_str.empty())
 	{
 	  std::string line = file_str.substr(
 	      0, file_str.find("<?L>") + std::string("<?L>").size());
@@ -1173,7 +1204,7 @@ RefreshCollection::collRefresh()
   if(f.is_open())
     {
       int count = 0;
-      while (!f.eof())
+      while(!f.eof())
 	{
 	  std::string line;
 	  getline(f, line);

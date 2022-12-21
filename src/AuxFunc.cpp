@@ -222,7 +222,7 @@ AuxFunc::unpackByIndex(std::string archadress, std::string outfolder, int index)
       file = zip_fopen_index(z, index, ZIP_FL_ENC_UTF_8);
       zip_stat_index(z, index, ZIP_STAT_NAME, &st);
       std::vector<char> content;
-      content.resize(100 * 1024 * 1024);
+      content.resize(104857600);
       std::fstream f;
       std::string fname = path.u8string();
       fname = fname + "/";
@@ -328,11 +328,11 @@ AuxFunc::filehash(std::filesystem::path filepath)
       f.open(filepath, std::ios_base::in | std::ios_base::binary);
       for(;;)
 	{
-	  if(readb + 50 * 1024 * 1024 < fsz)
+	  if(readb + 104857600 < fsz)
 	    {
-	      F.resize(50 * 1024 * 1024);
-	      f.read(&F[0], 50 * 1024 * 1024);
-	      readb = readb + 50 * 1024 * 1024;
+	      F.resize(104857600);
+	      f.read(&F[0], 104857600);
+	      readb = readb + 104857600;
 	      gcry_md_write(hd, &F[0], F.size());
 	    }
 	  else

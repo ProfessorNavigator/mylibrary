@@ -172,7 +172,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
       Gtk::ComboBoxText *collect_box =
 	  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
       RefreshCollection *rc = new RefreshCollection(
-	  std::string(collect_box->get_active_text()), cncl);
+	  std::string(collect_box->get_active_text()), 1, cncl);
       Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
 
       yes->signal_clicked().connect(

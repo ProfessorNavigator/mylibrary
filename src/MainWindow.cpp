@@ -211,10 +211,10 @@ MainWindow::collectionCreate()
 
 void
 MainWindow::collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
-				 Gtk::Window *par_win)
+				 Gtk::Entry *thr_ent, Gtk::Window *par_win)
 {
   CollectionOpWindows copw(this);
-  copw.collectionCreateFunc(coll_ent, path_ent, par_win);
+  copw.collectionCreateFunc(coll_ent, path_ent, thr_ent, par_win);
 }
 
 void
@@ -801,7 +801,7 @@ MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
 
   std::string coll_name(cmb->get_active_text());
   int *cncl = new int(0);
-  RefreshCollection *rc = new RefreshCollection(coll_name, cncl);
+  RefreshCollection *rc = new RefreshCollection(coll_name, 1, cncl);
   Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
       gettext("Choose a book"), *win, Gtk::FileChooser::Action::OPEN,
       gettext("Open"), gettext("Cancel"));
