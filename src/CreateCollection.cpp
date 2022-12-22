@@ -196,6 +196,7 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
+	      cmtx.try_lock();
 	      cmtx.unlock();
 	    }
 	  num_thr_runmtx.unlock();
@@ -238,6 +239,7 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
+	      cmtx.try_lock();
 	      cmtx.unlock();
 	    }
 	  num_thr_runmtx.unlock();
@@ -277,6 +279,7 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
+	      cmtx.try_lock();
 	      cmtx.unlock();
 	    }
 	  num_thr_runmtx.unlock();
@@ -310,6 +313,7 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
 				std::filesystem::path fb2_hashp)
 {
   AuxFunc af;
+  std::vector<char> write_v;
   std::vector<char> hash_v = af.filehash(fp);
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
@@ -318,17 +322,12 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
   std::string f_p = fp.u8string();
   f_p.erase(f_p.find(book_p.u8string()), book_p.u8string().size());
   f_p = f_p + "<?>";
+  std::copy(f_p.begin(), f_p.end(), std::back_inserter(write_v));
   std::fstream fb2_hash_f;
-  std::fstream f;
-  f.open(filepath,
-	 std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  fb2hashmtx.lock();
   fb2_hash_f.open(
       fb2_hashp,
       std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-  fb2basemtx.lock();
-  f.write(f_p.c_str(), f_p.size());
-  fb2basemtx.unlock();
-  fb2hashmtx.lock();
   fb2_hash_f.write(f_p.c_str(), f_p.size());
   fb2_hash_f.write(hash_str.c_str(), hash_str.size());
   fb2_hash_f.close();
@@ -344,9 +343,7 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  fb2basemtx.lock();
-  f.write(line.c_str(), line.size());
-  fb2basemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -359,9 +356,7 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  fb2basemtx.lock();
-  f.write(line.c_str(), line.size());
-  fb2basemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -374,9 +369,7 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  fb2basemtx.lock();
-  f.write(line.c_str(), line.size());
-  fb2basemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -389,9 +382,7 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  fb2basemtx.lock();
-  f.write(line.c_str(), line.size());
-  fb2basemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -404,11 +395,16 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?L>";
-  fb2basemtx.lock();
-  f.write(line.c_str(), line.size());
-  fb2basemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
-  f.close();
+  std::fstream fb2_base_f;
+  fb2basemtx.lock();
+  fb2_base_f.open(
+      filepath,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  fb2_base_f.write(write_v.data(), write_v.size());
+  fb2_base_f.close();
+  fb2basemtx.unlock();
 
   file_countmtx.lock();
   file_count = file_count + 1;
@@ -436,6 +432,7 @@ CreateCollection::zipThreadFunc(
 {
   AuxFunc af;
   std::vector<char> hash_v;
+  std::vector<char> write_v;
   hash_v = af.filehash(std::get<0>(arch_tup));
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
@@ -444,24 +441,18 @@ CreateCollection::zipThreadFunc(
   hash_str = line + "<?>" + hash_str;
   hash_str.erase(hash_str.find(book_p.u8string()), book_p.u8string().size());
 
-  std::fstream f;
   std::fstream zip_hash_f;
-  f.open(filepath,
-	 std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  ziphashmtx.lock();
   zip_hash_f.open(
       zip_hashp,
       std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-
-  ziphashmtx.lock();
   zip_hash_f.write(hash_str.c_str(), hash_str.size());
-  ziphashmtx.unlock();
   zip_hash_f.close();
+  ziphashmtx.unlock();
 
   line.erase(line.find(book_p.u8string()), book_p.u8string().size());
   line = "<?a>" + line + "<?e>";
-  zipbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  zipbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   std::vector<std::tuple<int, int, std::string>> locv;
   locv = std::get<1>(arch_tup);
   for(size_t j = 0; j < locv.size(); j++)
@@ -470,15 +461,14 @@ CreateCollection::zipThreadFunc(
 	{
 	  break;
 	}
+      line.clear();
       int index = std::get<0>(locv[j]);
       std::stringstream strm;
       std::locale loc("C");
       strm.imbue(loc);
       strm << index;
       line = "<?>" + strm.str() + "<?>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       size_t inpsz = static_cast<size_t>(std::get<1>(locv[j]));
       std::vector<std::tuple<std::string, std::string>> basevect;
       std::filesystem::path ch_p = std::filesystem::u8path(
@@ -530,9 +520,7 @@ CreateCollection::zipThreadFunc(
 	  line = std::get<1>(*bvit);
 	}
       line = line + "<?>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       line.clear();
 
       bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -545,9 +533,7 @@ CreateCollection::zipThreadFunc(
 	  line = std::get<1>(*bvit);
 	}
       line = line + "<?>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       line.clear();
 
       bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -560,9 +546,7 @@ CreateCollection::zipThreadFunc(
 	  line = std::get<1>(*bvit);
 	}
       line = line + "<?>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       line.clear();
 
       bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -575,9 +559,7 @@ CreateCollection::zipThreadFunc(
 	  line = std::get<1>(*bvit);
 	}
       line = line + "<?>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       line.clear();
 
       bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -590,9 +572,7 @@ CreateCollection::zipThreadFunc(
 	  line = std::get<1>(*bvit);
 	}
       line = line + "<?L>";
-      zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
-      zipbasemtx.unlock();
+      std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       line.clear();
 
       file_countmtx.lock();
@@ -603,7 +583,16 @@ CreateCollection::zipThreadFunc(
 	}
       file_countmtx.unlock();
     }
-  f.close();
+
+  std::fstream zip_base_f;
+  zipbasemtx.lock();
+  zip_base_f.open(
+      filepath,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  zip_base_f.write(write_v.data(), write_v.size());
+  zip_base_f.close();
+  zipbasemtx.unlock();
+
   num_thr_runmtx.lock();
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
@@ -620,6 +609,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
 				 std::filesystem::path epub_hashp)
 {
   AuxFunc af;
+  std::vector<char> write_v;
   std::vector<char> hash_v = af.filehash(fp);
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
@@ -628,22 +618,15 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
   std::string f_p = fp.u8string();
   f_p.erase(f_p.find(book_p.u8string()), book_p.u8string().size());
   f_p = f_p + "<?>";
-  std::fstream f;
-  std::fstream epub_hash_f;
-  f.open(filepath,
-	 std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-  epub_hash_f.open(
-      epub_hashp,
-      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-  epubbasemtx.lock();
-  f.write(f_p.c_str(), f_p.size());
-  epubbasemtx.unlock();
+  std::copy(f_p.begin(), f_p.end(), std::back_inserter(write_v));
 
+  std::fstream epub_hash_f;
   epubhashmtx.lock();
   epub_hash_f.write(f_p.c_str(), f_p.size());
   epub_hash_f.write(hash_str.c_str(), hash_str.size());
-  epubhashmtx.unlock();
   epub_hash_f.close();
+  epubhashmtx.unlock();
+
   std::string line;
   auto bvit = std::find_if(basevect.begin(), basevect.end(), []
   (auto &el)
@@ -655,9 +638,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  epubbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  epubbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -670,9 +651,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  epubbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  epubbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -685,9 +664,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  epubbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  epubbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -700,9 +677,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?>";
-  epubbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  epubbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
 
   bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -715,11 +690,17 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
       line = std::get<1>(*bvit);
     }
   line = line + "<?L>";
-  epubbasemtx.lock();
-  f.write(line.c_str(), line.size());
-  epubbasemtx.unlock();
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   line.clear();
-  f.close();
+
+  epubbasemtx.lock();
+  std::fstream epub_base_f;
+  epub_base_f.open(
+      filepath,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  epub_base_f.write(write_v.data(), write_v.size());
+  epub_base_f.close();
+  epubbasemtx.unlock();
 
   file_countmtx.lock();
   file_count = file_count + 1;
@@ -746,331 +727,319 @@ CreateCollection::fb2Parser(std::filesystem::path filepath)
   std::string headstr;
   size_t fsz = std::filesystem::file_size(filepath);
   std::vector<std::tuple<std::string, std::string>> result;
-  if(fsz <= 104857600)
+  headstr.resize(fsz);
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
     {
-      headstr.resize(fsz);
-      f.open(filepath, std::ios_base::in | std::ios_base::binary);
-      if(f.is_open())
+      f.read(&headstr[0], fsz);
+      f.close();
+      std::string::size_type n = 0;
+      std::string conv_name;
+      conv_name = headstr;
+      n = conv_name.find("<?xml");
+      if(n != std::string::npos)
 	{
-	  f.read(&headstr[0], fsz);
-	  f.close();
-	  std::string::size_type n = 0;
-	  std::string conv_name = "";
-	  conv_name = headstr;
-	  n = conv_name.find("<?xml");
+	  conv_name.erase(0, n);
+	  conv_name = conv_name.substr(
+	      0, conv_name.find("?>") + std::string("?>").size());
+	  n = conv_name.find("encoding=");
 	  if(n != std::string::npos)
 	    {
-	      conv_name.erase(0, n);
-	      conv_name = conv_name.substr(
-		  0, conv_name.find("?>") + std::string("?>").size());
-	      n = conv_name.find("encoding=");
+	      conv_name.erase(0, n + std::string("encoding=").size());
+	      n = conv_name.find("\"");
 	      if(n != std::string::npos)
 		{
-		  conv_name.erase(0, n + std::string("encoding=").size());
-		  n = conv_name.find("\"");
+		  conv_name.erase(
+		      0, conv_name.find("\"") + std::string("\"").size());
+		  conv_name = conv_name.substr(0, conv_name.find("\""));
+		}
+	      else
+		{
+		  n = conv_name.find("\'");
 		  if(n != std::string::npos)
 		    {
 		      conv_name.erase(
-			  0, conv_name.find("\"") + std::string("\"").size());
-		      conv_name = conv_name.substr(0, conv_name.find("\""));
+			  0, conv_name.find("\'") + std::string("\'").size());
+		      conv_name = conv_name.substr(0, conv_name.find("\'"));
 		    }
-		  else
-		    {
-		      n = conv_name.find("\'");
-		      if(n != std::string::npos)
-			{
-			  conv_name.erase(
-			      0,
-			      conv_name.find("\'") + std::string("\'").size());
-			  conv_name = conv_name.substr(0, conv_name.find("\'"));
-			}
-		    }
-		}
-	      else
-		{
-		  conv_name = "";
 		}
 	    }
 	  else
 	    {
-	      conv_name = "";
+	      conv_name.clear();
 	    }
-	  if(!conv_name.empty())
-	    {
-	      af.toutf8(headstr, conv_name);
-	    }
-	  headstr.erase(0, headstr.find("<description"));
-	  headstr = headstr.substr(
-	      0,
-	      headstr.find("</description>")
-		  + std::string("</description>").size());
-	  std::string genre_str = "";
-	  n = 0;
-	  while(n != std::string::npos)
-	    {
-	      std::string line = headstr;
-	      std::string genre;
-	      n = line.find("<genre");
-	      if(n != std::string::npos)
-		{
-		  line.erase(0, n);
-		  genre = line.substr(
-		      0,
-		      line.find("</genre>") + std::string("</genre>").size());
-		  headstr.erase(headstr.find(genre), genre.size());
-		  genre.erase(0, genre.find(">") + std::string(">").size());
-		  genre = genre.substr(0, genre.find("</genre>"));
-		  if(!genre_str.empty())
-		    {
-		      genre_str = genre_str + ", " + genre;
-		    }
-		  else
-		    {
-		      genre_str = genre;
-		    }
-		}
-	    }
-
-	  std::string docinfo = headstr;
-	  docinfo.erase(0, docinfo.find("<document-info"));
-	  docinfo = docinfo.substr(
-	      0,
-	      docinfo.find("</document-info>")
-		  + std::string("</document-info>").size());
-	  headstr.erase(headstr.find(docinfo), docinfo.size());
-
-	  std::string auth_str = "";
-	  n = 0;
-	  while(n != std::string::npos)
-	    {
-	      std::string line = headstr;
-	      n = line.find("<author>");
-	      std::string auth;
-	      if(n != std::string::npos)
-		{
-		  line.erase(0, n);
-		  auth = line.substr(
-		      0,
-		      line.find("</author>") + std::string("</author>").size());
-		  headstr.erase(headstr.find(auth), auth.size());
-		  auth.erase(
-		      0,
-		      auth.find("<author>") + std::string("<author>").size());
-		  auth = auth.substr(0, auth.find("</author>"));
-		  std::string::size_type n_tmp;
-		  std::string lastnm = auth;
-		  n_tmp = lastnm.find("<last-name>");
-		  if(n_tmp != std::string::npos)
-		    {
-		      lastnm.erase(0,
-				   n_tmp + std::string("<last-name>").size());
-		      lastnm = lastnm.substr(0, lastnm.find("</last-name>"));
-		      if(!auth_str.empty())
-			{
-			  auth_str = auth_str + ", " + lastnm;
-			}
-		      else
-			{
-			  auth_str = lastnm;
-			}
-		    }
-		  std::string name = auth;
-		  n_tmp = name.find("<first-name>");
-		  if(n_tmp != std::string::npos)
-		    {
-		      name.erase(0, n_tmp + std::string("<first-name>").size());
-		      name = name.substr(0, name.find("</first-name>"));
-		      if(!auth_str.empty())
-			{
-			  auth_str = auth_str + " " + name;
-			}
-		      else
-			{
-			  auth_str = name;
-			}
-		    }
-
-		  std::string midname = auth;
-		  n_tmp = midname.find("<middle-name>");
-		  if(n_tmp != std::string::npos)
-		    {
-		      midname.erase(
-			  0, n_tmp + std::string("<middle-name>").size());
-		      midname = midname.substr(0,
-					       midname.find("</middle-name>"));
-		      if(!auth_str.empty())
-			{
-			  auth_str = auth_str + " " + midname;
-			}
-		      else
-			{
-			  auth_str = midname;
-			}
-		    }
-
-		  std::string nickname = auth;
-		  n_tmp = nickname.find("<nickname>");
-		  if(n_tmp != std::string::npos)
-		    {
-		      nickname.erase(0,
-				     n_tmp + std::string("<nickname>").size());
-		      nickname = nickname.substr(0,
-						 nickname.find("</nickname>"));
-		      if(!auth_str.empty())
-			{
-			  auth_str = auth_str + " " + nickname;
-			}
-		      else
-			{
-			  auth_str = nickname;
-			}
-		    }
-		}
-	    }
-	  std::string booktitle = headstr;
-	  n = booktitle.find("<book-title>");
+	}
+      else
+	{
+	  conv_name.clear();
+	}
+      if(!conv_name.empty())
+	{
+	  af.toutf8(headstr, conv_name);
+	}
+      headstr.erase(0, headstr.find("<description"));
+      headstr = headstr.substr(
+	  0,
+	  headstr.find("</description>")
+	      + std::string("</description>").size());
+      std::string genre_str;
+      n = 0;
+      while(n != std::string::npos)
+	{
+	  std::string line = headstr;
+	  std::string genre;
+	  n = line.find("<genre");
 	  if(n != std::string::npos)
 	    {
-	      booktitle.erase(0, n + std::string("<book-title>").size());
-	      booktitle = booktitle.substr(0, booktitle.find("</book-title>"));
-	    }
-	  else
-	    {
-	      booktitle = "";
-	    }
-	  std::string sequence_str = "";
-	  n = 0;
-	  while(n != std::string::npos)
-	    {
-	      std::string sequence = headstr;
-	      n = sequence.find("<sequence");
-	      if(n != std::string::npos)
+	      line.erase(0, n);
+	      genre = line.substr(
+		  0, line.find("</genre>") + std::string("</genre>").size());
+	      headstr.erase(headstr.find(genre), genre.size());
+	      genre.erase(0, genre.find(">") + std::string(">").size());
+	      genre = genre.substr(0, genre.find("</genre>"));
+	      if(!genre_str.empty())
 		{
-		  sequence.erase(0, n);
-		  sequence = sequence.substr(
-		      0, sequence.find(">") + std::string(">").size());
-		  headstr.erase(headstr.find(sequence), sequence.size());
-		  std::string numb = sequence;
-		  std::string::size_type n_tmp;
-		  sequence.erase(
-		      0, sequence.find("name=") + std::string("name=").size());
-		  n_tmp = sequence.find("\"");
-		  if(n_tmp != std::string::npos)
+		  genre_str = genre_str + ", " + genre;
+		}
+	      else
+		{
+		  genre_str = genre;
+		}
+	    }
+	}
+
+      std::string docinfo = headstr;
+      docinfo.erase(0, docinfo.find("<document-info"));
+      docinfo = docinfo.substr(
+	  0,
+	  docinfo.find("</document-info>")
+	      + std::string("</document-info>").size());
+      headstr.erase(headstr.find(docinfo), docinfo.size());
+
+      std::string auth_str;
+      n = 0;
+      while(n != std::string::npos)
+	{
+	  std::string line = headstr;
+	  n = line.find("<author>");
+	  std::string auth;
+	  if(n != std::string::npos)
+	    {
+	      line.erase(0, n);
+	      auth = line.substr(
+		  0, line.find("</author>") + std::string("</author>").size());
+	      headstr.erase(headstr.find(auth), auth.size());
+	      auth.erase(
+		  0, auth.find("<author>") + std::string("<author>").size());
+	      auth = auth.substr(0, auth.find("</author>"));
+	      std::string::size_type n_tmp;
+	      std::string lastnm = auth;
+	      n_tmp = lastnm.find("<last-name>");
+	      if(n_tmp != std::string::npos)
+		{
+		  lastnm.erase(0, n_tmp + std::string("<last-name>").size());
+		  lastnm = lastnm.substr(0, lastnm.find("</last-name>"));
+		  if(!auth_str.empty())
 		    {
-		      sequence.erase(0, n_tmp + std::string("\"").size());
-		      sequence = sequence.substr(0, sequence.find("\""));
+		      auth_str = auth_str + ", " + lastnm;
 		    }
 		  else
 		    {
-		      n_tmp = sequence.find("\'");
-		      if(n_tmp != std::string::npos)
-			{
-			  sequence.erase(0, n_tmp + std::string("\'").size());
-			  sequence = sequence.substr(0, sequence.find("\'"));
-			}
+		      auth_str = lastnm;
 		    }
-		  n_tmp = numb.find("number=");
-		  if(n_tmp != std::string::npos)
+		}
+	      std::string name = auth;
+	      n_tmp = name.find("<first-name>");
+	      if(n_tmp != std::string::npos)
+		{
+		  name.erase(0, n_tmp + std::string("<first-name>").size());
+		  name = name.substr(0, name.find("</first-name>"));
+		  if(!auth_str.empty())
 		    {
-		      numb.erase(0, n_tmp + std::string("number=").size());
-		      n_tmp = numb.find("\"");
-		      if(n_tmp != std::string::npos)
-			{
-			  numb.erase(0, n_tmp + std::string("\"").size());
-			  numb = numb.substr(0, numb.find("\""));
-			}
-		      else
-			{
-			  n_tmp = numb.find("\'");
-			  if(n_tmp != std::string::npos)
-			    {
-			      numb.erase(0, n_tmp + std::string("\'").size());
-			      numb = numb.substr(0, numb.find("\'"));
-			    }
-			}
+		      auth_str = auth_str + " " + name;
 		    }
 		  else
 		    {
-		      numb = "";
+		      auth_str = name;
 		    }
-		  if(sequence_str.empty())
+		}
+
+	      std::string midname = auth;
+	      n_tmp = midname.find("<middle-name>");
+	      if(n_tmp != std::string::npos)
+		{
+		  midname.erase(0, n_tmp + std::string("<middle-name>").size());
+		  midname = midname.substr(0, midname.find("</middle-name>"));
+		  if(!auth_str.empty())
 		    {
-		      sequence_str = sequence;
-		      if(!numb.empty())
-			{
-			  sequence_str = sequence_str + " " + numb;
-			}
+		      auth_str = auth_str + " " + midname;
 		    }
 		  else
 		    {
-		      sequence_str = sequence_str + ", " + sequence;
-		      if(!numb.empty())
-			{
-			  sequence_str = sequence_str + " " + numb;
-			}
+		      auth_str = midname;
+		    }
+		}
+
+	      std::string nickname = auth;
+	      n_tmp = nickname.find("<nickname>");
+	      if(n_tmp != std::string::npos)
+		{
+		  nickname.erase(0, n_tmp + std::string("<nickname>").size());
+		  nickname = nickname.substr(0, nickname.find("</nickname>"));
+		  if(!auth_str.empty())
+		    {
+		      auth_str = auth_str + " " + nickname;
+		    }
+		  else
+		    {
+		      auth_str = nickname;
 		    }
 		}
 	    }
-	  std::string date = headstr;
-	  n = date.find("<date");
-	  std::string::size_type n_tmp;
-	  n_tmp = date.find("<date/");
-	  if(n != std::string::npos && n_tmp == std::string::npos)
+	}
+      std::string booktitle = headstr;
+      n = booktitle.find("<book-title>");
+      if(n != std::string::npos)
+	{
+	  booktitle.erase(0, n + std::string("<book-title>").size());
+	  booktitle = booktitle.substr(0, booktitle.find("</book-title>"));
+	}
+      else
+	{
+	  booktitle.clear();
+	}
+      std::string sequence_str;
+      n = 0;
+      while(n != std::string::npos)
+	{
+	  std::string sequence = headstr;
+	  n = sequence.find("<sequence");
+	  if(n != std::string::npos)
 	    {
-	      date.erase(0, n);
-	      date = date.substr(
-		  0, date.find("</date>") + std::string("</date>").size());
-	      std::string value = date;
-	      n = value.find("vlaue=");
-	      if(n != std::string::npos)
+	      sequence.erase(0, n);
+	      sequence = sequence.substr(
+		  0, sequence.find(">") + std::string(">").size());
+	      headstr.erase(headstr.find(sequence), sequence.size());
+	      std::string numb = sequence;
+	      std::string::size_type n_tmp;
+	      sequence.erase(
+		  0, sequence.find("name=") + std::string("name=").size());
+	      n_tmp = sequence.find("\"");
+	      if(n_tmp != std::string::npos)
 		{
-		  value.erase(0, n + std::string("value=").size());
-		  n = value.find("\"");
-		  if(n != std::string::npos)
+		  sequence.erase(0, n_tmp + std::string("\"").size());
+		  sequence = sequence.substr(0, sequence.find("\""));
+		}
+	      else
+		{
+		  n_tmp = sequence.find("\'");
+		  if(n_tmp != std::string::npos)
 		    {
-		      value.erase(0, n + std::string("\"").size());
-		      value = value.substr(0, value.find("\""));
-		      date = value;
+		      sequence.erase(0, n_tmp + std::string("\'").size());
+		      sequence = sequence.substr(0, sequence.find("\'"));
+		    }
+		}
+	      n_tmp = numb.find("number=");
+	      if(n_tmp != std::string::npos)
+		{
+		  numb.erase(0, n_tmp + std::string("number=").size());
+		  n_tmp = numb.find("\"");
+		  if(n_tmp != std::string::npos)
+		    {
+		      numb.erase(0, n_tmp + std::string("\"").size());
+		      numb = numb.substr(0, numb.find("\""));
 		    }
 		  else
 		    {
-		      n = value.find("\'");
-		      if(n != std::string::npos)
+		      n_tmp = numb.find("\'");
+		      if(n_tmp != std::string::npos)
 			{
-			  value.erase(0, n + std::string("\'").size());
-			  value = value.substr(0, value.find("\'"));
-			  date = value;
+			  numb.erase(0, n_tmp + std::string("\'").size());
+			  numb = numb.substr(0, numb.find("\'"));
 			}
 		    }
 		}
 	      else
 		{
-		  value.erase(0, value.find(">") + std::string(">").size());
-		  value = value.substr(0, value.find("</date>"));
+		  numb.clear();
+		}
+	      if(sequence_str.empty())
+		{
+		  sequence_str = sequence;
+		  if(!numb.empty())
+		    {
+		      sequence_str = sequence_str + " " + numb;
+		    }
+		}
+	      else
+		{
+		  sequence_str = sequence_str + ", " + sequence;
+		  if(!numb.empty())
+		    {
+		      sequence_str = sequence_str + " " + numb;
+		    }
+		}
+	    }
+	}
+      std::string date = headstr;
+      n = date.find("<date");
+      std::string::size_type n_tmp;
+      n_tmp = date.find("<date/");
+      if(n != std::string::npos && n_tmp == std::string::npos)
+	{
+	  date.erase(0, n);
+	  date = date.substr(
+	      0, date.find("</date>") + std::string("</date>").size());
+	  std::string value = date;
+	  n = value.find("vlaue=");
+	  if(n != std::string::npos)
+	    {
+	      value.erase(0, n + std::string("value=").size());
+	      n = value.find("\"");
+	      if(n != std::string::npos)
+		{
+		  value.erase(0, n + std::string("\"").size());
+		  value = value.substr(0, value.find("\""));
 		  date = value;
+		}
+	      else
+		{
+		  n = value.find("\'");
+		  if(n != std::string::npos)
+		    {
+		      value.erase(0, n + std::string("\'").size());
+		      value = value.substr(0, value.find("\'"));
+		      date = value;
+		    }
 		}
 	    }
 	  else
 	    {
-	      date = "";
+	      value.erase(0, value.find(">") + std::string(">").size());
+	      value = value.substr(0, value.find("</date>"));
+	      date = value;
 	    }
-	  std::tuple<std::string, std::string> restup;
-	  std::get<0>(restup) = "Author";
-	  std::get<1>(restup) = auth_str;
-	  result.push_back(restup);
-	  std::get<0>(restup) = "Book";
-	  std::get<1>(restup) = booktitle;
-	  result.push_back(restup);
-	  std::get<0>(restup) = "Series";
-	  std::get<1>(restup) = sequence_str;
-	  result.push_back(restup);
-	  std::get<0>(restup) = "Genre";
-	  std::get<1>(restup) = genre_str;
-	  result.push_back(restup);
-	  std::get<0>(restup) = "Date";
-	  std::get<1>(restup) = date;
-	  result.push_back(restup);
 	}
+      else
+	{
+	  date.clear();
+	}
+      std::tuple<std::string, std::string> restup;
+      std::get<0>(restup) = "Author";
+      std::get<1>(restup) = auth_str;
+      result.push_back(restup);
+      std::get<0>(restup) = "Book";
+      std::get<1>(restup) = booktitle;
+      result.push_back(restup);
+      std::get<0>(restup) = "Series";
+      std::get<1>(restup) = sequence_str;
+      result.push_back(restup);
+      std::get<0>(restup) = "Genre";
+      std::get<1>(restup) = genre_str;
+      result.push_back(restup);
+      std::get<0>(restup) = "Date";
+      std::get<1>(restup) = date;
+      result.push_back(restup);
     }
   return result;
 }
@@ -1082,7 +1051,7 @@ CreateCollection::fb2Parser(std::string input)
   std::string headstr = input;
   std::vector<std::tuple<std::string, std::string>> result;
   std::string::size_type n = 0;
-  std::string conv_name = "";
+  std::string conv_name;
   conv_name = headstr;
   n = conv_name.find("<?xml");
   if(n != std::string::npos)
@@ -1114,12 +1083,12 @@ CreateCollection::fb2Parser(std::string input)
 	}
       else
 	{
-	  conv_name = "";
+	  conv_name.clear();
 	}
     }
   else
     {
-      conv_name = "";
+      conv_name.clear();
     }
   if(!conv_name.empty())
     {
@@ -1128,7 +1097,7 @@ CreateCollection::fb2Parser(std::string input)
   headstr.erase(0, headstr.find("<description"));
   headstr = headstr.substr(
       0, headstr.find("</description>") + std::string("</description>").size());
-  std::string genre_str = "";
+  std::string genre_str;
   n = 0;
   while(n != std::string::npos)
     {
@@ -1161,7 +1130,7 @@ CreateCollection::fb2Parser(std::string input)
       docinfo.find("</document-info>") + std::string("<document-info>").size());
   headstr.erase(headstr.find(docinfo), docinfo.size());
 
-  std::string auth_str = "";
+  std::string auth_str;
   n = 0;
   while(n != std::string::npos)
     {
@@ -1250,9 +1219,9 @@ CreateCollection::fb2Parser(std::string input)
     }
   else
     {
-      booktitle = "";
+      booktitle.clear();
     }
-  std::string sequence_str = "";
+  std::string sequence_str;
   n = 0;
   while(n != std::string::npos)
     {
@@ -1305,7 +1274,7 @@ CreateCollection::fb2Parser(std::string input)
 	    }
 	  else
 	    {
-	      numb = "";
+	      numb.clear();
 	    }
 	  if(sequence_str.empty())
 	    {
@@ -1366,7 +1335,7 @@ CreateCollection::fb2Parser(std::string input)
     }
   else
     {
-      date = "";
+      date.clear();
     }
   std::tuple<std::string, std::string> restup;
   std::string::size_type space_n = 0;
@@ -1449,7 +1418,7 @@ CreateCollection::epubparser(std::filesystem::path input)
 		      f.close();
 
 		      std::string::size_type n;
-		      std::string conv_name = "";
+		      std::string conv_name;
 		      conv_name = file_str;
 		      n = conv_name.find("<?xml");
 		      if(n != std::string::npos)
@@ -1489,12 +1458,12 @@ CreateCollection::epubparser(std::filesystem::path input)
 			    }
 			  else
 			    {
-			      conv_name = "";
+			      conv_name.clear();
 			    }
 			}
 		      else
 			{
-			  conv_name = "";
+			  conv_name.clear();
 			}
 		      if(!conv_name.empty())
 			{
@@ -1621,7 +1590,7 @@ CreateCollection::epubparser(std::filesystem::path input)
 		      std::get<1>(restup) = booktitle;
 		      result.push_back(restup);
 		      std::get<0>(restup) = "Series";
-		      std::get<1>(restup) = "";
+		      std::get<1>(restup).clear();
 		      result.push_back(restup);
 		      std::get<0>(restup) = "Genre";
 		      std::get<1>(restup) = genre_str;

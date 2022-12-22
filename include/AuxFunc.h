@@ -24,6 +24,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <vector>
 #include <unicode/ucnv.h>
 #include <unicode/unistr.h>
@@ -61,6 +62,9 @@ public:
   stringToLower(std::string &line);
   std::vector<char>
   filehash(std::filesystem::path filepath);
+  std::vector<char>
+  filehash(std::filesystem::path filepath, std::function<void
+  (uint64_t)> progress);
   std::string
   to_hex(std::vector<char> *source);
   std::string

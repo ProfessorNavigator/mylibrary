@@ -36,7 +36,27 @@ RefreshCollection::startRefreshing()
 {
   std::string bookpath = readList();
   readColl(bookpath);
-  collRefresh();
+  for(;;)
+    {
+      run_thrmtx.lock();
+      if(run_thr == 0)
+	{
+	  break;
+	}
+      run_thrmtx.unlock();
+      usleep(100);
+    }
+  if(*cancel != 1)
+    {
+      collRefresh();
+    }
+  else
+    {
+      if(refresh_canceled)
+	{
+	  refresh_canceled();
+	}
+    }
 }
 
 std::string
@@ -190,10 +210,6 @@ RefreshCollection::readColl(std::string bookpath)
 	{
 	  if(*cancel == 1)
 	    {
-	      if(refresh_canceled)
-		{
-		  refresh_canceled();
-		}
 	      return void();
 	    }
 	  std::filesystem::path p = dirit.path();
@@ -240,127 +256,93 @@ RefreshCollection::readColl(std::string bookpath)
     }
   if(total_hash)
     {
-      total_hash(static_cast<int>(fb2.size() + epub.size() + zip.size()));
+      uint64_t sz = 0;
+      for(size_t i = 0; i < fb2.size(); i++)
+	{
+	  sz = sz + std::filesystem::file_size(fb2[i]);
+	}
+      for(size_t i = 0; i < epub.size(); i++)
+	{
+	  sz = sz + std::filesystem::file_size(epub[i]);
+	}
+      for(size_t i = 0; i < zip.size(); i++)
+	{
+	  sz = sz + std::filesystem::file_size(std::get<0>(zip[i]));
+	}
+      total_hash(sz);
     }
-  size_t total_hashed = 0;
+
   for(size_t i = 0; i < fb2.size(); i++)
     {
       if(*cancel == 1)
 	{
-	  if(refresh_canceled)
-	    {
-	      refresh_canceled();
-	    }
 	  return void();
 	}
       std::filesystem::path p = fb2[i];
-      std::vector<char> hash = af.filehash(p);
-      std::string hex_hash = af.to_hex(&hash);
-      auto itsh = std::find_if(
-	  saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
-	  (auto &el)
-	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
-		{
-		  return true;
-		}
-	      else
-		{
-		  return false;
-		}
-	    });
-      if(itsh == saved_hashes.end())
+      cmtx.lock();
+      std::thread *thr = new std::thread(
+	  std::bind(&RefreshCollection::fb2ThrFunc, this, p));
+      run_thrmtx.lock();
+      run_thr++;
+      thr->detach();
+      delete thr;
+      if(run_thr < thr_num)
 	{
-	  fb2parse.push_back(p);
+	  cmtx.try_lock();
+	  cmtx.unlock();
 	}
-      total_hashed++;
-      if(files_added)
-	{
-	  files_added(static_cast<int>(total_hashed));
-	}
+      run_thrmtx.unlock();
     }
 
   for(size_t i = 0; i < epub.size(); i++)
     {
       if(*cancel == 1)
 	{
-	  if(refresh_canceled)
-	    {
-	      refresh_canceled();
-	    }
 	  return void();
 	}
       std::filesystem::path p = epub[i];
-      std::vector<char> hash = af.filehash(p);
-      std::string hex_hash = af.to_hex(&hash);
-      auto itsh = std::find_if(
-	  saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
-	  (auto &el)
-	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
-		{
-		  return true;
-		}
-	      else
-		{
-		  return false;
-		}
-	    });
-      if(itsh == saved_hashes.end())
+      cmtx.lock();
+      std::thread *thr = new std::thread(
+	  std::bind(&RefreshCollection::epubThrFunc, this, p));
+      run_thrmtx.lock();
+      run_thr++;
+      thr->detach();
+      delete thr;
+      if(run_thr < thr_num)
 	{
-	  epubparse.push_back(p);
+	  cmtx.try_lock();
+	  cmtx.unlock();
 	}
-      total_hashed++;
-      if(files_added)
-	{
-	  files_added(static_cast<int>(total_hashed));
-	}
+      run_thrmtx.unlock();
     }
 
   for(size_t i = 0; i < zip.size(); i++)
     {
       if(*cancel == 1)
 	{
-	  if(refresh_canceled)
-	    {
-	      refresh_canceled();
-	    }
 	  return void();
 	}
-      std::filesystem::path p = std::get<0>(zip[i]);
-      std::vector<char> hash = af.filehash(p);
-      std::string hex_hash = af.to_hex(&hash);
-      auto itsh = std::find_if(
-	  saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
-	  (auto &el)
-	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
-		{
-		  return true;
-		}
-	      else
-		{
-		  return false;
-		}
-	    });
-      if(itsh == saved_hashes.end())
+      std::tuple<std::filesystem::path,
+	  std::vector<std::tuple<int, int, std::string>>> ziptup;
+      ziptup = zip[i];
+      cmtx.lock();
+      std::thread *thr = new std::thread(
+	  std::bind(&RefreshCollection::zipThrFunc, this, ziptup));
+      run_thrmtx.lock();
+      run_thr++;
+      thr->detach();
+      delete thr;
+      if(run_thr < thr_num)
 	{
-	  zipparse.push_back(std::make_tuple(p, std::get<1>(zip[i])));
+	  cmtx.try_lock();
+	  cmtx.unlock();
 	}
-      total_hashed++;
-      if(files_added)
-	{
-	  files_added(static_cast<int>(total_hashed));
-	}
+      run_thrmtx.unlock();
     }
   for(size_t i = 0; i < saved_hashes.size(); i++)
     {
       if(*cancel == 1)
 	{
-	  if(refresh_canceled)
-	    {
-	      refresh_canceled();
-	    }
 	  return void();
 	}
       std::filesystem::path p = std::get<0>(saved_hashes[i]);
@@ -401,6 +383,138 @@ RefreshCollection::readColl(std::string bookpath)
 	    }
 	}
     }
+}
+
+void
+RefreshCollection::fb2ThrFunc(std::filesystem::path p)
+{
+  AuxFunc af;
+  std::vector<char> hash;
+  if(byte_hashed)
+    {
+      hash = af.filehash(p, byte_hashed);
+    }
+  else
+    {
+      hash = af.filehash(p);
+    }
+  std::string hex_hash = af.to_hex(&hash);
+  auto itsh = std::find_if(
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      (auto &el)
+	{
+	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	    {
+	      return true;
+	    }
+	  else
+	    {
+	      return false;
+	    }
+	});
+  if(itsh == saved_hashes.end())
+    {
+      fb2parsemtx.lock();
+      fb2parse.push_back(p);
+      fb2parsemtx.unlock();
+    }
+  run_thrmtx.lock();
+  run_thr = run_thr - 1;
+  if(run_thr < thr_num)
+    {
+      cmtx.try_lock();
+      cmtx.unlock();
+    }
+  run_thrmtx.unlock();
+}
+
+void
+RefreshCollection::epubThrFunc(std::filesystem::path p)
+{
+  AuxFunc af;
+  std::vector<char> hash;
+  if(byte_hashed)
+    {
+      hash = af.filehash(p, byte_hashed);
+    }
+  else
+    {
+      hash = af.filehash(p);
+    }
+  std::string hex_hash = af.to_hex(&hash);
+  auto itsh = std::find_if(
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      (auto &el)
+	{
+	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	    {
+	      return true;
+	    }
+	  else
+	    {
+	      return false;
+	    }
+	});
+  if(itsh == saved_hashes.end())
+    {
+      epubparsemtx.lock();
+      epubparse.push_back(p);
+      epubparsemtx.unlock();
+    }
+  run_thrmtx.lock();
+  run_thr = run_thr - 1;
+  if(run_thr < thr_num)
+    {
+      cmtx.try_lock();
+      cmtx.unlock();
+    }
+  run_thrmtx.unlock();
+}
+
+void
+RefreshCollection::zipThrFunc(
+    std::tuple<std::filesystem::path,
+	std::vector<std::tuple<int, int, std::string>>> ziptup)
+{
+  AuxFunc af;
+  std::vector<char> hash;
+  std::filesystem::path p = std::get<0>(ziptup);
+  if(byte_hashed)
+    {
+      hash = af.filehash(p, byte_hashed);
+    }
+  else
+    {
+      hash = af.filehash(p);
+    }
+  std::string hex_hash = af.to_hex(&hash);
+  auto itsh = std::find_if(
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      (auto &el)
+	{
+	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	    {
+	      return true;
+	    }
+	  else
+	    {
+	      return false;
+	    }
+	});
+  if(itsh == saved_hashes.end())
+    {
+      zipparsemtx.lock();
+      zipparse.push_back(std::make_tuple(p, std::get<1>(ziptup)));
+      zipparsemtx.unlock();
+    }
+  run_thrmtx.lock();
+  run_thr = run_thr - 1;
+  if(run_thr < thr_num)
+    {
+      cmtx.try_lock();
+      cmtx.unlock();
+    }
+  run_thrmtx.unlock();
 }
 
 void

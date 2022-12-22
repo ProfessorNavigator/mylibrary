@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2022-12-21 19:08+0400\n"
-"PO-Revision-Date: 2022-12-21 19:09+0400\n"
+"POT-Creation-Date: 2022-12-22 18:05+0400\n"
+"PO-Revision-Date: 2022-12-22 18:05+0400\n"
 "Last-Translator: Юрий Бобылев\n"
 "Language-Team: Юрий Бобылев\n"
 "Language: ru\n"
@@ -60,8 +60,8 @@ msgstr "Путь до коллекции пуст!"
 msgid "Export path is empty!"
 msgstr "Путь для экспорта пуст!"
 
-#: AuxWindows.cpp:79 CollectionOpWindows.cpp:610 CollectionOpWindows.cpp:628
-#: CollectionOpWindows.cpp:975 CollectionOpWindows.cpp:1175 MainWindow.cpp:885
+#: AuxWindows.cpp:79 CollectionOpWindows.cpp:612 CollectionOpWindows.cpp:630
+#: CollectionOpWindows.cpp:1011 CollectionOpWindows.cpp:1211 MainWindow.cpp:885
 #: MainWindow.cpp:901
 msgid "Close"
 msgstr "Закрыть"
@@ -87,22 +87,16 @@ msgid "Remove selected book from book-marks"
 msgstr "Удалить выбранную книгу из закладок"
 
 #: AuxWindows.cpp:291
-msgid ""
-"MyLibrary is a home librarian\n"
-"Author Yury Bobylev <bobilev_yury@mail.ru>.\n"
-"Program uses next libraries:\n"
-"GTK https://www.gtk.org\n"
-"libzip https://libzip.org\n"
-"libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-"ICU https://icu.unicode.org"
-msgstr ""
-"MyLibrary - программа для каталогизации домашней библиотеки\n"
-"Автор Юрий Бобылев <bobilev_yury@mail.ru>.\n"
-"В программе используются следующие библиотеки:\n"
-"GTK https://www.gtk.org\n"
-"libzip https://libzip.org\n"
-"libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-"ICU https://icu.unicode.org"
+msgid "MyLibrary is a home librarian"
+msgstr "MyLibrary - домашний библиотекарь"
+
+#: AuxWindows.cpp:292
+msgid "Author Yury Bobylev"
+msgstr "Автор Юрий Бобылев"
+
+#: AuxWindows.cpp:294
+msgid "Program uses next libraries:"
+msgstr "В программе используются следующие библиотеки:"
 
 #: BookOpWindows.cpp:50 CreateLeftGrid.cpp:241
 msgid "Search"
@@ -114,8 +108,8 @@ msgstr "Идёт поиск..."
 
 #: BookOpWindows.cpp:68 CollectionOpWindows.cpp:155 CollectionOpWindows.cpp:343
 #: CollectionOpWindows.cpp:518 CollectionOpWindows.cpp:525
-#: CollectionOpWindows.cpp:590 CollectionOpWindows.cpp:794
-#: CollectionOpWindows.cpp:1046 MainWindow.cpp:254 MainWindow.cpp:647
+#: CollectionOpWindows.cpp:590 CollectionOpWindows.cpp:830
+#: CollectionOpWindows.cpp:1082 MainWindow.cpp:254 MainWindow.cpp:647
 #: MainWindow.cpp:807 MainWindow.cpp:868
 msgid "Cancel"
 msgstr "Отмена"
@@ -200,7 +194,7 @@ msgstr "Вы уверены?"
 msgid "Collection"
 msgstr "Коллекция"
 
-#: CollectionOpWindows.cpp:273 CollectionOpWindows.cpp:724
+#: CollectionOpWindows.cpp:273 CollectionOpWindows.cpp:760
 msgid "Collection name:"
 msgstr "Имя коллекции:"
 
@@ -209,7 +203,7 @@ msgid "Path to directory with books:"
 msgstr "Путь к папке с книгами:"
 
 #: CollectionOpWindows.cpp:298 CollectionOpWindows.cpp:518
-#: CollectionOpWindows.cpp:749 CollectionOpWindows.cpp:772 MainWindow.cpp:807
+#: CollectionOpWindows.cpp:785 CollectionOpWindows.cpp:808 MainWindow.cpp:807
 msgid "Open"
 msgstr "Открыть"
 
@@ -225,11 +219,11 @@ msgstr "Папка с книгами"
 msgid "Path to collection"
 msgstr "Путь до файлов коллекции"
 
-#: CollectionOpWindows.cpp:511 CollectionOpWindows.cpp:1028
+#: CollectionOpWindows.cpp:511 CollectionOpWindows.cpp:1064
 msgid "Export as..."
 msgstr "Экспортировать как..."
 
-#: CollectionOpWindows.cpp:524 CollectionOpWindows.cpp:1037
+#: CollectionOpWindows.cpp:524 CollectionOpWindows.cpp:1073
 msgid "Export"
 msgstr "Экспорт"
 
@@ -241,47 +235,47 @@ msgstr "Хеширование файлов..."
 msgid "Collection refreshing canceled"
 msgstr "Обновление коллекции прекращено"
 
-#: CollectionOpWindows.cpp:625
+#: CollectionOpWindows.cpp:627
 msgid "Collection refreshing finished"
 msgstr "Обновление коллекции выполнено"
 
-#: CollectionOpWindows.cpp:653
+#: CollectionOpWindows.cpp:686
 msgid "Collection refreshing..."
 msgstr "Обновление коллекции..."
 
-#: CollectionOpWindows.cpp:712
+#: CollectionOpWindows.cpp:748
 msgid "Collection import"
 msgstr "Импорт коллекции"
 
-#: CollectionOpWindows.cpp:735
+#: CollectionOpWindows.cpp:771
 msgid "Path to collection files:"
 msgstr "Путь до файлов коллекции:"
 
-#: CollectionOpWindows.cpp:758
+#: CollectionOpWindows.cpp:794
 msgid "Path to books:"
 msgstr "Путь к папке с книгами:"
 
-#: CollectionOpWindows.cpp:781 MainWindow.cpp:96
+#: CollectionOpWindows.cpp:817 MainWindow.cpp:96
 msgid "Import collection"
 msgstr "Импортировать коллекцию"
 
-#: CollectionOpWindows.cpp:969
+#: CollectionOpWindows.cpp:1005
 msgid "Collection has been imported"
 msgstr "Коллекция импортирована"
 
-#: CollectionOpWindows.cpp:989 MainWindow.cpp:101
+#: CollectionOpWindows.cpp:1025 MainWindow.cpp:101
 msgid "Export collection"
 msgstr "Экспортировать коллекцию"
 
-#: CollectionOpWindows.cpp:1001
+#: CollectionOpWindows.cpp:1037
 msgid "Collection for export: "
 msgstr "Коллекция для экспорта: "
 
-#: CollectionOpWindows.cpp:1014
+#: CollectionOpWindows.cpp:1050
 msgid "Export as: "
 msgstr "Экспортировать как: "
 
-#: CollectionOpWindows.cpp:1169
+#: CollectionOpWindows.cpp:1205
 msgid "Collection has been exported"
 msgstr "Коллекция экспортирована"
 
@@ -835,6 +829,23 @@ msgstr "Добавление книги прекращено"
 #: MainWindow.cpp:900
 msgid "Book adding finished"
 msgstr "Книга добавлена"
+
+#~ msgid ""
+#~ "MyLibrary is a home librarian\n"
+#~ "Author Yury Bobylev <bobilev_yury@mail.ru>.\n"
+#~ "Program uses next libraries:\n"
+#~ "GTK https://www.gtk.org\n"
+#~ "libzip https://libzip.org\n"
+#~ "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+#~ "ICU https://icu.unicode.org"
+#~ msgstr ""
+#~ "MyLibrary - программа для каталогизации домашней библиотеки\n"
+#~ "Автор Юрий Бобылев <bobilev_yury@mail.ru>.\n"
+#~ "В программе используются следующие библиотеки:\n"
+#~ "GTK https://www.gtk.org\n"
+#~ "libzip https://libzip.org\n"
+#~ "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+#~ "ICU https://icu.unicode.org"
 
 #~ msgid "fb2 books & zip archives"
 #~ msgstr "Книги в формате fb2 и zip архивы"

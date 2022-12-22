@@ -361,6 +361,12 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 					  Gtk::Entry *thr_ent,
 					  Gtk::Window *par_win)
 {
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(par_win->get_child());
+  Gtk::Button *cr_but = dynamic_cast<Gtk::Button*>(gr->get_child_at(0, 5));
+  Gtk::Button *cncl_but = dynamic_cast<Gtk::Button*>(gr->get_child_at(1, 5));
+  cr_but->set_sensitive(false);
+  cncl_but->set_sensitive(false);
+  par_win->set_deletable(false);
   Glib::RefPtr<Gtk::EntryBuffer> buf_coll = coll_ent->get_buffer();
   std::string coll_nm(buf_coll->get_text());
   Glib::RefPtr<Gtk::EntryBuffer> buf_path = path_ent->get_buffer();
@@ -379,11 +385,17 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
   if(coll_nm.empty())
     {
       mw->errorWin(0, par_win, nullptr);
+      cr_but->set_sensitive(true);
+      cncl_but->set_sensitive(true);
+      par_win->set_deletable(true);
       return void();
     }
   if(filename.empty())
     {
       mw->errorWin(1, par_win, nullptr);
+      cr_but->set_sensitive(true);
+      cncl_but->set_sensitive(true);
+      par_win->set_deletable(true);
       return void();
     }
 
@@ -397,9 +409,12 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
   int *totfiles = new int(0);
   int *progr = new int(0);
   MainWindow *mwl = mw;
-  disp_colexists->connect([mwl, par_win]
+  disp_colexists->connect([mwl, par_win, cr_but, cncl_but]
   {
     mwl->errorWin(3, par_win, nullptr);
+    cr_but->set_sensitive(true);
+    cncl_but->set_sensitive(true);
+    par_win->set_deletable(true);
   });
   disp_finished->connect(
       [crcol, disp_finished, mwl, par_win, totfiles, progr, disp_canceled,
@@ -602,11 +617,13 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher;
 
   disp_cancel->connect(
-      [lab, con, cancel, window, mwl]
+      [lab, con, cancel, window, mwl, prgb]
       {
 	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing canceled"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
 	cancel->set_label(gettext("Close"));
 	cancel->signal_clicked().connect(
 	    sigc::mem_fun(*window, &Gtk::Window::close));
@@ -634,19 +651,50 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     disp_finished->emit();
   };
 
-  double *totf = new double(0);
-  double *added = new double(0.0);
+  uint64_t *tothsh = new uint64_t(0);
+  uint64_t *hashed = new uint64_t(0);
   Glib::Dispatcher *disp_tothash = new Glib::Dispatcher;
   disp_tothash->connect([prgb]
   {
     prgb->set_fraction(0.0);
   });
-  rc->total_hash = [totf]
-  (int tot)
+  rc->total_hash = [tothsh]
+  (uint64_t tot)
     {
-      *totf = static_cast<double>(tot);
+      *tothsh = tot;
+    };
+  Glib::Dispatcher *disp_hashed = new Glib::Dispatcher;
+  disp_hashed->connect([tothsh, hashed, prgb]
+  {
+    mpf_set_default_prec(128);
+    mpz_t tot;
+    mpz_init(tot);
+    mpz_set_ui(tot, *tothsh);
+    mpf_t totd;
+    mpf_init(totd);
+    mpf_set_z(totd, tot);
+    mpf_class tot_mpf(totd);
+
+    mpz_t hsh;
+    mpz_init(hsh);
+    mpz_set_ui(hsh, *hashed);
+    mpf_t hshd;
+    mpf_init(hshd);
+    mpf_set_z(hshd, hsh);
+    mpf_class hsh_mpf(hshd);
+
+    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
+  });
+
+  rc->byte_hashed = [hashed, disp_hashed]
+  (uint64_t hsh)
+    {
+      *hashed = *hashed + hsh;
+      disp_hashed->emit();
     };
 
+  double *totf = new double(0.0);
+  double *added = new double(0.0);
   Glib::Dispatcher *disp_totalfiles = new Glib::Dispatcher;
   disp_totalfiles->connect([prgb, lab]
   {
@@ -675,15 +723,18 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 
   window->signal_close_request().connect(
       [window, rc, con, disp_cancel, disp_finished, disp_tothash,
-       disp_totalfiles, disp_progr, totf, added]
+       disp_totalfiles, disp_hashed, tothsh, hashed, disp_progr, totf, added]
       {
 	delete rc;
 	delete con;
 	delete disp_cancel;
 	delete disp_finished;
 	delete disp_tothash;
+	delete disp_hashed;
 	delete disp_totalfiles;
 	delete disp_progr;
+	delete tothsh;
+	delete hashed;
 	delete totf;
 	delete added;
 	window->hide();

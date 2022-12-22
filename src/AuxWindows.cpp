@@ -288,13 +288,16 @@ AuxWindows::aboutProg()
   filename = p.parent_path().u8string() + "/../share/MyLibrary/mylibrary.png";
   Glib::RefPtr<Gio::File> logofile = Gio::File::create_for_path(filename);
   aboutd->set_logo(Gdk::Texture::create_from_file(logofile));
-  abbuf = gettext("MyLibrary is a home librarian\n"
-		  "Author Yury Bobylev <bobilev_yury@mail.ru>.\n"
-		  "Program uses next libraries:\n"
-		  "GTK https://www.gtk.org\n"
-		  "libzip https://libzip.org\n"
-		  "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-		  "ICU https://icu.unicode.org");
+  abbuf = Glib::ustring(gettext("MyLibrary is a home librarian"))
+      + Glib::ustring("\n") + Glib::ustring(gettext("Author Yury Bobylev"))
+      + Glib::ustring(" <bobilev_yury@mail.ru>.\n")
+      + Glib::ustring(gettext("Program uses next libraries:"))
+      + Glib::ustring("\n"
+		      "GTK https://www.gtk.org\n"
+		      "libzip https://libzip.org\n"
+		      "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+		      "ICU https://icu.unicode.org\n"
+		      "GMP https://gmplib.org/");
   aboutd->set_comments(abbuf);
 
   aboutd->signal_close_request().connect([aboutd]

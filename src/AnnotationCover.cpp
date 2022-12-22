@@ -39,8 +39,7 @@ AnnotationCover::fileRead()
       std::string ext = filepath.extension().u8string();
       AuxFunc af;
       af.stringToLower(ext);
-      if(std::filesystem::file_size(filepath) <= 104857600
-	  && ext != ".epub")
+      if(std::filesystem::file_size(filepath) <= 104857600 && ext != ".epub")
 	{
 	  std::fstream f;
 	  f.open(filepath, std::ios_base::in | std::ios_base::binary);
@@ -295,12 +294,12 @@ AnnotationCover::annotationRet()
 	    }
 	  else
 	    {
-	      conv_name = "";
+	      conv_name.clear();
 	    }
 	}
       else
 	{
-	  conv_name = "";
+	  conv_name.clear();
 	}
       result = file;
       if(!conv_name.empty())
@@ -309,9 +308,16 @@ AnnotationCover::annotationRet()
 	  af.toutf8(result, conv_name);
 	}
 
-      result.erase(
-	  0, result.find("<annotation>") + std::string("<annotation>").size());
-      result = result.substr(0, result.find("</annotation>"));
+      n = result.find("<annotation>");
+      if(n != std::string::npos)
+	{
+	  result.erase(0, n + std::string("<annotation>").size());
+	  result = result.substr(0, result.find("</annotation>"));
+	}
+      else
+	{
+	  result.clear();
+	}
       n = result.find("<p>");
       if(n != std::string::npos)
 	{
@@ -449,12 +455,12 @@ AnnotationCover::annotationEpub()
 	}
       else
 	{
-	  conv_name = "";
+	  conv_name.clear();
 	}
     }
   else
     {
-      conv_name = "";
+      conv_name.clear();
     }
   result = file;
   if(!conv_name.empty())
@@ -462,10 +468,16 @@ AnnotationCover::annotationEpub()
       AuxFunc af;
       af.toutf8(result, conv_name);
     }
-  result.erase(
-      0,
-      result.find("<dc:description>") + std::string("<dc:description>").size());
-  result = result.substr(0, result.find("</dc:description>"));
+  n = result.find("<dc:description>");
+  if(n != std::string::npos)
+    {
+      result.erase(0, n + std::string("<dc:description>").size());
+      result = result.substr(0, result.find("</dc:description>"));
+    }
+  else
+    {
+      result.clear();
+    }
 
   return result;
 }
@@ -507,12 +519,12 @@ AnnotationCover::coverEpub()
 	}
       else
 	{
-	  conv_name = "";
+	  conv_name.clear();
 	}
     }
   else
     {
-      conv_name = "";
+      conv_name.clear();
     }
   result = file;
   if(!conv_name.empty())
@@ -521,7 +533,7 @@ AnnotationCover::coverEpub()
       af.toutf8(result, conv_name);
     }
   std::string line = result;
-  result = "";
+  result.clear();
   n = 0;
   std::string cover;
   while(n != std::string::npos)
@@ -598,7 +610,7 @@ AnnotationCover::coverEpub()
 	}
     }
   cover = result;
-  result = "";
+  result.clear();
   if(!cover.empty() && list.size() > 0)
     {
       auto itl = std::find_if(list.begin(), list.end(), [cover]

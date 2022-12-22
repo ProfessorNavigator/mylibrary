@@ -27,6 +27,9 @@
 #include <tuple>
 #include <algorithm>
 #include <functional>
+#include <thread>
+#include <mutex>
+#include <unistd.h>
 #include "CreateCollection.h"
 #include "AuxFunc.h"
 
@@ -42,8 +45,10 @@ public:
   ()> refresh_finished;
   std::function<void
   (int)> total_files;
-  std::function<void(int)>
-  total_hash;
+  std::function<void
+  (uint64_t)> total_hash;
+  std::function<void
+  (uint64_t)> byte_hashed;
   std::function<void
   (int)> files_added;
   void
@@ -59,19 +64,33 @@ private:
   readColl(std::string bookpath);
   void
   collRefresh();
+  void
+  fb2ThrFunc(std::filesystem::path p);
+  void
+  epubThrFunc(std::filesystem::path p);
+  void
+  zipThrFunc(
+      std::tuple<std::filesystem::path,
+	  std::vector<std::tuple<int, int, std::string>>> ziptup);
 
   std::string collname;
   int *cancel = nullptr;
   std::vector<std::tuple<std::filesystem::path, std::string>> saved_hashes;
   std::vector<std::filesystem::path> fb2parse;
+  std::mutex fb2parsemtx;
   std::vector<std::filesystem::path> epubparse;
+  std::mutex epubparsemtx;
   std::vector<
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>>> zipparse;
+  std::mutex zipparsemtx;
   std::vector<std::filesystem::path> fb2remove;
   std::vector<std::filesystem::path> zipremove;
   std::vector<std::filesystem::path> epubremove;
   unsigned int thr_num = 1;
+  unsigned int run_thr = 0;
+  std::mutex run_thrmtx;
+  std::mutex cmtx;
 };
 
 #endif /* REFRESHCOLLECTION_H_ */

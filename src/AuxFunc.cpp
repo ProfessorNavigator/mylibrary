@@ -365,6 +365,72 @@ AuxFunc::filehash(std::filesystem::path filepath)
     }
 }
 
+std::vector<char>
+AuxFunc::filehash(std::filesystem::path filepath, std::function<void
+(uint64_t)> progress)
+{
+  if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
+    {
+      gcry_check_version(NULL);
+      gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+    }
+  if(std::filesystem::exists(filepath))
+    {
+      uintmax_t fsz = std::filesystem::file_size(filepath);
+      std::fstream f;
+      std::vector<char> F;
+      uintmax_t readb = 0;
+      gcry_error_t err;
+      gcry_md_hd_t hd;
+      err = gcry_md_open(&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_SECURE);
+      if(err != 0)
+	{
+	  std::cerr << gcry_strerror(err) << std::endl;
+	}
+      f.open(filepath, std::ios_base::in | std::ios_base::binary);
+      for(;;)
+	{
+	  if(readb + 104857600 < fsz)
+	    {
+	      F.resize(104857600);
+	      f.read(&F[0], 104857600);
+	      readb = readb + 104857600;
+	      gcry_md_write(hd, &F[0], F.size());
+	    }
+	  else
+	    {
+	      int left = fsz - readb;
+	      F.resize(left);
+	      f.read(&F[0], left);
+	      readb = readb + left;
+	      gcry_md_write(hd, &F[0], F.size());
+	    }
+	  if(progress)
+	    {
+	      progress(static_cast<uint64_t>(readb));
+	    }
+	  if(readb >= fsz)
+	    {
+	      break;
+	    }
+	}
+      f.close();
+      size_t len = gcry_md_get_algo_dlen(GCRY_MD_SHA256);
+      char *buf = reinterpret_cast<char*>(gcry_md_read(hd, GCRY_MD_SHA256));
+      std::vector<char> result;
+      result.insert(result.begin(), buf, buf + len);
+      gcry_md_close(hd);
+      return result;
+    }
+  else
+    {
+      std::cerr << "File for hashing not exists" << std::endl;
+      std::vector<char> result
+	{ 'e', 'r', 'r', 'o', 'r' };
+      return result;
+    }
+}
+
 std::string
 AuxFunc::to_hex(std::vector<char> *source)
 {
@@ -374,7 +440,7 @@ AuxFunc::to_hex(std::vector<char> *source)
   std::stringstream strm;
   std::locale loc("C");
   strm.imbue(loc);
-  while (count < locsource.size())
+  while(count < locsource.size())
     {
       uint64_t a;
       if(count + sizeof(a) <= locsource.size())
@@ -386,7 +452,7 @@ AuxFunc::to_hex(std::vector<char> *source)
 	  std::vector<char> tmp;
 	  tmp.resize(locsource.size() - count);
 	  std::memcpy(&tmp[0], &locsource[count], locsource.size() - count);
-	  while (tmp.size() < sizeof(a))
+	  while(tmp.size() < sizeof(a))
 	    {
 	      tmp.push_back('0');
 	    }
