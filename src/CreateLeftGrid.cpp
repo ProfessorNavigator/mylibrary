@@ -279,7 +279,7 @@ CreateLeftGrid::formLeftGrid()
 	booknm_ent->set_text("");
 	ser_ent->set_text("");
 
-	widg = right_grid->get_child_at(0, 1);
+	widg = right_grid->get_child_at(0, 2);
 	Gtk::ScrolledWindow *annot_scrl =
 	    dynamic_cast<Gtk::ScrolledWindow*>(widg);
 	widg = annot_scrl->get_child();
@@ -288,7 +288,7 @@ CreateLeftGrid::formLeftGrid()
 	Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
 	tb->set_text("");
 
-	widg = right_grid->get_child_at(1, 1);
+	widg = right_grid->get_child_at(1, 2);
 	Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
 
 	drar->set_opacity(0.0);

@@ -35,13 +35,16 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
   window->set_title(gettext("Message"));
   window->set_transient_for(*par_win);
   window->set_modal(true);
+  window->set_default_size(1, 1);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::CENTER);
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::CENTER);
   window->set_child(*grid);
 
   Gtk::Label *warn_lab = Gtk::make_managed<Gtk::Label>();
   warn_lab->set_halign(Gtk::Align::CENTER);
+  warn_lab->set_valign(Gtk::Align::CENTER);
   warn_lab->set_margin(5);
   if(type == 0)
     {
@@ -71,6 +74,22 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
     {
       warn_lab->set_text(gettext("Export path is empty!"));
     }
+  if(type == 7)
+    {
+      warn_lab->set_text(
+	  gettext(
+	      "Book has been removed from collection database, "
+	      "but book file was not found. Check if collection book directory "
+	      "path exists and/or refresh collection."));
+      warn_lab->set_wrap(true);
+      warn_lab->set_wrap_mode(Pango::WrapMode::WORD);
+      warn_lab->set_width_chars(30);
+      warn_lab->set_justify(Gtk::Justification::FILL);
+    }
+  if(type == 8)
+    {
+      warn_lab->set_text(gettext("Book-mark has been created!"));
+    }
   grid->attach(*warn_lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
@@ -82,6 +101,7 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
 
   window->signal_close_request().connect([window, disp]
   {
+
     delete disp;
     window->hide();
     delete window;
@@ -252,7 +272,7 @@ AuxWindows::aboutProg()
   aboutd->set_application(mw->get_application());
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("1.1");
+  aboutd->set_version("2.0");
   aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());
@@ -297,7 +317,9 @@ AuxWindows::aboutProg()
 		      "libzip https://libzip.org\n"
 		      "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
 		      "ICU https://icu.unicode.org\n"
-		      "GMP https://gmplib.org/");
+		      "GMP https://gmplib.org/\n"
+		      "Poppler https://poppler.freedesktop.org/\n"
+		      "DjVuLibre https://djvu.sourceforge.net/");
   aboutd->set_comments(abbuf);
 
   aboutd->signal_close_request().connect([aboutd]
@@ -308,4 +330,58 @@ AuxWindows::aboutProg()
   },
 					 false);
   aboutd->show();
+}
+
+void
+AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
+{
+  Gtk::Window *window = new Gtk::Window();
+  window->set_application(mw->get_application());
+  window->set_transient_for(*win);
+  window->set_modal(true);
+  window->set_default_size(1, 1);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::CENTER);
+  grid->set_valign(Gtk::Align::CENTER);
+  window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_margin(5);
+  lab->set_text(gettext("Book file exits. Replace?"));
+  grid->attach(*lab, 0, 0, 2, 1);
+
+  Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
+  yes->set_halign(Gtk::Align::CENTER);
+  yes->set_margin(5);
+  yes->set_label(gettext("Yes"));
+  yes->signal_clicked().connect([window, addbmtx, stopper]
+  {
+    *stopper = 0;
+    addbmtx->unlock();
+    window->close();
+  });
+  grid->attach(*yes, 0, 1, 1, 1);
+
+  Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
+  no->set_halign(Gtk::Align::CENTER);
+  no->set_margin(5);
+  no->set_label(gettext("No"));
+  no->signal_clicked().connect([window, addbmtx, stopper]
+  {
+    *stopper = 1;
+    addbmtx->unlock();
+    window->close();
+  });
+  grid->attach(*no, 1, 1, 1, 1);
+
+  window->signal_close_request().connect([window]
+  {
+    window->hide();
+    delete window;
+    return true;
+  },
+					 false);
+  window->show();
 }

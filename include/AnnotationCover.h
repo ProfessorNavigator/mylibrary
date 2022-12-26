@@ -15,14 +15,20 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ANNOTATIONCOVER_H_
-#define ANNOTATIONCOVER_H_
+#ifndef INCLUDE_ANNOTATIONCOVER_H_
+#define INCLUDE_ANNOTATIONCOVER_H_
 
 #include <iostream>
 #include <string>
 #include <filesystem>
 #include <vector>
 #include <algorithm>
+#include <poppler-document.h>
+#include <poppler-image.h>
+#include <poppler-page.h>
+#include <poppler-page-renderer.h>
+#include <libdjvu/ddjvuapi.h>
+#include <libdjvu/miniexp.h>
 #include "AuxFunc.h"
 
 class AnnotationCover
@@ -42,10 +48,30 @@ private:
   coverEpub();
   void
   fileRead();
+  void
+  fb2Parse(std::filesystem::path filepath);
+  void
+  epubParse(std::filesystem::path filepath);
+  void
+  pdfParse(std::filesystem::path filepath);
+  void
+  pdfZipParse(std::filesystem::path temp_path,
+	      std::filesystem::path unpacked_path, std::string archaddr);
+  void
+  djvuParse(std::filesystem::path filepath);
+
+  void
+  handle_ddjvu_messages(ddjvu_context_t *ctx, bool wait);
   std::string rcvd_filename = "";
   std::filesystem::path epub_path;
-  std::string file = "";
+  std::filesystem::path pdf_cover_path;
+  std::string file;
+  std::string djvu_cover_bufer;
+  bool fb2_ch_f = false;
+  bool zip_ch_f = false;
   bool epub_ch_f = false;
+  bool pdf_ch_f = false;
+  bool djvu_ch_f = false;
 };
 
-#endif /* ANNOTATIONCOVER_H_ */
+#endif /* INCLUDE_ANNOTATIONCOVER_H_ */

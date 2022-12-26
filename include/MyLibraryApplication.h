@@ -15,8 +15,8 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MYLIBRARYAPPLICATION_H
-#define MYLIBRARYAPPLICATION_H
+#ifndef INCLUDE_MYLIBRARYAPPLICATION_H_
+#define INCLUDE_MYLIBRARYAPPLICATION_H_
 
 #include <gtkmm.h>
 #include "MainWindow.h"
@@ -37,4 +37,4 @@ protected:
   on_activate() override;
 };
 
-#endif // MYLIBRARYAPPLICATION_H
+#endif /* INCLUDE_MYLIBRARYAPPLICATION_H_ */

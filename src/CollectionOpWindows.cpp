@@ -46,6 +46,7 @@ CollectionOpWindows::collectionOp(int variant)
     }
   window->set_transient_for(*mw);
   window->set_modal(true);
+  window->set_default_size(1, 1);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::CENTER);
@@ -81,9 +82,6 @@ CollectionOpWindows::collectionOp(int variant)
       Gtk::Label *thr_nm_lb = Gtk::make_managed<Gtk::Label>();
       thr_nm_lb->set_halign(Gtk::Align::START);
       thr_nm_lb->set_margin(5);
-      thr_nm_lb->set_wrap(true);
-      thr_nm_lb->set_wrap_mode(Pango::WrapMode::WORD);
-      thr_nm_lb->set_max_width_chars(50);
       unsigned int max_thr = std::thread::hardware_concurrency();
       std::stringstream strm;
       std::locale loc("C");
@@ -95,6 +93,9 @@ CollectionOpWindows::collectionOp(int variant)
 		  "Number of threads to use (it is not recommended to exceed "))
 	      + Glib::ustring(strm.str())
 	      + Glib::ustring(gettext(" threads):")));
+      thr_nm_lb->set_wrap(true);
+      thr_nm_lb->set_wrap_mode(Pango::WrapMode::WORD);
+      thr_nm_lb->set_width_chars(50);
       grid->attach(*thr_nm_lb, 0, 2, 1, 1);
 
       Gtk::Entry *thr_ent = Gtk::make_managed<Gtk::Entry>();
@@ -106,6 +107,65 @@ CollectionOpWindows::collectionOp(int variant)
       thr_ent->set_input_purpose(Gtk::InputPurpose::DIGITS);
       thr_ent->set_text("1");
       grid->attach(*thr_ent, 1, 2, 1, 1);
+    }
+
+  Gtk::CheckButton *ch_pack = nullptr;
+  if(variant == 3)
+    {
+      Gtk::Label *book_path_lb = Gtk::make_managed<Gtk::Label>();
+      book_path_lb->set_halign(Gtk::Align::START);
+      book_path_lb->set_margin(5);
+      book_path_lb->set_text(gettext("Path to source book file:"));
+      grid->attach(*book_path_lb, 0, 2, 2, 1);
+
+      Gtk::Entry *book_path_ent = Gtk::make_managed<Gtk::Entry>();
+      book_path_ent->set_halign(Gtk::Align::START);
+      book_path_ent->set_valign(Gtk::Align::CENTER);
+      book_path_ent->set_margin(5);
+      book_path_ent->set_width_chars(50);
+      book_path_ent->set_editable(false);
+      book_path_ent->set_can_focus(false);
+      grid->attach(*book_path_ent, 0, 3, 1, 1);
+
+      Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
+      open->set_halign(Gtk::Align::CENTER);
+      open->set_margin(5);
+      open->set_label(gettext("Open"));
+      grid->attach(*open, 1, 3, 1, 1);
+
+      Gtk::Label *book_nm_lb = Gtk::make_managed<Gtk::Label>();
+      book_nm_lb->set_halign(Gtk::Align::START);
+      book_nm_lb->set_margin(5);
+      book_nm_lb->set_text(gettext("Book file name in collection:"));
+      grid->attach(*book_nm_lb, 0, 4, 2, 1);
+
+      Gtk::Entry *book_nm_ent = Gtk::make_managed<Gtk::Entry>();
+      book_nm_ent->set_halign(Gtk::Align::START);
+      book_nm_ent->set_valign(Gtk::Align::CENTER);
+      book_nm_ent->set_margin(5);
+      book_nm_ent->set_width_chars(50);
+      grid->attach(*book_nm_ent, 0, 5, 1, 1);
+
+      open->signal_clicked().connect(
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window,
+		     book_path_ent, book_nm_ent));
+
+      Gtk::Label *pack_lb = Gtk::make_managed<Gtk::Label>();
+      pack_lb->set_halign(Gtk::Align::END);
+      pack_lb->set_margin(5);
+      pack_lb->set_text(
+	  gettext("Pack book to zip archive, if it is not already packed"));
+      pack_lb->set_justify(Gtk::Justification::RIGHT);
+      pack_lb->set_wrap(true);
+      pack_lb->set_wrap_mode(Pango::WrapMode::WORD);
+      pack_lb->set_max_width_chars(50);
+      grid->attach(*pack_lb, 0, 6, 1, 1);
+
+      ch_pack = Gtk::make_managed<Gtk::CheckButton>();
+      ch_pack->set_halign(Gtk::Align::CENTER);
+      ch_pack->set_valign(Gtk::Align::CENTER);
+      ch_pack->set_active(false);
+      grid->attach(*ch_pack, 1, 6, 1, 1);
     }
 
   Gtk::Button *remove = Gtk::make_managed<Gtk::Button>();
@@ -135,10 +195,11 @@ CollectionOpWindows::collectionOp(int variant)
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
 		     window, variant));
     }
-  if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3)
+  if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3 && ch_pack)
     {
       remove->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), cmb, window));
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window,
+		     ch_pack));
     }
   if(variant == 2)
     {
@@ -146,7 +207,14 @@ CollectionOpWindows::collectionOp(int variant)
     }
   else
     {
-      grid->attach(*remove, 0, 2, 1, 1);
+      if(variant == 1)
+	{
+	  grid->attach(*remove, 0, 2, 1, 1);
+	}
+      else
+	{
+	  grid->attach(*remove, 0, 7, 1, 1);
+	}
     }
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -160,12 +228,16 @@ CollectionOpWindows::collectionOp(int variant)
     }
   else
     {
-      grid->attach(*cancel, 1, 2, 1, 1);
-    }
+      if(variant == 1)
+	{
+	  grid->attach(*cancel, 1, 2, 1, 1);
+	}
+      else
+	{
+	  grid->attach(*cancel, 1, 7, 1, 1);
+	}
 
-  Gtk::Requisition min, nat;
-  grid->get_preferred_size(min, nat);
-  window->set_default_size(nat.get_width(), nat.get_height());
+    }
 
   window->signal_close_request().connect([window]
   {
@@ -619,6 +691,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   disp_cancel->connect(
       [lab, con, cancel, window, mwl, prgb]
       {
+	mwl->coll_refresh_cancel = 0;
 	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing canceled"));

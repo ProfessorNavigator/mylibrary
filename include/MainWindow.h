@@ -15,8 +15,8 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef INCLUDE_MAINWINDOW_H_
+#define INCLUDE_MAINWINDOW_H_
 
 #include <gtkmm.h>
 #include <iostream>
@@ -85,9 +85,14 @@ private:
   void
   bookRemoveWin(int variant, Gtk::Window *win);
   void
-  bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win);
+  fileInfo();
   void
-  bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl);
+  bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
+	     Gtk::Entry *book_nm_ent);
+  void
+  bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack);
+  void
+  bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper);
   void
   createBookmark();
   void
@@ -144,4 +149,4 @@ protected:
   std::mutex *searchmtx = nullptr;
 };
 
-#endif // MAINWINDOW_H
+#endif /* INCLUDE_MAINWINDOW_H_ */

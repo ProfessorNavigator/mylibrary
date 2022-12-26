@@ -33,6 +33,8 @@ public:
 	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
   void
   bookRemoveWin(int variant, Gtk::Window *win);
+  void
+  fileInfo();
 private:
   MainWindow *mw;
 };

@@ -15,8 +15,8 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CREATECOLLECTION_H
-#define CREATECOLLECTION_H
+#ifndef INCLUDE_CREATECOLLECTION_H_
+#define INCLUDE_CREATECOLLECTION_H_
 
 #include <iostream>
 #include <string.h>
@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <thread>
 #include <mutex>
+#include <poppler-document.h>
 #include "AuxFunc.h"
 
 class CreateCollection
@@ -53,7 +54,9 @@ public:
       std::vector<std::filesystem::path> *epubin,
       std::vector<
 	  std::tuple<std::filesystem::path,
-	      std::vector<std::tuple<int, int, std::string>>>> *zipvectin);
+	      std::vector<std::tuple<int, int, std::string>>>> *zipvectin,
+      std::vector<std::filesystem::path> *pdfin,
+      std::vector<std::filesystem::path> *djvuin);
   void
   createCol();
 private:
@@ -62,11 +65,15 @@ private:
   void
   createDatabase();
   std::vector<std::tuple<std::string, std::string>>
-  fb2Parser(std::filesystem::path filepath);
+  fb2parser(std::filesystem::path filepath);
   std::vector<std::tuple<std::string, std::string>>
-  fb2Parser(std::string input);
+  fb2parser(std::string input);
   std::vector<std::tuple<std::string, std::string>>
   epubparser(std::filesystem::path input);
+  std::vector<std::tuple<std::string, std::string>>
+  pdfparser(std::filesystem::path input);
+  std::vector<std::tuple<std::string, std::string>>
+  djvuparser(std::filesystem::path input);
   void
   fb2ThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
 		std::filesystem::path fb2_hashp);
@@ -77,12 +84,20 @@ private:
       std::filesystem::path filepath, std::filesystem::path zip_hashp);
   void
   epubThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
-		std::filesystem::path epub_hashp);
+		 std::filesystem::path epub_hashp);
+  void
+  pdfThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
+		std::filesystem::path pdf_hashp);
+  void
+  djvuThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
+		 std::filesystem::path djvu_hashp);
 
   std::string coll_nm;
   std::filesystem::path book_p;
   std::vector<std::filesystem::path> fb2;
   std::vector<std::filesystem::path> epub;
+  std::vector<std::filesystem::path> pdf;
+  std::vector<std::filesystem::path> djvu;
   std::vector<
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>>> zipvect;
@@ -94,6 +109,10 @@ private:
   std::mutex ziphashmtx;
   std::mutex epubbasemtx;
   std::mutex epubhashmtx;
+  std::mutex pdfbasemtx;
+  std::mutex pdfhashmtx;
+  std::mutex djvubasemtx;
+  std::mutex djvuhashmtx;
 
   std::mutex cmtx;
   unsigned int num_thr_run = 0;
@@ -102,4 +121,4 @@ private:
   std::mutex file_countmtx;
 };
 
-#endif // CREATECOLLECTION_H
+#endif /* INCLUDE_CREATECOLLECTION_H_ */

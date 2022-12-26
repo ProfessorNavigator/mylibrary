@@ -15,9 +15,8 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef AUXFUNC_H
-#define AUXFUNC_H
-
+#ifndef INCLUDE_AUXFUNC_H_
+#define INCLUDE_AUXFUNC_H_
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -50,7 +49,7 @@ public:
   std::string
   get_selfpath();
   int
-  fileNames(std::string adress,
+  fileNames(std::string address,
 	    std::vector<std::tuple<int, int, std::string>> &filenames);
   std::string
   randomFileName();
@@ -58,19 +57,24 @@ public:
   unpackByIndex(std::string archadress, std::string outfolder, int index);
   std::string
   unpackByIndex(std::string archadress, int index, size_t filesz);
+  int
+  packing(std::string source, std::string out);
   void
   stringToLower(std::string &line);
   std::vector<char>
-  filehash(std::filesystem::path filepath);
+  filehash(std::filesystem::path filepath, int *cancel);
   std::vector<char>
   filehash(std::filesystem::path filepath, std::function<void
-  (uint64_t)> progress);
+  (uint64_t)> progress,
+	   int *cancel);
   std::string
   to_hex(std::vector<char> *source);
   std::string
   utf8to(std::string line);
   int
   removeFmArch(std::string archpath, uint64_t index);
+  std::vector<std::tuple<std::string, std::string>>
+  fileinfo(std::string address, int index);
 };
 
-#endif // AUXFUNC_H
+#endif /* INCLUDE_AUXFUNC_H_ */

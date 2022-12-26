@@ -19,12 +19,12 @@
 
 AuxFunc::AuxFunc()
 {
-  //ctor
+  // TODO Auto-generated constructor stub
 }
 
 AuxFunc::~AuxFunc()
 {
-  //dtor
+  // TODO Auto-generated destructor stub
 }
 
 void
@@ -135,7 +135,7 @@ AuxFunc::get_selfpath()
 }
 
 int
-AuxFunc::fileNames(std::string adress,
+AuxFunc::fileNames(std::string address,
 		   std::vector<std::tuple<int, int, std::string>> &filenames)
 {
   zip_t *z;
@@ -143,7 +143,7 @@ AuxFunc::fileNames(std::string adress,
   std::string flname;
   int er = 0;
   int num;
-  z = zip_open(adress.c_str(), ZIP_RDONLY, &er);
+  z = zip_open(address.c_str(), ZIP_RDONLY, &er);
   if(er < 1)
     {
       num = zip_get_num_files(z);
@@ -167,6 +167,59 @@ AuxFunc::fileNames(std::string adress,
     }
 
   return er;
+}
+
+std::vector<std::tuple<std::string, std::string>>
+AuxFunc::fileinfo(std::string address, int index)
+{
+  std::vector<std::tuple<std::string, std::string>> result;
+
+  zip_t *z;
+
+  std::string flname;
+  int er = 0;
+
+  z = zip_open(address.c_str(), ZIP_RDONLY, &er);
+  if(er < 1)
+    {
+      struct zip_stat st;
+      zip_stat_index(z, index, ZIP_FL_ENC_GUESS, &st);
+      std::string key = "filename";
+      std::string value(st.name);
+      std::tuple<std::string, std::string> ttup;
+      std::get<0>(ttup) = key;
+      std::get<1>(ttup) = value;
+      result.push_back(ttup);
+
+      std::stringstream strm;
+      std::locale loc("C");
+      strm.imbue(loc);
+      strm << st.size;
+      key = "filesizeunc";
+      value = strm.str();
+      std::get<0>(ttup) = key;
+      std::get<1>(ttup) = value;
+      result.push_back(ttup);
+
+      strm.clear();
+      strm.str("");
+      strm.imbue(loc);
+      strm << st.comp_size;
+      key = "filesizec";
+      value = strm.str();
+      std::get<0>(ttup) = key;
+      std::get<1>(ttup) = value;
+      result.push_back(ttup);
+
+      zip_close(z);
+    }
+  else
+    {
+      std::cerr << "Error on getting file info from archive: " << strerror(er)
+	  << std::endl;
+    }
+
+  return result;
 }
 
 int
@@ -294,6 +347,125 @@ AuxFunc::unpackByIndex(std::string archadress, int index, size_t filesz)
   return result;
 }
 
+int
+AuxFunc::packing(std::string source, std::string out)
+{
+  int result = 0;
+  int er = 0;
+  std::filesystem::path dir;
+  dir = std::filesystem::u8path(source);
+  source = dir.generic_u8string();
+  if(std::filesystem::exists(dir))
+    {
+      if(std::filesystem::is_directory(dir))
+	{
+	  zip_t *z;
+	  zip_error_t err;
+	  z = zip_open(out.c_str(), ZIP_TRUNCATE | ZIP_CREATE, &er);
+	  if(er < 1)
+	    {
+	      std::vector < std::filesystem::path > listf;
+	      std::vector < std::filesystem::path > listd;
+	      std::string line;
+	      if(!std::filesystem::is_empty(dir))
+		{
+		  for(auto &iter : std::filesystem::recursive_directory_iterator(
+		      dir))
+		    {
+		      std::filesystem::path path = iter.path();
+		      path = std::filesystem::u8path(path.generic_u8string());
+		      if(std::filesystem::is_directory(path))
+			{
+			  listd.push_back(path);
+			}
+		      else
+			{
+			  listf.push_back(path);
+			}
+		    }
+		  std::sort(listd.begin(), listd.end(), []
+		  (auto &el1, auto &el2)
+		    {
+		      return el1.string().size() < el2.string().size();
+		    });
+
+		  std::string pardir = dir.filename().u8string();
+		  zip_dir_add(z, pardir.c_str(), ZIP_FL_ENC_UTF_8);
+
+		  for(size_t i = 0; i < listd.size(); i++)
+		    {
+		      line = listd[i].u8string();
+		      std::string::size_type n;
+		      n = line.find(source, 0);
+		      line.erase(n, source.size());
+		      line = pardir + line;
+		      if(!std::filesystem::is_empty(listd[i]))
+			{
+			  zip_dir_add(z, line.c_str(), ZIP_FL_ENC_UTF_8);
+			}
+		    }
+		  for(size_t i = 0; i < listf.size(); i++)
+		    {
+		      line = listf[i].u8string();
+		      std::string::size_type n;
+		      n = line.find(source, 0);
+		      line.erase(n, source.size());
+		      zip_source_t *zsource;
+		      zsource = zip_source_file_create(
+			  listf[i].u8string().c_str(), 0, 0, &err);
+		      line = pardir + line;
+		      zip_file_add(z, line.c_str(), zsource,
+		      ZIP_FL_ENC_UTF_8);
+		    }
+		}
+
+	      zip_close(z);
+	      result = 1;
+	    }
+	  else
+	    {
+	      std::cerr << "Error on packaing: " << strerror(er) << std::endl;
+	      result = -2;
+	    }
+	}
+      else
+	{
+	  zip_t *z;
+	  zip_error_t err;
+	  std::string line = dir.filename().u8string();
+	  z = zip_open(out.c_str(), ZIP_TRUNCATE | ZIP_CREATE, &er);
+	  if(er >= 1)
+	    {
+	      std::cerr << "Packing (file) error: " << strerror(er)
+		  << std::endl;
+	      result = -3;
+	    }
+	  else
+	    {
+	      zip_source_t *zsource;
+	      zsource = zip_source_file_create(source.c_str(), 0, 0, &err);
+	      if(zsource == nullptr)
+		{
+		  std::cerr << "Error on open file while packing" << std::endl;
+		  result = -4;
+		}
+	      else
+		{
+		  zip_file_add(z, line.c_str(), zsource, ZIP_FL_ENC_UTF_8);
+		}
+	      zip_close(z);
+	      result = 1;
+	    }
+	}
+    }
+  else
+    {
+      std::cerr << "Source file for packing does not exists!" << std::endl;
+      result = -1;
+    }
+  return result;
+}
+
 void
 AuxFunc::stringToLower(std::string &line)
 {
@@ -305,7 +477,7 @@ AuxFunc::stringToLower(std::string &line)
 }
 
 std::vector<char>
-AuxFunc::filehash(std::filesystem::path filepath)
+AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
 {
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
     {
@@ -343,7 +515,7 @@ AuxFunc::filehash(std::filesystem::path filepath)
 	      readb = readb + left;
 	      gcry_md_write(hd, &F[0], F.size());
 	    }
-	  if(readb >= fsz)
+	  if(readb >= fsz || *cancel == 1)
 	    {
 	      break;
 	    }
@@ -367,7 +539,8 @@ AuxFunc::filehash(std::filesystem::path filepath)
 
 std::vector<char>
 AuxFunc::filehash(std::filesystem::path filepath, std::function<void
-(uint64_t)> progress)
+(uint64_t)> progress,
+		  int *cancel)
 {
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
     {
@@ -407,9 +580,9 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 	    }
 	  if(progress)
 	    {
-	      progress(static_cast<uint64_t>(readb));
+	      progress(static_cast<uint64_t>(F.size()));
 	    }
-	  if(readb >= fsz)
+	  if(readb >= fsz || *cancel == 1)
 	    {
 	      break;
 	    }

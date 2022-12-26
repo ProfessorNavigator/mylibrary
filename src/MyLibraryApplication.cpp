@@ -20,12 +20,12 @@
 MyLibraryApplication::MyLibraryApplication() :
     Gtk::Application("ru.mail.bobilev_yury.MyLibrary")
 {
-  //ctor
+  // TODO Auto-generated constructor stub
 }
 
 MyLibraryApplication::~MyLibraryApplication()
 {
-  //dtor
+  // TODO Auto-generated destructor stub
 }
 
 Glib::RefPtr<MyLibraryApplication>

@@ -32,6 +32,8 @@ public:
   void
   bookmarkWindow();
   void
+  bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper);
+  void
   aboutProg();
 private:
   MainWindow *mw;

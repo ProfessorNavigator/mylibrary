@@ -15,8 +15,8 @@
  see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SEARCHBOOK_H_
-#define SEARCHBOOK_H_
+#ifndef INCLUDE_SEARCHBOOK_H_
+#define INCLUDE_SEARCHBOOK_H_
 
 #include <iostream>
 #include <string>
@@ -56,6 +56,10 @@ public:
   cleanSearchV();
 
 private:
+  void
+  readBase(std::filesystem::path filepath);
+  void
+  readZipBase(std::filesystem::path filepath);
   std::string collnm;
   std::string surnm;
   std::string name;
@@ -73,4 +77,4 @@ private:
   int *cancel = nullptr;
 };
 
-#endif /* SEARCHBOOK_H_ */
+#endif /* INCLUDE_SEARCHBOOK_H_ */

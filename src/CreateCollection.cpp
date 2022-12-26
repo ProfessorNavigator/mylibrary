@@ -29,7 +29,7 @@ CreateCollection::CreateCollection(std::string coll_nm,
 
 CreateCollection::~CreateCollection()
 {
-
+  // TODO Auto-generated destructor stub
 }
 
 void
@@ -85,6 +85,14 @@ CreateCollection::createFileList()
 		{
 		  epub.push_back(p);
 		}
+	      if(p.extension().u8string() == ".pdf")
+		{
+		  pdf.push_back(p);
+		}
+	      if(p.extension().u8string() == ".djvu")
+		{
+		  djvu.push_back(p);
+		}
 	      if(p.extension().u8string() == ".zip")
 		{
 		  std::vector<std::tuple<int, int, std::string>> archlist;
@@ -96,7 +104,9 @@ CreateCollection::createFileList()
 			  std::filesystem::path p = std::filesystem::u8path(
 			      std::get<2>(el));
 			  if (p.extension().u8string() != ".fb2" &&
-			      p.extension().u8string() != ".epub")
+			      p.extension().u8string() != ".epub" &&
+			      p.extension().u8string() != ".pdf" &&
+			      p.extension().u8string() != ".djvu")
 			    {
 			      return true;
 			    }
@@ -126,11 +136,15 @@ CreateCollection::createFileList(
     std::vector<std::filesystem::path> *epubin,
     std::vector<
 	std::tuple<std::filesystem::path,
-	    std::vector<std::tuple<int, int, std::string>>>> *zipvectin)
+	    std::vector<std::tuple<int, int, std::string>>>> *zipvectin,
+    std::vector<std::filesystem::path> *pdfin,
+    std::vector<std::filesystem::path> *djvuin)
 {
   fb2 = *fb2in;
   zipvect = *zipvectin;
   epub = *epubin;
+  pdf = *pdfin;
+  djvu = *djvuin;
   createDatabase();
 }
 
@@ -151,8 +165,13 @@ CreateCollection::createDatabase()
   filename = filepath.parent_path().u8string();
   filename = filename + "/epubhash";
   std::filesystem::path epub_hashp = std::filesystem::u8path(filename);
-  std::fstream zip_hash_f;
-  std::fstream epub_hash_f;
+  filename = filepath.parent_path().u8string();
+  filename = filename + "/pdfhash";
+  std::filesystem::path pdf_hashp = std::filesystem::u8path(filename);
+  filename = filepath.parent_path().u8string();
+  filename = filename + "/djvuhash";
+  std::filesystem::path djvu_hashp = std::filesystem::u8path(filename);
+
   if(total_files)
     {
       int zipf = 0;
@@ -161,24 +180,30 @@ CreateCollection::createDatabase()
 	  zipf = zipf + static_cast<int>(std::get<1>(zipvect[i]).size());
 	}
       total_files(
-	  static_cast<int>(fb2.size()) + static_cast<int>(epub.size()) + zipf);
+	  static_cast<int>(fb2.size()) + static_cast<int>(epub.size())
+	      + static_cast<int>(pdf.size()) + static_cast<int>(djvu.size())
+	      + zipf);
     }
   if(*cancel == 0)
     {
       std::fstream fb2_hash_f;
-      std::fstream f;
-      f.open(filepath, std::ios_base::out | std::ios_base::binary);
-      fb2_hash_f.open(fb2_hashp, std::ios_base::out | std::ios_base::binary);
+      std::fstream fb2_base_f;
       std::string line = "<bp>" + book_p.u8string() + "</bp>";
+
       fb2basemtx.lock();
-      f.write(line.c_str(), line.size());
+      fb2_base_f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      fb2_base_f.write(line.c_str(), line.size());
+      fb2_base_f.close();
       fb2basemtx.unlock();
+
       line = book_p.u8string() + "\n";
+
       fb2hashmtx.lock();
+      fb2_hash_f.open(fb2_hashp, std::ios_base::out | std::ios_base::binary);
       fb2_hash_f.write(line.c_str(), line.size());
-      fb2hashmtx.unlock();
-      f.close();
       fb2_hash_f.close();
+      fb2hashmtx.unlock();
+
       for(size_t i = 0; i < fb2.size(); i++)
 	{
 	  if(*cancel == 1)
@@ -202,24 +227,29 @@ CreateCollection::createDatabase()
 	  num_thr_runmtx.unlock();
 	}
     }
-  std::fstream f;
   if(*cancel == 0)
     {
+      std::fstream zip_hash_f;
+      std::fstream zip_base_f;
       filename = filepath.parent_path().u8string();
       filename = filename + "/zipbase";
       filepath = std::filesystem::u8path(filename);
-      f.open(filepath, std::ios_base::out | std::ios_base::binary);
-      zip_hash_f.open(zip_hashp, std::ios_base::out | std::ios_base::binary);
       std::string line = "<bp>" + book_p.u8string() + "</bp>";
+
       zipbasemtx.lock();
-      f.write(line.c_str(), line.size());
+      zip_base_f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      zip_base_f.write(line.c_str(), line.size());
+      zip_base_f.close();
       zipbasemtx.unlock();
+
       line = book_p.u8string() + "\n";
+
       ziphashmtx.lock();
+      zip_hash_f.open(zip_hashp, std::ios_base::out | std::ios_base::binary);
       zip_hash_f.write(line.c_str(), line.size());
-      ziphashmtx.unlock();
-      f.close();
       zip_hash_f.close();
+      ziphashmtx.unlock();
+
       for(size_t i = 0; i < zipvect.size(); i++)
 	{
 	  if(*cancel == 1)
@@ -247,22 +277,28 @@ CreateCollection::createDatabase()
     }
   if(*cancel == 0)
     {
+      std::fstream epub_hash_f;
+      std::fstream epub_base_f;
       filename = filepath.parent_path().u8string();
       filename = filename + "/epubbase";
       filepath = std::filesystem::u8path(filename);
-      f.open(filepath, std::ios_base::out | std::ios_base::binary);
-      epub_hash_f.open(epub_hashp, std::ios_base::out | std::ios_base::binary);
       std::string line = "<bp>" + book_p.u8string() + "</bp>";
       std::string b_p = book_p.u8string();
+
       epubbasemtx.lock();
-      f.write(line.c_str(), line.size());
+      epub_base_f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      epub_base_f.write(line.c_str(), line.size());
+      epub_base_f.close();
       epubbasemtx.unlock();
+
       line = book_p.u8string() + "\n";
+
       epubhashmtx.lock();
+      epub_hash_f.open(epub_hashp, std::ios_base::out | std::ios_base::binary);
       epub_hash_f.write(line.c_str(), line.size());
-      epubhashmtx.unlock();
-      f.close();
       epub_hash_f.close();
+      epubhashmtx.unlock();
+
       for(size_t i = 0; i < epub.size(); i++)
 	{
 	  if(*cancel == 1)
@@ -273,6 +309,98 @@ CreateCollection::createDatabase()
 	  std::thread *thr = new std::thread(
 	      std::bind(&CreateCollection::epubThreadFunc, this, fp, filepath,
 			epub_hashp));
+	  num_thr_runmtx.lock();
+	  num_thr_run++;
+	  thr->detach();
+	  delete thr;
+	  if(num_thr_run < threadnum)
+	    {
+	      cmtx.try_lock();
+	      cmtx.unlock();
+	    }
+	  num_thr_runmtx.unlock();
+	}
+    }
+  if(*cancel == 0)
+    {
+      std::fstream pdf_hash_f;
+      std::fstream pdf_base_f;
+      filename = filepath.parent_path().u8string();
+      filename = filename + "/pdfbase";
+      filepath = std::filesystem::u8path(filename);
+      std::string line = "<bp>" + book_p.u8string() + "</bp>";
+      std::string b_p = book_p.u8string();
+
+      pdfbasemtx.lock();
+      pdf_base_f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      pdf_base_f.write(line.c_str(), line.size());
+      pdf_base_f.close();
+      pdfbasemtx.unlock();
+
+      line = book_p.u8string() + "\n";
+
+      pdfhashmtx.lock();
+      pdf_hash_f.open(pdf_hashp, std::ios_base::out | std::ios_base::binary);
+      pdf_hash_f.write(line.c_str(), line.size());
+      pdf_hash_f.close();
+      pdfhashmtx.unlock();
+
+      for(size_t i = 0; i < pdf.size(); i++)
+	{
+	  if(*cancel == 1)
+	    {
+	      break;
+	    }
+	  std::filesystem::path fp = pdf[i];
+	  std::thread *thr = new std::thread(
+	      std::bind(&CreateCollection::pdfThreadFunc, this, fp, filepath,
+			pdf_hashp));
+	  num_thr_runmtx.lock();
+	  num_thr_run++;
+	  thr->detach();
+	  delete thr;
+	  if(num_thr_run < threadnum)
+	    {
+	      cmtx.try_lock();
+	      cmtx.unlock();
+	    }
+	  num_thr_runmtx.unlock();
+	}
+    }
+  if(*cancel == 0)
+    {
+      std::fstream djvu_hash_f;
+      std::fstream djvu_base_f;
+      filename = filepath.parent_path().u8string();
+      filename = filename + "/djvubase";
+      filepath = std::filesystem::u8path(filename);
+      std::string line = "<bp>" + book_p.u8string() + "</bp>";
+      std::string b_p = book_p.u8string();
+
+      djvubasemtx.lock();
+      djvu_base_f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      djvu_base_f.write(line.c_str(), line.size());
+      djvu_base_f.close();
+      djvubasemtx.unlock();
+
+      line = book_p.u8string() + "\n";
+
+      djvuhashmtx.lock();
+      djvu_hash_f.open(djvu_hashp, std::ios_base::out | std::ios_base::binary);
+      djvu_hash_f.write(line.c_str(), line.size());
+      djvu_hash_f.close();
+      djvuhashmtx.unlock();
+
+      for(size_t i = 0; i < djvu.size(); i++)
+	{
+	  if(*cancel == 1)
+	    {
+	      break;
+	    }
+	  std::filesystem::path fp = djvu[i];
+	  std::thread *thr = new std::thread(
+	      std::bind(&CreateCollection::djvuThreadFunc, this, fp, filepath,
+			djvu_hashp));
 	  num_thr_runmtx.lock();
 	  num_thr_run++;
 	  thr->detach();
@@ -314,11 +442,11 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp);
+  std::vector<char> hash_v = af.filehash(fp, cancel);
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
-  basevect = fb2Parser(fp);
+  basevect = fb2parser(fp);
   std::string f_p = fp.u8string();
   f_p.erase(f_p.find(book_p.u8string()), book_p.u8string().size());
   f_p = f_p + "<?>";
@@ -433,7 +561,7 @@ CreateCollection::zipThreadFunc(
   AuxFunc af;
   std::vector<char> hash_v;
   std::vector<char> write_v;
-  hash_v = af.filehash(std::get<0>(arch_tup));
+  hash_v = af.filehash(std::get<0>(arch_tup), cancel);
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::string archadress = std::get<0>(arch_tup).u8string();
@@ -463,6 +591,8 @@ CreateCollection::zipThreadFunc(
 	}
       line.clear();
       int index = std::get<0>(locv[j]);
+      std::filesystem::path ch_p = std::filesystem::u8path(
+	  std::get<2>(locv[j]));
       std::stringstream strm;
       std::locale loc("C");
       strm.imbue(loc);
@@ -471,14 +601,14 @@ CreateCollection::zipThreadFunc(
       std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       size_t inpsz = static_cast<size_t>(std::get<1>(locv[j]));
       std::vector<std::tuple<std::string, std::string>> basevect;
-      std::filesystem::path ch_p = std::filesystem::u8path(
-	  std::get<2>(locv[j]));
       if(ch_p.extension().u8string() == ".fb2")
 	{
 	  std::string input = af.unpackByIndex(archadress, index, inpsz);
-	  basevect = fb2Parser(input);
+	  basevect = fb2parser(input);
 	}
-      if(ch_p.extension().u8string() == ".epub")
+      if(ch_p.extension().u8string() == ".epub"
+	  || ch_p.extension().u8string() == ".pdf"
+	  || ch_p.extension().u8string() == ".djvu")
 	{
 	  std::string outfolder;
 #ifdef __linux
@@ -504,6 +634,72 @@ CreateCollection::zipThreadFunc(
 		      && p.extension().u8string() == ".epub")
 		    {
 		      basevect = epubparser(p);
+		      break;
+		    }
+		  if(!std::filesystem::is_directory(p)
+		      && p.extension().u8string() == ".pdf")
+		    {
+		      std::vector<std::tuple<int, int, std::string>> tlv;
+		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		      (auto &el)
+			{
+			  std::filesystem::path lp =
+			  std::filesystem::u8path(std::get<2>(el));
+			  if(lp.stem().u8string() == p.stem().u8string() &&
+			      lp.extension().u8string() == ".fbd")
+			    {
+			      return true;
+			    }
+			  else
+			    {
+			      return false;
+			    }
+			});
+		      if(ittlv != tlv.end())
+			{
+			  std::string fbdf = af.unpackByIndex(
+			      archadress, std::get<0>(*ittlv),
+			      std::get<1>(*ittlv));
+			  basevect = fb2parser(fbdf);
+			}
+		      else
+			{
+			  basevect = pdfparser(p);
+			}
+		      break;
+		    }
+		  if(!std::filesystem::is_directory(p)
+		      && p.extension().u8string() == ".djvu")
+		    {
+		      std::vector<std::tuple<int, int, std::string>> tlv;
+		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		      (auto &el)
+			{
+			  std::filesystem::path lp =
+			  std::filesystem::u8path(std::get<2>(el));
+			  if(lp.stem().u8string() == p.stem().u8string() &&
+			      lp.extension().u8string() == ".fbd")
+			    {
+			      return true;
+			    }
+			  else
+			    {
+			      return false;
+			    }
+			});
+		      if(ittlv != tlv.end())
+			{
+			  std::string fbdf = af.unpackByIndex(
+			      archadress, std::get<0>(*ittlv),
+			      std::get<1>(*ittlv));
+			  basevect = fb2parser(fbdf);
+			}
+		      else
+			{
+			  basevect = djvuparser(p);
+			}
 		      break;
 		    }
 		}
@@ -610,7 +806,7 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp);
+  std::vector<char> hash_v = af.filehash(fp, cancel);
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
@@ -622,6 +818,9 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
 
   std::fstream epub_hash_f;
   epubhashmtx.lock();
+  epub_hash_f.open(
+      epub_hashp,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
   epub_hash_f.write(f_p.c_str(), f_p.size());
   epub_hash_f.write(hash_str.c_str(), hash_str.size());
   epub_hash_f.close();
@@ -719,8 +918,246 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
   num_thr_runmtx.unlock();
 }
 
+void
+CreateCollection::pdfThreadFunc(std::filesystem::path fp,
+				std::filesystem::path filepath,
+				std::filesystem::path pdf_hashp)
+{
+  AuxFunc af;
+  std::vector<char> write_v;
+  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::string hash_str = af.to_hex(&hash_v);
+  hash_str = hash_str + "\n";
+  std::vector<std::tuple<std::string, std::string>> basevect;
+  basevect = pdfparser(fp);
+  std::string f_p = fp.u8string();
+  f_p.erase(f_p.find(book_p.u8string()), book_p.u8string().size());
+  f_p = f_p + "<?>";
+  std::copy(f_p.begin(), f_p.end(), std::back_inserter(write_v));
+
+  std::fstream pdf_hash_f;
+  pdfhashmtx.lock();
+  pdf_hash_f.open(
+      pdf_hashp,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  pdf_hash_f.write(f_p.c_str(), f_p.size());
+  pdf_hash_f.write(hash_str.c_str(), hash_str.size());
+  pdf_hash_f.close();
+  pdfhashmtx.unlock();
+
+  std::string line;
+  auto bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Author";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Book";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Series";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Genre";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Date";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?L>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  pdfbasemtx.lock();
+  std::fstream pdf_base_f;
+  pdf_base_f.open(
+      filepath,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  pdf_base_f.write(write_v.data(), write_v.size());
+  pdf_base_f.close();
+  pdfbasemtx.unlock();
+
+  file_countmtx.lock();
+  file_count = file_count + 1;
+  if(files_added)
+    {
+      files_added(file_count);
+    }
+  file_countmtx.unlock();
+  num_thr_runmtx.lock();
+  num_thr_run = num_thr_run - 1;
+  if(num_thr_run < threadnum)
+    {
+      cmtx.try_lock();
+      cmtx.unlock();
+    }
+  num_thr_runmtx.unlock();
+}
+
+void
+CreateCollection::djvuThreadFunc(std::filesystem::path fp,
+				 std::filesystem::path filepath,
+				 std::filesystem::path djvu_hashp)
+{
+  AuxFunc af;
+  std::vector<char> write_v;
+  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::string hash_str = af.to_hex(&hash_v);
+  hash_str = hash_str + "\n";
+  std::vector<std::tuple<std::string, std::string>> basevect;
+  basevect = djvuparser(fp);
+  std::string f_p = fp.u8string();
+  f_p.erase(f_p.find(book_p.u8string()), book_p.u8string().size());
+  f_p = f_p + "<?>";
+  std::copy(f_p.begin(), f_p.end(), std::back_inserter(write_v));
+
+  std::fstream djvu_hash_f;
+  djvuhashmtx.lock();
+  djvu_hash_f.open(
+      djvu_hashp,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  djvu_hash_f.write(f_p.c_str(), f_p.size());
+  djvu_hash_f.write(hash_str.c_str(), hash_str.size());
+  djvu_hash_f.close();
+  djvuhashmtx.unlock();
+
+  std::string line;
+  auto bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Author";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Book";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Series";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Genre";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  bvit = std::find_if(basevect.begin(), basevect.end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Date";
+    });
+  if(bvit != basevect.end())
+    {
+      line = std::get<1>(*bvit);
+    }
+  line = line + "<?L>";
+  std::copy(line.begin(), line.end(), std::back_inserter(write_v));
+  line.clear();
+
+  djvubasemtx.lock();
+  std::fstream djvu_base_f;
+  djvu_base_f.open(
+      filepath,
+      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  djvu_base_f.write(write_v.data(), write_v.size());
+  djvu_base_f.close();
+  djvubasemtx.unlock();
+
+  file_countmtx.lock();
+  file_count = file_count + 1;
+  if(files_added)
+    {
+      files_added(file_count);
+    }
+  file_countmtx.unlock();
+  num_thr_runmtx.lock();
+  num_thr_run = num_thr_run - 1;
+  if(num_thr_run < threadnum)
+    {
+      cmtx.try_lock();
+      cmtx.unlock();
+    }
+  num_thr_runmtx.unlock();
+}
+
 std::vector<std::tuple<std::string, std::string>>
-CreateCollection::fb2Parser(std::filesystem::path filepath)
+CreateCollection::fb2parser(std::filesystem::path filepath)
 {
   AuxFunc af;
   std::fstream f;
@@ -1045,7 +1482,7 @@ CreateCollection::fb2Parser(std::filesystem::path filepath)
 }
 
 std::vector<std::tuple<std::string, std::string>>
-CreateCollection::fb2Parser(std::string input)
+CreateCollection::fb2parser(std::string input)
 {
   AuxFunc af;
   std::string headstr = input;
@@ -1590,7 +2027,7 @@ CreateCollection::epubparser(std::filesystem::path input)
 		      std::get<1>(restup) = booktitle;
 		      result.push_back(restup);
 		      std::get<0>(restup) = "Series";
-		      std::get<1>(restup).clear();
+		      std::get<1>(restup) = std::string();
 		      result.push_back(restup);
 		      std::get<0>(restup) = "Genre";
 		      std::get<1>(restup) = genre_str;
@@ -1605,5 +2042,86 @@ CreateCollection::epubparser(std::filesystem::path input)
 	}
       std::filesystem::remove_all(filepath);
     }
+  return result;
+}
+
+std::vector<std::tuple<std::string, std::string>>
+CreateCollection::pdfparser(std::filesystem::path input)
+{
+  std::vector<std::tuple<std::string, std::string>> result;
+  poppler::document *doc = poppler::document::load_from_file(input.string());
+  poppler::ustring inf = doc->get_author();
+  std::tuple<std::string, std::string> restup;
+  std::vector<char> buf = inf.to_utf8();
+  std::string auth_str;
+  std::copy(buf.begin(), buf.end(), std::back_inserter(auth_str));
+  std::get<0>(restup) = "Author";
+  std::get<1>(restup) = auth_str;
+  result.push_back(restup);
+
+  inf = doc->get_title();
+  buf = inf.to_utf8();
+  std::string booktitle;
+  std::copy(buf.begin(), buf.end(), std::back_inserter(booktitle));
+  if(booktitle.empty())
+    {
+      booktitle = input.stem().u8string();
+    }
+  std::get<0>(restup) = "Book";
+  std::get<1>(restup) = booktitle;
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Series";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Genre";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
+  time_t fcr = doc->get_creation_date_t();
+  struct tm *mtm;
+  mtm = gmtime(&fcr);
+  std::stringstream strm;
+  std::locale loc("C");
+  strm.imbue(loc);
+  strm << mtm->tm_mday;
+  strm << "-";
+  strm << mtm->tm_mon + 1;
+  strm << "-";
+  strm << 1900 + mtm->tm_year;
+  std::get<0>(restup) = "Date";
+  std::get<1>(restup) = strm.str();
+  result.push_back(restup);
+
+  delete doc;
+  return result;
+}
+
+std::vector<std::tuple<std::string, std::string>>
+CreateCollection::djvuparser(std::filesystem::path input)
+{
+  std::vector<std::tuple<std::string, std::string>> result;
+  std::tuple<std::string, std::string> restup;
+  std::get<0>(restup) = "Author";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Book";
+  std::get<1>(restup) = input.stem().u8string();
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Series";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Genre";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
+  std::get<0>(restup) = "Date";
+  std::get<1>(restup) = std::string();
+  result.push_back(restup);
+
   return result;
 }

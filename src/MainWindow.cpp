@@ -309,7 +309,7 @@ MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
   widg = pn->get_end_child();
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = right_grid->get_child_at(1, 1);
+  widg = right_grid->get_child_at(1, 2);
   Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
   drar->set_opacity(0.0);
   Gtk::TreeView *trv = column->get_tree_view();
@@ -321,7 +321,7 @@ MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
       iter->get_value(0, id);
       std::string filename = std::get<5>(search_result_v[id - 1]);
       AnnotationCover ac(filename);
-      widg = right_grid->get_child_at(0, 1);
+      widg = right_grid->get_child_at(0, 2);
       Gtk::ScrolledWindow *annot_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
       widg = annot_scrl->get_child();
       Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(widg);
@@ -331,11 +331,35 @@ MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
       n = cover_image.find("<epub>");
       if(n == std::string::npos)
 	{
-	  if(!cover_image.empty())
+	  n = cover_image.find("<pdf>");
+	  if(!cover_image.empty() && n == std::string::npos)
 	    {
-	      cover_image = Glib::Base64::decode(cover_image);
-	      drar->set_opacity(1.0);
-	      drar->queue_draw();
+	      n = cover_image.find("<djvu>");
+	      if(!cover_image.empty() && n == std::string::npos)
+		{
+		  cover_image = Glib::Base64::decode(cover_image);
+		  drar->set_opacity(1.0);
+		  drar->queue_draw();
+		}
+	      else
+		{
+		  if(!cover_image.empty())
+		    {
+		      drar->set_opacity(1.0);
+		      drar->queue_draw();
+		    }
+		}
+	    }
+	  else
+	    {
+	      cover_image.erase(0, std::string("<pdf>").size());
+	      cover_image_path = cover_image;
+	      cover_image.clear();
+	      if(!cover_image_path.empty())
+		{
+		  drar->set_opacity(1.0);
+		  drar->queue_draw();
+		}
 	    }
 	}
       else
@@ -376,42 +400,83 @@ MainWindow::drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width,
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
   widg = pn->get_end_child();
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = right_grid->get_child_at(1, 1);
+  widg = right_grid->get_child_at(1, 2);
   Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
   if(!cover_image.empty())
     {
-      AuxFunc af;
-      std::string filename;
+      std::string::size_type n_djvu;
+      n_djvu = cover_image.find("<djvu>");
+      if(n_djvu == std::string::npos)
+	{
+	  AuxFunc af;
+	  std::string filename;
 #ifdef __linux
-      filename = std::filesystem::temp_directory_path().u8string();
+	  filename = std::filesystem::temp_directory_path().u8string();
 #endif
 #ifdef _WIN32
-      filename =
-      	  std::filesystem::temp_directory_path().parent_path().u8string();
+	  filename =
+	      std::filesystem::temp_directory_path().parent_path().u8string();
 #endif
-      filename = filename + "/" + af.randomFileName() + "/cover";
-      std::filesystem::path filepath = std::filesystem::u8path(filename);
-      if(std::filesystem::exists(filepath.parent_path()))
-	{
+	  filename = filename + "/" + af.randomFileName() + "/cover";
+	  std::filesystem::path filepath = std::filesystem::u8path(filename);
+	  if(std::filesystem::exists(filepath.parent_path()))
+	    {
+	      std::filesystem::remove_all(filepath.parent_path());
+	    }
+	  std::filesystem::create_directories(filepath.parent_path());
+	  std::fstream f;
+	  f.open(filepath, std::ios_base::out | std::ios_base::binary);
+	  if(f.is_open())
+	    {
+	      Gtk::Requisition min, nat;
+	      drar->get_preferred_size(min, nat);
+	      f.write(cover_image.c_str(), cover_image.size());
+	      f.close();
+	      auto image = Gdk::Pixbuf::create_from_file(filepath.u8string(),
+							 nat.get_width(),
+							 nat.get_height(),
+							 true);
+	      Gdk::Cairo::set_source_pixbuf(cr, image, 0, 0);
+	      cr->rectangle(0, 0, nat.get_width(), nat.get_height());
+	      cr->fill();
+	    }
 	  std::filesystem::remove_all(filepath.parent_path());
 	}
-      std::filesystem::create_directories(filepath.parent_path());
-      std::fstream f;
-      f.open(filepath, std::ios_base::out | std::ios_base::binary);
-      if(f.is_open())
+      else
 	{
-	  Gtk::Requisition min, nat;
-	  drar->get_preferred_size(min, nat);
-	  f.write(cover_image.c_str(), cover_image.size());
-	  f.close();
-	  auto image = Gdk::Pixbuf::create_from_file(filepath.u8string(),
-						     nat.get_width(),
-						     nat.get_height(), true);
+	  cover_image.erase(0, n_djvu + std::string("<djvu>").size());
+	  std::string param = cover_image.substr(
+	      0, cover_image.find("</djvu>") + std::string("</djvu>").size());
+	  cover_image.erase(0, param.size());
+	  param = param.substr(0, param.find("</djvu>"));
+	  int rowsize;
+	  std::memcpy(&rowsize, &param[0], sizeof(rowsize));
+	  param.erase(0, sizeof(rowsize));
+
+	  int iw;
+	  std::memcpy(&iw, &param[0], sizeof(iw));
+	  param.erase(0, sizeof(iw));
+
+	  int ih;
+	  std::memcpy(&ih, &param[0], sizeof(ih));
+	  param.erase(0, sizeof(ih));
+
+	  std::vector<unsigned char> vect;
+	  auto vp = &vect;
+	  std::for_each(cover_image.begin(), cover_image.end(), [vp]
+	  (auto &el)
+	    {
+	      vp->push_back(static_cast<unsigned char>(el));
+	    });
+
+	  auto image = Gdk::Pixbuf::create_from_data(&vect[0],
+						     Gdk::Colorspace::RGB,
+						     false, 8, iw, ih, rowsize);
+	  image = image->scale_simple(width, height, Gdk::InterpType::BILINEAR);
 	  Gdk::Cairo::set_source_pixbuf(cr, image, 0, 0);
-	  cr->rectangle(0, 0, nat.get_width(), nat.get_height());
+	  cr->rectangle(0, 0, width, height);
 	  cr->fill();
 	}
-      std::filesystem::remove_all(filepath.parent_path());
     }
   else
     {
@@ -529,7 +594,6 @@ MainWindow::openBook(int variant)
 	    {
 	      filepath = std::filesystem::u8path(filename);
 	    }
-
 	  if(std::filesystem::exists(filepath))
 	    {
 	      std::string commstr;
@@ -602,9 +666,9 @@ MainWindow::copyTo()
 	      outfolder = std::filesystem::temp_directory_path().u8string();
 #endif
 #ifdef _WIN32
-  	      outfolder =
-  	      		  std::filesystem::temp_directory_path().parent_path().u8string();
-  #endif
+	      outfolder =
+		  std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
 	      outfolder = outfolder + "/" + af.randomFileName();
 	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
 	      if(std::filesystem::exists(ffr))
@@ -730,6 +794,13 @@ MainWindow::bookRemoveWin(int variant, Gtk::Window *win)
 }
 
 void
+MainWindow::fileInfo()
+{
+  BookOpWindows bopw(this);
+  bopw.fileInfo();
+}
+
+void
 MainWindow::collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::Window *win1,
 			      Gtk::Window *win2)
 {
@@ -784,6 +855,7 @@ MainWindow::createBookmark()
 	      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
 	  f.write(bookline.c_str(), bookline.size());
 	  f.close();
+	  errorWin(8, this, nullptr);
 	}
     }
 }
@@ -796,12 +868,9 @@ MainWindow::bookmarkWindow()
 }
 
 void
-MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
+MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
+		       Gtk::Entry *book_nm_ent)
 {
-
-  std::string coll_name(cmb->get_active_text());
-  int *cncl = new int(0);
-  RefreshCollection *rc = new RefreshCollection(coll_name, 1, cncl);
   Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
       gettext("Choose a book"), *win, Gtk::FileChooser::Action::OPEN,
       gettext("Open"), gettext("Cancel"));
@@ -811,50 +880,94 @@ MainWindow::bookAddWin(Gtk::ComboBoxText *cmb, Gtk::Window *win)
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
   fch->set_current_folder(fl);
   fch->set_select_multiple(false);
+
   Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".fb2, .epub, .zip");
+  fl_filter->set_name(gettext("All supported"));
   fl_filter->add_pattern("*.fb2");
   fl_filter->add_pattern("*.zip");
   fl_filter->add_pattern("*.epub");
+  fl_filter->add_pattern("*.pdf");
+  fl_filter->add_pattern("*.djvu");
   fch->add_filter(fl_filter);
-  fch->set_select_multiple(true);
-  fch->signal_response().connect([this, fch, rc, win, cncl]
-  (int resp)
-    {
-      if(resp == Gtk::ResponseType::ACCEPT)
+
+  fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".fb2");
+  fl_filter->add_pattern("*.fb2");
+  fch->add_filter(fl_filter);
+
+  fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".zip");
+  fl_filter->add_pattern("*.zip");
+  fch->add_filter(fl_filter);
+
+  fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".epub");
+  fl_filter->add_pattern("*.epub");
+  fch->add_filter(fl_filter);
+
+  fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".pdf");
+  fl_filter->add_pattern("*.pdf");
+  fch->add_filter(fl_filter);
+
+  fl_filter = Gtk::FileFilter::create();
+  fl_filter->set_name(".djvu");
+  fl_filter->add_pattern("*.djvu");
+  fch->add_filter(fl_filter);
+
+  fch->set_select_multiple(false);
+  fch->signal_response().connect(
+      [fch, book_path_ent, book_nm_ent]
+      (int resp)
 	{
-	  Glib::RefPtr<Gio::File> fl = fch->get_file();
-	  if(fl)
+	  if(resp == Gtk::ResponseType::ACCEPT)
 	    {
-	      this->bookAddWinFunc(win, rc, cncl);
-	      std::thread *thr = new std::thread([rc, fl]
+	      Glib::RefPtr<Gio::File>fl = fch->get_file();
+	      if(fl)
+		{
+		  book_path_ent->set_text(Glib::ustring(fl->get_path()));
+		  std::string ch(book_nm_ent->get_text());
+		  ch.erase(std::remove_if(ch.begin(), ch.end(), [](auto &el)
+			    {
+			      return el == ' ';
+			    }), ch.end());
+		  if(ch.empty())
 		    {
-		      rc->addBook(fl->get_path());
-		    });
-	      thr->detach();
-	      delete thr;
+		      std::filesystem::path p = std::filesystem::u8path(std::string(fl->get_path()));
+		      book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
+		    }
+		}
 	    }
-	}
-    });
+	});
   fch->show();
 }
 
 void
-MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
+MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
 {
-  win->unset_child();
-  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-  while(mc->pending())
-    {
-      mc->iteration(true);
-    }
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+  Gtk::ComboBoxText *cmb = dynamic_cast<Gtk::ComboBoxText*>(gr->get_child_at(0,
+									     1));
+  std::string coll_name(cmb->get_active_text());
 
-  win->set_title("Books adding...");
+  Gtk::Entry *book_path_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
+  std::string book_path(book_path_ent->get_text());
+
+  Gtk::Entry *book_nm_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
+  std::string book_name(book_nm_ent->get_text());
+
+  bool pack = ch_pack->get_active();
+
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(this->get_application());
+  window->set_title(gettext("Books adding..."));
+  window->set_transient_for(*win);
+  window->set_modal(true);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::CENTER);
-  win->set_child(*grid);
-  win->set_deletable(false);
+  window->set_child(*grid);
+  window->set_deletable(false);
 
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
   lab->set_halign(Gtk::Align::CENTER);
@@ -866,6 +979,10 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
+
+  int *cncl = new int(0);
+  RefreshCollection *rc = new RefreshCollection(coll_name, 1, cncl);
+
   sigc::connection *con = new sigc::connection;
   *con = cancel->signal_clicked().connect([cncl]
   {
@@ -873,19 +990,15 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
   });
   grid->attach(*cancel, 0, 1, 1, 1);
 
-  Gtk::Requisition min, nat;
-  grid->get_preferred_size(min, nat);
-  win->set_default_size(nat.get_width(), nat.get_height());
-
   Glib::Dispatcher *disp_canceled = new Glib::Dispatcher;
-  disp_canceled->connect([win, lab, cancel, con]
+  disp_canceled->connect([window, lab, cancel, con]
   {
     con->disconnect();
     lab->set_text(gettext("Book adding canceled"));
     cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect([win]
+    cancel->signal_clicked().connect([window]
     {
-      win->close();
+      window->close();
     });
   });
   rc->refresh_canceled = [disp_canceled]
@@ -893,14 +1006,29 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
     disp_canceled->emit();
   };
 
+  std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>;
+  Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher;
+  disp_book_exists->connect([window, this, ttup]
+  {
+    this->bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
+  });
+  rc->file_exists = [ttup, disp_book_exists]
+  (std::mutex *inmtx, int *instopper)
+    {
+      std::get<0>(*ttup) = inmtx;
+      std::get<1>(*ttup) = instopper;
+      disp_book_exists->emit();
+    };
+
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
-  disp_finished->connect([win, lab, cancel, con, this]
+  disp_finished->connect([window, lab, cancel, con, this, win]
   {
     con->disconnect();
     lab->set_text(gettext("Book adding finished"));
     cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect([win]
+    cancel->signal_clicked().connect([window, win]
     {
+      window->close();
       win->close();
     });
     this->prev_search_nm.clear();
@@ -910,19 +1038,56 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, RefreshCollection *rc, int *cncl)
     disp_finished->emit();
   };
 
-  win->signal_close_request().connect([rc, disp_finished, disp_canceled, cncl]
+  Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher;
+  disp_col_notfound->connect([con, lab, cancel, window]
   {
-    delete disp_finished;
-    delete disp_canceled;
-    delete cncl;
-    return true;
-  },
-				      false);
-
-  while(mc->pending())
+    con->disconnect();
+    lab->set_text(gettext("Collection book path does not exists!"));
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
     {
-      mc->iteration(true);
-    }
+      window->close();
+    });
+  });
+
+  rc->collection_not_exists = [disp_col_notfound]
+  {
+    disp_col_notfound->emit();
+  };
+
+  window->signal_close_request().connect(
+      [rc, disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
+       ttup, window, cncl]
+      {
+	window->hide();
+	delete disp_finished;
+	delete disp_canceled;
+	delete disp_col_notfound;
+	delete disp_book_exists;
+	delete ttup;
+	delete cncl;
+	delete rc;
+	delete window;
+	return true;
+      },
+      false);
+
+  window->show();
+
+  std::thread *thr = new std::thread([rc, book_path, book_name, pack]
+  {
+    rc->addBook(book_path, book_name, pack);
+  });
+  thr->detach();
+  delete thr;
+
+}
+
+void
+MainWindow::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
+{
+  AuxWindows aw(this);
+  aw.bookCopyConfirm(win, addbmtx, stopper);
 }
 
 void

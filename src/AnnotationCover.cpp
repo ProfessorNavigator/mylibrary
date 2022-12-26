@@ -39,90 +39,30 @@ AnnotationCover::fileRead()
       std::string ext = filepath.extension().u8string();
       AuxFunc af;
       af.stringToLower(ext);
-      if(std::filesystem::file_size(filepath) <= 104857600 && ext != ".epub")
+      if(ext == ".fb2")
 	{
-	  std::fstream f;
-	  f.open(filepath, std::ios_base::in | std::ios_base::binary);
-	  if(!f.is_open())
-	    {
-	      std::cerr << "AnnotationCover: fb2 file not opened" << std::endl;
-	    }
-	  else
-	    {
-	      file.resize(std::filesystem::file_size(filepath));
-	      f.read(&file[0], file.size());
-	      f.close();
-	    }
+	  fb2_ch_f = true;
+	  fb2Parse(filepath);
 	}
-      else
+      if(ext == ".epub")
 	{
-	  if(std::filesystem::file_size(filepath) <= 104857600
-	      && ext == ".epub")
-	    {
-	      epub_ch_f = true;
-	      std::vector<std::tuple<int, int, std::string>> list;
-	      AuxFunc af;
-	      af.fileNames(filepath.u8string(), list);
-	      std::string filename;
-#ifdef __linux
-	      filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-	      filename = filename + "/" + af.randomFileName();
-	      std::filesystem::path outfolder = std::filesystem::u8path(
-		  filename);
-	      if(std::filesystem::exists(outfolder))
-		{
-		  std::filesystem::remove_all(outfolder);
-		}
-	      auto itl =
-		  std::find_if(
-		      list.begin(),
-		      list.end(),
-		      []
-		      (auto &el)
-			{
-			  std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
-			  std::string ext = p.extension().u8string();
-			  AuxFunc af;
-			  af.stringToLower(ext);
-			  return ext == ".opf";
-			});
-	      if(itl != list.end())
-		{
-		  af.unpackByIndex(filepath.u8string(), outfolder.u8string(),
-				   std::get<0>(*itl));
-		  if(std::filesystem::exists(outfolder))
-		    {
-		      for(auto &dirit : std::filesystem::directory_iterator(
-			  outfolder))
-			{
-			  std::filesystem::path p = dirit.path();
-			  ext = p.extension().u8string();
-			  af.stringToLower(ext);
-			  if(ext == ".opf")
-			    {
-			      std::fstream f;
-			      f.open(p,
-				     std::ios_base::in | std::ios_base::binary);
-			      if(f.is_open())
-				{
-				  file.resize(std::filesystem::file_size(p));
-				  f.read(&file[0], file.size());
-				  f.close();
-				}
-			    }
-			}
-		      std::filesystem::remove_all(outfolder);
-		    }
-		}
-	    }
+	  epub_ch_f = true;
+	  epubParse(filepath);
+	}
+      if(ext == ".pdf")
+	{
+	  pdf_ch_f = true;
+	  pdfParse(filepath);
+	}
+      if(ext == ".djvu")
+	{
+	  djvu_ch_f = true;
+	  djvuParse(filepath);
 	}
     }
   else
     {
+      zip_ch_f = true;
       std::string index = rcvd_filename;
       index.erase(0, index.find("<index>") + std::string("<index>").size());
       index = index.substr(0, index.find("</index>"));
@@ -158,92 +98,65 @@ AnnotationCover::fileRead()
 	    {
 	      std::filesystem::path p = dirit.path();
 	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".fb2"
-		  && std::filesystem::file_size(p) <= 104857600)
+		  && p.extension().u8string() == ".fb2")
 		{
-		  std::fstream f;
-		  f.open(p, std::ios_base::in | std::ios_base::binary);
-		  if(!f.is_open())
-		    {
-		      std::cerr << "AnnotationCover: unpacked file not opened"
-			  << std::endl;
-		    }
-		  else
-		    {
-		      file.resize(std::filesystem::file_size(p));
-		      f.read(&file[0], file.size());
-		      f.close();
-		    }
-		  std::filesystem::remove_all(filepath);
+		  zip_ch_f = false;
+		  fb2_ch_f = true;
+		  fb2Parse(p);
 		  break;
 		}
 	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".epub"
-		  && std::filesystem::file_size(p) <= 104857600)
+		  && p.extension().u8string() == ".epub")
 		{
 		  epub_ch_f = true;
+		  zip_ch_f = false;
 		  epub_path = filepath;
-		  std::vector<std::tuple<int, int, std::string>> list;
-		  AuxFunc af;
-		  std::string ext;
-		  af.fileNames(p.u8string(), list);
-		  std::string filename;
-#ifdef __linux
-		  filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-		  filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-		  filename = filename + "/" + af.randomFileName();
-		  std::filesystem::path outfolder = std::filesystem::u8path(
-		      filename);
-		  if(std::filesystem::exists(outfolder))
-		    {
-		      std::filesystem::remove_all(outfolder);
-		    }
-		  auto itl =
+		  epubParse(p);
+		  break;
+		}
+	      if(!std::filesystem::is_directory(p)
+		  && p.extension().u8string() == ".pdf")
+		{
+		  pdf_ch_f = true;
+		  zip_ch_f = false;
+		  pdfZipParse(p, filepath, archaddr);
+		  break;
+		}
+	      if(!std::filesystem::is_directory(p)
+		  && p.extension().u8string() == ".djvu")
+		{
+		  djvu_ch_f = true;
+		  zip_ch_f = false;
+		  std::vector<std::tuple<int, int, std::string>> listv;
+		  af.fileNames(archaddr, listv);
+		  auto itlv =
 		      std::find_if(
-			  list.begin(),
-			  list.end(),
-			  []
+			  listv.begin(),
+			  listv.end(),
+			  [p]
 			  (auto &el)
 			    {
-			      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
-			      std::string ext = p.extension().u8string();
-			      AuxFunc af;
-			      af.stringToLower(ext);
-			      return ext == ".opf";
-			    });
-		  if(itl != list.end())
-		    {
-		      af.unpackByIndex(p.u8string(), outfolder.u8string(),
-				       std::get<0>(*itl));
-		      if(std::filesystem::exists(outfolder))
-			{
-			  for(auto &dirit : std::filesystem::directory_iterator(
-			      outfolder))
-			    {
-			      std::filesystem::path p_th = dirit.path();
-			      ext = p_th.extension().u8string();
-			      af.stringToLower(ext);
-			      if(ext == ".opf")
+			      std::filesystem::path lp = std::filesystem::u8path(std::get<2>(el));
+			      if(lp.stem().u8string() == p.stem().u8string() &&
+				  lp.extension().u8string() == ".fbd")
 				{
-				  std::fstream f;
-				  f.open(
-				      p_th,
-				      std::ios_base::in
-					  | std::ios_base::binary);
-				  if(f.is_open())
-				    {
-				      file.resize(
-					  std::filesystem::file_size(p_th));
-				      f.read(&file[0], file.size());
-				      f.close();
-				    }
+				  return true;
 				}
-			    }
-			  std::filesystem::remove_all(outfolder);
-			}
+			      else
+				{
+				  return false;
+				}
+			    });
+		  if(itlv != listv.end())
+		    {
+		      file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
+					      std::get<1>(*itlv));
+		      djvu_ch_f = false;
+		      fb2_ch_f = true;
+		    }
+		  else
+		    {
+		      djvuParse(p);
 		    }
 		  break;
 		}
@@ -260,7 +173,7 @@ AnnotationCover::annotationRet()
     {
       result = annotationEpub();
     }
-  else
+  if(fb2_ch_f || zip_ch_f)
     {
       std::string::size_type n = 0;
       std::string conv_name = file;
@@ -318,28 +231,78 @@ AnnotationCover::annotationRet()
 	{
 	  result.clear();
 	}
-      n = result.find("<p>");
+      n = result.find("</p>");
       if(n != std::string::npos)
 	{
 	  std::string line = result;
 	  result.clear();
 	  while(n != std::string::npos)
 	    {
-	      n = line.find("<p>");
+	      n = line.find("</p>");
 	      if(n != std::string::npos)
 		{
-		  std::string tmp = line.substr(
-		      n, line.find("</p>") + std::string("</p>").size());
-		  line.erase(0, line.find("</p>") + std::string("</p>").size());
-		  tmp.erase(0, std::string("<p>").size());
-		  tmp = tmp.substr(0, tmp.find("</p>"));
-		  tmp = tmp + "\n\n";
-		  result = result + tmp;
+		  std::string tmp = line.substr(0,
+						n + std::string("</p>").size());
+		  tmp = tmp.substr(tmp.rfind("<p>"), std::string::npos);
+		  line.erase(line.find(tmp), tmp.size());
+		  std::string::size_type n_tmp;
+		  n_tmp = tmp.find("<p>");
+		  if(n_tmp != std::string::npos)
+		    {
+		      tmp.erase(0, n_tmp + std::string("<p>").size());
+		      tmp = tmp.substr(0, tmp.find("</p>"));
+		      if(!tmp.empty())
+			{
+			  result = result + tmp + "\n\n";
+			}
+		    }
+		  else
+		    {
+		      result = result + tmp.substr(0, tmp.find("</p>"))
+			  + "\n\n";
+		    }
 		}
 	    }
 	}
     }
+  if(pdf_ch_f)
+    {
+      result = file;
+    }
+  if(djvu_ch_f)
+    {
+      result = file;
+    }
 
+  std::string::size_type n;
+  while(n != std::string::npos)
+    {
+      n = result.find("<br>");
+      if(n != std::string::npos)
+	{
+	  result.erase(n, std::string("<br>").size());
+	}
+    }
+  n = 0;
+  while(n != std::string::npos)
+    {
+      n = result.find("<br/>");
+      if(n != std::string::npos)
+	{
+	  result.erase(n, std::string("<br/>").size());
+	  result.insert(n, "\n\n");
+	}
+    }
+  n = 0;
+  while(n != std::string::npos)
+    {
+      n = result.find("</br>");
+      if(n != std::string::npos)
+	{
+	  result.erase(n, std::string("</br>").size());
+	  result.insert(n, "\n\n");
+	}
+    }
   return result;
 }
 
@@ -351,7 +314,7 @@ AnnotationCover::coverRet()
     {
       result = "<epub>" + coverEpub();
     }
-  else
+  if(fb2_ch_f || zip_ch_f)
     {
       std::string href = file;
       href.erase(0, href.find("<coverpage>"));
@@ -414,6 +377,14 @@ AnnotationCover::coverRet()
 		}
 	    }
 	}
+    }
+  if(pdf_ch_f)
+    {
+      result = "<pdf>" + pdf_cover_path.u8string();
+    }
+  if(djvu_ch_f)
+    {
+      result = djvu_cover_bufer;
     }
 
   return result;
@@ -665,4 +636,283 @@ AnnotationCover::coverEpub()
     }
 
   return result;
+}
+
+void
+AnnotationCover::fb2Parse(std::filesystem::path filepath)
+{
+  std::fstream f;
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(!f.is_open())
+    {
+      std::cerr << "AnnotationCover: fb2 file not opened" << std::endl;
+    }
+  else
+    {
+      file.resize(std::filesystem::file_size(filepath));
+      f.read(&file[0], file.size());
+      f.close();
+    }
+}
+
+void
+AnnotationCover::epubParse(std::filesystem::path filepath)
+{
+  std::vector<std::tuple<int, int, std::string>> list;
+  AuxFunc af;
+  af.fileNames(filepath.u8string(), list);
+  std::string filename;
+#ifdef __linux
+  filename = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+  filename = std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+  filename = filename + "/" + af.randomFileName();
+  std::filesystem::path outfolder = std::filesystem::u8path(filename);
+  if(std::filesystem::exists(outfolder))
+    {
+      std::filesystem::remove_all(outfolder);
+    }
+  auto itl = std::find_if(list.begin(), list.end(), []
+  (auto &el)
+    {
+      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
+      std::string ext = p.extension().u8string();
+      AuxFunc af;
+      af.stringToLower(ext);
+      return ext == ".opf";
+    });
+  if(itl != list.end())
+    {
+      af.unpackByIndex(filepath.u8string(), outfolder.u8string(),
+		       std::get<0>(*itl));
+      if(std::filesystem::exists(outfolder))
+	{
+	  for(auto &dirit : std::filesystem::directory_iterator(outfolder))
+	    {
+	      std::filesystem::path p = dirit.path();
+	      std::string ext = p.extension().u8string();
+	      af.stringToLower(ext);
+	      if(ext == ".opf")
+		{
+		  std::fstream f;
+		  f.open(p, std::ios_base::in | std::ios_base::binary);
+		  if(f.is_open())
+		    {
+		      file.resize(std::filesystem::file_size(p));
+		      f.read(&file[0], file.size());
+		      f.close();
+		    }
+		}
+	    }
+	  std::filesystem::remove_all(outfolder);
+	}
+    }
+}
+
+void
+AnnotationCover::pdfParse(std::filesystem::path filepath)
+{
+  AuxFunc af;
+  poppler::document *doc = poppler::document::load_from_file(filepath.string());
+  if(doc)
+    {
+      poppler::ustring subj = doc->get_subject();
+      std::vector<char> buf = subj.to_utf8();
+      std::copy(buf.begin(), buf.end(), std::back_inserter(file));
+      std::string filename;
+#ifdef __linux
+      filename = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+      filename = std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+      filename = filename + "/" + af.randomFileName() + "/cover.jpg";
+      pdf_cover_path = std::filesystem::u8path(filename);
+      if(std::filesystem::exists(pdf_cover_path.parent_path()))
+	{
+	  std::filesystem::remove_all(pdf_cover_path.parent_path());
+	}
+      std::filesystem::create_directories(pdf_cover_path.parent_path());
+
+      poppler::page *pg = doc->create_page(0);
+      poppler::page_renderer pr;
+      poppler::image img = pr.render_page(pg, 72.0, 72.0, -1, -1, -1, -1,
+					  poppler::rotate_0);
+      img.save(pdf_cover_path.string(), "jpg", -1);
+      delete pg;
+      delete doc;
+    }
+}
+
+void
+AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
+			     std::filesystem::path unpacked_path,
+			     std::string archaddr)
+{
+  AuxFunc af;
+  poppler::document *doc = poppler::document::load_from_file(
+      temp_path.string());
+  if(doc)
+    {
+      poppler::ustring subj = doc->get_subject();
+      std::vector<char> buf = subj.to_utf8();
+      std::copy(buf.begin(), buf.end(), std::back_inserter(file));
+      std::string filename;
+#ifdef __linux
+      filename = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+      filename = std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+      filename = filename + "/" + af.randomFileName() + "/cover.jpg";
+      pdf_cover_path = std::filesystem::u8path(filename);
+      if(std::filesystem::exists(pdf_cover_path.parent_path()))
+	{
+	  std::filesystem::remove_all(pdf_cover_path.parent_path());
+	}
+      std::filesystem::create_directories(pdf_cover_path.parent_path());
+      std::vector<std::tuple<int, int, std::string>> listv;
+      af.fileNames(archaddr, listv);
+      auto itlv = std::find_if(listv.begin(), listv.end(), [temp_path]
+      (auto &el)
+	{
+	  std::filesystem::path lp = std::filesystem::u8path(std::get<2>(el));
+	  if(lp.stem().u8string() == temp_path.stem().u8string() &&
+	      lp.extension().u8string() == ".fbd")
+	    {
+	      return true;
+	    }
+	  else
+	    {
+	      return false;
+	    }
+	});
+      if(itlv != listv.end())
+	{
+	  file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
+				  std::get<1>(*itlv));
+	  pdf_ch_f = false;
+	  fb2_ch_f = true;
+	}
+      else
+	{
+	  poppler::page *pg = doc->create_page(0);
+	  poppler::page_renderer pr;
+	  poppler::image img = pr.render_page(pg, 72.0, 72.0, -1, -1, -1, -1,
+					      poppler::rotate_0);
+	  img.save(pdf_cover_path.string(), "jpg", -1);
+	  delete pg;
+	  delete doc;
+	}
+    }
+
+  std::filesystem::remove_all(unpacked_path);
+}
+
+void
+AnnotationCover::djvuParse(std::filesystem::path filepath)
+{
+  std::string progrnm = "MyLibrary";
+  ddjvu_context_t *djvu = ddjvu_context_create(progrnm.c_str());
+  if(djvu)
+    {
+      handle_ddjvu_messages(djvu, false);
+      ddjvu_document_t *doc = ddjvu_document_create_by_filename_utf8(
+	  djvu, filepath.u8string().c_str(), true);
+      if(doc)
+	{
+	  handle_ddjvu_messages(djvu, true);
+	  ddjvu_page_t *page = ddjvu_page_create_by_pageno(doc, 0);
+	  if(page)
+	    {
+	      while(!ddjvu_page_decoding_done(page))
+		{
+		  handle_ddjvu_messages(djvu, true);
+		}
+
+	      int iw = ddjvu_page_get_width(page);
+	      int ih = ddjvu_page_get_height(page);
+
+	      ddjvu_rect_t prect;
+	      ddjvu_rect_t rrect;
+	      prect.x = 0;
+	      prect.y = 0;
+	      prect.w = iw;
+	      prect.h = ih;
+	      rrect = prect;
+
+	      ddjvu_format_style_t style = DDJVU_FORMAT_RGB24;
+	      ddjvu_format_t *fmt = nullptr;
+	      fmt = ddjvu_format_create(style, 0, nullptr);
+	      if(fmt)
+		{
+		  ddjvu_format_set_row_order(fmt, 1);
+		  int rowsize = rrect.w * 4;
+		  djvu_cover_bufer.resize(rowsize * rrect.h);
+		  if(!ddjvu_page_render(page, DDJVU_RENDER_COLOR, &prect,
+					&rrect, fmt, rowsize,
+					&djvu_cover_bufer[0]))
+		    {
+		      std::cerr << "DJVU render error" << std::endl;
+		      djvu_cover_bufer.clear();
+		    }
+		  else
+		    {
+		      std::string param = "<djvu>";
+		      std::string cpy;
+
+		      cpy.resize(sizeof(rowsize));
+		      std::memcpy(&cpy[0], &rowsize, sizeof(rowsize));
+		      std::copy(cpy.begin(), cpy.end(),
+				std::back_inserter(param));
+
+		      cpy.clear();
+		      cpy.resize(sizeof(iw));
+		      std::memcpy(&cpy[0], &iw, sizeof(iw));
+		      std::copy(cpy.begin(), cpy.end(),
+				std::back_inserter(param));
+
+		      cpy.clear();
+		      cpy.resize(sizeof(ih));
+		      std::memcpy(&cpy[0], &ih, sizeof(ih));
+		      std::copy(cpy.begin(), cpy.end(),
+				std::back_inserter(param));
+		      param = param + "</djvu>";
+		      djvu_cover_bufer = param + djvu_cover_bufer;
+		    }
+		  ddjvu_format_release(fmt);
+		}
+
+	      ddjvu_page_release(page);
+	    }
+	  ddjvu_document_release(doc);
+	}
+      ddjvu_context_release(djvu);
+    }
+}
+
+void
+AnnotationCover::handle_ddjvu_messages(ddjvu_context_t *ctx, bool wait)
+{
+  ddjvu_message_t *msg = nullptr;
+  if(wait)
+    {
+      msg = ddjvu_message_wait(ctx);
+    }
+  else
+    {
+      msg = ddjvu_message_peek(ctx);
+    }
+  while(msg)
+    {
+      const char *str = msg->m_error.message;
+      if(str && msg->m_any.tag == DDJVU_ERROR)
+	{
+	  std::cerr << std::string(str) << std::endl;
+	}
+      ddjvu_message_pop(ctx);
+      msg = ddjvu_message_peek(ctx);
+    }
 }

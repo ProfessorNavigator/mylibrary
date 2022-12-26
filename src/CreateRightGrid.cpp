@@ -60,6 +60,7 @@ CreateRightGrid::formRightGrid()
       Gio::SimpleActionGroup::create();
   acgroup->add_action("openbook",
 		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
+  acgroup->add_action("fileinfo", sigc::mem_fun(*mw, &MainWindow::fileInfo));
   acgroup->add_action("copyto", sigc::mem_fun(*mw, &MainWindow::copyTo));
   acgroup->add_action(
       "removebook",
@@ -69,6 +70,7 @@ CreateRightGrid::formRightGrid()
   sres->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
+  menu->append(gettext("File info"), "popup.fileinfo");
   menu->append(gettext("Create book-mark"), "popup.bookmark");
   menu->append(gettext("Save book as..."), "popup.copyto");
   menu->append(gettext("Remove book"), "popup.removebook");
@@ -91,6 +93,63 @@ CreateRightGrid::formRightGrid()
   {
     delete Menu;
   });
+
+  Gtk::Grid *book_op_pop_gr = Gtk::make_managed<Gtk::Grid>();
+
+  Gtk::Button *openbook = Gtk::make_managed<Gtk::Button>();
+  openbook->set_halign(Gtk::Align::CENTER);
+  openbook->set_valign(Gtk::Align::CENTER);
+  openbook->set_margin(5);
+  openbook->set_label(gettext("Open selected book"));
+  openbook->signal_clicked().connect(
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
+  book_op_pop_gr->attach(*openbook, 0, 0, 1, 1);
+
+  Gtk::Button *fileinfo = Gtk::make_managed<Gtk::Button>();
+  fileinfo->set_halign(Gtk::Align::CENTER);
+  fileinfo->set_valign(Gtk::Align::CENTER);
+  fileinfo->set_margin(5);
+  fileinfo->set_label(gettext("File info"));
+  fileinfo->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::fileInfo));
+  book_op_pop_gr->attach(*fileinfo, 0, 1, 1, 1);
+
+  Gtk::Button *bookmark = Gtk::make_managed<Gtk::Button>();
+  bookmark->set_halign(Gtk::Align::CENTER);
+  bookmark->set_valign(Gtk::Align::CENTER);
+  bookmark->set_margin(5);
+  bookmark->set_label(gettext("Create book-mark"));
+  bookmark->signal_clicked().connect(
+      sigc::mem_fun(*mw, &MainWindow::createBookmark));
+  book_op_pop_gr->attach(*bookmark, 0, 2, 1, 1);
+
+  Gtk::Button *copyto = Gtk::make_managed<Gtk::Button>();
+  copyto->set_halign(Gtk::Align::CENTER);
+  copyto->set_valign(Gtk::Align::CENTER);
+  copyto->set_margin(5);
+  copyto->set_label(gettext("Save book as..."));
+  copyto->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::copyTo));
+  book_op_pop_gr->attach(*copyto, 0, 3, 1, 1);
+
+  Gtk::Button *removebook = Gtk::make_managed<Gtk::Button>();
+  removebook->set_halign(Gtk::Align::CENTER);
+  removebook->set_valign(Gtk::Align::CENTER);
+  removebook->set_margin(5);
+  removebook->set_label(gettext("Remove book"));
+  removebook->signal_clicked().connect(
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
+  book_op_pop_gr->attach(*removebook, 0, 4, 1, 1);
+
+  Gtk::Popover *book_op_pop = Gtk::make_managed<Gtk::Popover>();
+  book_op_pop->set_child(*book_op_pop_gr);
+
+  Gtk::MenuButton *book_op_but = Gtk::make_managed<Gtk::MenuButton>();
+  book_op_but->set_popover(*book_op_pop);
+  book_op_but->set_margin(5);
+  book_op_but->set_halign(Gtk::Align::START);
+  book_op_but->set_valign(Gtk::Align::CENTER);
+  book_op_but->set_label(gettext("Book operations list"));
+  right_grid->attach(*book_op_but, 0, 1, 1, 1);
+
   Gtk::ScrolledWindow *annot_scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
   annot_scrl->set_margin(5);
   annot_scrl->set_halign(Gtk::Align::FILL);
@@ -104,7 +163,7 @@ CreateRightGrid::formRightGrid()
   annot->set_editable(false);
   annot->set_wrap_mode(Gtk::WrapMode::WORD);
   annot_scrl->set_child(*annot);
-  right_grid->attach(*annot_scrl, 0, 1, 1, 1);
+  right_grid->attach(*annot_scrl, 0, 2, 1, 1);
 
   Gtk::DrawingArea *drar = Gtk::make_managed<Gtk::DrawingArea>();
   drar->set_halign(Gtk::Align::FILL);
@@ -113,7 +172,7 @@ CreateRightGrid::formRightGrid()
   drar->set_draw_func(sigc::mem_fun(*mw, &MainWindow::drawCover));
   drar->set_hexpand(false);
   drar->set_vexpand(false);
-  right_grid->attach(*drar, 1, 1, 1, 1);
+  right_grid->attach(*drar, 1, 2, 1, 1);
 
   MainWindow *mwl = mw;
   mw->signal_show().connect([mwl]
@@ -126,10 +185,6 @@ CreateRightGrid::formRightGrid()
     Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
     Gtk::Box *box = dynamic_cast<Gtk::Box*>(main_grid->get_child_at(0, 0));
     Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-    main_grid->set_halign(Gtk::Align::FILL);
-    pn->set_halign(Gtk::Align::FILL);
-    main_grid->set_valign(Gtk::Align::FILL);
-    pn->set_valign(Gtk::Align::FILL);
     Gtk::Grid *left_grid = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
     Gtk::Requisition min_left_grid, nat_left_grid;
     left_grid->get_preferred_size(min_left_grid, nat_left_grid);
@@ -140,21 +195,27 @@ CreateRightGrid::formRightGrid()
 	dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
     sres_scrl->set_min_content_height(
 	(main_height - nat_box.get_height()) * 0.6);
-    sres_scrl->set_min_content_width(
-	main_width - nat_left_grid.get_width() - 20);
 
     Gtk::Requisition min_sres_scrl, nat_sres_scrl;
     sres_scrl->get_preferred_size(min_sres_scrl, nat_sres_scrl);
 
+    Gtk::MenuButton *book_op_but =
+	dynamic_cast<Gtk::MenuButton*>(right_grid->get_child_at(0, 1));
+    Gtk::Requisition book_op_but_min, book_op_but_nat;
+    book_op_but->get_preferred_size(book_op_but_min, book_op_but_nat);
     Gtk::ScrolledWindow *annot_scrl =
-	dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 1));
+	dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 2));
     annot_scrl->set_min_content_height(
-	main_height - nat_box.get_height() - nat_sres_scrl.get_height() - 10);
-    annot_scrl->set_min_content_width(nat_sres_scrl.get_width() * 0.8 - 10);
+	main_height - nat_box.get_height() - nat_sres_scrl.get_height()
+	    - book_op_but_nat.get_height());
+    annot_scrl->set_min_content_width(
+	(main_width - nat_left_grid.get_width()) * 0.8);
+
     Gtk::DrawingArea *drar =
-	dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 1));
+	dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
     drar->set_content_width(
-	nat_sres_scrl.get_width() - annot_scrl->get_min_content_width() - 10);
+	main_width - nat_left_grid.get_width()
+	    - annot_scrl->get_min_content_width() - 20);
     drar->set_content_height(annot_scrl->get_min_content_height());
   });
 
@@ -172,14 +233,14 @@ CreateRightGrid::searchResultShow(int variant)
       dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
   Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
   Gtk::ScrolledWindow *annot_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 1));
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 2));
   Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
   if(variant == 1)
     {
       Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
       tb->set_text("");
       Gtk::DrawingArea *drar =
-	  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 1));
+	  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
       drar->set_opacity(0.0);
       Glib::RefPtr<Gtk::Adjustment> v_adg = sres_scrl->get_vadjustment();
       v_adg->set_value(v_adg->get_lower());

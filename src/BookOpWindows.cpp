@@ -115,6 +115,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
   Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
   window->set_title(gettext("Confirmation"));
+  window->set_default_size(1, 1);
   if(variant == 1)
     {
       window->set_transient_for(*mw);
@@ -144,10 +145,11 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
       lab->set_text(
 	  gettext("This action will remove book from bookmarks. Continue?"));
     }
+  window->set_default_size(1, 1);
   lab->set_wrap(true);
   lab->set_wrap_mode(Pango::WrapMode::WORD);
   lab->set_justify(Gtk::Justification::FILL);
-  lab->set_max_width_chars(30);
+  lab->set_width_chars(30);
   grid->attach(*lab, 0, 0, 2, 1);
 
   Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
@@ -181,17 +183,9 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 	    window->set_title(gettext("Removing"));
 	    window->set_deletable(false);
 	    lab->set_text(gettext("Removing... It will take some time"));
+	    window->set_default_size(1, 1);
 	    grid->remove(*yes);
 	    grid->remove(*no);
-	    Glib::RefPtr<Glib::MainContext> mc =
-		Glib::MainContext::get_default();
-	    while(mc->pending())
-	      {
-		mc->iteration(true);
-	      }
-	    Gtk::Requisition min, nat;
-	    grid->get_preferred_size(min, nat);
-	    window->set_default_size(nat.get_width(), nat.get_height());
 
 	    disp_finished->connect([window, mwl]
 	    {
@@ -216,6 +210,15 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 	      adj->set_value(pos);
 	      window->close();
 	    });
+	    Glib::Dispatcher *disp_file_nexists = new Glib::Dispatcher;
+	    disp_file_nexists->connect([mwl, disp_file_nexists]
+	    {
+	      mwl->errorWin(7, mwl, disp_file_nexists);
+	    });
+	    rc->collection_not_exists = [disp_file_nexists]
+	    {
+	      disp_file_nexists->emit();
+	    };
 	    Gtk::Widget *widg = mwl->get_child();
 	    Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
 	    widg = main_grid->get_child_at(0, 1);
@@ -245,9 +248,9 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 			mwl->search_result_v.begin() + id - 1);
 		    Gtk::DrawingArea *drar =
 			dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(
-			    1, 1));
+			    1, 2));
 		    drar->set_opacity(0.0);
-		    widg = right_grid->get_child_at(0, 1);
+		    widg = right_grid->get_child_at(0, 2);
 		    Gtk::ScrolledWindow *annot_scrl =
 			dynamic_cast<Gtk::ScrolledWindow*>(widg);
 		    widg = annot_scrl->get_child();
@@ -338,4 +341,220 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
       false);
     }
   window->show();
+}
+
+void
+BookOpWindows::fileInfo()
+{
+  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+  Gtk::ScrolledWindow *sres_scrl =
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
+  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  Gtk::Window *window = new Gtk::Window;
+	  window->set_application(mw->get_application());
+	  window->set_title(gettext("Book file info"));
+	  window->set_transient_for(*mw);
+
+	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+	  grid->set_halign(Gtk::Align::FILL);
+	  grid->set_valign(Gtk::Align::FILL);
+	  window->set_child(*grid);
+
+	  size_t id;
+	  AuxFunc af;
+	  std::filesystem::path filepath;
+	  iter->get_value(0, id);
+	  std::string filename;
+	  filename = std::get<5>(mw->search_result_v[id - 1]);
+	  std::string::size_type n;
+	  n = filename.find("<zip>");
+	  if(n != std::string::npos)
+	    {
+	      std::string archpath = filename;
+	      archpath.erase(
+		  0,
+		  archpath.find("<archpath>")
+		      + std::string("<archpath>").size());
+	      archpath = archpath.substr(0, archpath.find("</archpath>"));
+	      std::string ind_str = filename;
+	      ind_str.erase(
+		  0, ind_str.find("<index>") + std::string("<index>").size());
+	      ind_str = ind_str.substr(0, ind_str.find("</index>"));
+	      std::stringstream strm;
+	      std::locale loc("C");
+	      strm.imbue(loc);
+	      strm << ind_str;
+	      int index;
+	      strm >> index;
+	      filepath = std::filesystem::u8path(archpath);
+	      filepath.make_preferred();
+
+	      Gtk::Label *arch_lb = Gtk::make_managed<Gtk::Label>();
+	      arch_lb->set_margin(5);
+	      arch_lb->set_halign(Gtk::Align::START);
+	      arch_lb->set_use_markup(true);
+	      arch_lb->set_markup(
+		  Glib::ustring("<b>") + Glib::ustring(gettext("Archive: "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*arch_lb, 0, 0, 1, 1);
+
+	      Gtk::Label *arch_path_lb = Gtk::make_managed<Gtk::Label>();
+	      arch_path_lb->set_margin(5);
+	      arch_path_lb->set_halign(Gtk::Align::START);
+	      arch_path_lb->set_use_markup(true);
+	      arch_path_lb->set_markup(
+		  Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
+		      + Glib::ustring("</i>"));
+	      grid->attach(*arch_path_lb, 1, 0, 1, 1);
+
+	      AuxFunc af;
+	      std::vector<std::tuple<std::string, std::string>> infov;
+	      infov = af.fileinfo(filepath.u8string(), index);
+
+	      Gtk::Label *nm_lb = Gtk::make_managed<Gtk::Label>();
+	      nm_lb->set_margin(5);
+	      nm_lb->set_halign(Gtk::Align::START);
+	      nm_lb->set_use_markup(true);
+	      nm_lb->set_markup(
+		  Glib::ustring("<b>")
+		      + Glib::ustring(gettext("File path in archive: "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*nm_lb, 0, 1, 1, 1);
+
+	      Gtk::Label *file_nm_lb = Gtk::make_managed<Gtk::Label>();
+	      file_nm_lb->set_margin(5);
+	      file_nm_lb->set_halign(Gtk::Align::START);
+	      file_nm_lb->set_use_markup(true);
+	      auto itinfv = std::find_if(infov.begin(), infov.end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "filename";
+		});
+	      if(itinfv != infov.end())
+		{
+		  file_nm_lb->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
+			  + Glib::ustring("</i>"));
+		}
+	      grid->attach(*file_nm_lb, 1, 1, 1, 1);
+
+	      Gtk::Label *u_sz_lb = Gtk::make_managed<Gtk::Label>();
+	      u_sz_lb->set_margin(5);
+	      u_sz_lb->set_halign(Gtk::Align::START);
+	      u_sz_lb->set_use_markup(true);
+	      u_sz_lb->set_markup(
+		  Glib::ustring("<b>")
+		      + Glib::ustring(gettext("File size (uncompressed): "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*u_sz_lb, 0, 2, 1, 1);
+
+	      Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
+	      sz_lb->set_margin(5);
+	      sz_lb->set_halign(Gtk::Align::START);
+	      sz_lb->set_use_markup(true);
+	      itinfv = std::find_if(infov.begin(), infov.end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "filesizeunc";
+		});
+	      if(itinfv != infov.end())
+		{
+		  sz_lb->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
+			  + Glib::ustring("</i> ")
+			  + Glib::ustring(gettext("bytes")));
+		}
+	      grid->attach(*sz_lb, 1, 2, 1, 1);
+
+	      Gtk::Label *c_sz_lb = Gtk::make_managed<Gtk::Label>();
+	      c_sz_lb->set_margin(5);
+	      c_sz_lb->set_halign(Gtk::Align::START);
+	      c_sz_lb->set_use_markup(true);
+	      c_sz_lb->set_markup(
+		  Glib::ustring("<b>")
+		      + Glib::ustring(gettext("File size (compressed): "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*c_sz_lb, 0, 3, 1, 1);
+
+	      Gtk::Label *sz_lb2 = Gtk::make_managed<Gtk::Label>();
+	      sz_lb2->set_margin(5);
+	      sz_lb2->set_halign(Gtk::Align::START);
+	      sz_lb2->set_use_markup(true);
+	      itinfv = std::find_if(infov.begin(), infov.end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "filesizec";
+		});
+	      if(itinfv != infov.end())
+		{
+		  sz_lb2->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
+			  + Glib::ustring("</i> ")
+			  + Glib::ustring(gettext("bytes")));
+		}
+	      grid->attach(*sz_lb2, 1, 3, 1, 1);
+	    }
+	  else
+	    {
+	      filepath = std::filesystem::u8path(filename);
+	      filepath.make_preferred();
+	      Gtk::Label *fp_lb = Gtk::make_managed<Gtk::Label>();
+	      fp_lb->set_margin(5);
+	      fp_lb->set_halign(Gtk::Align::START);
+	      fp_lb->set_use_markup(true);
+	      fp_lb->set_markup(
+		  Glib::ustring("<b>") + Glib::ustring(gettext("File: "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*fp_lb, 0, 0, 1, 1);
+
+	      Gtk::Label *path_lb = Gtk::make_managed<Gtk::Label>();
+	      path_lb->set_margin(5);
+	      path_lb->set_halign(Gtk::Align::START);
+	      path_lb->set_use_markup(true);
+	      path_lb->set_markup(
+		  Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
+		      + Glib::ustring("</i>"));
+	      grid->attach(*path_lb, 1, 0, 1, 1);
+
+	      Gtk::Label *fsz_lb = Gtk::make_managed<Gtk::Label>();
+	      fsz_lb->set_margin(5);
+	      fsz_lb->set_halign(Gtk::Align::START);
+	      fsz_lb->set_use_markup(true);
+	      fsz_lb->set_markup(
+		  Glib::ustring("<b>") + Glib::ustring(gettext("File size: "))
+		      + Glib::ustring("</b>"));
+	      grid->attach(*fsz_lb, 0, 1, 1, 1);
+
+	      Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
+	      sz_lb->set_margin(5);
+	      sz_lb->set_halign(Gtk::Align::START);
+	      sz_lb->set_use_markup(true);
+	      std::stringstream strm;
+	      std::locale loc("C");
+	      strm.imbue(loc);
+	      strm << std::filesystem::file_size(filepath);
+	      sz_lb->set_markup(
+		  Glib::ustring("<i>") + Glib::ustring(strm.str())
+		      + Glib::ustring("</i> ")
+		      + Glib::ustring(gettext("bytes")));
+	      grid->attach(*sz_lb, 1, 1, 1, 1);
+	    }
+	  window->signal_close_request().connect([window]
+	  {
+	    window->hide();
+	    delete window;
+	    return true;
+	  },
+						 false);
+	  window->show();
+	}
+    }
 }
