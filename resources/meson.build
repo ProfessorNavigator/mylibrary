@@ -1,0 +1,1 @@
+srcresources = files (['resources.cpp'])

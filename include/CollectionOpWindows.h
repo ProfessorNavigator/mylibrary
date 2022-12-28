@@ -31,7 +31,8 @@ public:
   void
   collectionOp(int variant);
   void
-  collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win, int variant);
+  collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
+		   Gtk::CheckButton *rem_empty_ch, int variant);
   void
   collectionCreate();
   void
@@ -40,8 +41,8 @@ public:
   void
   openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant);
   void
-  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::Window *win1,
-		    Gtk::Window *win2);
+  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
+		    Gtk::Window *win1, Gtk::Window *win2);
   void
   importCollection();
   void

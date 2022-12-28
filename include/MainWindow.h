@@ -55,12 +55,13 @@ private:
   void
   collectionCreate();
   void
-  collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win, int variant);
+  collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
+		   Gtk::CheckButton *rem_empty_ch, int variant);
   void
   collectionOp(int variant);
   void
-  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::Window *win1,
-		    Gtk::Window *win2);
+  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
+		    Gtk::Window *win1, Gtk::Window *win2);
   void
   collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
 		       Gtk::Entry *thr_ent, Gtk::Window *par_win);

@@ -72,76 +72,7 @@ MainWindow::mainWindow()
 		   sigc::mem_fun(*this, &MainWindow::exportCollection));
   Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create();
   this->insert_action_group("prefgr", pref);
-  Glib::ustring menubuf =
-      "<interface>"
-	  "<menu id='menubar'>"
-	  "     <submenu>"
-	  "         <attribute name='label'>"
-	  + Glib::ustring(gettext("Collection")) + "</attribute>"
-	      "              <section>"
-	      "                 <item>"
-	      "                     <attribute name='label'>"
-	  + Glib::ustring(gettext("Create collection"))
-	  + "</attribute>"
-	      "                     <attribute name='action'>prefgr.collectioncr</attribute>"
-	      "                 </item>"
-	      "                 <item>"
-	      "                      <attribute name='label'>"
-	  + Glib::ustring(gettext("Refresh collection"))
-	  + "			     </attribute>"
-	      "			     <attribute name='action'>prefgr.collectionrefr</attribute>"
-	      "			</item>"
-	      "                 <item>"
-	      "                      <attribute name='label'>"
-	  + Glib::ustring(gettext("Import collection")) + "			     </attribute>"
-	      "			     <attribute name='action'>prefgr.collimport</attribute>"
-	      "			</item>"
-	      "                 <item>"
-	      "                      <attribute name='label'>"
-	  + Glib::ustring(gettext("Export collection")) + "			     </attribute>"
-	      "			     <attribute name='action'>prefgr.collexport</attribute>"
-	      "			</item>"
-	      "                 <item>"
-	      "                      <attribute name='label'>"
-	  + Glib::ustring(gettext("Add book to collection"))
-	  + "			     </attribute>"
-	      "			     <attribute name='action'>prefgr.book_add</attribute>"
-	      "			</item>"
-	      "    		<item>"
-	      "		             <attribute name='label'>"
-	  + Glib::ustring(gettext("Remove collection"))
-	  + "</attribute>"
-	      "                      <attribute name='action'>prefgr.collectionrem</attribute>"
-	      "			</item>"
-	      "              </section>"
-	      "     </submenu>"
-	      "	    <submenu>"
-	      "         <attribute name='label'>"
-	  + Glib::ustring(gettext("Book-marks")) + "</attribute>"
-	      "              <section>"
-	      "                 <item>"
-	      "                     <attribute name='label'>"
-	  + Glib::ustring(gettext("Show book-marks"))
-	  + "</attribute>"
-	      "                     <attribute name='action'>prefgr.bookm</attribute>"
-	      "                 </item>"
-	      "              </section>"
-	      "     </submenu>"
-	      "	    <submenu>"
-	      "         <attribute name='label'>"
-	  + Glib::ustring(gettext("About")) + "</attribute>"
-	      "              <section>"
-	      "                 <item>"
-	      "                     <attribute name='label'>"
-	  + Glib::ustring(gettext("About program"))
-	  + "</attribute>"
-	      "                     <attribute name='action'>prefgr.about</attribute>"
-	      "                 </item>"
-	      "              </section>"
-	      "     </submenu>"
-	      "</menu>"
-	      "</interface>";
-  builder->add_from_string(menubuf);
+  builder->add_from_resource("/mainmenu/mainmenu.xml");
 
   Gtk::Box *box = Gtk::make_managed<Gtk::Box>();
   auto object = builder->get_object("menubar");
@@ -268,10 +199,10 @@ MainWindow::collectionOp(int variant)
 
 void
 MainWindow::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
-			     int variant)
+			     Gtk::CheckButton *rem_empty_ch, int variant)
 {
   CollectionOpWindows copw(this);
-  copw.collectionOpFunc(cmb, win, variant);
+  copw.collectionOpFunc(cmb, win, rem_empty_ch, variant);
 }
 
 void
@@ -801,11 +732,12 @@ MainWindow::fileInfo()
 }
 
 void
-MainWindow::collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::Window *win1,
+MainWindow::collectionRefresh(Gtk::ComboBoxText *cmb,
+			      Gtk::CheckButton *rem_empty_ch, Gtk::Window *win1,
 			      Gtk::Window *win2)
 {
   CollectionOpWindows copw(this);
-  copw.collectionRefresh(cmb, win1, win2);
+  copw.collectionRefresh(cmb, rem_empty_ch, win1, win2);
 }
 
 void

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+	<gresource prefix="/mainmenu">
+		<file preprocess="xml-stripblanks">mainmenu.xml</file>
+	</gresource>
+</gresources>

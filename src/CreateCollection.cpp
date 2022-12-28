@@ -633,7 +633,34 @@ CreateCollection::zipThreadFunc(
 		  if(!std::filesystem::is_directory(p)
 		      && p.extension().u8string() == ".epub")
 		    {
-		      basevect = epubparser(p);
+		      std::vector<std::tuple<int, int, std::string>> tlv;
+		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		      (auto &el)
+			{
+			  std::filesystem::path lp =
+			  std::filesystem::u8path(std::get<2>(el));
+			  if(lp.stem().u8string() == p.stem().u8string() &&
+			      lp.extension().u8string() == ".fbd")
+			    {
+			      return true;
+			    }
+			  else
+			    {
+			      return false;
+			    }
+			});
+		      if(ittlv != tlv.end())
+			{
+			  std::string fbdf = af.unpackByIndex(
+			      archadress, std::get<0>(*ittlv),
+			      std::get<1>(*ittlv));
+			  basevect = fb2parser(fbdf);
+			}
+		      else
+			{
+			  basevect = epubparser(p);
+			}
 		      break;
 		    }
 		  if(!std::filesystem::is_directory(p)
@@ -1919,22 +1946,16 @@ CreateCollection::epubparser(std::filesystem::path input)
 				  0, n + std::string("</dc:creator>").size());
 			      line.erase(0, line.find("<dc:creator"));
 			      file_str.erase(file_str.find(line), line.size());
-			      std::string::size_type naut;
-			      naut = line.find("opf:role=\"aut\"");
-			      if(naut != std::string::npos)
+			      line.erase(
+				  0, line.find(">") + std::string(">").size());
+			      line = line.substr(0, line.find("<"));
+			      if(auth_str.empty())
 				{
-				  line.erase(
-				      0,
-				      line.find(">") + std::string(">").size());
-				  line = line.substr(0, line.find("<"));
-				  if(auth_str.empty())
-				    {
-				      auth_str = line;
-				    }
-				  else
-				    {
-				      auth_str = auth_str + ", " + line;
-				    }
+				  auth_str = line;
+				}
+			      else
+				{
+				  auth_str = auth_str + ", " + line;
 				}
 			    }
 			}

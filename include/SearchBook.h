@@ -60,6 +60,11 @@ private:
   readBase(std::filesystem::path filepath);
   void
   readZipBase(std::filesystem::path filepath);
+  bool
+  searchAuth(
+      std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
+	  std::string, std::string, std::string, std::string, std::string> &stup,
+      std::string to_search, int variant);
   std::string collnm;
   std::string surnm;
   std::string name;

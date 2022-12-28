@@ -34,27 +34,90 @@ RefreshCollection::~RefreshCollection()
 void
 RefreshCollection::startRefreshing()
 {
-  readList();
-  readColl();
-  for(;;)
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collname;
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  if(std::filesystem::exists(filepath))
     {
-      run_thrmtx.lock();
-      if(run_thr == 0)
+      if(bookpath.empty())
 	{
-	  break;
+	  for(auto &dirit : std::filesystem::directory_iterator(filepath))
+	    {
+	      std::filesystem::path p = dirit.path();
+	      if(!std::filesystem::is_directory(p))
+		{
+		  if(p.filename().u8string().find("base") != std::string::npos
+		      && bookpath.empty())
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in | std::ios_base::binary);
+		      if(f.is_open())
+			{
+			  bookpath.resize(std::filesystem::file_size(p));
+			  f.read(&bookpath[0], bookpath.size());
+			  f.close();
+			  bookpath = bookpath.substr(0, bookpath.find("</bp>"));
+			  bookpath.erase(0, std::string("<bp>").size());
+			  if(!bookpath.empty())
+			    {
+			      break;
+			    }
+			}
+		    }
+		  if(p.filename().u8string().find("hash") != std::string::npos
+		      && bookpath.empty())
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in);
+		      if(f.is_open())
+			{
+			  getline(f, bookpath);
+			  f.close();
+			  if(!bookpath.empty())
+			    {
+			      break;
+			    }
+			}
+		    }
+		}
+	    }
 	}
-      run_thrmtx.unlock();
-      usleep(100);
     }
-  if(*cancel != 1)
+
+  std::filesystem::path book_path = std::filesystem::u8path(bookpath);
+  if(std::filesystem::exists(book_path))
     {
-      collRefresh();
+      readList();
+      readColl();
+      for(;;)
+	{
+	  run_thrmtx.lock();
+	  if(run_thr == 0)
+	    {
+	      break;
+	    }
+	  run_thrmtx.unlock();
+	  usleep(100);
+	}
+      if(*cancel != 1)
+	{
+	  collRefresh();
+	}
+      else
+	{
+	  if(refresh_canceled)
+	    {
+	      refresh_canceled();
+	    }
+	}
     }
   else
     {
-      if(refresh_canceled)
+      if(collection_not_exists)
 	{
-	  refresh_canceled();
+	  collection_not_exists();
 	}
     }
 }
@@ -697,6 +760,13 @@ RefreshCollection::removeBook(std::string book_str)
 	{
 	  fnm = std::filesystem::u8path(std::get<1>(*itinf));
 	}
+      else
+	{
+	  if(collection_not_exists)
+	    {
+	      collection_not_exists();
+	    }
+	}
       af.removeFmArch(archpath, index);
       std::filesystem::path filepath = std::filesystem::u8path(archpath);
       if(std::filesystem::exists(filepath))
@@ -759,10 +829,6 @@ RefreshCollection::removeBook(std::string book_str)
       else
 	{
 	  zipremove.push_back(filepath);
-	  if(collection_not_exists)
-	    {
-	      collection_not_exists();
-	    }
 	}
     }
   collRefresh();
@@ -2209,4 +2275,92 @@ RefreshCollection::collRefreshDjvu(std::string rand)
     }
   djvubase.clear();
   hash.clear();
+}
+
+void
+RefreshCollection::removeEmptyDirs()
+{
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collname;
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  if(std::filesystem::exists(filepath))
+    {
+      if(bookpath.empty())
+	{
+	  for(auto &dirit : std::filesystem::directory_iterator(filepath))
+	    {
+	      std::filesystem::path p = dirit.path();
+	      if(!std::filesystem::is_directory(p))
+		{
+		  if(p.filename().u8string().find("base") != std::string::npos
+		      && bookpath.empty())
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in | std::ios_base::binary);
+		      if(f.is_open())
+			{
+			  bookpath.resize(std::filesystem::file_size(p));
+			  f.read(&bookpath[0], bookpath.size());
+			  f.close();
+			  bookpath = bookpath.substr(0, bookpath.find("</bp>"));
+			  bookpath.erase(0, std::string("<bp>").size());
+			  if(!bookpath.empty())
+			    {
+			      break;
+			    }
+			}
+		    }
+		  if(p.filename().u8string().find("hash") != std::string::npos
+		      && bookpath.empty())
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in);
+		      if(f.is_open())
+			{
+			  getline(f, bookpath);
+			  f.close();
+			  if(!bookpath.empty())
+			    {
+			      break;
+			    }
+			}
+		    }
+		}
+	    }
+	}
+      if(!bookpath.empty())
+	{
+	  std::filesystem::path dir_to_ch = std::filesystem::u8path(bookpath);
+	  if(std::filesystem::exists(dir_to_ch))
+	    {
+	      for(;;)
+		{
+		  std::vector<std::filesystem::path> dir_to_rem;
+		  for(auto &dirit : std::filesystem::recursive_directory_iterator(
+		      dir_to_ch))
+		    {
+		      std::filesystem::path p = dirit.path();
+		      if(std::filesystem::is_directory(p)
+			  && std::filesystem::is_empty(p))
+			{
+			  dir_to_rem.push_back(p);
+			}
+		    }
+		  if(dir_to_rem.size() == 0)
+		    {
+		      break;
+		    }
+		  else
+		    {
+		      for(size_t i = 0; i < dir_to_rem.size(); i++)
+			{
+			  std::filesystem::remove_all(dir_to_rem[i]);
+			}
+		    }
+		}
+	    }
+	}
+    }
 }

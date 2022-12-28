@@ -103,6 +103,7 @@ AnnotationCover::fileRead()
 		  zip_ch_f = false;
 		  fb2_ch_f = true;
 		  fb2Parse(p);
+		  std::filesystem::remove_all(filepath);
 		  break;
 		}
 	      if(!std::filesystem::is_directory(p)
@@ -111,7 +112,38 @@ AnnotationCover::fileRead()
 		  epub_ch_f = true;
 		  zip_ch_f = false;
 		  epub_path = filepath;
-		  epubParse(p);
+		  std::vector<std::tuple<int, int, std::string>> listv;
+		  af.fileNames(archaddr, listv);
+		  auto itlv =
+		      std::find_if(
+			  listv.begin(),
+			  listv.end(),
+			  [p]
+			  (auto &el)
+			    {
+			      std::filesystem::path lp = std::filesystem::u8path(std::get<2>(el));
+			      if(lp.stem().u8string() == p.stem().u8string() &&
+				  lp.extension().u8string() == ".fbd")
+				{
+				  return true;
+				}
+			      else
+				{
+				  return false;
+				}
+			    });
+		  if(itlv != listv.end())
+		    {
+		      file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
+					      std::get<1>(*itlv));
+		      epub_ch_f = false;
+		      fb2_ch_f = true;
+		      std::filesystem::remove_all(filepath);
+		    }
+		  else
+		    {
+		      epubParse(p);
+		    }
 		  break;
 		}
 	      if(!std::filesystem::is_directory(p)
@@ -158,6 +190,7 @@ AnnotationCover::fileRead()
 		    {
 		      djvuParse(p);
 		    }
+		  std::filesystem::remove_all(filepath);
 		  break;
 		}
 	    }
@@ -507,28 +540,30 @@ AnnotationCover::coverEpub()
   result.clear();
   n = 0;
   std::string cover;
+  std::string content;
   while(n != std::string::npos)
     {
-      n = line.find("<meta");
+      n = line.find("<meta ");
       if(n != std::string::npos)
 	{
 	  std::string meta = line;
 	  meta.erase(0, n);
 	  meta = meta.substr(0, meta.find("/>") + std::string("/>").size());
 	  line.erase(line.find(meta), meta.size());
-	  std::string::size_type meta_n = meta.find("name=\"cover\"");
+	  std::string::size_type meta_n = meta.find("cover");
 	  if(meta_n != std::string::npos)
 	    {
-	      meta_n = meta.find("content=\"cover\"");
-	      if(meta_n != std::string::npos)
-		{
-		  cover = file;
-		  break;
-		}
+	      content = meta;
+	      content.erase(
+		  0,
+		  content.find("content=\"")
+		      + std::string("content=\"").size());
+	      content = content.substr(0, content.find("\""));
+	      cover = file;
+	      break;
 	    }
 	}
     }
-
   if(!cover.empty())
     {
       n = 0;
@@ -542,7 +577,7 @@ AnnotationCover::coverEpub()
 	      c_p = c_p.substr(0, c_p.find("/>") + std::string("/>").size());
 	      cover.erase(cover.find(c_p), c_p.size());
 	      std::string::size_type c_n;
-	      c_n = c_p.find("id=\"cover\"");
+	      c_n = c_p.find("id=\"" + content);
 	      if(c_n != std::string::npos)
 		{
 		  c_p.erase(
@@ -795,6 +830,10 @@ AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
 				  std::get<1>(*itlv));
 	  pdf_ch_f = false;
 	  fb2_ch_f = true;
+	  if(std::filesystem::exists(pdf_cover_path.parent_path()))
+	    {
+	      std::filesystem::remove_all(pdf_cover_path.parent_path());
+	    }
 	}
       else
 	{
@@ -804,10 +843,9 @@ AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
 					      poppler::rotate_0);
 	  img.save(pdf_cover_path.string(), "jpg", -1);
 	  delete pg;
-	  delete doc;
 	}
     }
-
+  delete doc;
   std::filesystem::remove_all(unpacked_path);
 }
 

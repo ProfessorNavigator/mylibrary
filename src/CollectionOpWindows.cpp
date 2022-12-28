@@ -77,10 +77,11 @@ CollectionOpWindows::collectionOp(int variant)
   clgr.formCollCombo(cmb);
   grid->attach(*cmb, 0, 1, 2, 1);
 
+  Gtk::CheckButton *rem_empty_ch = nullptr;
   if(variant == 2)
     {
       Gtk::Label *thr_nm_lb = Gtk::make_managed<Gtk::Label>();
-      thr_nm_lb->set_halign(Gtk::Align::START);
+      thr_nm_lb->set_halign(Gtk::Align::END);
       thr_nm_lb->set_margin(5);
       unsigned int max_thr = std::thread::hardware_concurrency();
       std::stringstream strm;
@@ -93,9 +94,11 @@ CollectionOpWindows::collectionOp(int variant)
 		  "Number of threads to use (it is not recommended to exceed "))
 	      + Glib::ustring(strm.str())
 	      + Glib::ustring(gettext(" threads):")));
+      thr_nm_lb->set_width_chars(50);
+      thr_nm_lb->set_max_width_chars(50);
       thr_nm_lb->set_wrap(true);
       thr_nm_lb->set_wrap_mode(Pango::WrapMode::WORD);
-      thr_nm_lb->set_width_chars(50);
+      thr_nm_lb->set_justify(Gtk::Justification::RIGHT);
       grid->attach(*thr_nm_lb, 0, 2, 1, 1);
 
       Gtk::Entry *thr_ent = Gtk::make_managed<Gtk::Entry>();
@@ -107,6 +110,22 @@ CollectionOpWindows::collectionOp(int variant)
       thr_ent->set_input_purpose(Gtk::InputPurpose::DIGITS);
       thr_ent->set_text("1");
       grid->attach(*thr_ent, 1, 2, 1, 1);
+
+      Gtk::Label *rem_empty_lb = Gtk::make_managed<Gtk::Label>();
+      rem_empty_lb->set_halign(Gtk::Align::END);
+      rem_empty_lb->set_margin(5);
+      rem_empty_lb->set_text(gettext("Remove empty directories in collection"));
+      rem_empty_lb->set_wrap(true);
+      rem_empty_lb->set_wrap_mode(Pango::WrapMode::WORD);
+      rem_empty_lb->set_max_width_chars(50);
+      rem_empty_lb->set_justify(Gtk::Justification::RIGHT);
+      grid->attach(*rem_empty_lb, 0, 3, 1, 1);
+
+      rem_empty_ch = Gtk::make_managed<Gtk::CheckButton>();
+      rem_empty_ch->set_halign(Gtk::Align::CENTER);
+      rem_empty_ch->set_valign(Gtk::Align::CENTER);
+      rem_empty_ch->set_active(false);
+      grid->attach(*rem_empty_ch, 1, 3, 1, 1);
     }
 
   Gtk::CheckButton *ch_pack = nullptr;
@@ -187,13 +206,13 @@ CollectionOpWindows::collectionOp(int variant)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window, variant));
+		     window, nullptr, variant));
     }
   if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window, variant));
+		     window, rem_empty_ch, variant));
     }
   if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3 && ch_pack)
     {
@@ -203,7 +222,7 @@ CollectionOpWindows::collectionOp(int variant)
     }
   if(variant == 2)
     {
-      grid->attach(*remove, 0, 3, 1, 1);
+      grid->attach(*remove, 0, 4, 1, 1);
     }
   else
     {
@@ -224,7 +243,7 @@ CollectionOpWindows::collectionOp(int variant)
   cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
   if(variant == 2)
     {
-      grid->attach(*cancel, 1, 3, 1, 1);
+      grid->attach(*cancel, 1, 4, 1, 1);
     }
   else
     {
@@ -251,6 +270,7 @@ CollectionOpWindows::collectionOp(int variant)
 
 void
 CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
+				      Gtk::CheckButton *rem_empty_ch,
 				      int variant)
 {
   Gtk::Window *window = new Gtk::Window;
@@ -303,7 +323,7 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
     {
       yes->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionRefresh), cmb,
-		     win, window));
+		     rem_empty_ch, win, window));
     }
   grid->attach(*yes, 0, 1, 1, 1);
 
@@ -631,6 +651,7 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
 
 void
 CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
+				       Gtk::CheckButton *rem_empty_ch,
 				       Gtk::Window *win1, Gtk::Window *win2)
 {
   std::string coll_nm(cmb->get_active_text());
@@ -646,6 +667,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     {
       thr_num = 1;
     }
+  bool col_empty_ch = rem_empty_ch->get_active();
   win2->close();
   win1->close();
   Gtk::Window *window = new Gtk::Window;
@@ -794,9 +816,29 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
       disp_progr->emit();
     };
 
+  Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher;
+  disp_coll_nf->connect(
+      [lab, con, cancel, window, mwl, prgb]
+      {
+	mwl->coll_refresh_cancel = 0;
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection book directory not found"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
+  rc->collection_not_exists = [disp_coll_nf]
+  {
+    disp_coll_nf->emit();
+  };
+
   window->signal_close_request().connect(
       [window, rc, con, disp_cancel, disp_finished, disp_tothash,
-       disp_totalfiles, disp_hashed, tothsh, hashed, disp_progr, totf, added]
+       disp_totalfiles, disp_hashed, tothsh, hashed, disp_progr, disp_coll_nf,
+       totf, added]
       {
 	delete rc;
 	delete con;
@@ -806,6 +848,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 	delete disp_hashed;
 	delete disp_totalfiles;
 	delete disp_progr;
+	delete disp_coll_nf;
 	delete tothsh;
 	delete hashed;
 	delete totf;
@@ -820,8 +863,12 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   window->set_default_size(nat.get_width(), nat.get_height());
   window->show();
 
-  std::thread *thr = new std::thread([rc]
+  std::thread *thr = new std::thread([rc, col_empty_ch]
   {
+    if(col_empty_ch)
+      {
+	rc->removeEmptyDirs();
+      }
     rc->startRefreshing();
   });
   thr->detach();

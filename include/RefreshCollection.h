@@ -61,6 +61,8 @@ public:
   removeBook(std::string book_str);
   void
   addBook(std::string book_path, std::string book_name, bool pack);
+  void
+  removeEmptyDirs();
 private:
   void
   readList();
