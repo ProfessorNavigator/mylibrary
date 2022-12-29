@@ -120,7 +120,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
     {
       window->set_transient_for(*mw);
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       window->set_transient_for(*win);
     }
@@ -140,7 +140,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 	  gettext(
 	      "This action will remove book from collection and file system. Continue?"));
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       lab->set_text(
 	  gettext("This action will remove book from bookmarks. Continue?"));
@@ -284,7 +284,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
       },
 					     false);
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       yes->signal_clicked().connect([mwl, window]
       {
@@ -555,6 +555,647 @@ BookOpWindows::fileInfo()
 	  },
 						 false);
 	  window->show();
+	}
+    }
+}
+
+void
+BookOpWindows::editBook()
+{
+  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+  Gtk::ScrolledWindow *sres_scrl =
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
+  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+
+  std::vector<std::tuple<std::string, std::string>> *bookv = new std::vector<
+      std::tuple<std::string, std::string>>;
+
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  Glib::ustring val;
+	  iter->get_value(1, val);
+	  std::tuple<std::string, std::string> ttup;
+	  std::get<0>(ttup) = "Author";
+	  std::get<1>(ttup) = std::string(val);
+	  bookv->push_back(ttup);
+
+	  val.clear();
+	  iter->get_value(2, val);
+	  std::get<0>(ttup) = "Book";
+	  std::get<1>(ttup) = std::string(val);
+	  bookv->push_back(ttup);
+
+	  val.clear();
+	  iter->get_value(3, val);
+	  std::get<0>(ttup) = "Series";
+	  std::get<1>(ttup) = std::string(val);
+	  bookv->push_back(ttup);
+
+	  size_t id;
+	  iter->get_value(0, id);
+	  std::get<0>(ttup) = "Genre";
+	  std::get<1>(ttup) = std::get<3>(mw->search_result_v[id - 1]);
+	  bookv->push_back(ttup);
+
+	  val.clear();
+	  iter->get_value(5, val);
+	  std::get<0>(ttup) = "Date";
+	  std::get<1>(ttup) = std::string(val);
+	  bookv->push_back(ttup);
+
+	  std::get<0>(ttup) = "filepath";
+	  std::get<1>(ttup) = std::get<5>(mw->search_result_v[id - 1]);
+	  bookv->push_back(ttup);
+	}
+    }
+
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(mw->get_application());
+  window->set_title(gettext("Book entry editor"));
+  window->set_transient_for(*mw);
+  window->set_modal(true);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  window->set_child(*grid);
+
+  Gtk::Label *auth_lb = Gtk::make_managed<Gtk::Label>();
+  auth_lb->set_halign(Gtk::Align::START);
+  auth_lb->set_margin(5);
+  auth_lb->set_text(gettext("Author:"));
+  grid->attach(*auth_lb, 0, 0, 1, 1);
+
+  Gtk::Entry *auth_ent = Gtk::make_managed<Gtk::Entry>();
+  auth_ent->set_halign(Gtk::Align::START);
+  auth_ent->set_margin(5);
+  auth_ent->set_width_chars(80);
+  auto itbv = std::find_if(bookv->begin(), bookv->end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Author";
+    });
+  if(itbv != bookv->end())
+    {
+      auth_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+    }
+  grid->attach(*auth_ent, 0, 1, 3, 1);
+
+  Gtk::Label *book_lb = Gtk::make_managed<Gtk::Label>();
+  book_lb->set_halign(Gtk::Align::START);
+  book_lb->set_margin(5);
+  book_lb->set_text(gettext("Book:"));
+  grid->attach(*book_lb, 0, 2, 1, 1);
+
+  Gtk::Entry *book_ent = Gtk::make_managed<Gtk::Entry>();
+  book_ent->set_halign(Gtk::Align::START);
+  book_ent->set_margin(5);
+  book_ent->set_width_chars(80);
+  itbv = std::find_if(bookv->begin(), bookv->end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Book";
+    });
+  if(itbv != bookv->end())
+    {
+      book_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+    }
+  grid->attach(*book_ent, 0, 3, 3, 1);
+
+  Gtk::Label *series_lb = Gtk::make_managed<Gtk::Label>();
+  series_lb->set_halign(Gtk::Align::START);
+  series_lb->set_margin(5);
+  series_lb->set_text(gettext("Series:"));
+  grid->attach(*series_lb, 0, 4, 1, 1);
+
+  Gtk::Entry *series_ent = Gtk::make_managed<Gtk::Entry>();
+  series_ent->set_halign(Gtk::Align::START);
+  series_ent->set_margin(5);
+  series_ent->set_width_chars(80);
+  itbv = std::find_if(bookv->begin(), bookv->end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Series";
+    });
+  if(itbv != bookv->end())
+    {
+      series_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+    }
+  grid->attach(*series_ent, 0, 5, 3, 1);
+
+  Gtk::Label *genre_lb = Gtk::make_managed<Gtk::Label>();
+  genre_lb->set_halign(Gtk::Align::START);
+  genre_lb->set_margin(5);
+  genre_lb->set_text(gettext("Genre:"));
+  grid->attach(*genre_lb, 0, 6, 1, 1);
+
+  Gtk::Entry *genre_ent = Gtk::make_managed<Gtk::Entry>();
+  genre_ent->set_halign(Gtk::Align::START);
+  genre_ent->set_margin(5);
+  genre_ent->set_width_chars(80);
+  itbv = std::find_if(bookv->begin(), bookv->end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Genre";
+    });
+  if(itbv != bookv->end())
+    {
+      genre_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+    }
+  grid->attach(*genre_ent, 0, 7, 3, 1);
+
+  Gtk::Label *addgenre_lb = Gtk::make_managed<Gtk::Label>();
+  addgenre_lb->set_halign(Gtk::Align::START);
+  addgenre_lb->set_margin(5);
+  addgenre_lb->set_text(gettext("Add genre:"));
+  grid->attach(*addgenre_lb, 0, 8, 1, 1);
+
+  Gtk::MenuButton *genre_but = Gtk::make_managed<Gtk::MenuButton>();
+  genre_but->set_halign(Gtk::Align::START);
+  genre_but->set_margin(5);
+  genre_but->set_label(gettext("<No>"));
+
+  Gtk::ScrolledWindow *scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
+  scrl->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
+  Gtk::Grid *scrl_gr = Gtk::make_managed<Gtk::Grid>();
+  scrl_gr->set_halign(Gtk::Align::START);
+
+  Gtk::Popover *popover = Gtk::make_managed<Gtk::Popover>();
+  popover->set_child(*scrl);
+  genre_but->set_popover(*popover);
+
+  int maxl = 0;
+  Gtk::Expander *maxexp = nullptr;
+  for(size_t i = 0; i < mw->genrev->size(); i++)
+    {
+      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
+
+      if(i == 0)
+	{
+	  Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
+	  txtl->set_margin(2);
+	  txtl->set_halign(Gtk::Align::START);
+	  txtl->set_text(g_group);
+	  Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
+	  clck->set_button(1);
+	  clck->signal_pressed().connect([txtl, genre_but]
+	  (int but, double x, double y)
+	    {
+	      genre_but->set_label(txtl->get_text());
+	      genre_but->popdown();
+	    });
+	  txtl->add_controller(clck);
+	  scrl_gr->attach(*txtl, 0, i, 1, 1);
+	}
+      else
+	{
+	  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
+	  std::vector<std::tuple<std::string, std::string>> tmpv = std::get<1>(
+	      mw->genrev->at(i));
+	  chexp->set_halign(Gtk::Align::START);
+	  chexp->set_margin(2);
+	  chexp->set_expanded(false);
+	  chexp->set_label(g_group);
+	  Gtk::Grid *chexp_gr = Gtk::make_managed<Gtk::Grid>();
+	  chexp_gr->set_halign(Gtk::Align::CENTER);
+	  chexp->set_child(*chexp_gr);
+
+	  if(int(g_group.size()) > maxl)
+	    {
+	      maxl = g_group.size();
+	      maxexp = chexp;
+	    }
+
+	  for(size_t j = 0; j < tmpv.size(); j++)
+	    {
+	      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
+	      txtl->set_margin(2);
+	      txtl->set_halign(Gtk::Align::END);
+	      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
+	      std::string code = std::get<0>(tmpv[j]);
+	      Glib::RefPtr<Gtk::GestureClick> clck =
+		  Gtk::GestureClick::create();
+	      clck->set_button(1);
+	      clck->signal_pressed().connect(
+		  [chexp, txtl, genre_but, code, genre_ent]
+		  (int but,
+		   double x,
+		   double y)
+		     {
+		       std::string ent(genre_ent->get_text());
+		       ent.erase(std::remove_if(ent.begin(), ent.end(), [](auto &el)
+				 {
+				   return el == ' ';
+				 }), ent.end());
+		       if(!ent.empty() && code != "nill")
+			 {
+			   ent = std::string(genre_ent->get_text());
+			   ent = ent + ", " + code;
+			   genre_ent->set_text(Glib::ustring(ent));
+			 }
+		       else
+			 {
+			   ent = code;
+			   genre_ent->set_text(Glib::ustring(ent));
+			 }
+		       genre_but->popdown();
+		     });
+	      txtl->add_controller(clck);
+	      chexp_gr->attach(*txtl, 0, j, 1, 1);
+	    }
+	  scrl_gr->attach(*chexp, 0, i, 1, 1);
+	}
+    }
+  int gvsz = mw->genrev->size();
+
+  if(maxexp != nullptr)
+    {
+      Gtk::Requisition minreq, natreq;
+      maxexp->get_preferred_size(minreq, natreq);
+      Gdk::Rectangle req = mw->screenRes();
+      if(natreq.get_width() < req.get_width())
+	{
+	  scrl->set_min_content_width(natreq.get_width());
+	}
+      else
+	{
+	  int width = natreq.get_width();
+	  while(width > req.get_width())
+	    {
+	      width--;
+	    }
+	  scrl->set_min_content_width(width);
+	}
+
+      if(gvsz > 0)
+	{
+	  if(natreq.get_height() * gvsz < req.get_height())
+	    {
+	      scrl->set_min_content_height(natreq.get_height() * gvsz);
+	    }
+	  else
+	    {
+	      int height = natreq.get_height() * gvsz;
+	      while(height > req.get_height())
+		{
+		  height = height - natreq.get_height();
+		}
+	      scrl->set_min_content_height(height);
+	    }
+	}
+    }
+  scrl->set_child(*scrl_gr);
+  Gtk::Requisition minreq, natreq;
+  maxexp->get_preferred_size(minreq, natreq);
+  genre_but->set_size_request(natreq.get_width(), -1);
+  grid->attach(*genre_but, 0, 9, 2, 1);
+
+  Gtk::Label *date_lb = Gtk::make_managed<Gtk::Label>();
+  date_lb->set_halign(Gtk::Align::START);
+  date_lb->set_margin(5);
+  date_lb->set_text(gettext("Date:"));
+  grid->attach(*date_lb, 0, 10, 1, 1);
+
+  Gtk::Entry *date_ent = Gtk::make_managed<Gtk::Entry>();
+  date_ent->set_halign(Gtk::Align::START);
+  date_ent->set_margin(5);
+  date_ent->set_width_chars(30);
+  itbv = std::find_if(bookv->begin(), bookv->end(), []
+  (auto &el)
+    {
+      return std::get<0>(el) == "Date";
+    });
+  if(itbv != bookv->end())
+    {
+      date_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+    }
+  grid->attach(*date_ent, 0, 11, 3, 1);
+
+  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
+  save->set_halign(Gtk::Align::CENTER);
+  save->set_margin(5);
+  save->set_label(gettext("Save"));
+  MainWindow *mwl = mw;
+  save->signal_clicked().connect(
+      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
+      {
+	mwl->bookSaveRestore(window, bookv, 1);
+      });
+  grid->attach(*save, 0, 12, 1, 1);
+
+  Gtk::Button *restore = Gtk::make_managed<Gtk::Button>();
+  restore->set_halign(Gtk::Align::CENTER);
+  restore->set_margin(5);
+  restore->set_label(gettext("Restore"));
+  restore->signal_clicked().connect(
+      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
+      {
+	mwl->bookSaveRestore(window, bookv, 2);
+      });
+  grid->attach(*restore, 1, 12, 1, 1);
+
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_halign(Gtk::Align::CENTER);
+  cancel->set_margin(5);
+  cancel->set_label(gettext("Cancel"));
+  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  grid->attach(*cancel, 2, 12, 1, 1);
+
+  window->signal_close_request().connect([window, bookv]
+  {
+    bookv->clear();
+    delete bookv;
+    window->hide();
+    delete window;
+    return true;
+  },
+					 false);
+  window->show();
+}
+
+void
+BookOpWindows::bookSaveRestore(
+    Gtk::Window *win, std::vector<std::tuple<std::string, std::string>> *bookv,
+    int variant)
+{
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+  Gtk::Entry *auth_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 1));
+  Gtk::Entry *book_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
+  Gtk::Entry *series_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
+  Gtk::Entry *genre_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 7));
+  Gtk::Entry *date_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 11));
+
+  if(variant == 1)
+    {
+      std::vector<std::tuple<std::string, std::string>> *newbase =
+	  new std::vector<std::tuple<std::string, std::string>>;
+      std::tuple<std::string, std::string> ttup;
+      std::get<0>(ttup) = "Author";
+      std::get<1>(ttup) = std::string(auth_ent->get_text());
+      newbase->push_back(ttup);
+
+      std::get<0>(ttup) = "Book";
+      std::get<1>(ttup) = std::string(book_ent->get_text());
+      newbase->push_back(ttup);
+
+      std::get<0>(ttup) = "Series";
+      std::get<1>(ttup) = std::string(series_ent->get_text());
+      newbase->push_back(ttup);
+
+      std::get<0>(ttup) = "Genre";
+      std::get<1>(ttup) = std::string(genre_ent->get_text());
+      newbase->push_back(ttup);
+
+      std::get<0>(ttup) = "Date";
+      std::get<1>(ttup) = std::string(date_ent->get_text());
+      newbase->push_back(ttup);
+
+      Gtk::Window *window = new Gtk::Window;
+      window->set_application(mw->get_application());
+      window->set_title(gettext("Confirmation"));
+      window->set_transient_for(*win);
+      window->set_modal(true);
+      window->set_default_size(1, 1);
+
+      Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+      grid->set_halign(Gtk::Align::FILL);
+      grid->set_valign(Gtk::Align::FILL);
+      window->set_child(*grid);
+
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_margin(5);
+      lab->set_text(gettext("Are you shure?"));
+      grid->attach(*lab, 0, 0, 2, 1);
+
+      int *cncl = new int(0);
+      RefreshCollection *rc = new RefreshCollection(mw->prev_search_nm, 1,
+						    cncl);
+      MainWindow *mwl = mw;
+      Glib::Dispatcher *disp_corrected = new Glib::Dispatcher;
+      disp_corrected->connect([window, win, mwl, bookv, newbase]
+      {
+	std::string searchstr;
+	auto itbv = std::find_if(bookv->begin(), bookv->end(), []
+	(auto &el)
+	  {
+	    return std::get<0>(el) == "filepath";
+	  });
+	if(itbv != bookv->end())
+	  {
+	    searchstr = std::get<1>(*itbv);
+	  }
+	auto itsv = std::find_if(mwl->search_result_v.begin(), mwl->search_result_v.end(),
+      [searchstr]
+      (auto &el)
+	{
+	  return std::get<5>(el) == searchstr;
+	});
+	if(itsv != mwl->search_result_v.end())
+	  {
+	    auto itnewb = std::find_if(newbase->begin(), newbase->end(), []
+	    (auto &el)
+	      {
+		return std::get<0>(el) == "Author";
+	      });
+	    if(itnewb != newbase->end())
+	      {
+		std::get<0> (*itsv) = std::get<1>(*itnewb);
+	      }
+
+	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
+	    (auto &el)
+	      {
+		return std::get<0>(el) == "Book";
+	      });
+	    if(itnewb != newbase->end())
+	      {
+		std::get<1> (*itsv) = std::get<1>(*itnewb);
+	      }
+
+	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
+	    (auto &el)
+	      {
+		return std::get<0>(el) == "Series";
+	      });
+	    if(itnewb != newbase->end())
+	      {
+		std::get<2> (*itsv) = std::get<1>(*itnewb);
+	      }
+
+	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
+	    (auto &el)
+	      {
+		return std::get<0>(el) == "Genre";
+	      });
+	    if(itnewb != newbase->end())
+	      {
+		std::get<3> (*itsv) = std::get<1>(*itnewb);
+	      }
+
+	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
+	    (auto &el)
+	      {
+		return std::get<0>(el) == "Date";
+	      });
+	    if(itnewb != newbase->end())
+	      {
+		std::get<4> (*itsv) = std::get<1>(*itnewb);
+	      }
+	  }
+	mwl->prev_search_nm.clear();
+	Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+	Gtk::Paned *pn =
+	    dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+	Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+	Gtk::ScrolledWindow *sres_scrl =
+	    dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+	Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
+	double pos = adj->get_value();
+	CreateRightGrid crgr(mwl);
+	crgr.searchResultShow(1);
+	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+	while(mc->pending())
+	  {
+	    mc->iteration(true);
+	  }
+	adj->set_value(pos);
+
+	window->unset_child();
+
+	Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+	grid->set_halign(Gtk::Align::FILL);
+	grid->set_valign(Gtk::Align::FILL);
+	window->set_child(*grid);
+
+	Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	lab->set_halign(Gtk::Align::CENTER);
+	lab->set_margin(5);
+	lab->set_text(gettext("Book entry has been corrected"));
+	grid->attach(*lab, 0, 0, 1, 1);
+
+	Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+	close->set_halign(Gtk::Align::CENTER);
+	close->set_margin(5);
+	close->set_label(gettext("Close"));
+	close->signal_clicked().connect([window, win]
+	{
+	  window->close();
+	  win->close();
+	});
+	grid->attach(*close, 0, 1, 1, 1);
+      });
+
+      rc->refresh_finished = [disp_corrected]
+      {
+	disp_corrected->emit();
+      };
+
+      Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
+      yes->set_halign(Gtk::Align::CENTER);
+      yes->set_margin(5);
+      yes->set_label(gettext("Yes"));
+      yes->signal_clicked().connect([window, mwl, bookv, newbase, rc]
+      {
+	window->unset_child();
+
+	Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+	grid->set_halign(Gtk::Align::FILL);
+	grid->set_valign(Gtk::Align::FILL);
+	window->set_child(*grid);
+
+	Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	lab->set_halign(Gtk::Align::CENTER);
+	lab->set_margin(5);
+	lab->set_text(gettext("Correcting base..."));
+	grid->attach(*lab, 0, 0, 1, 1);
+	std::thread *thr = new std::thread([rc, bookv, newbase]
+	{
+	  rc->editBook(newbase, bookv);
+	});
+	thr->detach();
+	delete thr;
+      });
+      grid->attach(*yes, 0, 1, 1, 1);
+
+      Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
+      no->set_halign(Gtk::Align::CENTER);
+      no->set_margin(5);
+      no->set_label(gettext("No"));
+      no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+      grid->attach(*no, 1, 1, 1, 1);
+
+      window->signal_close_request().connect(
+	  [window, newbase, disp_corrected, cncl]
+	  {
+	    newbase->clear();
+	    delete newbase;
+	    delete disp_corrected;
+	    delete cncl;
+	    window->hide();
+	    delete window;
+	    return true;
+	  },
+	  false);
+      window->show();
+    }
+
+  else if(variant == 2)
+    {
+      auto itbv = std::find_if(bookv->begin(), bookv->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "Author";
+	});
+      if(itbv != bookv->end())
+	{
+	  auth_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	}
+
+      itbv = std::find_if(bookv->begin(), bookv->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "Book";
+	});
+      if(itbv != bookv->end())
+	{
+	  book_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	}
+
+      itbv = std::find_if(bookv->begin(), bookv->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "Series";
+	});
+      if(itbv != bookv->end())
+	{
+	  series_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	}
+
+      itbv = std::find_if(bookv->begin(), bookv->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "Genre";
+	});
+      if(itbv != bookv->end())
+	{
+	  genre_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	}
+
+      itbv = std::find_if(bookv->begin(), bookv->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "Date";
+	});
+      if(itbv != bookv->end())
+	{
+	  date_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
 	}
     }
 }

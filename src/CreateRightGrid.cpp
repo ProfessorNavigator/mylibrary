@@ -67,11 +67,13 @@ CreateRightGrid::formRightGrid()
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
   acgroup->add_action("bookmark",
 		      sigc::mem_fun(*mw, &MainWindow::createBookmark));
+  acgroup->add_action("editbook", sigc::mem_fun(*mw, &MainWindow::editBook));
   sres->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
   menu->append(gettext("File info"), "popup.fileinfo");
   menu->append(gettext("Create book-mark"), "popup.bookmark");
+  menu->append(gettext("Edit book entry"), "popup.editbook");
   menu->append(gettext("Save book as..."), "popup.copyto");
   menu->append(gettext("Remove book"), "popup.removebook");
   Gtk::PopoverMenu *Menu = new Gtk::PopoverMenu;
@@ -122,13 +124,21 @@ CreateRightGrid::formRightGrid()
       sigc::mem_fun(*mw, &MainWindow::createBookmark));
   book_op_pop_gr->attach(*bookmark, 0, 2, 1, 1);
 
+  Gtk::Button *editbook = Gtk::make_managed<Gtk::Button>();
+  editbook->set_halign(Gtk::Align::CENTER);
+  editbook->set_valign(Gtk::Align::CENTER);
+  editbook->set_margin(5);
+  editbook->set_label(gettext("Edit book entry"));
+  editbook->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::editBook));
+  book_op_pop_gr->attach(*editbook, 0, 3, 1, 1);
+
   Gtk::Button *copyto = Gtk::make_managed<Gtk::Button>();
   copyto->set_halign(Gtk::Align::CENTER);
   copyto->set_valign(Gtk::Align::CENTER);
   copyto->set_margin(5);
   copyto->set_label(gettext("Save book as..."));
   copyto->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::copyTo));
-  book_op_pop_gr->attach(*copyto, 0, 3, 1, 1);
+  book_op_pop_gr->attach(*copyto, 0, 4, 1, 1);
 
   Gtk::Button *removebook = Gtk::make_managed<Gtk::Button>();
   removebook->set_halign(Gtk::Align::CENTER);
@@ -137,7 +147,7 @@ CreateRightGrid::formRightGrid()
   removebook->set_label(gettext("Remove book"));
   removebook->signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
-  book_op_pop_gr->attach(*removebook, 0, 4, 1, 1);
+  book_op_pop_gr->attach(*removebook, 0, 5, 1, 1);
 
   Gtk::Popover *book_op_pop = Gtk::make_managed<Gtk::Popover>();
   book_op_pop->set_child(*book_op_pop_gr);
@@ -244,26 +254,25 @@ CreateRightGrid::searchResultShow(int variant)
       drar->set_opacity(0.0);
       Glib::RefPtr<Gtk::Adjustment> v_adg = sres_scrl->get_vadjustment();
       v_adg->set_value(v_adg->get_lower());
-    }
-
-  if(variant == 1)
-    {
       del_model = sres->get_model();
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       del_model = mw->bm_tv->get_model();
     }
 
-  if(del_model && variant == 1)
+  if(del_model)
     {
-      sres->remove_all_columns();
-      sres->unset_model();
-    }
-  if(del_model && variant == 2)
-    {
-      mw->bm_tv->remove_all_columns();
-      mw->bm_tv->unset_model();
+      if(variant == 1)
+	{
+	  sres->remove_all_columns();
+	  sres->unset_model();
+	}
+      else if(variant == 2)
+	{
+	  mw->bm_tv->remove_all_columns();
+	  mw->bm_tv->unset_model();
+	}
     }
   Gtk::TreeModel::ColumnRecord record;
   Gtk::TreeModelColumn<size_t> id;
@@ -285,7 +294,7 @@ CreateRightGrid::searchResultShow(int variant)
     {
       sz_v = mw->search_result_v.size();
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       sz_v = mw->bookmark_v.size();
     }
@@ -299,7 +308,7 @@ CreateRightGrid::searchResultShow(int variant)
 	  row[book] = std::get<1>(mw->search_result_v[i]);
 	  row[series] = std::get<2>(mw->search_result_v[i]);
 	}
-      if(variant == 2)
+      else if(variant == 2)
 	{
 	  row[author] = std::get<0>(mw->bookmark_v[i]);
 	  row[book] = std::get<1>(mw->bookmark_v[i]);
@@ -313,7 +322,7 @@ CreateRightGrid::searchResultShow(int variant)
 	{
 	  tmp = std::get<3>(mw->search_result_v[i]);
 	}
-      if(variant == 2)
+      else if(variant == 2)
 	{
 	  tmp = std::get<3>(mw->bookmark_v[i]);
 	}
@@ -376,7 +385,7 @@ CreateRightGrid::searchResultShow(int variant)
 	{
 	  row[date] = std::get<4>(mw->search_result_v[i]);
 	}
-      if(variant == 2)
+      else if(variant == 2)
 	{
 	  row[date] = std::get<4>(mw->bookmark_v[i]);
 	}
@@ -392,7 +401,7 @@ CreateRightGrid::searchResultShow(int variant)
       sres->append_column(gettext("Genre"), genre);
       sres->append_column(gettext("Date"), date);
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       mw->bm_tv->set_model(model);
       mw->bm_tv->append_column(gettext("Author"), author);
@@ -406,7 +415,7 @@ CreateRightGrid::searchResultShow(int variant)
     {
       trvc_v = sres->get_columns();
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       trvc_v = mw->bm_tv->get_columns();
     }
@@ -417,7 +426,7 @@ CreateRightGrid::searchResultShow(int variant)
 	{
 	  rnd = sres->get_column_cell_renderer(i);
 	}
-      if(variant == 2)
+      else if(variant == 2)
 	{
 	  rnd = mw->bm_tv->get_column_cell_renderer(i);
 	}
@@ -425,7 +434,7 @@ CreateRightGrid::searchResultShow(int variant)
 	  dynamic_cast<Gtk::CellRendererText*>(rnd);
       if(i >= 0)
 	{
-	  if(i >= 0 && i < 2)
+	  if(i < 2)
 	    {
 	      Glib::PropertyProxy<int> max_width =
 		  renderer->property_max_width_chars();
@@ -440,7 +449,7 @@ CreateRightGrid::searchResultShow(int variant)
 		  renderer->property_wrap_width();
 	      wrap_width.set_value(5);
 	    }
-	  if(i == 2)
+	  else if(i == 2)
 	    {
 	      Glib::PropertyProxy<int> max_width =
 		  renderer->property_max_width_chars();
@@ -455,7 +464,7 @@ CreateRightGrid::searchResultShow(int variant)
 		  renderer->property_width_chars();
 	      width_chars.set_value(40);
 	    }
-	  if(i == 3)
+	  else if(i == 3)
 	    {
 	      Glib::PropertyProxy<int> max_width =
 		  renderer->property_max_width_chars();
@@ -470,7 +479,7 @@ CreateRightGrid::searchResultShow(int variant)
 		  renderer->property_width_chars();
 	      width_chars.set_value(20);
 	    }
-	  if(i == 4)
+	  else if(i == 4)
 	    {
 	      Glib::PropertyProxy<int> max_width =
 		  renderer->property_max_width_chars();
@@ -488,7 +497,7 @@ CreateRightGrid::searchResultShow(int variant)
     {
       sres->set_headers_clickable(true);
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       mw->bm_tv->set_headers_clickable(true);
     }

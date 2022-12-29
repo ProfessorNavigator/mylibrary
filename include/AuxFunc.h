@@ -54,9 +54,9 @@ public:
   std::string
   randomFileName();
   void
-  unpackByIndex(std::string archadress, std::string outfolder, int index);
+  unpackByIndex(std::string archaddress, std::string outfolder, int index);
   std::string
-  unpackByIndex(std::string archadress, int index, size_t filesz);
+  unpackByIndex(std::string archaddress, int index, size_t filesz);
   int
   packing(std::string source, std::string out);
   void

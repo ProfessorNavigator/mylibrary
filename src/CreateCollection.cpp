@@ -77,23 +77,24 @@ CreateCollection::createFileList()
 	  std::filesystem::path p = dirit.path();
 	  if(!std::filesystem::is_directory(p))
 	    {
-	      if(p.extension().u8string() == ".fb2")
+	      std::string ext = p.extension().u8string();
+	      if(ext == ".fb2")
 		{
 		  fb2.push_back(p);
 		}
-	      if(p.extension().u8string() == ".epub")
+	      else if(ext == ".epub")
 		{
 		  epub.push_back(p);
 		}
-	      if(p.extension().u8string() == ".pdf")
+	      else if(ext == ".pdf")
 		{
 		  pdf.push_back(p);
 		}
-	      if(p.extension().u8string() == ".djvu")
+	      else if(ext == ".djvu")
 		{
 		  djvu.push_back(p);
 		}
-	      if(p.extension().u8string() == ".zip")
+	      else if(ext == ".zip")
 		{
 		  std::vector<std::tuple<int, int, std::string>> archlist;
 		  af.fileNames(p.u8string(), archlist);
@@ -103,10 +104,11 @@ CreateCollection::createFileList()
 			{
 			  std::filesystem::path p = std::filesystem::u8path(
 			      std::get<2>(el));
-			  if (p.extension().u8string() != ".fb2" &&
-			      p.extension().u8string() != ".epub" &&
-			      p.extension().u8string() != ".pdf" &&
-			      p.extension().u8string() != ".djvu")
+			  std::string ext = p.extension().u8string();
+			  if (ext != ".fb2" &&
+			      ext != ".epub" &&
+			      ext != ".pdf" &&
+			      ext != ".djvu")
 			    {
 			      return true;
 			    }
@@ -601,14 +603,13 @@ CreateCollection::zipThreadFunc(
       std::copy(line.begin(), line.end(), std::back_inserter(write_v));
       size_t inpsz = static_cast<size_t>(std::get<1>(locv[j]));
       std::vector<std::tuple<std::string, std::string>> basevect;
-      if(ch_p.extension().u8string() == ".fb2")
+      std::string extch_p = ch_p.extension().u8string();
+      if(extch_p == ".fb2")
 	{
 	  std::string input = af.unpackByIndex(archadress, index, inpsz);
 	  basevect = fb2parser(input);
 	}
-      if(ch_p.extension().u8string() == ".epub"
-	  || ch_p.extension().u8string() == ".pdf"
-	  || ch_p.extension().u8string() == ".djvu")
+      else if(extch_p == ".epub" || extch_p == ".pdf" || extch_p == ".djvu")
 	{
 	  std::string outfolder;
 #ifdef __linux
@@ -630,104 +631,105 @@ CreateCollection::zipThreadFunc(
 	      for(auto &dirit : std::filesystem::directory_iterator(ch_p))
 		{
 		  std::filesystem::path p = dirit.path();
-		  if(!std::filesystem::is_directory(p)
-		      && p.extension().u8string() == ".epub")
+		  if(!std::filesystem::is_directory(p))
 		    {
-		      std::vector<std::tuple<int, int, std::string>> tlv;
-		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-		      (auto &el)
+		      std::string ext_p = p.extension().u8string();
+		      if(ext_p == ".epub")
 			{
-			  std::filesystem::path lp =
-			  std::filesystem::u8path(std::get<2>(el));
-			  if(lp.stem().u8string() == p.stem().u8string() &&
-			      lp.extension().u8string() == ".fbd")
+			  std::vector<std::tuple<int, int, std::string>> tlv;
+			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+			  (auto &el)
 			    {
-			      return true;
+			      std::filesystem::path lp =
+			      std::filesystem::u8path(std::get<2>(el));
+			      if(lp.stem() == p.stem() &&
+				  lp.extension().u8string() == ".fbd")
+				{
+				  return true;
+				}
+			      else
+				{
+				  return false;
+				}
+			    });
+			  if(ittlv != tlv.end())
+			    {
+			      std::string fbdf = af.unpackByIndex(
+				  archadress, std::get<0>(*ittlv),
+				  std::get<1>(*ittlv));
+			      basevect = fb2parser(fbdf);
 			    }
 			  else
 			    {
-			      return false;
+			      basevect = epubparser(p);
 			    }
-			});
-		      if(ittlv != tlv.end())
-			{
-			  std::string fbdf = af.unpackByIndex(
-			      archadress, std::get<0>(*ittlv),
-			      std::get<1>(*ittlv));
-			  basevect = fb2parser(fbdf);
+			  break;
 			}
-		      else
+		      else if(ext_p == ".pdf")
 			{
-			  basevect = epubparser(p);
-			}
-		      break;
-		    }
-		  if(!std::filesystem::is_directory(p)
-		      && p.extension().u8string() == ".pdf")
-		    {
-		      std::vector<std::tuple<int, int, std::string>> tlv;
-		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-		      (auto &el)
-			{
-			  std::filesystem::path lp =
-			  std::filesystem::u8path(std::get<2>(el));
-			  if(lp.stem().u8string() == p.stem().u8string() &&
-			      lp.extension().u8string() == ".fbd")
+			  std::vector<std::tuple<int, int, std::string>> tlv;
+			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+			  (auto &el)
 			    {
-			      return true;
+			      std::filesystem::path lp =
+			      std::filesystem::u8path(std::get<2>(el));
+			      if(lp.stem() == p.stem() &&
+				  lp.extension().u8string() == ".fbd")
+				{
+				  return true;
+				}
+			      else
+				{
+				  return false;
+				}
+			    });
+			  if(ittlv != tlv.end())
+			    {
+			      std::string fbdf = af.unpackByIndex(
+				  archadress, std::get<0>(*ittlv),
+				  std::get<1>(*ittlv));
+			      basevect = fb2parser(fbdf);
 			    }
 			  else
 			    {
-			      return false;
+			      basevect = pdfparser(p);
 			    }
-			});
-		      if(ittlv != tlv.end())
-			{
-			  std::string fbdf = af.unpackByIndex(
-			      archadress, std::get<0>(*ittlv),
-			      std::get<1>(*ittlv));
-			  basevect = fb2parser(fbdf);
+			  break;
 			}
-		      else
+		      else if(ext_p == ".djvu")
 			{
-			  basevect = pdfparser(p);
-			}
-		      break;
-		    }
-		  if(!std::filesystem::is_directory(p)
-		      && p.extension().u8string() == ".djvu")
-		    {
-		      std::vector<std::tuple<int, int, std::string>> tlv;
-		      af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-		      auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-		      (auto &el)
-			{
-			  std::filesystem::path lp =
-			  std::filesystem::u8path(std::get<2>(el));
-			  if(lp.stem().u8string() == p.stem().u8string() &&
-			      lp.extension().u8string() == ".fbd")
+			  std::vector<std::tuple<int, int, std::string>> tlv;
+			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
+			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+			  (auto &el)
 			    {
-			      return true;
+			      std::filesystem::path lp =
+			      std::filesystem::u8path(std::get<2>(el));
+			      if(lp.stem() == p.stem() &&
+				  lp.extension().u8string() == ".fbd")
+				{
+				  return true;
+				}
+			      else
+				{
+				  return false;
+				}
+			    });
+			  if(ittlv != tlv.end())
+			    {
+			      std::string fbdf = af.unpackByIndex(
+				  archadress, std::get<0>(*ittlv),
+				  std::get<1>(*ittlv));
+			      basevect = fb2parser(fbdf);
 			    }
 			  else
 			    {
-			      return false;
+			      basevect = djvuparser(p);
 			    }
-			});
-		      if(ittlv != tlv.end())
-			{
-			  std::string fbdf = af.unpackByIndex(
-			      archadress, std::get<0>(*ittlv),
-			      std::get<1>(*ittlv));
-			  basevect = fb2parser(fbdf);
+			  break;
 			}
-		      else
-			{
-			  basevect = djvuparser(p);
-			}
-		      break;
 		    }
 		}
 	      std::filesystem::remove_all(ch_p);

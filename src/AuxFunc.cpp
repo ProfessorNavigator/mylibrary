@@ -257,13 +257,13 @@ AuxFunc::randomFileName()
 }
 
 void
-AuxFunc::unpackByIndex(std::string archadress, std::string outfolder, int index)
+AuxFunc::unpackByIndex(std::string archaddress, std::string outfolder, int index)
 {
   zip_t *z;
   zip_file_t *file;
   zip_stat_t st;
   int er = 0;
-  z = zip_open(archadress.c_str(), ZIP_RDONLY, &er);
+  z = zip_open(archaddress.c_str(), ZIP_RDONLY, &er);
   if(er < 1)
     {
 
@@ -316,7 +316,7 @@ AuxFunc::unpackByIndex(std::string archadress, std::string outfolder, int index)
 }
 
 std::string
-AuxFunc::unpackByIndex(std::string archadress, int index, size_t filesz)
+AuxFunc::unpackByIndex(std::string archaddress, int index, size_t filesz)
 {
   zip_t *z;
   zip_file_t *file;
@@ -324,7 +324,7 @@ AuxFunc::unpackByIndex(std::string archadress, int index, size_t filesz)
   int er = 0;
   std::string result;
   result.resize(filesz);
-  z = zip_open(archadress.c_str(), ZIP_RDONLY, &er);
+  z = zip_open(archaddress.c_str(), ZIP_RDONLY, &er);
   if(er < 1)
     {
       file = zip_fopen_index(z, index, ZIP_FL_ENC_UTF_8);
@@ -555,7 +555,7 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
       uintmax_t readb = 0;
       gcry_error_t err;
       gcry_md_hd_t hd;
-      err = gcry_md_open(&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_SECURE);
+      err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, GCRY_MD_FLAG_SECURE);
       if(err != 0)
 	{
 	  std::cerr << gcry_strerror(err) << std::endl;
@@ -588,8 +588,8 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 	    }
 	}
       f.close();
-      size_t len = gcry_md_get_algo_dlen(GCRY_MD_SHA256);
-      char *buf = reinterpret_cast<char*>(gcry_md_read(hd, GCRY_MD_SHA256));
+      size_t len = gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256);
+      char *buf = reinterpret_cast<char*>(gcry_md_read(hd, GCRY_MD_BLAKE2B_256));
       std::vector<char> result;
       result.insert(result.begin(), buf, buf + len);
       gcry_md_close(hd);

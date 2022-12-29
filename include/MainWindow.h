@@ -88,6 +88,12 @@ private:
   void
   fileInfo();
   void
+  editBook();
+  void
+  bookSaveRestore(Gtk::Window *win,
+		  std::vector<std::tuple<std::string, std::string>> *bookv,
+		  int variant);
+  void
   bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	     Gtk::Entry *book_nm_ent);
   void

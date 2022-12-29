@@ -36,11 +36,11 @@ CollectionOpWindows::collectionOp(int variant)
     {
       window->set_title(gettext("Collection removing"));
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       window->set_title(gettext("Collection refreshing"));
     }
-  if(variant == 3)
+  else if(variant == 3)
     {
       window->set_title(gettext("Book adding"));
     }
@@ -60,11 +60,11 @@ CollectionOpWindows::collectionOp(int variant)
     {
       lab->set_text(gettext("Collection for removing:"));
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       lab->set_text(gettext("Collection for refreshing:"));
     }
-  if(variant == 3)
+  else if(variant == 3)
     {
       lab->set_text(gettext("Collection which book should be added to:"));
     }
@@ -78,6 +78,7 @@ CollectionOpWindows::collectionOp(int variant)
   grid->attach(*cmb, 0, 1, 2, 1);
 
   Gtk::CheckButton *rem_empty_ch = nullptr;
+  Gtk::CheckButton *ch_pack = nullptr;
   if(variant == 2)
     {
       Gtk::Label *thr_nm_lb = Gtk::make_managed<Gtk::Label>();
@@ -127,9 +128,7 @@ CollectionOpWindows::collectionOp(int variant)
       rem_empty_ch->set_active(false);
       grid->attach(*rem_empty_ch, 1, 3, 1, 1);
     }
-
-  Gtk::CheckButton *ch_pack = nullptr;
-  if(variant == 3)
+  else if(variant == 3)
     {
       Gtk::Label *book_path_lb = Gtk::make_managed<Gtk::Label>();
       book_path_lb->set_halign(Gtk::Align::START);
@@ -194,32 +193,35 @@ CollectionOpWindows::collectionOp(int variant)
     {
       remove->set_label(gettext("Remove"));
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       remove->set_label(gettext("Refresh"));
     }
-  if(variant == 3)
+  else if(variant == 3)
     {
       remove->set_label(gettext("Add book"));
     }
+
   if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 1)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
 		     window, nullptr, variant));
     }
-  if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
+  else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
 		     window, rem_empty_ch, variant));
     }
-  if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3 && ch_pack)
+  else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3
+      && ch_pack)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window,
 		     ch_pack));
     }
+
   if(variant == 2)
     {
       grid->attach(*remove, 0, 4, 1, 1);
@@ -319,11 +321,11 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 	win->close();
       });
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       yes->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionRefresh), cmb,
-		     rem_empty_ch, win, window));
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionRefresh), cmb,
+	  rem_empty_ch, win, window));
     }
   grid->attach(*yes, 0, 1, 1, 1);
 
@@ -609,11 +611,11 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
     {
       dnm = Glib::ustring(gettext("Book directory"));
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       dnm = Glib::ustring(gettext("Path to collection"));
     }
-  if(variant == 3)
+  else if(variant == 3)
     {
       dnm = Glib::ustring(gettext("Export as..."));
     }
@@ -736,7 +738,13 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing finished"));
 	Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+	window->set_default_size(1, 1);
 	grid->remove(*prgb);
+	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+	while(mc->pending())
+	  {
+	    mc->iteration(true);
+	  }
 	cancel->set_label(gettext("Close"));
 	cancel->signal_clicked().connect(
 	    sigc::mem_fun(*window, &Gtk::Window::close));
@@ -762,21 +770,13 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   disp_hashed->connect([tothsh, hashed, prgb]
   {
     mpf_set_default_prec(128);
-    mpz_t tot;
-    mpz_init(tot);
-    mpz_set_ui(tot, *tothsh);
-    mpf_t totd;
-    mpf_init(totd);
-    mpf_set_z(totd, tot);
-    mpf_class tot_mpf(totd);
+    mpz_class tot(*tothsh);
+    mpf_class tot_mpf;
+    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
 
-    mpz_t hsh;
-    mpz_init(hsh);
-    mpz_set_ui(hsh, *hashed);
-    mpf_t hshd;
-    mpf_init(hshd);
-    mpf_set_z(hshd, hsh);
-    mpf_class hsh_mpf(hshd);
+    mpz_class hsh(*hashed);
+    mpf_class hsh_mpf;
+    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
 
     prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
   });

@@ -44,17 +44,17 @@ AnnotationCover::fileRead()
 	  fb2_ch_f = true;
 	  fb2Parse(filepath);
 	}
-      if(ext == ".epub")
+      else if(ext == ".epub")
 	{
 	  epub_ch_f = true;
 	  epubParse(filepath);
 	}
-      if(ext == ".pdf")
+      else if(ext == ".pdf")
 	{
 	  pdf_ch_f = true;
 	  pdfParse(filepath);
 	}
-      if(ext == ".djvu")
+      else if(ext == ".djvu")
 	{
 	  djvu_ch_f = true;
 	  djvuParse(filepath);
@@ -97,8 +97,8 @@ AnnotationCover::fileRead()
 	  for(auto &dirit : std::filesystem::directory_iterator(filepath))
 	    {
 	      std::filesystem::path p = dirit.path();
-	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".fb2")
+	      std::string ext = p.extension().u8string();
+	      if(!std::filesystem::is_directory(p) && ext == ".fb2")
 		{
 		  zip_ch_f = false;
 		  fb2_ch_f = true;
@@ -106,8 +106,7 @@ AnnotationCover::fileRead()
 		  std::filesystem::remove_all(filepath);
 		  break;
 		}
-	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".epub")
+	      else if(!std::filesystem::is_directory(p) && ext == ".epub")
 		{
 		  epub_ch_f = true;
 		  zip_ch_f = false;
@@ -146,16 +145,14 @@ AnnotationCover::fileRead()
 		    }
 		  break;
 		}
-	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".pdf")
+	      else if(!std::filesystem::is_directory(p) && ext == ".pdf")
 		{
 		  pdf_ch_f = true;
 		  zip_ch_f = false;
 		  pdfZipParse(p, filepath, archaddr);
 		  break;
 		}
-	      if(!std::filesystem::is_directory(p)
-		  && p.extension().u8string() == ".djvu")
+	      else if(!std::filesystem::is_directory(p) && ext == ".djvu")
 		{
 		  djvu_ch_f = true;
 		  zip_ch_f = false;
@@ -206,7 +203,7 @@ AnnotationCover::annotationRet()
     {
       result = annotationEpub();
     }
-  if(fb2_ch_f || zip_ch_f)
+  else if(fb2_ch_f || zip_ch_f)
     {
       std::string::size_type n = 0;
       std::string conv_name = file;
@@ -298,16 +295,16 @@ AnnotationCover::annotationRet()
 	    }
 	}
     }
-  if(pdf_ch_f)
+  else if(pdf_ch_f)
     {
       result = file;
     }
-  if(djvu_ch_f)
+  else if(djvu_ch_f)
     {
       result = file;
     }
 
-  std::string::size_type n;
+  std::string::size_type n = 0;
   while(n != std::string::npos)
     {
       n = result.find("<br>");
@@ -347,7 +344,7 @@ AnnotationCover::coverRet()
     {
       result = "<epub>" + coverEpub();
     }
-  if(fb2_ch_f || zip_ch_f)
+  else if(fb2_ch_f || zip_ch_f)
     {
       std::string href = file;
       href.erase(0, href.find("<coverpage>"));
@@ -411,11 +408,11 @@ AnnotationCover::coverRet()
 	    }
 	}
     }
-  if(pdf_ch_f)
+  else if(pdf_ch_f)
     {
       result = "<pdf>" + pdf_cover_path.u8string();
     }
-  if(djvu_ch_f)
+  else if(djvu_ch_f)
     {
       result = djvu_cover_bufer;
     }

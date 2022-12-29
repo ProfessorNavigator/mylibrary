@@ -50,31 +50,31 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
     {
       warn_lab->set_text(gettext("Collection name cannot be empty!"));
     }
-  if(type == 1)
+  else if(type == 1)
     {
       warn_lab->set_text(gettext("Path to book directory is empty!"));
     }
-  if(type == 2)
+  else if(type == 2)
     {
       warn_lab->set_text(gettext("Collection has been created"));
     }
-  if(type == 3)
+  else if(type == 3)
     {
       warn_lab->set_text(gettext("Collection already existed!"));
     }
-  if(type == 4)
+  else if(type == 4)
     {
       warn_lab->set_text(gettext("Collection creation canceled"));
     }
-  if(type == 5)
+  else if(type == 5)
     {
       warn_lab->set_text(gettext("Collection to import path is empty!"));
     }
-  if(type == 6)
+  else if(type == 6)
     {
       warn_lab->set_text(gettext("Export path is empty!"));
     }
-  if(type == 7)
+  else if(type == 7)
     {
       warn_lab->set_text(
 	  gettext(
@@ -86,7 +86,7 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
       warn_lab->set_width_chars(30);
       warn_lab->set_justify(Gtk::Justification::FILL);
     }
-  if(type == 8)
+  else if(type == 8)
     {
       warn_lab->set_text(gettext("Book-mark has been created!"));
     }

@@ -48,7 +48,8 @@ RefreshCollection::startRefreshing()
 	      std::filesystem::path p = dirit.path();
 	      if(!std::filesystem::is_directory(p))
 		{
-		  if(p.filename().u8string().find("base") != std::string::npos
+		  std::string fnm_p = p.filename().u8string();
+		  if(fnm_p.find("base") != std::string::npos
 		      && bookpath.empty())
 		    {
 		      std::fstream f;
@@ -66,7 +67,7 @@ RefreshCollection::startRefreshing()
 			    }
 			}
 		    }
-		  if(p.filename().u8string().find("hash") != std::string::npos
+		  else if(fnm_p.find("hash") != std::string::npos
 		      && bookpath.empty())
 		    {
 		      std::fstream f;
@@ -178,9 +179,12 @@ RefreshCollection::readHash(std::filesystem::path filepath)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -222,55 +226,55 @@ RefreshCollection::readColl()
 	      return void();
 	    }
 	  std::filesystem::path p = dirit.path();
-	  if(p.extension().u8string() == ".fb2"
-	      && !std::filesystem::is_directory(p))
+	  if(!std::filesystem::is_directory(p))
 	    {
-	      fb2.push_back(p);
-	    }
-	  if(p.extension().u8string() == ".epub"
-	      && !std::filesystem::is_directory(p))
-	    {
-	      epub.push_back(p);
-	    }
-	  if(p.extension().u8string() == ".pdf"
-	      && !std::filesystem::is_directory(p))
-	    {
-	      pdf.push_back(p);
-	    }
-	  if(p.extension().u8string() == ".djvu"
-	      && !std::filesystem::is_directory(p))
-	    {
-	      djvu.push_back(p);
-	    }
-	  if(p.extension().u8string() == ".zip"
-	      && !std::filesystem::is_directory(p))
-	    {
-	      std::vector<std::tuple<int, int, std::string>> filenames;
-	      af.fileNames(p.u8string(), filenames);
-	      filenames.erase(
-		  std::remove_if(
-		      filenames.begin(),
-		      filenames.end(),
-		      []
-		      (auto &el)
-			{
-			  std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
-			  if(p.extension().u8string() != ".fb2" &&
-			      p.extension().u8string() != ".epub" &&
-			      p.extension().u8string() != ".pdf" &&
-			      p.extension().u8string() != ".djvu")
-			    {
-			      return true;
-			    }
-			  else
-			    {
-			      return false;
-			    }
-			}),
-		  filenames.end());
-	      if(filenames.size() > 0)
+	      std::string ext_p = p.extension().u8string();
+	      if(ext_p == ".fb2")
 		{
-		  zip.push_back(std::make_tuple(p, filenames));
+		  fb2.push_back(p);
+		}
+	      else if(ext_p == ".epub")
+		{
+		  epub.push_back(p);
+		}
+	      else if(ext_p == ".pdf")
+		{
+		  pdf.push_back(p);
+		}
+	      else if(ext_p == ".djvu")
+		{
+		  djvu.push_back(p);
+		}
+	      else if(ext_p == ".zip")
+		{
+		  std::vector<std::tuple<int, int, std::string>> filenames;
+		  af.fileNames(p.u8string(), filenames);
+		  filenames.erase(
+		      std::remove_if(
+			  filenames.begin(),
+			  filenames.end(),
+			  []
+			  (auto &el)
+			    {
+			      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
+			      std::string ext_p = p.extension().u8string();
+			      if(ext_p != ".fb2" &&
+				  ext_p != ".epub" &&
+				  ext_p != ".pdf" &&
+				  ext_p != ".djvu")
+				{
+				  return true;
+				}
+			      else
+				{
+				  return false;
+				}
+			    }),
+		      filenames.end());
+		  if(filenames.size() > 0)
+		    {
+		      zip.push_back(std::make_tuple(p, filenames));
+		    }
 		}
 	    }
 	}
@@ -420,7 +424,8 @@ RefreshCollection::readColl()
 	  return void();
 	}
       std::filesystem::path p = std::get<0>(saved_hashes[i]);
-      if(p.extension().u8string() == ".fb2")
+      std::string ext_p = p.extension().u8string();
+      if(ext_p == ".fb2")
 	{
 	  auto itfb2 = std::find_if(fb2.begin(), fb2.end(), [p]
 	  (auto &el)
@@ -432,7 +437,7 @@ RefreshCollection::readColl()
 	      fb2remove.push_back(p);
 	    }
 	}
-      if(p.extension().u8string() == ".epub")
+      else if(ext_p == ".epub")
 	{
 	  auto itepub = std::find_if(epub.begin(), epub.end(), [p]
 	  (auto &el)
@@ -444,7 +449,7 @@ RefreshCollection::readColl()
 	      epubremove.push_back(p);
 	    }
 	}
-      if(p.extension().u8string() == ".zip")
+      else if(ext_p == ".zip")
 	{
 	  auto itzip = std::find_if(zip.begin(), zip.end(), [p]
 	  (auto &el)
@@ -456,7 +461,7 @@ RefreshCollection::readColl()
 	      zipremove.push_back(p);
 	    }
 	}
-      if(p.extension().u8string() == ".pdf")
+      else if(ext_p == ".pdf")
 	{
 	  auto itpdf = std::find_if(pdf.begin(), pdf.end(), [p]
 	  (auto &el)
@@ -468,7 +473,7 @@ RefreshCollection::readColl()
 	      pdfremove.push_back(p);
 	    }
 	}
-      if(p.extension().u8string() == ".djvu")
+      else if(ext_p == ".djvu")
 	{
 	  auto itdjvu = std::find_if(djvu.begin(), djvu.end(), [p]
 	  (auto &el)
@@ -715,19 +720,20 @@ RefreshCollection::removeBook(std::string book_str)
 	  collection_not_exists();
 	}
       std::filesystem::remove(filepath);
-      if(filepath.extension().u8string() == ".fb2")
+      std::string ext_filepath = filepath.extension().u8string();
+      if(ext_filepath == ".fb2")
 	{
 	  fb2remove.push_back(std::filesystem::u8path(loc_p));
 	}
-      if(filepath.extension().u8string() == ".epub")
+      else if(ext_filepath == ".epub")
 	{
 	  epubremove.push_back(std::filesystem::u8path(loc_p));
 	}
-      if(filepath.extension().u8string() == ".pdf")
+      else if(ext_filepath == ".pdf")
 	{
 	  pdfremove.push_back(std::filesystem::u8path(loc_p));
 	}
-      if(filepath.extension().u8string() == ".djvu")
+      else if(ext_filepath == ".djvu")
 	{
 	  djvuremove.push_back(std::filesystem::u8path(loc_p));
 	}
@@ -781,7 +787,7 @@ RefreshCollection::removeBook(std::string book_str)
 		  (auto &el)
 		    {
 		      std::filesystem::path lp = std::filesystem::u8path(std::get<2>(el));
-		      if(lp.stem().u8string() == fnm.stem().u8string() &&
+		      if(lp.stem() == fnm.stem() &&
 			  lp.extension().u8string() == ".fbd")
 			{
 			  return true;
@@ -804,10 +810,11 @@ RefreshCollection::removeBook(std::string book_str)
 		  (auto &el)
 		    {
 		      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
-		      if(p.extension().u8string() == ".fb2" ||
-			  p.extension().u8string() == ".epub" ||
-			  p.extension().u8string() == ".pdf" ||
-			  p.extension().u8string() == ".djvu")
+		      std::string ext_p = p.extension().u8string();
+		      if(ext_p == ".fb2" ||
+			  ext_p == ".epub" ||
+			  ext_p == ".pdf" ||
+			  ext_p == ".djvu")
 			{
 			  return false;
 			}
@@ -848,13 +855,10 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
       for(auto &dirit : std::filesystem::directory_iterator(filepath))
 	{
 	  std::filesystem::path p = dirit.path();
+	  std::string ext_p = p.filename().u8string();
 	  if(!std::filesystem::is_directory(p))
 	    {
-	      if(p.filename().u8string() == "fb2base"
-		  || p.filename().u8string() == "zipbase"
-		  || p.filename().u8string() == "epubbase"
-		  || p.filename().u8string() == "pdfbase"
-		  || p.filename().u8string() == "djvubase")
+	      if(ext_p.find("base"))
 		{
 		  bookpath.clear();
 		  std::fstream f;
@@ -865,13 +869,19 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			{
 			  bookpath.resize(std::filesystem::file_size(p));
 			  f.read(&bookpath[0], bookpath.size());
-			  bookpath.erase(0, std::string("<bp>").size());
-			  bookpath = bookpath.substr(0, bookpath.find("</bp>"));
+			  std::string::size_type n;
+			  n = bookpath.find("<bp>");
+			  if(n != std::string::npos)
+			    {
+			      bookpath.erase(n, std::string("<bp>").size());
+			      bookpath = bookpath.substr(
+				  0, bookpath.find("</bp>"));
+			    }
 			}
 		      f.close();
 		    }
 		}
-	      else
+	      else if(ext_p.find("hash"))
 		{
 		  bookpath.clear();
 		  std::fstream f;
@@ -987,23 +997,24 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      return void();
 	    }
 	}
-      if(filepath.extension().u8string() == ".fb2")
+      std::string ext_filepath = filepath.extension().u8string();
+      if(ext_filepath == ".fb2")
 	{
 	  fb2parse.push_back(filepath);
 	}
-      if(filepath.extension().u8string() == ".epub")
+      else if(ext_filepath == ".epub")
 	{
 	  epubparse.push_back(filepath);
 	}
-      if(filepath.extension().u8string() == ".pdf")
+      else if(ext_filepath == ".pdf")
 	{
 	  pdfparse.push_back(filepath);
 	}
-      if(filepath.extension().u8string() == ".djvu")
+      else if(ext_filepath == ".djvu")
 	{
 	  djvuparse.push_back(filepath);
 	}
-      if(filepath.extension().u8string() == ".zip")
+      else if(ext_filepath == ".zip")
 	{
 	  std::vector<std::tuple<int, int, std::string>> tv;
 	  AuxFunc af;
@@ -1016,10 +1027,11 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 		  (auto &el)
 		    {
 		      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
-		      if(p.extension().u8string() == ".fb2" ||
-			  p.extension().u8string() == ".epub" ||
-			  p.extension().u8string() == ".pdf" ||
-			  p.extension().u8string() == ".djvu")
+		      std::string ext_p = p.extension().u8string();
+		      if(ext_p == ".fb2" ||
+			  ext_p == ".epub" ||
+			  ext_p == ".pdf" ||
+			  ext_p == ".djvu")
 			{
 			  return false;
 			}
@@ -1031,7 +1043,6 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      tv.end());
 	  zipparse.push_back(std::make_tuple(filepath, tv));
 	}
-
     }
   addbmtx.try_lock();
   addbmtx.unlock();
@@ -1141,9 +1152,12 @@ RefreshCollection::collRefreshFb2(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -1386,9 +1400,12 @@ RefreshCollection::collRefreshZip(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -1517,9 +1534,12 @@ RefreshCollection::collRefreshZip(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -1622,9 +1642,12 @@ RefreshCollection::collRefreshEpub(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -1758,9 +1781,12 @@ RefreshCollection::collRefreshEpub(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -1865,9 +1891,12 @@ RefreshCollection::collRefreshPdf(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -2103,9 +2132,12 @@ RefreshCollection::collRefreshDjvu(std::string rand)
 	  getline(f, line);
 	  if(!line.empty())
 	    {
-	      if(count == 0 && bookpath.empty())
+	      if(count == 0)
 		{
-		  bookpath = line;
+		  if(bookpath != line)
+		    {
+		      bookpath = line;
+		    }
 		}
 	      else
 		{
@@ -2359,6 +2391,509 @@ RefreshCollection::removeEmptyDirs()
 			  std::filesystem::remove_all(dir_to_rem[i]);
 			}
 		    }
+		}
+	    }
+	}
+    }
+}
+
+void
+RefreshCollection::editBook(
+    std::vector<std::tuple<std::string, std::string>> *newbasev,
+    std::vector<std::tuple<std::string, std::string>> *oldbasev)
+{
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collname;
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  if(!std::filesystem::exists(filepath))
+    {
+      std::cerr << "Collection database not found" << std::endl;
+    }
+  else
+    {
+      std::string book_str;
+      auto itob = std::find_if(oldbasev->begin(), oldbasev->end(), []
+      (auto &el)
+	{
+	  return std::get<0>(el) == "filepath";
+	});
+      if(itob != oldbasev->end())
+	{
+	  book_str = std::get<1>(*itob);
+	}
+      std::string::size_type n;
+      n = book_str.find("<zip>");
+      if(n != std::string::npos)
+	{
+	  filename = filename + "/zipbase";
+	  editBookZip(book_str, filename, newbasev, oldbasev);
+	}
+      else
+	{
+	  filepath = std::filesystem::u8path(book_str);
+	  std::string ext = filepath.extension().u8string();
+	  if(ext == ".fb2")
+	    {
+	      filename = filename + "/fb2base";
+	    }
+	  else if(ext == ".epub")
+	    {
+	      filename = filename + "/epubbase";
+	    }
+	  else if(ext == ".pdf")
+	    {
+	      filename = filename + "/pdfbase";
+	    }
+	  else if(ext == ".djvu")
+	    {
+	      filename = filename + "/djvubase";
+	    }
+	  editBook(book_str, filename, newbasev);
+	}
+    }
+
+  if(refresh_finished)
+    {
+      refresh_finished();
+    }
+}
+
+void
+RefreshCollection::editBookZip(
+    std::string book_str, std::string filename,
+    std::vector<std::tuple<std::string, std::string>> *newbasev,
+    std::vector<std::tuple<std::string, std::string>> *oldbasev)
+{
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::fstream f;
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      std::string filestr;
+      filestr.resize(std::filesystem::file_size(filepath));
+      f.read(&filestr[0], filestr.size());
+      f.close();
+      std::vector<
+	  std::tuple<std::string,
+	      std::vector<
+		  std::tuple<std::string, std::string, std::string, std::string,
+		      std::string, std::string>>>> zipbase;
+      std::string::size_type n;
+      n = filestr.find("</bp>");
+      if(n != std::string::npos)
+	{
+	  std::string bookpath = filestr.substr(
+	      0, n + std::string("</bp>").size());
+	  filestr.erase(0, bookpath.size());
+	  bookpath.erase(0, bookpath.find("<bp>") + std::string("<bp>").size());
+	  bookpath = bookpath.substr(0, bookpath.find("</bp>"));
+	  n = 0;
+	  while(n != std::string::npos)
+	    {
+	      n = filestr.find("<?e>");
+	      if(n != std::string::npos)
+		{
+		  std::string archpath = filestr.substr(
+		      0, n + std::string("<?e>").size());
+		  filestr.erase(0, archpath.size());
+		  archpath.erase(
+		      0, archpath.find("<?a>") + std::string("<?a>").size());
+		  archpath = archpath.substr(0, archpath.find("<?e>"));
+		  std::tuple<std::string,
+		      std::vector<
+			  std::tuple<std::string, std::string, std::string,
+			      std::string, std::string, std::string>>> ttup;
+		  std::get<0>(ttup) = archpath;
+		  std::vector<
+		      std::tuple<std::string, std::string, std::string,
+			  std::string, std::string, std::string>> archv;
+		  std::string archbase = filestr.substr(0,
+							filestr.find("<?a>"));
+		  filestr.erase(0, archbase.size());
+		  std::string::size_type n_ab = 0;
+		  std::tuple<std::string, std::string, std::string, std::string,
+		      std::string, std::string> archvtup; //0-index, 1-author, 2-book name, 3-series, 4-genre, 5-date
+		  while(n_ab != std::string::npos)
+		    {
+		      n_ab = archbase.find("<?L>");
+		      if(n_ab != std::string::npos)
+			{
+			  std::string bookline = archbase.substr(
+			      0, n_ab + std::string("<?L>").size());
+			  archbase.erase(0, bookline.size());
+			  bookline.erase(0, std::string("<?>").size());
+			  std::get<0>(archvtup) = bookline.substr(
+			      0, bookline.find("<?>"));
+
+			  bookline.erase(
+			      0,
+			      bookline.find("<?>") + std::string("<?>").size());
+			  std::get<1>(archvtup) = bookline.substr(
+			      0, bookline.find("<?>"));
+
+			  bookline.erase(
+			      0,
+			      bookline.find("<?>") + std::string("<?>").size());
+			  std::get<2>(archvtup) = bookline.substr(
+			      0, bookline.find("<?>"));
+
+			  bookline.erase(
+			      0,
+			      bookline.find("<?>") + std::string("<?>").size());
+			  std::get<3>(archvtup) = bookline.substr(
+			      0, bookline.find("<?>"));
+
+			  bookline.erase(
+			      0,
+			      bookline.find("<?>") + std::string("<?>").size());
+			  std::get<4>(archvtup) = bookline.substr(
+			      0, bookline.find("<?>"));
+
+			  bookline.erase(
+			      0,
+			      bookline.find("<?>") + std::string("<?>").size());
+			  std::get<5>(archvtup) = bookline.substr(
+			      0, bookline.find("<?L>"));
+			  archv.push_back(archvtup);
+			}
+		    }
+		  std::get<1>(ttup) = archv;
+		  zipbase.push_back(ttup);
+		}
+	    }
+
+	  std::string authorold;
+	  auto itob = std::find_if(oldbasev->begin(), oldbasev->end(), []
+	  (auto &el)
+	    {
+	      return std::get<0>(el) == "Author";
+	    });
+	  if(itob != oldbasev->end())
+	    {
+	      authorold = std::get<1>(*itob);
+	    }
+
+	  std::string bookold;
+	  itob = std::find_if(oldbasev->begin(), oldbasev->end(), []
+	  (auto &el)
+	    {
+	      return std::get<0>(el) == "Book";
+	    });
+	  if(itob != oldbasev->end())
+	    {
+	      bookold = std::get<1>(*itob);
+	    }
+
+	  std::string archpathold = book_str;
+	  archpathold.erase(0, archpathold.find(bookpath) + bookpath.size());
+	  archpathold = archpathold.substr(0, archpathold.find("</archpath>"));
+
+	  std::string indexold = book_str;
+	  indexold.erase(
+	      0, indexold.find("<index>") + std::string("<index>").size());
+	  indexold = indexold.substr(0, indexold.find("</index>"));
+	  auto itzipbase = std::find_if(
+	      zipbase.begin(), zipbase.end(), [archpathold]
+	      (auto &el)
+		{
+		  return std::get<0>(el) == archpathold;
+		});
+	  if(itzipbase != zipbase.end())
+	    {
+	      std::vector<
+		  std::tuple<std::string, std::string, std::string, std::string,
+		      std::string, std::string>> v = std::get<1>(*itzipbase);
+	      auto itv = std::find_if(v.begin(), v.end(),
+				      [indexold, authorold, bookold]
+				      (auto &el)
+					{
+					  if(std::get<0>(el) == indexold &&
+					      std::get<1>(el) == authorold &&
+					      std::get<2>(el) == bookold)
+					    {
+					      return true;
+					    }
+					  else
+					    {
+					      return false;
+					    }
+					});
+	      if(itv != v.end())
+		{
+		  auto itnewb = std::find_if(
+		      newbasev->begin(), newbasev->end(), []
+		      (auto &el)
+			{
+			  return std::get<0>(el) == "Author";
+			});
+		  if(itnewb != newbasev->end())
+		    {
+		      std::get<1>(*itv) = std::get<1>(*itnewb);
+		    }
+
+		  itnewb = std::find_if(newbasev->begin(), newbasev->end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "Book";
+		    });
+		  if(itnewb != newbasev->end())
+		    {
+		      std::get<2>(*itv) = std::get<1>(*itnewb);
+		    }
+
+		  itnewb = std::find_if(newbasev->begin(), newbasev->end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "Series";
+		    });
+		  if(itnewb != newbasev->end())
+		    {
+		      std::get<3>(*itv) = std::get<1>(*itnewb);
+		    }
+
+		  itnewb = std::find_if(newbasev->begin(), newbasev->end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "Genre";
+		    });
+		  if(itnewb != newbasev->end())
+		    {
+		      std::get<4>(*itv) = std::get<1>(*itnewb);
+		    }
+
+		  itnewb = std::find_if(newbasev->begin(), newbasev->end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "Date";
+		    });
+		  if(itnewb != newbasev->end())
+		    {
+		      std::get<5>(*itv) = std::get<1>(*itnewb);
+		    }
+		  std::get<1>(*itzipbase) = v;
+		  f.open(filepath, std::ios_base::out | std::ios_base::binary);
+		  if(f.is_open())
+		    {
+		      bookpath = "<bp>" + bookpath + "</bp>";
+		      f.write(bookpath.c_str(), bookpath.size());
+		      for(size_t i = 0; i < zipbase.size(); i++)
+			{
+			  std::string archpath = std::get<0>(zipbase[i]);
+			  archpath = "<?a>" + archpath + "<?e>";
+			  f.write(archpath.c_str(), archpath.size());
+			  v = std::get<1>(zipbase[i]);
+			  for(size_t j = 0; j < v.size(); j++)
+			    {
+			      std::tuple<std::string, std::string, std::string,
+				  std::string, std::string, std::string> ttup;
+			      ttup = v[j];
+			      std::string line = std::get<0>(ttup);
+			      line = "<?>" + line;
+			      f.write(line.c_str(), line.size());
+
+			      line.clear();
+			      line = std::get<1>(ttup);
+			      line = "<?>" + line;
+			      f.write(line.c_str(), line.size());
+
+			      line.clear();
+			      line = std::get<2>(ttup);
+			      line = "<?>" + line;
+			      f.write(line.c_str(), line.size());
+
+			      line.clear();
+			      line = std::get<3>(ttup);
+			      line = "<?>" + line;
+			      f.write(line.c_str(), line.size());
+
+			      line.clear();
+			      line = std::get<4>(ttup);
+			      line = "<?>" + line;
+			      f.write(line.c_str(), line.size());
+
+			      line.clear();
+			      line = std::get<5>(ttup);
+			      line = "<?>" + line + "<?L>";
+			      f.write(line.c_str(), line.size());
+			    }
+			}
+		      f.close();
+		    }
+		}
+	    }
+	}
+    }
+}
+
+void
+RefreshCollection::editBook(
+    std::string book_str, std::string filename,
+    std::vector<std::tuple<std::string, std::string>> *newbasev)
+{
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::fstream f;
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      std::string filestr;
+      filestr.resize(std::filesystem::file_size(filepath));
+      f.read(&filestr[0], filestr.size());
+      f.close();
+      std::vector<
+	  std::tuple<std::string, std::string, std::string, std::string,
+	      std::string, std::string>> filebase;
+      std::string::size_type n;
+      n = filestr.find("</bp>");
+      if(n != std::string::npos)
+	{
+	  std::string bookpath = filestr.substr(
+	      0, n + std::string("</bp>").size());
+	  filestr.erase(0, bookpath.size());
+	  bookpath.erase(0, bookpath.find("<bp>") + std::string("<bp>").size());
+	  bookpath = bookpath.substr(0, bookpath.find("</bp>"));
+	  n = 0;
+	  while(n != std::string::npos)
+	    {
+	      n = filestr.find("<?L>");
+	      if(n != std::string::npos)
+		{
+		  std::string bookent = filestr.substr(
+		      0, n + std::string("<?L>").size());
+		  filestr.erase(0, bookent.size());
+		  std::tuple<std::string, std::string, std::string, std::string,
+		      std::string, std::string> filetup; //0-path, 1-author, 2-book name, 3-series, 4-genre, 5-date
+		  std::string bookline = bookent.substr(
+		      0, bookent.find("<?>") + std::string("<?>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?>"));
+		  std::get<0>(filetup) = bookline;
+
+		  bookline = bookent.substr(
+		      0, bookent.find("<?>") + std::string("<?>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?>"));
+		  std::get<1>(filetup) = bookline;
+
+		  bookline = bookent.substr(
+		      0, bookent.find("<?>") + std::string("<?>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?>"));
+		  std::get<2>(filetup) = bookline;
+
+		  bookline = bookent.substr(
+		      0, bookent.find("<?>") + std::string("<?>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?>"));
+		  std::get<3>(filetup) = bookline;
+
+		  bookline = bookent.substr(
+		      0, bookent.find("<?>") + std::string("<?>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?>"));
+		  std::get<4>(filetup) = bookline;
+
+		  bookline = bookent.substr(
+		      0, bookent.find("<?L>") + std::string("<?L>").size());
+		  bookent.erase(0, bookline.size());
+		  bookline = bookline.substr(0, bookline.find("<?L>"));
+		  std::get<5>(filetup) = bookline;
+		  filebase.push_back(filetup);
+		}
+	    }
+	  std::filesystem::path cvp = std::filesystem::u8path(book_str);
+	  cvp = cvp.parent_path();
+	  std::string oldfp = book_str;
+	  oldfp.erase(0, cvp.u8string().size());
+	  auto itfb = std::find_if(filebase.begin(), filebase.end(), [oldfp]
+	  (auto &el)
+	    {
+	      return std::get<0>(el) == oldfp;
+	    });
+	  if(itfb != filebase.end())
+	    {
+	      auto itnb = std::find_if(newbasev->begin(), newbasev->end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "Author";
+		});
+	      if(itnb != newbasev->end())
+		{
+		  std::get<1>(*itfb) = std::get<1>(*itnb);
+		}
+
+	      itnb = std::find_if(newbasev->begin(), newbasev->end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "Book";
+		});
+	      if(itnb != newbasev->end())
+		{
+		  std::get<2>(*itfb) = std::get<1>(*itnb);
+		}
+
+	      itnb = std::find_if(newbasev->begin(), newbasev->end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "Series";
+		});
+	      if(itnb != newbasev->end())
+		{
+		  std::get<3>(*itfb) = std::get<1>(*itnb);
+		}
+
+	      itnb = std::find_if(newbasev->begin(), newbasev->end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "Genre";
+		});
+	      if(itnb != newbasev->end())
+		{
+		  std::get<4>(*itfb) = std::get<1>(*itnb);
+		}
+
+	      itnb = std::find_if(newbasev->begin(), newbasev->end(), []
+	      (auto &el)
+		{
+		  return std::get<0>(el) == "Date";
+		});
+	      if(itnb != newbasev->end())
+		{
+		  std::get<5>(*itfb) = std::get<1>(*itnb);
+		}
+	      f.open(filepath, std::ios_base::out | std::ios_base::binary);
+	      if(f.is_open())
+		{
+		  bookpath = "<bp>" + bookpath + "</bp>";
+		  f.write(bookpath.c_str(), bookpath.size());
+		  for(size_t i = 0; i < filebase.size(); i++)
+		    {
+		      std::string line = std::get<0>(filebase[i]);
+		      line = line + "<?>";
+		      f.write(line.c_str(), line.size());
+
+		      line = std::get<1>(filebase[i]);
+		      line = line + "<?>";
+		      f.write(line.c_str(), line.size());
+
+		      line = std::get<2>(filebase[i]);
+		      line = line + "<?>";
+		      f.write(line.c_str(), line.size());
+
+		      line = std::get<3>(filebase[i]);
+		      line = line + "<?>";
+		      f.write(line.c_str(), line.size());
+
+		      line = std::get<4>(filebase[i]);
+		      line = line + "<?>";
+		      f.write(line.c_str(), line.size());
+
+		      line = std::get<5>(filebase[i]);
+		      line = line + "<?L>";
+		      f.write(line.c_str(), line.size());
+		    }
+		  f.close();
 		}
 	    }
 	}

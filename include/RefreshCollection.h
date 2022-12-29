@@ -63,6 +63,9 @@ public:
   addBook(std::string book_path, std::string book_name, bool pack);
   void
   removeEmptyDirs();
+  void
+  editBook(std::vector<std::tuple<std::string, std::string>> *newbasev,
+	   std::vector<std::tuple<std::string, std::string>> *oldbasev);
 private:
   void
   readList();
@@ -94,6 +97,13 @@ private:
   zipThrFunc(
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>> ziptup);
+  void
+  editBook(std::string book_str, std::string filename,
+	      std::vector<std::tuple<std::string, std::string>> *newbasev);
+  void
+  editBookZip(std::string book_str, std::string filename,
+	      std::vector<std::tuple<std::string, std::string>> *newbasev,
+	      std::vector<std::tuple<std::string, std::string>> *oldbasev);
 
   std::string collname;
   int *cancel = nullptr;

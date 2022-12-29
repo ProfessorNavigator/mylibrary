@@ -451,7 +451,7 @@ MainWindow::openBook(int variant)
       Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
       selection = sres->get_selection();
     }
-  if(variant == 2)
+  else if(variant == 2)
     {
       selection = bm_tv->get_selection();
     }
@@ -469,7 +469,7 @@ MainWindow::openBook(int variant)
 	    {
 	      filename = std::get<5>(search_result_v[id - 1]);
 	    }
-	  if(variant == 2)
+	  else if(variant == 2)
 	    {
 	      filename = std::get<5>(bookmark_v[id - 1]);
 	    }
@@ -537,7 +537,7 @@ MainWindow::openBook(int variant)
 	      commstr = af.utf8to(commstr);
 #ifdef __linux
 	      int check = std::system(commstr.c_str());
-	      std::cout << "Command result code: " << check << std::endl;
+	      std::cout << "Book open command result code: " << check << std::endl;
 #endif
 #ifdef _WIN32
 	      ShellExecuteA (0, af.utf8to ("open").c_str (), commstr.c_str (), 0, 0, 0);
@@ -729,6 +729,22 @@ MainWindow::fileInfo()
 {
   BookOpWindows bopw(this);
   bopw.fileInfo();
+}
+
+void
+MainWindow::editBook()
+{
+  BookOpWindows bopw(this);
+  bopw.editBook();
+}
+
+void
+MainWindow::bookSaveRestore(
+    Gtk::Window *win, std::vector<std::tuple<std::string, std::string>> *bookv,
+    int variant)
+{
+  BookOpWindows bopw(this);
+  bopw.bookSaveRestore(win, bookv, variant);
 }
 
 void

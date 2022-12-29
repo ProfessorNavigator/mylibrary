@@ -35,6 +35,12 @@ public:
   bookRemoveWin(int variant, Gtk::Window *win);
   void
   fileInfo();
+  void
+  editBook();
+  void
+  bookSaveRestore(Gtk::Window *win,
+		  std::vector<std::tuple<std::string, std::string>> *bookv,
+		  int variant);
 private:
   MainWindow *mw;
 };
