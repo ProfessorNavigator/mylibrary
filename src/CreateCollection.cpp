@@ -2102,7 +2102,12 @@ CreateCollection::pdfparser(std::filesystem::path input)
   std::get<1>(restup) = std::string();
   result.push_back(restup);
 
+#ifdef _OLDPOPPLER
+  time_t fcr = doc->get_creation_date();
+#endif
+#ifndef _OLDPOPPLER
   time_t fcr = doc->get_creation_date_t();
+#endif
   struct tm *mtm;
   mtm = gmtime(&fcr);
   std::stringstream strm;

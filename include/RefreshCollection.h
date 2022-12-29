@@ -46,9 +46,9 @@ public:
   std::function<void
   (int)> total_files;
   std::function<void
-  (uint64_t)> total_hash;
+  (long unsigned int)> total_hash;
   std::function<void
-  (uint64_t)> byte_hashed;
+  (long unsigned int)> byte_hashed;
   std::function<void
   (int)> files_added;
   std::function<void

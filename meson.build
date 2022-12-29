@@ -11,6 +11,11 @@ djvulibre = dependency ('ddjvuapi', method : 'pkg-config')
 gmpxx = dependency ('gmpxx', method : 'pkg-config')
 cpp = meson.get_compiler ('cpp')
 thread_dep = dependency ('threads')
+
+if poppler.version() < '22.01'
+  add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
+endif
+
 subdir ('po')
 executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
 install_subdir ('MyLibrary', install_dir : 'share')

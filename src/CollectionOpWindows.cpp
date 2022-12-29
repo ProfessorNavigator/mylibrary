@@ -754,15 +754,15 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     disp_finished->emit();
   };
 
-  uint64_t *tothsh = new uint64_t(0);
-  uint64_t *hashed = new uint64_t(0);
+  long unsigned int *tothsh = new long unsigned int(0);
+  long unsigned int *hashed = new long unsigned int(0);
   Glib::Dispatcher *disp_tothash = new Glib::Dispatcher;
   disp_tothash->connect([prgb]
   {
     prgb->set_fraction(0.0);
   });
   rc->total_hash = [tothsh]
-  (uint64_t tot)
+  (long unsigned int tot)
     {
       *tothsh = tot;
     };
@@ -782,7 +782,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   });
 
   rc->byte_hashed = [hashed, disp_hashed]
-  (uint64_t hsh)
+  (long unsigned int hsh)
     {
       *hashed = *hashed + hsh;
       disp_hashed->emit();

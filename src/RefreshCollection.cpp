@@ -281,7 +281,7 @@ RefreshCollection::readColl()
     }
   if(total_hash)
     {
-      uint64_t sz = 0;
+      long unsigned int sz = 0;
       for(size_t i = 0; i < fb2.size(); i++)
 	{
 	  sz = sz + std::filesystem::file_size(fb2[i]);
