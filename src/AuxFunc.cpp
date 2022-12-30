@@ -247,6 +247,11 @@ std::string
 AuxFunc::randomFileName()
 {
   std::string result;
+  std::chrono::time_point<std::chrono::system_clock> now =
+      std::chrono::system_clock::now();
+  auto duration = now.time_since_epoch();
+  uint64_t t = duration.count();
+  std::srand(t);
   int rnd = std::rand();
   std::stringstream strm;
   std::locale loc("C");
@@ -257,7 +262,8 @@ AuxFunc::randomFileName()
 }
 
 void
-AuxFunc::unpackByIndex(std::string archaddress, std::string outfolder, int index)
+AuxFunc::unpackByIndex(std::string archaddress, std::string outfolder,
+		       int index)
 {
   zip_t *z;
   zip_file_t *file;
@@ -364,8 +370,8 @@ AuxFunc::packing(std::string source, std::string out)
 	  z = zip_open(out.c_str(), ZIP_TRUNCATE | ZIP_CREATE, &er);
 	  if(er < 1)
 	    {
-	      std::vector < std::filesystem::path > listf;
-	      std::vector < std::filesystem::path > listd;
+	      std::vector<std::filesystem::path> listf;
+	      std::vector<std::filesystem::path> listd;
 	      std::string line;
 	      if(!std::filesystem::is_empty(dir))
 		{

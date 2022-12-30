@@ -321,65 +321,66 @@ CreateRightGrid::searchResultShow(int variant)
       if(variant == 1)
 	{
 	  tmp = std::get<3>(mw->search_result_v[i]);
+	  while(genre_n != std::string::npos)
+	    {
+	      std::string s_s = tmp;
+	      genre_n = s_s.find(", ");
+	      if(genre_n != std::string::npos)
+		{
+		  s_s = s_s.substr(0, genre_n);
+		  genre_v.push_back(s_s);
+		  s_s = s_s + ", ";
+		  tmp.erase(0, s_s.size());
+		}
+	      else
+		{
+		  if(!tmp.empty())
+		    {
+		      tmp.erase(std::remove_if(tmp.begin(), tmp.end(), []
+		      (char &el)
+			{
+			  return el == ' ';
+			}),
+				tmp.end());
+		      genre_v.push_back(tmp);
+		    }
+		}
+	    }
+
+	  for(size_t j = 0; j < genre_v.size(); j++)
+	    {
+	      tmp = genre_v[j];
+	      std::for_each(
+		  mw->genrev->begin(),
+		  mw->genrev->end(),
+		  [genre_str, tmp]
+		  (auto &el)
+		    {
+		      std::vector<std::tuple<std::string, std::string>>tempv;
+		      tempv = std::get<1>(el);
+		      auto itgv = std::find_if(tempv.begin(), tempv.end(), [tmp](auto &el)
+			    {
+			      return std::get<0>(el) == tmp;
+			    });
+		      if(itgv != tempv.end())
+			{
+			  if(genre_str->empty())
+			    {
+			      *genre_str = std::get<1>(*itgv);
+			    }
+			  else
+			    {
+			      *genre_str = *genre_str + ", " + std::get<1>(*itgv);
+			    }
+			}
+		    });
+	    }
 	}
       else if(variant == 2)
 	{
-	  tmp = std::get<3>(mw->bookmark_v[i]);
+	  *genre_str = std::get<3>(mw->bookmark_v[i]);
 	}
 
-      while(genre_n != std::string::npos)
-	{
-	  std::string s_s = tmp;
-	  genre_n = s_s.find(", ");
-	  if(genre_n != std::string::npos)
-	    {
-	      s_s = s_s.substr(0, genre_n);
-	      genre_v.push_back(s_s);
-	      s_s = s_s + ", ";
-	      tmp.erase(0, s_s.size());
-	    }
-	  else
-	    {
-	      if(!tmp.empty())
-		{
-		  tmp.erase(std::remove_if(tmp.begin(), tmp.end(), []
-		  (char &el)
-		    {
-		      return el == ' ';
-		    }),
-			    tmp.end());
-		  genre_v.push_back(tmp);
-		}
-	    }
-	}
-      for(size_t j = 0; j < genre_v.size(); j++)
-	{
-	  tmp = genre_v[j];
-	  std::for_each(
-	      mw->genrev->begin(),
-	      mw->genrev->end(),
-	      [genre_str, tmp]
-	      (auto &el)
-		{
-		  std::vector<std::tuple<std::string, std::string>>tempv;
-		  tempv = std::get<1>(el);
-		  auto itgv = std::find_if(tempv.begin(), tempv.end(), [tmp](auto &el)
-			{
-			  return std::get<0>(el) == tmp;
-			});
-		  if(itgv != tempv.end())
-		    {
-		      if(genre_str->empty())
-			{
-			  *genre_str = std::get<1>(*itgv);
-			}
-		      else
-			{
-			  *genre_str = *genre_str + ", " + std::get<1>(*itgv);
-			}
-		    }
-		});
-	}
       row[genre] = *genre_str;
       if(variant == 1)
 	{

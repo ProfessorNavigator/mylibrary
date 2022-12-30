@@ -23,6 +23,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
 #include <functional>
 #include <vector>
 #include <unicode/ucnv.h>
