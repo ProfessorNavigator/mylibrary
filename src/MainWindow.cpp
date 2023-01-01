@@ -820,15 +820,15 @@ void
 MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 		       Gtk::Entry *book_nm_ent)
 {
-  Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
-      gettext("Choose a book"), *win, Gtk::FileChooser::Action::OPEN,
-      gettext("Open"), gettext("Cancel"));
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fch->set_current_folder(fl);
-  fch->set_select_multiple(false);
+  Gtk::Dialog *fch = new Gtk::Dialog(gettext("Choose a book"), *win, true,
+				     false);
+
+  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
+  fchw->set_margin(5);
+  fchw->set_action(Gtk::FileChooser::Action::OPEN);
+
+  Gtk::Box *box = fch->get_content_area();
+  box->append(*fchw);
 
   Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(gettext("All supported"));
@@ -837,41 +837,58 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
   fl_filter->add_pattern("*.epub");
   fl_filter->add_pattern("*.pdf");
   fl_filter->add_pattern("*.djvu");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".fb2");
   fl_filter->add_pattern("*.fb2");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".zip");
   fl_filter->add_pattern("*.zip");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".epub");
   fl_filter->add_pattern("*.epub");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".pdf");
   fl_filter->add_pattern("*.pdf");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".djvu");
   fl_filter->add_pattern("*.djvu");
-  fch->add_filter(fl_filter);
+  fchw->add_filter(fl_filter);
 
-  fch->set_select_multiple(false);
+  fchw->set_select_multiple(false);
+
+  Gtk::Button *cancel = fch->add_button(gettext("Cancel"),
+					Gtk::ResponseType::CANCEL);
+  cancel->set_margin(5);
+
+  Gtk::Button *open = fch->add_button(gettext("Open"),
+				      Gtk::ResponseType::ACCEPT);
+  Gtk::Requisition min, nat;
+  fch->get_preferred_size(min, nat);
+  open->set_margin_bottom(5);
+  open->set_margin_end(5);
+  open->set_margin_top(5);
+  open->set_margin_start(nat.get_width() - 15);
+  open->set_name("applyBut");
+  open->get_style_context()->add_provider(this->css_provider,
+  GTK_STYLE_PROVIDER_PRIORITY_USER);
+
   fch->signal_response().connect(
-      [fch, book_path_ent, book_nm_ent]
+      [fch, book_path_ent, book_nm_ent, fchw]
       (int resp)
 	{
 	  if(resp == Gtk::ResponseType::ACCEPT)
 	    {
-	      Glib::RefPtr<Gio::File>fl = fch->get_file();
+	      Glib::RefPtr<Gio::File>fl = fchw->get_file();
 	      if(fl)
 		{
 		  book_path_ent->set_text(Glib::ustring(fl->get_path()));
@@ -886,9 +903,22 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 		      book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
 		    }
 		}
+	      fch->close();
+	    }
+	  else if (resp == Gtk::ResponseType::CANCEL)
+	    {
+	      fch->close();
 	    }
 	});
-  fch->show();
+
+  fch->signal_close_request().connect([fch]
+  {
+    fch->hide();
+    delete fch;
+    return true;
+  },
+				      false);
+  fch->present();
 }
 
 void

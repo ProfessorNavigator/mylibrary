@@ -41,6 +41,9 @@ public:
   void
   openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant);
   void
+  openDialogExportFunc(int resp_id, Gtk::Dialog *fch, Gtk::FileChooserWidget *fchw,
+		       Gtk::Entry *path_ent);
+  void
   collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
 		    Gtk::Window *win1, Gtk::Window *win2);
   void

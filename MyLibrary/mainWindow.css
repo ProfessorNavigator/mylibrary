@@ -3,3 +3,15 @@
 	border-width: 1px 1px 1px 1px;
 	border-color: black;
 }
+
+#applyBut {
+  background-image: none;
+  background-color: rgb(45, 146, 238);
+  color: white;
+}
+
+#applyBut:hover {
+  background-image: none;
+  background-color: rgb(42, 98, 211);
+  color: white;
+}

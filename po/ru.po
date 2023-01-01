@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2023-01-01 15:01+0400\n"
-"PO-Revision-Date: 2023-01-01 15:01+0400\n"
+"POT-Creation-Date: 2023-01-01 22:23+0400\n"
+"PO-Revision-Date: 2023-01-01 22:23+0400\n"
 "Last-Translator: Юрий Бобылев\n"
 "Language-Team: Юрий Бобылев\n"
 "Language: ru\n"
@@ -29,7 +29,7 @@ msgstr ""
 "X-Poedit-SearchPath-12: src/SearchBook.cpp\n"
 "X-Poedit-SearchPath-13: resources/mainmenu.xml\n"
 
-#: resources/mainmenu.xml:5 src/CollectionOpWindows.cpp:357
+#: resources/mainmenu.xml:5 src/CollectionOpWindows.cpp:356
 #: src/CreateLeftGrid.cpp:40
 msgid "Collection"
 msgstr "Коллекция"
@@ -42,11 +42,11 @@ msgstr "Создать коллекцию"
 msgid "Refresh collection"
 msgstr "Обновить коллекцию"
 
-#: resources/mainmenu.xml:16 src/CollectionOpWindows.cpp:952
+#: resources/mainmenu.xml:16 src/CollectionOpWindows.cpp:1049
 msgid "Import collection"
 msgstr "Импортировать коллекцию"
 
-#: resources/mainmenu.xml:20 src/CollectionOpWindows.cpp:1160
+#: resources/mainmenu.xml:20 src/CollectionOpWindows.cpp:1257
 msgid "Export collection"
 msgstr "Экспортировать коллекцию"
 
@@ -58,7 +58,7 @@ msgstr "Добавить книгу в коллекцию"
 msgid "Remove collection"
 msgstr "Удалить коллекцию"
 
-#: resources/mainmenu.xml:34 src/AuxWindows.cpp:187
+#: resources/mainmenu.xml:34 src/AuxWindows.cpp:173
 msgid "Book-marks"
 msgstr "Закладки"
 
@@ -74,39 +74,35 @@ msgstr "Справка"
 msgid "About program"
 msgstr "О программе"
 
-#: src/AuxWindows.cpp:35
-msgid "Message"
-msgstr "Сообщение"
-
-#: src/AuxWindows.cpp:51
+#: src/AuxWindows.cpp:39
 msgid "Collection name cannot be empty!"
 msgstr "Имя коллекции не может быть пустым!"
 
-#: src/AuxWindows.cpp:55
+#: src/AuxWindows.cpp:43
 msgid "Path to book directory is empty!"
 msgstr "Путь к папке с книгами пуст!"
 
-#: src/AuxWindows.cpp:59
+#: src/AuxWindows.cpp:47
 msgid "Collection has been created"
 msgstr "Коллекция создана"
 
-#: src/AuxWindows.cpp:63
+#: src/AuxWindows.cpp:51
 msgid "Collection already existed!"
 msgstr "Коллекция уже существует!"
 
-#: src/AuxWindows.cpp:67
+#: src/AuxWindows.cpp:55
 msgid "Collection creation canceled"
 msgstr "Создание коллекции прекращено"
 
-#: src/AuxWindows.cpp:71
+#: src/AuxWindows.cpp:59
 msgid "Collection to import path is empty!"
 msgstr "Путь до коллекции пуст!"
 
-#: src/AuxWindows.cpp:75
+#: src/AuxWindows.cpp:63
 msgid "Export path is empty!"
 msgstr "Путь для экспорта пуст!"
 
-#: src/AuxWindows.cpp:81
+#: src/AuxWindows.cpp:69
 msgid ""
 "Book has been removed from collection database, but book file was not found. "
 "Check if collection book directory path exists and/or refresh collection."
@@ -114,66 +110,58 @@ msgstr ""
 "Книга была удалена из базы данных коллекции, но файл книги не найден. "
 "Проверьте, существует ли папка коллекции и/или обновите коллекцию."
 
-#: src/AuxWindows.cpp:91
+#: src/AuxWindows.cpp:76
 msgid "Book-mark has been created!"
 msgstr "Закладка создана!"
 
-#: src/AuxWindows.cpp:95
+#: src/AuxWindows.cpp:80
 msgid "The book has been copied"
 msgstr "Книга скопирована"
 
-#: src/AuxWindows.cpp:102 src/BookOpWindows.cpp:1086
-#: src/CollectionOpWindows.cpp:724 src/CollectionOpWindows.cpp:748
-#: src/CollectionOpWindows.cpp:829 src/CollectionOpWindows.cpp:1146
-#: src/CollectionOpWindows.cpp:1346 src/MainWindow.cpp:947
-#: src/MainWindow.cpp:977 src/MainWindow.cpp:995
-msgid "Close"
-msgstr "Закрыть"
-
-#: src/AuxWindows.cpp:228 src/CreateRightGrid.cpp:74
+#: src/AuxWindows.cpp:215 src/CreateRightGrid.cpp:74
 msgid "Open book"
 msgstr "Открыть книгу"
 
-#: src/AuxWindows.cpp:229 src/AuxWindows.cpp:257 src/CreateRightGrid.cpp:78
+#: src/AuxWindows.cpp:216 src/AuxWindows.cpp:244 src/CreateRightGrid.cpp:78
 #: src/CreateRightGrid.cpp:140
 msgid "Save book as..."
 msgstr "Сохранить книгу как..."
 
-#: src/AuxWindows.cpp:230
+#: src/AuxWindows.cpp:217
 msgid "Remove book from book-marks"
 msgstr "Удалить книгу из закладок"
 
-#: src/AuxWindows.cpp:249 src/CreateRightGrid.cpp:106
+#: src/AuxWindows.cpp:236 src/CreateRightGrid.cpp:106
 msgid "Open selected book"
 msgstr "Открыть выбранную книгу"
 
-#: src/AuxWindows.cpp:265
+#: src/AuxWindows.cpp:253
 msgid "Remove selected book from book-marks"
 msgstr "Удалить выбранную книгу из закладок"
 
-#: src/AuxWindows.cpp:327
+#: src/AuxWindows.cpp:315
 msgid "MyLibrary is a home librarian"
 msgstr "MyLibrary - домашний библиотекарь"
 
-#: src/AuxWindows.cpp:328
+#: src/AuxWindows.cpp:316
 msgid "Author Yury Bobylev"
 msgstr "Автор Юрий Бобылев"
 
-#: src/AuxWindows.cpp:330
+#: src/AuxWindows.cpp:318
 msgid "Program uses next libraries:"
 msgstr "В программе используются следующие библиотеки:"
 
-#: src/AuxWindows.cpp:368
+#: src/AuxWindows.cpp:356
 msgid "Book file exits. Replace?"
 msgstr "Файл книги уже существует. Заменить?"
 
-#: src/AuxWindows.cpp:374 src/BookOpWindows.cpp:158 src/BookOpWindows.cpp:1103
-#: src/CollectionOpWindows.cpp:297
+#: src/AuxWindows.cpp:362 src/BookOpWindows.cpp:158 src/BookOpWindows.cpp:1117
+#: src/CollectionOpWindows.cpp:296
 msgid "Yes"
 msgstr "Да"
 
-#: src/AuxWindows.cpp:386 src/BookOpWindows.cpp:164 src/BookOpWindows.cpp:1130
-#: src/CollectionOpWindows.cpp:335
+#: src/AuxWindows.cpp:374 src/BookOpWindows.cpp:164 src/BookOpWindows.cpp:1144
+#: src/CollectionOpWindows.cpp:334
 msgid "No"
 msgstr "Нет"
 
@@ -185,17 +173,17 @@ msgstr "Поиск"
 msgid "Search in progress..."
 msgstr "Идёт поиск..."
 
-#: src/BookOpWindows.cpp:68 src/BookOpWindows.cpp:906
-#: src/CollectionOpWindows.cpp:244 src/CollectionOpWindows.cpp:437
-#: src/CollectionOpWindows.cpp:627 src/CollectionOpWindows.cpp:634
-#: src/CollectionOpWindows.cpp:701 src/CollectionOpWindows.cpp:965
-#: src/CollectionOpWindows.cpp:1217 src/MainWindow.cpp:185
-#: src/MainWindow.cpp:642 src/MainWindow.cpp:825 src/MainWindow.cpp:930
+#: src/BookOpWindows.cpp:68 src/BookOpWindows.cpp:920
+#: src/CollectionOpWindows.cpp:243 src/CollectionOpWindows.cpp:436
+#: src/CollectionOpWindows.cpp:635 src/CollectionOpWindows.cpp:798
+#: src/CollectionOpWindows.cpp:1062 src/CollectionOpWindows.cpp:1314
+#: src/MainWindow.cpp:185 src/MainWindow.cpp:642 src/MainWindow.cpp:869
+#: src/MainWindow.cpp:960
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/BookOpWindows.cpp:117 src/BookOpWindows.cpp:961
-#: src/CollectionOpWindows.cpp:280
+#: src/BookOpWindows.cpp:117 src/BookOpWindows.cpp:975
+#: src/CollectionOpWindows.cpp:279
 msgid "Confirmation"
 msgstr "Подтверждение"
 
@@ -216,89 +204,96 @@ msgstr "Удаление"
 msgid "Removing... It will take some time"
 msgstr "Удаление... Процесс займёт какое-то время"
 
-#: src/BookOpWindows.cpp:363
+#: src/BookOpWindows.cpp:377
 msgid "Book file info"
 msgstr "Информация о файле"
 
-#: src/BookOpWindows.cpp:405
+#: src/BookOpWindows.cpp:419
 msgid "Archive: "
 msgstr "Архив: "
 
-#: src/BookOpWindows.cpp:428
+#: src/BookOpWindows.cpp:442
 msgid "File path in archive: "
 msgstr "Расположение файла в архиве: "
 
-#: src/BookOpWindows.cpp:455
+#: src/BookOpWindows.cpp:469
 msgid "File size (uncompressed): "
 msgstr "Размер файла (после распаковки): "
 
-#: src/BookOpWindows.cpp:473 src/BookOpWindows.cpp:501
-#: src/BookOpWindows.cpp:547
+#: src/BookOpWindows.cpp:487 src/BookOpWindows.cpp:515
+#: src/BookOpWindows.cpp:561
 msgid "bytes"
 msgstr "байт"
 
-#: src/BookOpWindows.cpp:483
+#: src/BookOpWindows.cpp:497
 msgid "File size (compressed): "
 msgstr "Размер файла (в архиве): "
 
-#: src/BookOpWindows.cpp:514
+#: src/BookOpWindows.cpp:528
 msgid "File: "
 msgstr "Файл: "
 
-#: src/BookOpWindows.cpp:532
+#: src/BookOpWindows.cpp:546
 msgid "File size: "
 msgstr "Размер файла: "
 
-#: src/BookOpWindows.cpp:620
+#: src/BookOpWindows.cpp:634
 msgid "Book entry editor"
 msgstr "Редактор записи о книге"
 
-#: src/BookOpWindows.cpp:632
+#: src/BookOpWindows.cpp:646
 msgid "Author:"
 msgstr "Автор:"
 
-#: src/BookOpWindows.cpp:653
+#: src/BookOpWindows.cpp:667
 msgid "Book:"
 msgstr "Книга:"
 
-#: src/BookOpWindows.cpp:674 src/CreateLeftGrid.cpp:135
+#: src/BookOpWindows.cpp:688 src/CreateLeftGrid.cpp:135
 msgid "Series:"
 msgstr "Серия:"
 
-#: src/BookOpWindows.cpp:695 src/CreateLeftGrid.cpp:147
+#: src/BookOpWindows.cpp:709 src/CreateLeftGrid.cpp:147
 msgid "Genre:"
 msgstr "Жанр:"
 
-#: src/BookOpWindows.cpp:716
+#: src/BookOpWindows.cpp:730
 msgid "Add genre:"
 msgstr "Добавить жанр:"
 
-#: src/BookOpWindows.cpp:722 src/CreateLeftGrid.cpp:153
+#: src/BookOpWindows.cpp:736 src/CreateLeftGrid.cpp:153
 #: src/CreateLeftGrid.cpp:266 src/CreateLeftGrid.cpp:390
 msgid "<No>"
 msgstr "<Нет>"
 
-#: src/BookOpWindows.cpp:862
+#: src/BookOpWindows.cpp:876
 msgid "Date:"
 msgstr "Дата:"
 
-#: src/BookOpWindows.cpp:883 src/MainWindow.cpp:642
+#: src/BookOpWindows.cpp:897 src/MainWindow.cpp:642
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/BookOpWindows.cpp:895
+#: src/BookOpWindows.cpp:909
 msgid "Restore"
 msgstr "Восстановить"
 
-#: src/BookOpWindows.cpp:974 src/CollectionOpWindows.cpp:291
+#: src/BookOpWindows.cpp:988 src/CollectionOpWindows.cpp:290
 msgid "Are you shure?"
 msgstr "Вы уверены?"
 
-#: src/BookOpWindows.cpp:1080
+#: src/BookOpWindows.cpp:1094
 msgid "Book entry has been corrected"
 msgstr "Запись о книге отредактирована"
 
-#: src/BookOpWindows.cpp:1116
+#: src/BookOpWindows.cpp:1100 src/CollectionOpWindows.cpp:821
+#: src/CollectionOpWindows.cpp:845 src/CollectionOpWindows.cpp:926
+#: src/CollectionOpWindows.cpp:1243 src/CollectionOpWindows.cpp:1443
+#: src/MainWindow.cpp:977 src/MainWindow.cpp:1007 src/MainWindow.cpp:1025
+msgid "Close"
+msgstr "Закрыть"
+
+#: src/BookOpWindows.cpp:1130
 msgid "Correcting base..."
 msgstr "Корректирование базы данных..."
 
@@ -306,7 +301,7 @@ msgstr "Корректирование базы данных..."
 msgid "Collection removing"
 msgstr "Удаление коллекции"
 
-#: src/CollectionOpWindows.cpp:41 src/CollectionOpWindows.cpp:677
+#: src/CollectionOpWindows.cpp:41 src/CollectionOpWindows.cpp:774
 msgid "Collection refreshing"
 msgstr "Обновление коллекции"
 
@@ -326,57 +321,53 @@ msgstr "Коллекция для обновления:"
 msgid "Collection which book should be added to:"
 msgstr "Коллекция, в которую нужно добавить книгу:"
 
-#: src/CollectionOpWindows.cpp:95 src/CollectionOpWindows.cpp:411
+#: src/CollectionOpWindows.cpp:95 src/CollectionOpWindows.cpp:410
 msgid "Number of threads to use (it is not recommended to exceed "
 msgstr "Количество потоков (не рекомендуется использовать больше, чем "
 
-#: src/CollectionOpWindows.cpp:97 src/CollectionOpWindows.cpp:412
-msgid " threads):"
-msgstr " потоков):"
-
-#: src/CollectionOpWindows.cpp:118
+#: src/CollectionOpWindows.cpp:117
 msgid "Remove empty directories in collection"
 msgstr "Удалить пустые папки из директории с книгами коллекции"
 
-#: src/CollectionOpWindows.cpp:136
+#: src/CollectionOpWindows.cpp:135
 msgid "Path to source book file:"
 msgstr "Путь до исходного файла книги:"
 
-#: src/CollectionOpWindows.cpp:151 src/CollectionOpWindows.cpp:392
-#: src/CollectionOpWindows.cpp:627 src/CollectionOpWindows.cpp:920
-#: src/CollectionOpWindows.cpp:943 src/MainWindow.cpp:825
+#: src/CollectionOpWindows.cpp:150 src/CollectionOpWindows.cpp:391
+#: src/CollectionOpWindows.cpp:643 src/CollectionOpWindows.cpp:1017
+#: src/CollectionOpWindows.cpp:1040 src/MainWindow.cpp:873
 msgid "Open"
 msgstr "Открыть"
 
-#: src/CollectionOpWindows.cpp:157
+#: src/CollectionOpWindows.cpp:156
 msgid "Book file name in collection:"
 msgstr "Имя файла книги в коллекции:"
 
-#: src/CollectionOpWindows.cpp:175
+#: src/CollectionOpWindows.cpp:174
 msgid "Pack book to zip archive, if it is not already packed"
 msgstr "Упаковать книгу в zip архив, если она ещё не упакована"
 
-#: src/CollectionOpWindows.cpp:194
+#: src/CollectionOpWindows.cpp:193
 msgid "Remove"
 msgstr "Удалить"
 
-#: src/CollectionOpWindows.cpp:198
+#: src/CollectionOpWindows.cpp:197
 msgid "Refresh"
 msgstr "Обновить"
 
-#: src/CollectionOpWindows.cpp:202
+#: src/CollectionOpWindows.cpp:201
 msgid "Add book"
 msgstr "Добавить книгу"
 
-#: src/CollectionOpWindows.cpp:367 src/CollectionOpWindows.cpp:895
+#: src/CollectionOpWindows.cpp:366 src/CollectionOpWindows.cpp:992
 msgid "Collection name:"
 msgstr "Имя коллекции:"
 
-#: src/CollectionOpWindows.cpp:378
+#: src/CollectionOpWindows.cpp:377
 msgid "Path to directory with books:"
 msgstr "Путь к папке с книгами:"
 
-#: src/CollectionOpWindows.cpp:428
+#: src/CollectionOpWindows.cpp:427
 msgid "Create"
 msgstr "Создать"
 
@@ -388,59 +379,63 @@ msgstr "Папка с книгами"
 msgid "Path to collection"
 msgstr "Путь до файлов коллекции"
 
-#: src/CollectionOpWindows.cpp:620 src/CollectionOpWindows.cpp:1199
+#: src/CollectionOpWindows.cpp:620 src/CollectionOpWindows.cpp:1296
 msgid "Export as..."
 msgstr "Экспортировать как..."
 
-#: src/CollectionOpWindows.cpp:633 src/CollectionOpWindows.cpp:1208
+#: src/CollectionOpWindows.cpp:668 src/CollectionOpWindows.cpp:1305
 msgid "Export"
 msgstr "Экспорт"
 
-#: src/CollectionOpWindows.cpp:689
+#: src/CollectionOpWindows.cpp:719
+msgid "File or directory already exists. Replace?"
+msgstr "Файл или папка уже существует. Заменить?"
+
+#: src/CollectionOpWindows.cpp:786
 msgid "Files hashing..."
 msgstr "Хеширование файлов..."
 
-#: src/CollectionOpWindows.cpp:721
+#: src/CollectionOpWindows.cpp:818
 msgid "Collection refreshing canceled"
 msgstr "Обновление коллекции прекращено"
 
-#: src/CollectionOpWindows.cpp:739
+#: src/CollectionOpWindows.cpp:836
 msgid "Collection refreshing finished"
 msgstr "Обновление коллекции выполнено"
 
-#: src/CollectionOpWindows.cpp:796
+#: src/CollectionOpWindows.cpp:893
 msgid "Collection refreshing..."
 msgstr "Обновление коллекции..."
 
-#: src/CollectionOpWindows.cpp:826
+#: src/CollectionOpWindows.cpp:923
 msgid "Collection book directory not found"
 msgstr "Папка с книгами коллекции не найдена"
 
-#: src/CollectionOpWindows.cpp:883
+#: src/CollectionOpWindows.cpp:980
 msgid "Collection import"
 msgstr "Импорт коллекции"
 
-#: src/CollectionOpWindows.cpp:906
+#: src/CollectionOpWindows.cpp:1003
 msgid "Path to collection files:"
 msgstr "Путь до файлов коллекции:"
 
-#: src/CollectionOpWindows.cpp:929
+#: src/CollectionOpWindows.cpp:1026
 msgid "Path to books:"
 msgstr "Путь к папке с книгами:"
 
-#: src/CollectionOpWindows.cpp:1140
+#: src/CollectionOpWindows.cpp:1237
 msgid "Collection has been imported"
 msgstr "Коллекция импортирована"
 
-#: src/CollectionOpWindows.cpp:1172
+#: src/CollectionOpWindows.cpp:1269
 msgid "Collection for export: "
 msgstr "Коллекция для экспорта: "
 
-#: src/CollectionOpWindows.cpp:1185
+#: src/CollectionOpWindows.cpp:1282
 msgid "Export as: "
 msgstr "Экспортировать как: "
 
-#: src/CollectionOpWindows.cpp:1340
+#: src/CollectionOpWindows.cpp:1437
 msgid "Collection has been exported"
 msgstr "Коллекция экспортирована"
 
@@ -947,7 +942,7 @@ msgstr "Прогресс создания"
 msgid "Save as..."
 msgstr "Сохранить как..."
 
-#: src/MainWindow.cpp:824
+#: src/MainWindow.cpp:823
 msgid "Choose a book"
 msgstr "Выберите книгу"
 
@@ -955,25 +950,31 @@ msgstr "Выберите книгу"
 msgid "All supported"
 msgstr "Все поддерживаемые"
 
-#: src/MainWindow.cpp:912
+#: src/MainWindow.cpp:942
 msgid "Books adding..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:924
+#: src/MainWindow.cpp:954
 msgid "Book adding in progress..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:946
+#: src/MainWindow.cpp:976
 msgid "Book adding canceled"
 msgstr "Добавление книги прекращено"
 
-#: src/MainWindow.cpp:976
+#: src/MainWindow.cpp:1006
 msgid "Book adding finished"
 msgstr "Книга добавлена"
 
-#: src/MainWindow.cpp:994
+#: src/MainWindow.cpp:1024
 msgid "Collection book path does not exists!"
 msgstr "Папка с книгами коллекции не существует!"
+
+#~ msgid "Message"
+#~ msgstr "Сообщение"
+
+#~ msgid " threads):"
+#~ msgstr " потоков):"
 
 #, fuzzy
 #~| msgid "Import collection"

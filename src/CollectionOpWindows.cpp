@@ -93,8 +93,7 @@ CollectionOpWindows::collectionOp(int variant)
 	  Glib::ustring(
 	      gettext(
 		  "Number of threads to use (it is not recommended to exceed "))
-	      + Glib::ustring(strm.str())
-	      + Glib::ustring(gettext(" threads):")));
+	      + Glib::ustring(strm.str()) + ")");
       thr_nm_lb->set_width_chars(50);
       thr_nm_lb->set_max_width_chars(50);
       thr_nm_lb->set_wrap(true);
@@ -409,7 +408,7 @@ CollectionOpWindows::collectionCreate()
   thr_nm_lb->set_text(
       Glib::ustring(
 	  gettext("Number of threads to use (it is not recommended to exceed "))
-	  + Glib::ustring(strm.str()) + Glib::ustring(gettext(" threads):")));
+	  + Glib::ustring(strm.str()) + ")");
   grid->attach(*thr_nm_lb, 0, 4, 1, 1);
 
   Gtk::Entry *thr_ent = Gtk::make_managed<Gtk::Entry>();
@@ -493,8 +492,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
       return void();
     }
 
-  CreateCollection *crcol = new CreateCollection(coll_nm, filepath, thr_num, nullptr,
-						 &mw->coll_cr_cancel);
+  CreateCollection *crcol = new CreateCollection(coll_nm, filepath, thr_num,
+						 nullptr, &mw->coll_cr_cancel);
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
   Glib::Dispatcher *disp_totfiles = new Glib::Dispatcher;
   Glib::Dispatcher *disp_progress = new Glib::Dispatcher;
@@ -606,6 +605,7 @@ void
 CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
 				  int variant)
 {
+  MainWindow *mwl = mw;
   Glib::ustring dnm;
   if(variant == 1)
     {
@@ -619,36 +619,133 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
     {
       dnm = Glib::ustring(gettext("Export as..."));
     }
-  Glib::RefPtr<Gtk::FileChooserNative> fch;
+
+  Gtk::Dialog *fch = new Gtk::Dialog(dnm, *window, true, false);
+
+  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
+  fchw->set_margin(5);
+  AuxFunc af;
+  std::string filename;
+  af.homePath(&filename);
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
+  fchw->set_current_folder(fl);
+  Gtk::Box *cont = fch->get_content_area();
+  cont->append(*fchw);
+
+  Gtk::Button *cancel = fch->add_button(gettext("Cancel"),
+					Gtk::ResponseType::CANCEL);
+  cancel->set_margin(5);
+  cancel->set_halign(Gtk::Align::START);
+  Gtk::Button *export_but;
   if(variant == 1 || variant == 2)
     {
-      fch = Gtk::FileChooserNative::create(
-	  dnm, *window, Gtk::FileChooser::Action::SELECT_FOLDER,
-	  gettext("Open"), gettext("Cancel"));
+      fchw->set_action(Gtk::FileChooser::Action::SELECT_FOLDER);
+      export_but = fch->add_button(gettext("Open"), Gtk::ResponseType::APPLY);
+      export_but->set_name("applyBut");
+      export_but->get_style_context()->add_provider(mw->css_provider,
+      GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+      fch->signal_response().connect([fchw, path_ent, fch]
+      (int resp_id)
+	{
+
+	  if(resp_id == Gtk::ResponseType::CANCEL)
+	    {
+	      fch->close();
+	    }
+	  else if(resp_id == Gtk::ResponseType::APPLY)
+	    {
+	      Glib::RefPtr<Gio::File>fl = fchw->get_file();
+	      std::string loc = fl->get_path();
+	      path_ent->set_text(Glib::ustring(loc));
+	      fch->close();
+	    }
+	});
     }
   else
     {
-      fch = fch = Gtk::FileChooserNative::create(dnm, *window,
-						 Gtk::FileChooser::Action::SAVE,
-						 gettext("Export"),
-						 gettext("Cancel"));
-    }
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fch->set_current_folder(fl);
-  fch->signal_response().connect([path_ent, fch]
-  (int resp)
-    {
-      if(resp == Gtk::ResponseType::ACCEPT)
+      fchw->set_action(Gtk::FileChooser::Action::SAVE);
+      export_but = fch->add_button(gettext("Export"), Gtk::ResponseType::APPLY);
+      export_but->set_name("applyBut");
+      export_but->get_style_context()->add_provider(mw->css_provider,
+      GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+      fch->signal_response().connect([fch, fchw, path_ent, mwl]
+      (int resp_id)
 	{
-	  Glib::RefPtr<Gio::File>fl = fch->get_file();
-	  std::string loc = fl->get_path();
-	  path_ent->set_text(Glib::ustring(loc));
+	  CollectionOpWindows copw(mwl);
+	  copw.openDialogExportFunc(resp_id, fch, fchw, path_ent);
+	});
+
+    }
+  export_but->set_margin_bottom(5);
+  export_but->set_margin_end(5);
+  export_but->set_margin_top(5);
+  Gtk::Requisition min, nat;
+  fch->get_preferred_size(min, nat);
+  export_but->set_margin_start(nat.get_width() - 15);
+
+  fch->signal_close_request().connect([fch]
+  {
+    fch->hide();
+    delete fch;
+    return true;
+  },
+				      false);
+  fch->present();
+
+}
+
+void
+CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
+					  Gtk::FileChooserWidget *fchw,
+					  Gtk::Entry *path_ent)
+{
+  if(resp_id == Gtk::ResponseType::CANCEL)
+    {
+      fch->close();
+    }
+  else if(resp_id == Gtk::ResponseType::APPLY)
+    {
+      Glib::RefPtr<Gio::File> fl = fchw->get_file();
+      std::string filename = fl->get_path();
+      std::filesystem::path p = std::filesystem::u8path(filename);
+      if(std::filesystem::exists(p))
+	{
+	  Gtk::MessageDialog *conf = new Gtk::MessageDialog(
+	      *fch, "", false, Gtk::MessageType::QUESTION,
+	      Gtk::ButtonsType::YES_NO, true);
+	  conf->set_message(
+	      gettext("File or directory already exists. Replace?"), false);
+	  conf->signal_response().connect([conf, path_ent, fch, p]
+	  (int resp_id)
+	    {
+	      if(resp_id == Gtk::ResponseType::NO)
+		{
+		  conf->close();
+		}
+	      else if(resp_id == Gtk::ResponseType::YES)
+		{
+		  path_ent->set_text(p.u8string());
+		  conf->close();
+		  fch->close();
+		}
+	    });
+	  conf->signal_close_request().connect([conf]
+	  {
+	    conf->hide();
+	    delete conf;
+	    return true;
+	  },
+					       false);
+	  conf->present();
 	}
-    });
-  fch->show();
+      else
+	{
+	  path_ent->set_text(p.u8string());
+	  fch->close();
+	}
+    }
 }
 
 void

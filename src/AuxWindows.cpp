@@ -30,89 +30,75 @@ AuxWindows::~AuxWindows()
 void
 AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Message"));
-  window->set_transient_for(*par_win);
-  window->set_modal(true);
-  window->set_default_size(1, 1);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::CENTER);
-  window->set_child(*grid);
-
-  Gtk::Label *warn_lab = Gtk::make_managed<Gtk::Label>();
-  warn_lab->set_halign(Gtk::Align::CENTER);
-  warn_lab->set_valign(Gtk::Align::CENTER);
-  warn_lab->set_margin(5);
+  Gtk::MessageDialog *info = new Gtk::MessageDialog(*par_win, "", false,
+						    Gtk::MessageType::INFO,
+						    Gtk::ButtonsType::CLOSE,
+						    true);
   if(type == 0)
     {
-      warn_lab->set_text(gettext("Collection name cannot be empty!"));
+      info->set_message(gettext("Collection name cannot be empty!"), false);
     }
   else if(type == 1)
     {
-      warn_lab->set_text(gettext("Path to book directory is empty!"));
+      info->set_message(gettext("Path to book directory is empty!"), false);
     }
   else if(type == 2)
     {
-      warn_lab->set_text(gettext("Collection has been created"));
+      info->set_message(gettext("Collection has been created"), false);
     }
   else if(type == 3)
     {
-      warn_lab->set_text(gettext("Collection already existed!"));
+      info->set_message(gettext("Collection already existed!"), false);
     }
   else if(type == 4)
     {
-      warn_lab->set_text(gettext("Collection creation canceled"));
+      info->set_message(gettext("Collection creation canceled"), false);
     }
   else if(type == 5)
     {
-      warn_lab->set_text(gettext("Collection to import path is empty!"));
+      info->set_message(gettext("Collection to import path is empty!"), false);
     }
   else if(type == 6)
     {
-      warn_lab->set_text(gettext("Export path is empty!"));
+      info->set_message(gettext("Export path is empty!"), false);
     }
   else if(type == 7)
     {
-      warn_lab->set_text(
+      info->set_message(
 	  gettext(
 	      "Book has been removed from collection database, "
 	      "but book file was not found. Check if collection book directory "
-	      "path exists and/or refresh collection."));
-      warn_lab->set_wrap(true);
-      warn_lab->set_wrap_mode(Pango::WrapMode::WORD);
-      warn_lab->set_width_chars(30);
-      warn_lab->set_justify(Gtk::Justification::FILL);
+	      "path exists and/or refresh collection."),
+	  false);
     }
   else if(type == 8)
     {
-      warn_lab->set_text(gettext("Book-mark has been created!"));
+      info->set_message(gettext("Book-mark has been created!"), false);
     }
-  else if (type == 9)
+  else if(type == 9)
     {
-      warn_lab->set_text(gettext("The book has been copied"));
+      info->set_message(gettext("The book has been copied"), false);
     }
-  grid->attach(*warn_lab, 0, 0, 1, 1);
 
-  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
-  close->set_halign(Gtk::Align::CENTER);
-  close->set_margin(5);
-  close->set_label(gettext("Close"));
-  close->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*close, 0, 1, 1, 1);
+  info->signal_response().connect([info]
+  (int resp_id)
+    {
+      if(resp_id == Gtk::ResponseType::CLOSE)
+	{
+	  info->close();
+	}
+    });
 
-  window->signal_close_request().connect([window, disp]
+  info->signal_close_request().connect([info, disp]
   {
 
     delete disp;
-    window->hide();
-    delete window;
+    info->hide();
+    delete info;
     return true;
   },
-					 false);
-  window->show();
+				       false);
+  info->present();
 }
 
 void
@@ -222,7 +208,8 @@ AuxWindows::bookmarkWindow()
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2, window));
   acgroup->add_action(
       "copyto",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2, window));
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
+		 window));
   mw->bm_tv->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
@@ -256,7 +243,8 @@ AuxWindows::bookmarkWindow()
   copy_book->set_halign(Gtk::Align::CENTER);
   copy_book->set_label(gettext("Save book as..."));
   copy_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2, window));
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
+		 window));
   grid->attach(*copy_book, 1, 1, 1, 1);
 
   Gtk::Button *del_book = Gtk::make_managed<Gtk::Button>();
