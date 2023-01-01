@@ -286,7 +286,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
     }
   else if(variant == 2)
     {
-      yes->signal_clicked().connect([mwl, window]
+      yes->signal_clicked().connect([mwl, window, win]
       {
 	Glib::RefPtr<Gtk::TreeSelection> selection =
 	    mwl->bm_tv->get_selection();
@@ -301,6 +301,11 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 		Glib::RefPtr<Gtk::ListStore> liststore =
 		    std::dynamic_pointer_cast<Gtk::ListStore>(mwl->bm_tv->get_model());
 		liststore->erase(iter);
+		Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+		Gtk::ScrolledWindow *scrl =
+		    dynamic_cast<Gtk::ScrolledWindow*>(gr->get_child_at(0, 0));
+		Glib::RefPtr<Gtk::Adjustment> adj = scrl->get_vadjustment();
+		double pos = adj->get_value();
 		std::string filename;
 		AuxFunc af;
 		af.homePath(&filename);
@@ -328,6 +333,15 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 		      }
 		    f.close();
 		  }
+		CreateRightGrid crgr(mwl);
+		crgr.searchResultShow(2);
+		Glib::RefPtr<Glib::MainContext> mc =
+		    Glib::MainContext::get_default();
+		while(mc->pending())
+		  {
+		    mc->iteration(true);
+		  }
+		adj->set_value(pos);
 	      }
 	  }
 	window->close();
@@ -1006,7 +1020,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<0> (*itsv) = std::get<1>(*itnewb);
+		std::get<0>(*itsv) = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -1016,7 +1030,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<1> (*itsv) = std::get<1>(*itnewb);
+		std::get<1>(*itsv) = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -1026,7 +1040,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<2> (*itsv) = std::get<1>(*itnewb);
+		std::get<2>(*itsv) = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -1036,7 +1050,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<3> (*itsv) = std::get<1>(*itnewb);
+		std::get<3>(*itsv) = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -1046,7 +1060,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<4> (*itsv) = std::get<1>(*itnewb);
+		std::get<4>(*itsv) = std::get<1>(*itnewb);
 	      }
 	  }
 	mwl->prev_search_nm.clear();
