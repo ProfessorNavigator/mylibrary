@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -34,8 +34,12 @@
 class CreateCollection
 {
 public:
-  CreateCollection(std::string coll_nm, std::filesystem::path book_p,
-		   unsigned int nm_thr, int *cancel);
+  CreateCollection(
+      std::string coll_nm,
+      std::filesystem::path book_p,
+      unsigned int nm_thr,
+      std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
+      int *cancel);
   virtual
   ~CreateCollection();
   std::function<void
@@ -101,6 +105,8 @@ private:
   std::vector<
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>>> zipvect;
+  std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed =
+      nullptr;
   unsigned int threadnum = 1;
   int *cancel = nullptr;
   std::mutex fb2basemtx;

@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -537,7 +537,8 @@ MainWindow::openBook(int variant)
 	      commstr = af.utf8to(commstr);
 #ifdef __linux
 	      int check = std::system(commstr.c_str());
-	      std::cout << "Book open command result code: " << check << std::endl;
+	      std::cout << "Book open command result code: " << check
+		  << std::endl;
 #endif
 #ifdef _WIN32
 	      ShellExecuteA (0, af.utf8to ("open").c_str (), commstr.c_str (), 0, 0, 0);
@@ -548,18 +549,8 @@ MainWindow::openBook(int variant)
 }
 
 void
-MainWindow::copyTo()
+MainWindow::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 {
-  Gtk::Widget *widg = this->get_child();
-  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = main_grid->get_child_at(0, 1);
-  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
-  widg = pn->get_end_child();
-  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = right_grid->get_child_at(0, 0);
-  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
-  widg = sres_scrl->get_child();
-  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
   Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
   if(selection)
     {
@@ -571,7 +562,15 @@ MainWindow::copyTo()
 	  std::filesystem::path filepath;
 	  bool archive = false;
 	  iter->get_value(0, id);
-	  std::string filename = std::get<5>(search_result_v[id - 1]);
+	  std::string filename;
+	  if(variant == 1)
+	    {
+	      filename = std::get<5>(search_result_v[id - 1]);
+	    }
+	  else if(variant == 2)
+	    {
+	      filename = std::get<5>(bookmark_v[id - 1]);
+	    }
 	  std::string::size_type n;
 	  n = filename.find("<zip>");
 	  if(n != std::string::npos)
@@ -621,24 +620,25 @@ MainWindow::copyTo()
 		}
 	      archive = true;
 	    }
-	  else
+	  else if(!filename.empty())
 	    {
 	      filepath = std::filesystem::u8path(filename);
 	    }
 
 	  if(std::filesystem::exists(filepath))
 	    {
-	      saveDialog(filepath, archive);
+	      saveDialog(filepath, archive, win);
 	    }
 	}
     }
 }
 
 void
-MainWindow::saveDialog(std::filesystem::path filepath, bool archive)
+MainWindow::saveDialog(std::filesystem::path filepath, bool archive,
+		       Gtk::Window *win)
 {
   Glib::RefPtr<Gtk::FileChooserNative> fch = Gtk::FileChooserNative::create(
-      gettext("Save as..."), *this, Gtk::FileChooser::Action::SAVE,
+      gettext("Save as..."), *win, Gtk::FileChooser::Action::SAVE,
       gettext("Save"), gettext("Cancel"));
   std::string filename;
   AuxFunc af;
@@ -646,7 +646,7 @@ MainWindow::saveDialog(std::filesystem::path filepath, bool archive)
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
   fch->set_current_folder(fl);
   fch->set_current_name(Glib::ustring(filepath.filename().u8string()));
-  fch->signal_response().connect([filepath, fch, archive]
+  fch->signal_response().connect([filepath, fch, archive, this, win]
   (int resp)
     {
       if(resp == Gtk::ResponseType::ACCEPT)
@@ -659,6 +659,7 @@ MainWindow::saveDialog(std::filesystem::path filepath, bool archive)
 	      std::filesystem::remove_all(outpath);
 	    }
 	  std::filesystem::copy(filepath, outpath);
+	  this->errorWin(9, win, nullptr);
 	}
       if(archive)
 	{

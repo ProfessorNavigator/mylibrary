@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -485,6 +485,7 @@ AuxFunc::stringToLower(std::string &line)
 std::vector<char>
 AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
 {
+  std::vector<char> result;
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
     {
       gcry_check_version(NULL);
@@ -498,45 +499,55 @@ AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
       uintmax_t readb = 0;
       gcry_error_t err;
       gcry_md_hd_t hd;
-      err = gcry_md_open(&hd, GCRY_MD_SHA256, GCRY_MD_FLAG_SECURE);
+      err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
       if(err != 0)
 	{
-	  std::cerr << gcry_strerror(err) << std::endl;
+	  std::cerr << "Hash error1: " << gcry_strerror(err) << " on "
+	      << filepath.u8string() << std::endl;
 	}
-      f.open(filepath, std::ios_base::in | std::ios_base::binary);
-      for(;;)
+      else
 	{
-	  if(readb + 104857600 < fsz)
+	  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+	  if(f.is_open())
 	    {
-	      F.resize(104857600);
-	      f.read(&F[0], 104857600);
-	      readb = readb + 104857600;
-	      gcry_md_write(hd, &F[0], F.size());
-	    }
-	  else
-	    {
-	      int left = fsz - readb;
-	      F.resize(left);
-	      f.read(&F[0], left);
-	      readb = readb + left;
-	      gcry_md_write(hd, &F[0], F.size());
-	    }
-	  if(readb >= fsz || *cancel == 1)
-	    {
-	      break;
+	      for(;;)
+		{
+		  F.clear();
+		  if(readb + 104857600 < fsz)
+		    {
+		      F.resize(104857600);
+		      f.read(&F[0], 104857600);
+		      readb = readb + 104857600;
+		      gcry_md_write(hd, &F[0], F.size());
+		    }
+		  else
+		    {
+		      int left = fsz - readb;
+		      F.resize(left);
+		      f.read(&F[0], F.size());
+		      readb = readb + left;
+		      gcry_md_write(hd, &F[0], F.size());
+		    }
+		  if(readb >= fsz || *cancel == 1)
+		    {
+		      break;
+		    }
+		}
+	      f.close();
+
+	      size_t len = gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256);
+	      char *buf = reinterpret_cast<char*>(gcry_md_read(
+		  hd, GCRY_MD_BLAKE2B_256));
+	      result.insert(result.begin(), buf, buf + len);
 	    }
 	}
-      f.close();
-      size_t len = gcry_md_get_algo_dlen(GCRY_MD_SHA256);
-      char *buf = reinterpret_cast<char*>(gcry_md_read(hd, GCRY_MD_SHA256));
-      std::vector<char> result;
-      result.insert(result.begin(), buf, buf + len);
+
       gcry_md_close(hd);
       return result;
     }
   else
     {
-      std::cerr << "File for hashing not exists" << std::endl;
+      std::cerr << "Hash error1: File for hashing not exists" << std::endl;
       std::vector<char> result
 	{ 'e', 'r', 'r', 'o', 'r' };
       return result;
@@ -548,6 +559,7 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 (uint64_t)> progress,
 		  int *cancel)
 {
+  std::vector<char> result;
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
     {
       gcry_check_version(NULL);
@@ -561,49 +573,59 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
       uintmax_t readb = 0;
       gcry_error_t err;
       gcry_md_hd_t hd;
-      err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, GCRY_MD_FLAG_SECURE);
+      err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
       if(err != 0)
 	{
-	  std::cerr << gcry_strerror(err) << std::endl;
-	}
-      f.open(filepath, std::ios_base::in | std::ios_base::binary);
-      for(;;)
-	{
-	  if(readb + 104857600 < fsz)
-	    {
-	      F.resize(104857600);
-	      f.read(&F[0], 104857600);
-	      readb = readb + 104857600;
-	      gcry_md_write(hd, &F[0], F.size());
-	    }
-	  else
-	    {
-	      int left = fsz - readb;
-	      F.resize(left);
-	      f.read(&F[0], left);
-	      readb = readb + left;
-	      gcry_md_write(hd, &F[0], F.size());
-	    }
+	  std::cerr << "Hash error2: " << gcry_strerror(err) << " on "
+	      << filepath.u8string() << std::endl;
 	  if(progress)
 	    {
-	      progress(static_cast<uint64_t>(F.size()));
-	    }
-	  if(readb >= fsz || *cancel == 1)
-	    {
-	      break;
+	      progress(static_cast<uint64_t>(fsz));
 	    }
 	}
-      f.close();
-      size_t len = gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256);
-      char *buf = reinterpret_cast<char*>(gcry_md_read(hd, GCRY_MD_BLAKE2B_256));
-      std::vector<char> result;
-      result.insert(result.begin(), buf, buf + len);
+      else
+	{
+	  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+	  for(;;)
+	    {
+	      F.clear();
+	      if(readb + 104857600 < fsz)
+		{
+		  F.resize(104857600);
+		  f.read(&F[0], 104857600);
+		  readb = readb + 104857600;
+		  gcry_md_write(hd, &F[0], F.size());
+		}
+	      else
+		{
+		  int left = fsz - readb;
+		  F.resize(left);
+		  f.read(&F[0], left);
+		  readb = readb + left;
+		  gcry_md_write(hd, &F[0], F.size());
+		}
+	      if(progress)
+		{
+		  progress(static_cast<uint64_t>(F.size()));
+		}
+	      if(readb >= fsz || *cancel == 1)
+		{
+		  break;
+		}
+	    }
+	  f.close();
+	  size_t len = gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256);
+	  char *buf = reinterpret_cast<char*>(gcry_md_read(hd,
+							   GCRY_MD_BLAKE2B_256));
+	  result.insert(result.begin(), buf, buf + len);
+	}
+
       gcry_md_close(hd);
       return result;
     }
   else
     {
-      std::cerr << "File for hashing not exists" << std::endl;
+      std::cerr << "Hash error2: File for hashing not exists" << std::endl;
       std::vector<char> result
 	{ 'e', 'r', 'r', 'o', 'r' };
       return result;

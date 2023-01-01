@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -80,9 +80,9 @@ private:
   void
   openBook(int variant);
   void
-  copyTo();
+  copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win);
   void
-  saveDialog(std::filesystem::path filepath, bool archive);
+  saveDialog(std::filesystem::path filepath, bool archive, Gtk::Window *win);
   void
   bookRemoveWin(int variant, Gtk::Window *win);
   void

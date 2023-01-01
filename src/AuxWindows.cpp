@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -89,6 +89,10 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
   else if(type == 8)
     {
       warn_lab->set_text(gettext("Book-mark has been created!"));
+    }
+  else if (type == 9)
+    {
+      warn_lab->set_text(gettext("The book has been copied"));
     }
   grid->attach(*warn_lab, 0, 0, 1, 1);
 
@@ -195,7 +199,7 @@ AuxWindows::bookmarkWindow()
   Gtk::Requisition min, nat;
   mw->get_preferred_size(min, nat);
   scrl->set_min_content_width(nat.get_width() * 0.75);
-  grid->attach(*scrl, 0, 0, 2, 1);
+  grid->attach(*scrl, 0, 0, 3, 1);
 
   mw->bm_tv = Gtk::make_managed<Gtk::TreeView>();
   mw->bm_tv->set_name("searchRes");
@@ -216,9 +220,13 @@ AuxWindows::bookmarkWindow()
   acgroup->add_action(
       "removebook",
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2, window));
+  acgroup->add_action(
+      "copyto",
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2, window));
   mw->bm_tv->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
+  menu->append(gettext("Save book as..."), "popup.copyto");
   menu->append(gettext("Remove book from book-marks"), "popup.removebook");
   Gtk::PopoverMenu *Menu = new Gtk::PopoverMenu;
   Menu->set_parent(*mw->bm_tv);
@@ -243,13 +251,21 @@ AuxWindows::bookmarkWindow()
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 2));
   grid->attach(*o_book, 0, 1, 1, 1);
 
+  Gtk::Button *copy_book = Gtk::make_managed<Gtk::Button>();
+  copy_book->set_margin(5);
+  copy_book->set_halign(Gtk::Align::CENTER);
+  copy_book->set_label(gettext("Save book as..."));
+  copy_book->signal_clicked().connect(
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2, window));
+  grid->attach(*copy_book, 1, 1, 1, 1);
+
   Gtk::Button *del_book = Gtk::make_managed<Gtk::Button>();
   del_book->set_margin(5);
   del_book->set_halign(Gtk::Align::CENTER);
   del_book->set_label(gettext("Remove selected book from book-marks"));
   del_book->signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2, window));
-  grid->attach(*del_book, 1, 1, 1, 1);
+  grid->attach(*del_book, 2, 1, 1, 1);
   MainWindow *mwl = mw;
   window->signal_close_request().connect([mwl, window, Menu]
   {

@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -501,6 +501,9 @@ RefreshCollection::fb2ThrFunc(std::filesystem::path p)
     {
       hash = af.filehash(p, cancel);
     }
+  already_hashedmtx.lock();
+  already_hashed.push_back(std::make_tuple(p, hash));
+  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
       saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
@@ -544,6 +547,9 @@ RefreshCollection::epubThrFunc(std::filesystem::path p)
     {
       hash = af.filehash(p, cancel);
     }
+  already_hashedmtx.lock();
+  already_hashed.push_back(std::make_tuple(p, hash));
+  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
       saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
@@ -587,6 +593,9 @@ RefreshCollection::pdfThrFunc(std::filesystem::path p)
     {
       hash = af.filehash(p, cancel);
     }
+  already_hashedmtx.lock();
+  already_hashed.push_back(std::make_tuple(p, hash));
+  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
       saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
@@ -630,6 +639,9 @@ RefreshCollection::djvuThrFunc(std::filesystem::path p)
     {
       hash = af.filehash(p, cancel);
     }
+  already_hashedmtx.lock();
+  already_hashed.push_back(std::make_tuple(p, hash));
+  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
       saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
@@ -676,6 +688,9 @@ RefreshCollection::zipThrFunc(
     {
       hash = af.filehash(p, cancel);
     }
+  already_hashedmtx.lock();
+  already_hashed.push_back(std::make_tuple(p, hash));
+  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
       saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
@@ -1063,7 +1078,8 @@ RefreshCollection::collRefresh()
       std::filesystem::remove_all(t_c_p);
     }
   std::filesystem::create_directories(t_c_p);
-  CreateCollection cc(rand, std::filesystem::u8path(bookpath), thr_num, cancel);
+  CreateCollection cc(rand, std::filesystem::u8path(bookpath), thr_num,
+		      &already_hashed, cancel);
   if(total_files)
     {
       cc.total_files = total_files;

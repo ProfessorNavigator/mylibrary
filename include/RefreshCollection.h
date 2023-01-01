@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -99,7 +99,7 @@ private:
 	  std::vector<std::tuple<int, int, std::string>>> ziptup);
   void
   editBook(std::string book_str, std::string filename,
-	      std::vector<std::tuple<std::string, std::string>> *newbasev);
+	   std::vector<std::tuple<std::string, std::string>> *newbasev);
   void
   editBookZip(std::string book_str, std::string filename,
 	      std::vector<std::tuple<std::string, std::string>> *newbasev,
@@ -119,6 +119,8 @@ private:
   std::vector<
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>>> zipparse;
+  std::vector<std::tuple<std::filesystem::path, std::vector<char>>> already_hashed;
+  std::mutex already_hashedmtx;
   std::mutex zipparsemtx;
   std::vector<std::filesystem::path> fb2remove;
   std::vector<std::filesystem::path> zipremove;

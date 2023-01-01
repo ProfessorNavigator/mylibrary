@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -61,7 +61,8 @@ CreateRightGrid::formRightGrid()
   acgroup->add_action("openbook",
 		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
   acgroup->add_action("fileinfo", sigc::mem_fun(*mw, &MainWindow::fileInfo));
-  acgroup->add_action("copyto", sigc::mem_fun(*mw, &MainWindow::copyTo));
+  acgroup->add_action(
+      "copyto", sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
   acgroup->add_action(
       "removebook",
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
@@ -137,7 +138,8 @@ CreateRightGrid::formRightGrid()
   copyto->set_valign(Gtk::Align::CENTER);
   copyto->set_margin(5);
   copyto->set_label(gettext("Save book as..."));
-  copyto->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::copyTo));
+  copyto->signal_clicked().connect(
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
   book_op_pop_gr->attach(*copyto, 0, 4, 1, 1);
 
   Gtk::Button *removebook = Gtk::make_managed<Gtk::Button>();

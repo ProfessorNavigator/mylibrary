@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -17,13 +17,17 @@
 
 #include "CreateCollection.h"
 
-CreateCollection::CreateCollection(std::string coll_nm,
-				   std::filesystem::path book_p,
-				   unsigned int nm_thr, int *cancel)
+CreateCollection::CreateCollection(
+    std::string coll_nm,
+    std::filesystem::path book_p,
+    unsigned int nm_thr,
+    std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
+    int *cancel)
 {
   this->coll_nm = coll_nm;
   this->book_p = book_p;
   this->cancel = cancel;
+  this->already_hashed = already_hashed;
   threadnum = nm_thr;
 }
 
@@ -415,10 +419,7 @@ CreateCollection::createDatabase()
 	  num_thr_runmtx.unlock();
 	}
     }
-  if(*cancel == 1)
-    {
-      std::filesystem::remove_all(filepath.parent_path());
-    }
+
   for(;;)
     {
       if(num_thr_runmtx.try_lock())
@@ -435,6 +436,10 @@ CreateCollection::createDatabase()
 	}
       usleep(100);
     }
+  if(*cancel == 1)
+    {
+      std::filesystem::remove_all(filepath.parent_path());
+    }
 }
 
 void
@@ -444,7 +449,28 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::vector<char> hash_v;
+  if(already_hashed)
+    {
+      auto itah = std::find_if(already_hashed->begin(), already_hashed->end(),
+			       [fp]
+			       (auto &el)
+				 {
+				   return std::get<0>(el) == fp;
+				 });
+      if(itah != already_hashed->end())
+	{
+	  hash_v = std::get<1>(*itah);
+	}
+      else
+	{
+	  hash_v = af.filehash(fp, cancel);
+	}
+    }
+  else
+    {
+      hash_v = af.filehash(fp, cancel);
+    }
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
@@ -563,7 +589,29 @@ CreateCollection::zipThreadFunc(
   AuxFunc af;
   std::vector<char> hash_v;
   std::vector<char> write_v;
-  hash_v = af.filehash(std::get<0>(arch_tup), cancel);
+  std::filesystem::path fp_loc = std::get<0>(arch_tup);
+  if(already_hashed)
+    {
+      auto itah = std::find_if(already_hashed->begin(), already_hashed->end(),
+			       [fp_loc]
+			       (auto &el)
+				 {
+				   return std::get<0>(el) == fp_loc;
+				 });
+      if(itah != already_hashed->end())
+	{
+	  hash_v = std::get<1>(*itah);
+	}
+      else
+	{
+	  hash_v = af.filehash(std::get<0>(arch_tup), cancel);
+	}
+    }
+  else
+    {
+      hash_v = af.filehash(std::get<0>(arch_tup), cancel);
+    }
+
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::string archadress = std::get<0>(arch_tup).u8string();
@@ -835,7 +883,29 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::vector<char> hash_v;
+  if(already_hashed)
+    {
+      auto itah = std::find_if(already_hashed->begin(), already_hashed->end(),
+			       [fp]
+			       (auto &el)
+				 {
+				   return std::get<0>(el) == fp;
+				 });
+      if(itah != already_hashed->end())
+	{
+	  hash_v = std::get<1>(*itah);
+	}
+      else
+	{
+	  hash_v = af.filehash(fp, cancel);
+	}
+    }
+  else
+    {
+      hash_v = af.filehash(fp, cancel);
+    }
+
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
@@ -954,7 +1024,28 @@ CreateCollection::pdfThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::vector<char> hash_v;
+  if(already_hashed)
+    {
+      auto itah = std::find_if(already_hashed->begin(), already_hashed->end(),
+			       [fp]
+			       (auto &el)
+				 {
+				   return std::get<0>(el) == fp;
+				 });
+      if(itah != already_hashed->end())
+	{
+	  hash_v = std::get<1>(*itah);
+	}
+      else
+	{
+	  hash_v = af.filehash(fp, cancel);
+	}
+    }
+  else
+    {
+      hash_v = af.filehash(fp, cancel);
+    }
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
@@ -1073,7 +1164,28 @@ CreateCollection::djvuThreadFunc(std::filesystem::path fp,
 {
   AuxFunc af;
   std::vector<char> write_v;
-  std::vector<char> hash_v = af.filehash(fp, cancel);
+  std::vector<char> hash_v;
+  if(already_hashed)
+    {
+      auto itah = std::find_if(already_hashed->begin(), already_hashed->end(),
+			       [fp]
+			       (auto &el)
+				 {
+				   return std::get<0>(el) == fp;
+				 });
+      if(itah != already_hashed->end())
+	{
+	  hash_v = std::get<1>(*itah);
+	}
+      else
+	{
+	  hash_v = af.filehash(fp, cancel);
+	}
+    }
+  else
+    {
+      hash_v = af.filehash(fp, cancel);
+    }
   std::string hash_str = af.to_hex(&hash_v);
   hash_str = hash_str + "\n";
   std::vector<std::tuple<std::string, std::string>> basevect;
@@ -2073,19 +2185,34 @@ CreateCollection::pdfparser(std::filesystem::path input)
 {
   std::vector<std::tuple<std::string, std::string>> result;
   poppler::document *doc = poppler::document::load_from_file(input.string());
-  poppler::ustring inf = doc->get_author();
   std::tuple<std::string, std::string> restup;
-  std::vector<char> buf = inf.to_utf8();
+  time_t fcr = 0;
   std::string auth_str;
-  std::copy(buf.begin(), buf.end(), std::back_inserter(auth_str));
+  std::string booktitle;
+  if(doc)
+    {
+      poppler::ustring inf = doc->get_author();
+      std::vector<char> buf;
+      buf = inf.to_utf8();
+      std::copy(buf.begin(), buf.end(), std::back_inserter(auth_str));
+      buf.clear();
+
+      inf = doc->get_title();
+      buf = inf.to_utf8();
+      std::copy(buf.begin(), buf.end(), std::back_inserter(booktitle));
+#ifdef _OLDPOPPLER
+      fcr = doc->get_creation_date();
+#endif
+#ifndef _OLDPOPPLER
+      fcr = doc->get_creation_date_t();
+#endif
+    }
+  delete doc;
+
   std::get<0>(restup) = "Author";
   std::get<1>(restup) = auth_str;
   result.push_back(restup);
 
-  inf = doc->get_title();
-  buf = inf.to_utf8();
-  std::string booktitle;
-  std::copy(buf.begin(), buf.end(), std::back_inserter(booktitle));
   if(booktitle.empty())
     {
       booktitle = input.stem().u8string();
@@ -2101,28 +2228,29 @@ CreateCollection::pdfparser(std::filesystem::path input)
   std::get<0>(restup) = "Genre";
   std::get<1>(restup) = std::string();
   result.push_back(restup);
+  if(fcr > 0)
+    {
+      struct tm *mtm;
+      mtm = gmtime(&fcr);
+      std::stringstream strm;
+      std::locale loc("C");
+      strm.imbue(loc);
+      strm << mtm->tm_mday;
+      strm << "-";
+      strm << mtm->tm_mon + 1;
+      strm << "-";
+      strm << 1900 + mtm->tm_year;
+      std::get<0>(restup) = "Date";
+      std::get<1>(restup) = strm.str();
+      result.push_back(restup);
+    }
+  else
+    {
+      std::get<0>(restup) = "Date";
+      std::get<1>(restup) = std::string();
+      result.push_back(restup);
+    }
 
-#ifdef _OLDPOPPLER
-  time_t fcr = doc->get_creation_date();
-#endif
-#ifndef _OLDPOPPLER
-  time_t fcr = doc->get_creation_date_t();
-#endif
-  struct tm *mtm;
-  mtm = gmtime(&fcr);
-  std::stringstream strm;
-  std::locale loc("C");
-  strm.imbue(loc);
-  strm << mtm->tm_mday;
-  strm << "-";
-  strm << mtm->tm_mon + 1;
-  strm << "-";
-  strm << 1900 + mtm->tm_year;
-  std::get<0>(restup) = "Date";
-  std::get<1>(restup) = strm.str();
-  result.push_back(restup);
-
-  delete doc;
   return result;
 }
 

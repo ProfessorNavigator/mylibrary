@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -278,10 +278,15 @@ SearchBook::cleanSearchV()
 		}),
 	  search_result_v->end());
     }
-  std::sort(search_result_v->begin(), search_result_v->end(), []
+  std::sort(search_result_v->begin(), search_result_v->end(), [&af]
   (auto &el1, auto &el2)
     {
-      if(std::get<0>(el1) < std::get<0>(el2))
+      std::string line1, line2;
+      line1 = std::get<0>(el1);
+      line2 = std::get<0>(el2);
+      af.stringToLower(line1);
+      af.stringToLower(line2);
+      if(line1 < line2)
 	{
 	  return true;
 	}

@@ -1,5 +1,5 @@
 /*
- Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>
+ Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
 
  This file is part of MyLibrary.
  MyLibrary is free software: you can redistribute it and/or
@@ -493,7 +493,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
       return void();
     }
 
-  CreateCollection *crcol = new CreateCollection(coll_nm, filepath, thr_num,
+  CreateCollection *crcol = new CreateCollection(coll_nm, filepath, thr_num, nullptr,
 						 &mw->coll_cr_cancel);
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
   Glib::Dispatcher *disp_totfiles = new Glib::Dispatcher;
