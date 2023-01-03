@@ -39,7 +39,7 @@ public:
       std::filesystem::path book_p,
       unsigned int nm_thr,
       std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-      int *cancel);
+      std::shared_ptr<int> cancel);
   virtual
   ~CreateCollection();
   std::function<void
@@ -108,7 +108,7 @@ private:
   std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed =
       nullptr;
   unsigned int threadnum = 1;
-  int *cancel = nullptr;
+  std::shared_ptr<int> cancel;
   std::mutex fb2basemtx;
   std::mutex fb2hashmtx;
   std::mutex zipbasemtx;

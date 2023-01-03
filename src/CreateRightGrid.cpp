@@ -62,7 +62,8 @@ CreateRightGrid::formRightGrid()
 		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
   acgroup->add_action("fileinfo", sigc::mem_fun(*mw, &MainWindow::fileInfo));
   acgroup->add_action(
-      "copyto", sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
+      "copyto",
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
   acgroup->add_action(
       "removebook",
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
@@ -77,7 +78,8 @@ CreateRightGrid::formRightGrid()
   menu->append(gettext("Edit book entry"), "popup.editbook");
   menu->append(gettext("Save book as..."), "popup.copyto");
   menu->append(gettext("Remove book"), "popup.removebook");
-  Gtk::PopoverMenu *Menu = new Gtk::PopoverMenu;
+
+  std::shared_ptr<Gtk::PopoverMenu> Menu = std::make_shared<Gtk::PopoverMenu>();
   Menu->set_parent(*sres);
   Menu->set_menu_model(menu);
   Menu->set_has_arrow(false);
@@ -92,10 +94,6 @@ CreateRightGrid::formRightGrid()
     });
   sres->add_controller(clck);
   search_res->set_child(*sres);
-  sres->signal_unrealize().connect([Menu]
-  {
-    delete Menu;
-  });
 
   Gtk::Grid *book_op_pop_gr = Gtk::make_managed<Gtk::Grid>();
 
@@ -316,7 +314,8 @@ CreateRightGrid::searchResultShow(int variant)
 	  row[book] = std::get<1>(mw->bookmark_v[i]);
 	  row[series] = std::get<2>(mw->bookmark_v[i]);
 	}
-      std::string *genre_str = new std::string("");
+
+      std::shared_ptr<std::string>genre_str = std::make_shared<std::string>();
       std::vector<std::string> genre_v;
       std::string::size_type genre_n = 0;
       std::string tmp;
@@ -392,7 +391,6 @@ CreateRightGrid::searchResultShow(int variant)
 	{
 	  row[date] = std::get<4>(mw->bookmark_v[i]);
 	}
-      delete genre_str;
     }
 
   if(variant == 1)

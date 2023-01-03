@@ -41,11 +41,11 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   std::string series(ser_ent->get_text());
   std::string genre(mw->active_genre);
 
-  SearchBook *sb = new SearchBook(collnm, surnm, name, secname, book, series,
-				  genre, &mw->prev_search_nm, &mw->base_v,
-				  &mw->search_result_v, &mw->search_cancel);
+  std::shared_ptr<SearchBook> sb = std::make_shared<SearchBook>(
+      collnm, surnm, name, secname, book, series, genre, &mw->prev_search_nm,
+      &mw->base_v, &mw->search_result_v, &mw->search_cancel);
 
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Search"));
   window->set_deletable(false);
@@ -73,30 +73,28 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   });
   grid->attach(*cancel, 0, 1, 1, 1);
 
-  delete mwl->search_compl_disp;
-  mwl->search_compl_disp = new Glib::Dispatcher;
-  mwl->search_compl_disp->connect([window, mwl]
+  std::shared_ptr<Glib::Dispatcher> search_compl_disp = std::make_shared<
+      Glib::Dispatcher>();
+  search_compl_disp->connect([window, mwl]
   {
     CreateRightGrid crgr(mwl);
     crgr.searchResultShow(1);
     window->close();
   });
-  sb->search_completed = [mwl]
+  sb->search_completed = [search_compl_disp]
   {
-    mwl->search_compl_disp->emit();
+    search_compl_disp->emit();
   };
 
-  window->signal_close_request().connect([mwl, window, sb]
+  window->signal_close_request().connect([mwl, window, search_compl_disp]
   {
     mwl->search_cancel = 0;
-    delete sb;
     window->hide();
-    delete window;
     return true;
   },
 					 false);
 
-  window->show();
+  window->present();
 
   std::thread *thr = new std::thread([sb, mwl]
   {
@@ -112,249 +110,231 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
 void
 BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Confirmation"));
-  window->set_default_size(1, 1);
+  Glib::ustring msgtxt;
+  Gtk::Window *trans;
   if(variant == 1)
     {
-      window->set_transient_for(*mw);
+      msgtxt =
+	  Glib::ustring(
+	      gettext(
+		  "This action will remove book from collection and file system. Continue?"));
+      trans = mw;
     }
   else if(variant == 2)
     {
-      window->set_transient_for(*win);
-    }
-  window->set_modal(true);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::CENTER);
-  window->set_child(*grid);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  if(variant == 1)
-    {
-      lab->set_text(
-	  gettext(
-	      "This action will remove book from collection and file system. Continue?"));
-    }
-  else if(variant == 2)
-    {
-      lab->set_text(
+      msgtxt = Glib::ustring(
 	  gettext("This action will remove book from bookmarks. Continue?"));
+      trans = win;
     }
-  window->set_default_size(1, 1);
-  lab->set_wrap(true);
-  lab->set_wrap_mode(Pango::WrapMode::WORD);
-  lab->set_justify(Gtk::Justification::FILL);
-  lab->set_width_chars(30);
-  grid->attach(*lab, 0, 0, 2, 1);
 
-  Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
-  yes->set_halign(Gtk::Align::CENTER);
-  yes->set_margin(5);
-  yes->set_label(gettext("Yes"));
-  grid->attach(*yes, 0, 1, 1, 1);
+  std::shared_ptr<Gtk::MessageDialog> msg =
+      std::make_shared<Gtk::MessageDialog>(*trans, msgtxt, false,
+					   Gtk::MessageType::QUESTION,
+					   Gtk::ButtonsType::YES_NO, true);
+  msg->set_application(mw->get_application());
 
-  Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
-  no->set_halign(Gtk::Align::CENTER);
-  no->set_margin(5);
-  no->set_label(gettext("No"));
-  no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*no, 1, 1, 1, 1);
   MainWindow *mwl = mw;
   if(variant == 1)
     {
-      int *cncl = new int(0);
-      Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
-      Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-      Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-      Gtk::ComboBoxText *collect_box =
-	  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
-      RefreshCollection *rc = new RefreshCollection(
-	  std::string(collect_box->get_active_text()), 1, cncl);
-      Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
-
-      yes->signal_clicked().connect(
-	  [mwl, lab, yes, no, grid, window, rc, disp_finished]
-	  {
-	    window->set_title(gettext("Removing"));
-	    window->set_deletable(false);
-	    lab->set_text(gettext("Removing... It will take some time"));
-	    window->set_default_size(1, 1);
-	    grid->remove(*yes);
-	    grid->remove(*no);
-
-	    disp_finished->connect([window, mwl]
+      msg->signal_response().connect([mwl, msg]
+      (int resp)
+	{
+	  if(resp == Gtk::ResponseType::YES)
 	    {
-	      mwl->prev_search_nm.clear();
-	      Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
-	      Gtk::Paned *pn =
-		  dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-	      Gtk::Grid *right_grid =
-		  dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-	      Gtk::ScrolledWindow *sres_scrl =
-		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,0 ));
-	      Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
-	      double pos = adj->get_value();
-	      CreateRightGrid crgr(mwl);
-	      crgr.searchResultShow(1);
-	      Glib::RefPtr<Glib::MainContext> mc =
-		  Glib::MainContext::get_default();
-	      while(mc->pending())
-		{
-		  mc->iteration(true);
-		}
-	      adj->set_value(pos);
-	      window->close();
-	    });
-	    Glib::Dispatcher *disp_file_nexists = new Glib::Dispatcher;
-	    disp_file_nexists->connect([mwl, disp_file_nexists]
+	      msg->close();
+	      BookOpWindows bopw(mwl);
+	      bopw.bookRemoveVar1();
+	    }
+	  else if(resp == Gtk::ResponseType::NO)
 	    {
-	      mwl->errorWin(7, mwl, disp_file_nexists);
-	    });
-	    rc->collection_not_exists = [disp_file_nexists]
-	    {
-	      disp_file_nexists->emit();
-	    };
-	    Gtk::Widget *widg = mwl->get_child();
-	    Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
-	    widg = main_grid->get_child_at(0, 1);
-	    Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
-	    widg = pn->get_end_child();
-	    Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-	    widg = right_grid->get_child_at(0, 0);
-	    Gtk::ScrolledWindow *sres_scrl =
-		dynamic_cast<Gtk::ScrolledWindow*>(widg);
-	    widg = sres_scrl->get_child();
-	    Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
-	    Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
-	    if(selection)
-	      {
-		Gtk::TreeModel::iterator iter = selection->get_selected();
-		if(iter)
-		  {
-		    size_t id;
-		    iter->get_value(0, id);
-		    std::string filename = std::get<5>(
-			mwl->search_result_v[id - 1]);
-		    Glib::RefPtr<Gtk::ListStore> liststore =
-			std::dynamic_pointer_cast<Gtk::ListStore>(
-			    sres->get_model());
-		    liststore->erase(iter);
-		    mwl->search_result_v.erase(
-			mwl->search_result_v.begin() + id - 1);
-		    Gtk::DrawingArea *drar =
-			dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(
-			    1, 2));
-		    drar->set_opacity(0.0);
-		    widg = right_grid->get_child_at(0, 2);
-		    Gtk::ScrolledWindow *annot_scrl =
-			dynamic_cast<Gtk::ScrolledWindow*>(widg);
-		    widg = annot_scrl->get_child();
-		    Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(widg);
-		    Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
-		    tb->set_text("");
-		    std::thread *thr = new std::thread(
-			[rc, disp_finished, filename]
-			{
-			  rc->removeBook(filename);
-			  disp_finished->emit();
-			});
-		    thr->detach();
-		    delete thr;
-		  }
-	      }
-	    else
-	      {
-		window->close();
-	      }
-	  });
-
-      window->signal_close_request().connect([window, rc, cncl, disp_finished]
-      {
-	window->hide();
-	delete rc;
-	delete cncl;
-	delete window;
-	delete disp_finished;
-	return true;
-      },
-					     false);
+	      msg->close();
+	    }
+	});
     }
   else if(variant == 2)
     {
-      yes->signal_clicked().connect([mwl, window, win]
-      {
-	Glib::RefPtr<Gtk::TreeSelection> selection =
-	    mwl->bm_tv->get_selection();
-	if(selection)
-	  {
-	    Gtk::TreeModel::iterator iter = selection->get_selected();
-	    if(iter)
-	      {
-		size_t id;
-		iter->get_value(0, id);
-		mwl->bookmark_v.erase(mwl->bookmark_v.begin() + id - 1);
-		Glib::RefPtr<Gtk::ListStore> liststore =
-		    std::dynamic_pointer_cast<Gtk::ListStore>(mwl->bm_tv->get_model());
-		liststore->erase(iter);
-		Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-		Gtk::ScrolledWindow *scrl =
-		    dynamic_cast<Gtk::ScrolledWindow*>(gr->get_child_at(0, 0));
-		Glib::RefPtr<Gtk::Adjustment> adj = scrl->get_vadjustment();
-		double pos = adj->get_value();
-		std::string filename;
-		AuxFunc af;
-		af.homePath(&filename);
-		filename = filename + "/.MyLibrary/Bookmarks";
-		std::filesystem::path filepath = std::filesystem::u8path(
-		    filename);
-		if(std::filesystem::exists(filepath))
-		  {
-		    std::filesystem::remove(filepath);
-		  }
-		std::fstream f;
-		f.open(filepath, std::ios_base::out | std::ios_base::binary);
-		if(f.is_open())
-		  {
-		    for(size_t i = 0; i < mwl->bookmark_v.size(); i++)
-		      {
-			std::string line = std::get<0>(mwl->bookmark_v[i])
-			    + "<?>";
-			line = line + std::get<1>(mwl->bookmark_v[i]) + "<?>";
-			line = line + std::get<2>(mwl->bookmark_v[i]) + "<?>";
-			line = line + std::get<3>(mwl->bookmark_v[i]) + "<?>";
-			line = line + std::get<4>(mwl->bookmark_v[i]) + "<?>";
-			line = line + std::get<5>(mwl->bookmark_v[i]) + "<?L>";
-			f.write(line.c_str(), line.size());
-		      }
-		    f.close();
-		  }
-		CreateRightGrid crgr(mwl);
-		crgr.searchResultShow(2);
-		Glib::RefPtr<Glib::MainContext> mc =
-		    Glib::MainContext::get_default();
-		while(mc->pending())
-		  {
-		    mc->iteration(true);
-		  }
-		adj->set_value(pos);
-	      }
-	  }
-	window->close();
-      });
-      window->signal_close_request().connect([window]
+      msg->signal_response().connect([msg, win, mwl]
+      (int resp)
 	{
-	  window->hide();
-	  delete window;
-	  return true;
-	},
-      false);
+	  if(resp == Gtk::ResponseType::NO)
+	    {
+	      msg->close();
+	    }
+	  else if(resp == Gtk::ResponseType::YES)
+	    {
+	      BookOpWindows bopw(mwl);
+	      bopw.bookRemoveVar2(win);
+	      msg->close();
+	    }
+	});
     }
-  window->show();
+  msg->signal_close_request().connect([msg]
+  {
+    msg->hide();
+    return true;
+  },
+				      false);
+  msg->present();
+}
+
+void
+BookOpWindows::bookRemoveVar1()
+{
+  MainWindow *mwl = mw;
+  std::shared_ptr<Gtk::MessageDialog> msg =
+      std::make_shared<Gtk::MessageDialog>(
+	  *mwl, gettext("Removing... It will take some time"), false,
+	  Gtk::MessageType::INFO, Gtk::ButtonsType::NONE, true);
+
+  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+  Gtk::ComboBoxText *collect_box =
+      dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
+
+  std::shared_ptr<int> cncl = std::make_shared<int>(0);
+  std::shared_ptr<RefreshCollection> rc = std::make_shared<RefreshCollection>(
+      std::string(collect_box->get_active_text()), 1, cncl);
+
+  std::shared_ptr<Glib::Dispatcher> disp_finished = std::make_shared<
+      Glib::Dispatcher>();
+  disp_finished->connect([msg, mwl]
+  {
+    mwl->prev_search_nm.clear();
+    Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+    Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+    Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+    Gtk::ScrolledWindow *sres_scrl =
+	dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+    Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
+    double pos = adj->get_value();
+    CreateRightGrid crgr(mwl);
+    crgr.searchResultShow(1);
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
+      {
+	mc->iteration(true);
+      }
+    adj->set_value(pos);
+    msg->close();
+  });
+
+  std::shared_ptr<Glib::Dispatcher> disp_file_nexists = std::make_shared<
+      Glib::Dispatcher>();
+  disp_file_nexists->connect([mwl]
+  {
+    mwl->errorWin(7, mwl);
+  });
+  rc->collection_not_exists = [disp_file_nexists]
+  {
+    disp_file_nexists->emit();
+  };
+
+  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+  Gtk::ScrolledWindow *sres_scrl =
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
+  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  size_t id;
+	  iter->get_value(0, id);
+	  std::string filename = std::get<5>(mwl->search_result_v[id - 1]);
+	  Glib::RefPtr<Gtk::ListStore> liststore = std::dynamic_pointer_cast<
+	      Gtk::ListStore>(sres->get_model());
+	  liststore->erase(iter);
+	  mwl->search_result_v.erase(mwl->search_result_v.begin() + id - 1);
+	  Gtk::DrawingArea *drar =
+	      dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+	  drar->set_opacity(0.0);
+	  Gtk::ScrolledWindow *annot_scrl =
+	      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 2));
+	  Gtk::TextView *annot =
+	      dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+	  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
+	  tb->set_text("");
+	  std::thread *thr = new std::thread([rc, disp_finished, filename]
+	  {
+	    rc->removeBook(filename);
+	    disp_finished->emit();
+	  });
+	  thr->detach();
+	  delete thr;
+	}
+    }
+  else
+    {
+      msg->close();
+    }
+
+  msg->signal_close_request().connect([msg, disp_finished, disp_file_nexists]
+  {
+    msg->hide();
+    return true;
+  },
+				      false);
+  msg->present();
+}
+
+void
+BookOpWindows::bookRemoveVar2(Gtk::Window *win)
+{
+
+  Glib::RefPtr<Gtk::TreeSelection> selection = mw->bm_tv->get_selection();
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  size_t id;
+	  iter->get_value(0, id);
+	  mw->bookmark_v.erase(mw->bookmark_v.begin() + id - 1);
+	  Glib::RefPtr<Gtk::ListStore> liststore = std::dynamic_pointer_cast<
+	      Gtk::ListStore>(mw->bm_tv->get_model());
+	  liststore->erase(iter);
+	  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+	  Gtk::ScrolledWindow *scrl =
+	      dynamic_cast<Gtk::ScrolledWindow*>(gr->get_child_at(0, 0));
+	  Glib::RefPtr<Gtk::Adjustment> adj = scrl->get_vadjustment();
+	  double pos = adj->get_value();
+	  std::string filename;
+	  AuxFunc af;
+	  af.homePath(&filename);
+	  filename = filename + "/.MyLibrary/Bookmarks";
+	  std::filesystem::path filepath = std::filesystem::u8path(filename);
+	  if(std::filesystem::exists(filepath))
+	    {
+	      std::filesystem::remove(filepath);
+	    }
+	  std::fstream f;
+	  f.open(filepath, std::ios_base::out | std::ios_base::binary);
+	  if(f.is_open())
+	    {
+	      for(size_t i = 0; i < mw->bookmark_v.size(); i++)
+		{
+		  std::string line = std::get<0>(mw->bookmark_v[i]) + "<?>";
+		  line = line + std::get<1>(mw->bookmark_v[i]) + "<?>";
+		  line = line + std::get<2>(mw->bookmark_v[i]) + "<?>";
+		  line = line + std::get<3>(mw->bookmark_v[i]) + "<?>";
+		  line = line + std::get<4>(mw->bookmark_v[i]) + "<?>";
+		  line = line + std::get<5>(mw->bookmark_v[i]) + "<?L>";
+		  f.write(line.c_str(), line.size());
+		}
+	      f.close();
+	    }
+	  CreateRightGrid crgr(mw);
+	  crgr.searchResultShow(2);
+	  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+	  while(mc->pending())
+	    {
+	      mc->iteration(true);
+	    }
+	  adj->set_value(pos);
+	}
+    }
 }
 
 void
@@ -372,7 +352,7 @@ BookOpWindows::fileInfo()
       Gtk::TreeModel::iterator iter = selection->get_selected();
       if(iter)
 	{
-	  Gtk::Window *window = new Gtk::Window;
+	  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book file info"));
 	  window->set_transient_for(*mw);
@@ -564,11 +544,10 @@ BookOpWindows::fileInfo()
 	  window->signal_close_request().connect([window]
 	  {
 	    window->hide();
-	    delete window;
 	    return true;
 	  },
 						 false);
-	  window->show();
+	  window->present();
 	}
     }
 }
@@ -584,8 +563,8 @@ BookOpWindows::editBook()
   Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
   Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
 
-  std::vector<std::tuple<std::string, std::string>> *bookv = new std::vector<
-      std::tuple<std::string, std::string>>;
+  std::shared_ptr<std::vector<std::tuple<std::string, std::string>>> bookv =
+      std::make_shared<std::vector<std::tuple<std::string, std::string>>>();
 
   if(selection)
     {
@@ -629,7 +608,7 @@ BookOpWindows::editBook()
 	}
     }
 
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Book entry editor"));
   window->set_transient_for(*mw);
@@ -899,7 +878,7 @@ BookOpWindows::editBook()
   save->signal_clicked().connect(
       [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
       {
-	mwl->bookSaveRestore(window, bookv, 1);
+	mwl->bookSaveRestore(window.get(), bookv.get(), 1);
       });
   grid->attach(*save, 0, 12, 1, 1);
 
@@ -910,7 +889,7 @@ BookOpWindows::editBook()
   restore->signal_clicked().connect(
       [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
       {
-	mwl->bookSaveRestore(window, bookv, 2);
+	mwl->bookSaveRestore(window.get(), bookv.get(), 2);
       });
   grid->attach(*restore, 1, 12, 1, 1);
 
@@ -924,13 +903,11 @@ BookOpWindows::editBook()
   window->signal_close_request().connect([window, bookv]
   {
     bookv->clear();
-    delete bookv;
     window->hide();
-    delete window;
     return true;
   },
 					 false);
-  window->show();
+  window->present();
 }
 
 void
@@ -947,8 +924,8 @@ BookOpWindows::bookSaveRestore(
 
   if(variant == 1)
     {
-      std::vector<std::tuple<std::string, std::string>> *newbase =
-	  new std::vector<std::tuple<std::string, std::string>>;
+      std::shared_ptr<std::vector<std::tuple<std::string, std::string>>> newbase =
+	  std::make_shared<std::vector<std::tuple<std::string, std::string>>>();
       std::tuple<std::string, std::string> ttup;
       std::get<0>(ttup) = "Author";
       std::get<1>(ttup) = std::string(auth_ent->get_text());
@@ -970,7 +947,7 @@ BookOpWindows::bookSaveRestore(
       std::get<1>(ttup) = std::string(date_ent->get_text());
       newbase->push_back(ttup);
 
-      Gtk::Window *window = new Gtk::Window;
+      std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
       window->set_application(mw->get_application());
       window->set_title(gettext("Confirmation"));
       window->set_transient_for(*win);
@@ -988,11 +965,12 @@ BookOpWindows::bookSaveRestore(
       lab->set_text(gettext("Are you shure?"));
       grid->attach(*lab, 0, 0, 2, 1);
 
-      int *cncl = new int(0);
-      RefreshCollection *rc = new RefreshCollection(mw->prev_search_nm, 1,
-						    cncl);
+      std::shared_ptr<int> cncl = std::make_shared<int>(0);
+      std::shared_ptr<RefreshCollection> rc =
+	  std::make_shared<RefreshCollection>(mw->prev_search_nm, 1, cncl);
       MainWindow *mwl = mw;
-      Glib::Dispatcher *disp_corrected = new Glib::Dispatcher;
+      std::shared_ptr<Glib::Dispatcher> disp_corrected = std::make_shared<
+	  Glib::Dispatcher>();
       disp_corrected->connect([window, win, mwl, bookv, newbase]
       {
 	std::string searchstr;
@@ -1131,7 +1109,7 @@ BookOpWindows::bookSaveRestore(
 	grid->attach(*lab, 0, 0, 1, 1);
 	std::thread *thr = new std::thread([rc, bookv, newbase]
 	{
-	  rc->editBook(newbase, bookv);
+	  rc->editBook(newbase.get(), bookv);
 	});
 	thr->detach();
 	delete thr;
@@ -1145,19 +1123,14 @@ BookOpWindows::bookSaveRestore(
       no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
       grid->attach(*no, 1, 1, 1, 1);
 
-      window->signal_close_request().connect(
-	  [window, newbase, disp_corrected, cncl]
-	  {
-	    newbase->clear();
-	    delete newbase;
-	    delete disp_corrected;
-	    delete cncl;
-	    window->hide();
-	    delete window;
-	    return true;
-	  },
-	  false);
-      window->show();
+      window->signal_close_request().connect([window, newbase, disp_corrected]
+      {
+	newbase->clear();
+	window->hide();
+	return true;
+      },
+					     false);
+      window->present();
     }
 
   else if(variant == 2)

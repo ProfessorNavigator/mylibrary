@@ -36,7 +36,8 @@
 class RefreshCollection
 {
 public:
-  RefreshCollection(std::string collname, unsigned int thr_num, int *cancel);
+  RefreshCollection(std::string collname, unsigned int thr_num,
+		    std::shared_ptr<int> cancel);
   virtual
   ~RefreshCollection();
   std::function<void
@@ -106,7 +107,7 @@ private:
 	      std::vector<std::tuple<std::string, std::string>> *oldbasev);
 
   std::string collname;
-  int *cancel = nullptr;
+  std::shared_ptr<int> cancel;
   std::vector<std::tuple<std::filesystem::path, std::string>> saved_hashes;
   std::vector<std::filesystem::path> fb2parse;
   std::mutex fb2parsemtx;

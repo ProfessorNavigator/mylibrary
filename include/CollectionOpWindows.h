@@ -45,7 +45,7 @@ public:
 		       Gtk::Entry *path_ent);
   void
   collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
-		    Gtk::Window *win1, Gtk::Window *win2);
+		    Gtk::Window *win);
   void
   importCollection();
   void

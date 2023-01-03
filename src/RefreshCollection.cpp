@@ -18,7 +18,7 @@
 #include "RefreshCollection.h"
 
 RefreshCollection::RefreshCollection(std::string collname, unsigned int thr_num,
-				     int *cancel)
+				     std::shared_ptr<int>cancel)
 {
   this->collname = collname;
   this->cancel = cancel;

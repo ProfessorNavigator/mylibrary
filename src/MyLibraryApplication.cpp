@@ -38,7 +38,7 @@ MyLibraryApplication::create()
 MainWindow*
 MyLibraryApplication::create_appwindow()
 {
-  MainWindow *mw = new MainWindow;
+  std::shared_ptr<MainWindow> mw = std::make_shared<MainWindow>();
   this->add_window(*mw);
   mw->signal_hide().connect([mw, this]
   {
@@ -47,10 +47,9 @@ MyLibraryApplication::create_appwindow()
     for(size_t i = 0; i < wv.size(); i++)
       {
 	Gtk::Window *win = wv[i];
-	if(win != mw)
+	if(win != mw.get())
 	  {
-	    win->hide();
-	    delete win;
+	    win->close();
 	  }
       }
     Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
@@ -58,10 +57,9 @@ MyLibraryApplication::create_appwindow()
       {
 	mc->iteration(true);
       }
-    delete mw;
   });
 
-  return mw;
+  return mw.get();
 }
 
 void
@@ -72,6 +70,6 @@ MyLibraryApplication::on_activate()
   if(winv.size() == 0)
     {
       auto appwin = create_appwindow();
-      appwin->show();
+      appwin->present();
     }
 }

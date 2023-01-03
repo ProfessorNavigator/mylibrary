@@ -22,7 +22,7 @@ CreateCollection::CreateCollection(
     std::filesystem::path book_p,
     unsigned int nm_thr,
     std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-    int *cancel)
+    std::shared_ptr<int>cancel)
 {
   this->coll_nm = coll_nm;
   this->book_p = book_p;

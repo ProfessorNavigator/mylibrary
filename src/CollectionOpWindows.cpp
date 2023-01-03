@@ -30,7 +30,7 @@ CollectionOpWindows::~CollectionOpWindows()
 void
 CollectionOpWindows::collectionOp(int variant)
 {
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   if(variant == 1)
     {
@@ -164,7 +164,7 @@ CollectionOpWindows::collectionOp(int variant)
       grid->attach(*book_nm_ent, 0, 5, 1, 1);
 
       open->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window,
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window.get(),
 		     book_path_ent, book_nm_ent));
 
       Gtk::Label *pack_lb = Gtk::make_managed<Gtk::Label>();
@@ -205,20 +205,20 @@ CollectionOpWindows::collectionOp(int variant)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window, nullptr, variant));
+		     window.get(), nullptr, variant));
     }
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
     {
       remove->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window, rem_empty_ch, variant));
+		     window.get(), rem_empty_ch, variant));
     }
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3
       && ch_pack)
     {
       remove->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window,
-		     ch_pack));
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc),
+		     window.get(), ch_pack));
     }
 
   if(variant == 2)
@@ -262,11 +262,10 @@ CollectionOpWindows::collectionOp(int variant)
   window->signal_close_request().connect([window]
   {
     window->hide();
-    delete window;
     return true;
   },
 					 false);
-  window->show();
+  window->present();
 }
 
 void
@@ -274,84 +273,69 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 				      Gtk::CheckButton *rem_empty_ch,
 				      int variant)
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Confirmation"));
-  window->set_transient_for(*win);
-  window->set_modal(true);
+  std::shared_ptr<Gtk::MessageDialog> msg =
+      std::make_shared<Gtk::MessageDialog>(*win, gettext("Are you sure?"),
+					   false, Gtk::MessageType::QUESTION,
+					   Gtk::ButtonsType::YES_NO, true);
+  msg->set_application(mw->get_application());
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  window->set_child(*grid);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  lab->set_text(gettext("Are you shure?"));
-  grid->attach(*lab, 0, 0, 2, 1);
-
-  Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
-  yes->set_halign(Gtk::Align::CENTER);
-  yes->set_margin(5);
-  yes->set_label(gettext("Yes"));
   MainWindow *mwl = mw;
-  if(variant == 1)
-    {
-      yes->signal_clicked().connect([cmb, win, window, mwl]
-      {
-	std::string filename;
-	AuxFunc af;
-	af.homePath(&filename);
-	filename = filename + "/.MyLibrary/Collections/" + std::string(cmb->get_active_text());
-	std::filesystem::path filepath = std::filesystem::u8path(filename);
-	std::filesystem::remove_all(filepath);
+  msg->signal_response().connect(
+      [cmb, win, msg, mwl, rem_empty_ch, variant]
+      (int resp)
+	{
+	  if(resp == Gtk::ResponseType::NO)
+	    {
+	      msg->close();
+	    }
+	  else if(resp == Gtk::ResponseType::YES)
+	    {
+	      if(variant == 1)
+		{
+		  std::string filename;
+		  AuxFunc af;
+		  af.homePath(&filename);
+		  filename = filename + "/.MyLibrary/Collections/" + std::string(cmb->get_active_text());
+		  std::filesystem::path filepath = std::filesystem::u8path(filename);
+		  std::filesystem::remove_all(filepath);
 
-	Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
-	Gtk::Paned *pn =
-	    dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-	Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-	Gtk::ComboBoxText *collect_box =
-	    dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
+		  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+		  Gtk::Paned *pn =
+		  dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+		  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+		  Gtk::ComboBoxText *collect_box =
+		  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
 
-	collect_box->remove_all();
-	CreateLeftGrid clgr(mwl);
-	clgr.formCollCombo(collect_box);
-	window->close();
-	win->close();
-      });
-    }
-  else if(variant == 2)
-    {
-      yes->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionRefresh), cmb,
-	  rem_empty_ch, win, window));
-    }
-  grid->attach(*yes, 0, 1, 1, 1);
+		  collect_box->remove_all();
+		  CreateLeftGrid clgr(mwl);
+		  clgr.formCollCombo(collect_box);
+		  msg->close();
+		  win->close();
+		}
+	      else if(variant == 2)
+		{
+		  CollectionOpWindows copw(mwl);
+		  copw.collectionRefresh(cmb, rem_empty_ch,win);
+		  msg->close();
+		}
+	    }
 
-  Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
-  no->set_halign(Gtk::Align::CENTER);
-  no->set_margin(5);
-  no->set_label(gettext("No"));
-  no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*no, 1, 1, 1, 1);
+	}
+      );
 
-  window->signal_close_request().connect([window]
+  msg->signal_close_request().connect([msg]
   {
-    window->hide();
-    delete window;
+    msg->hide();
     return true;
   },
-					 false);
-  Gtk::Requisition min, nat;
-  grid->get_preferred_size(min, nat);
-  window->set_default_size(nat.get_width(), nat.get_height());
-  window->show();
+				      false);
+  msg->present();
 }
 
 void
 CollectionOpWindows::collectionCreate()
 {
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Collection"));
   window->set_transient_for(*mw);
@@ -390,7 +374,7 @@ CollectionOpWindows::collectionCreate()
   opbut->set_margin(5);
   opbut->set_label(gettext("Open"));
   opbut->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window,
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
 		 path_ent, 1));
   grid->attach(*opbut, 1, 3, 1, 1);
 
@@ -427,7 +411,7 @@ CollectionOpWindows::collectionCreate()
   create->set_label(gettext("Create"));
   create->signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionCreateFunc),
-		 coll_ent, path_ent, thr_ent, window));
+		 coll_ent, path_ent, thr_ent, window.get()));
   grid->attach(*create, 0, 5, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -440,12 +424,11 @@ CollectionOpWindows::collectionCreate()
   window->signal_close_request().connect([window]
   {
     window->hide();
-    delete window;
     return true;
   },
 					 false);
 
-  window->show();
+  window->present();
 }
 
 void
@@ -477,7 +460,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
   std::filesystem::path filepath = std::filesystem::u8path(filename);
   if(coll_nm.empty())
     {
-      mw->errorWin(0, par_win, nullptr);
+      mw->errorWin(0, par_win);
       cr_but->set_sensitive(true);
       cncl_but->set_sensitive(true);
       par_win->set_deletable(true);
@@ -485,26 +468,31 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
     }
   if(filename.empty())
     {
-      mw->errorWin(1, par_win, nullptr);
+      mw->errorWin(1, par_win);
       cr_but->set_sensitive(true);
       cncl_but->set_sensitive(true);
       par_win->set_deletable(true);
       return void();
     }
-
-  CreateCollection *crcol = new CreateCollection(coll_nm, filepath, thr_num,
-						 nullptr, &mw->coll_cr_cancel);
-  Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
-  Glib::Dispatcher *disp_totfiles = new Glib::Dispatcher;
-  Glib::Dispatcher *disp_progress = new Glib::Dispatcher;
-  Glib::Dispatcher *disp_canceled = new Glib::Dispatcher;
-  Glib::Dispatcher *disp_colexists = new Glib::Dispatcher;
-  int *totfiles = new int(0);
-  int *progr = new int(0);
+  std::shared_ptr<int> cncl = std::make_shared<int>(0);
+  std::shared_ptr<CreateCollection> crcol = std::make_shared<CreateCollection>(
+      coll_nm, filepath, thr_num, nullptr, cncl);
+  std::shared_ptr<Glib::Dispatcher> disp_finished = std::make_shared<
+      Glib::Dispatcher>();
+  std::shared_ptr<Glib::Dispatcher> disp_totfiles = std::make_shared<
+      Glib::Dispatcher>();
+  std::shared_ptr<Glib::Dispatcher> disp_progress = std::make_shared<
+      Glib::Dispatcher>();
+  std::shared_ptr<Glib::Dispatcher> disp_canceled = std::make_shared<
+      Glib::Dispatcher>();
+  std::shared_ptr<Glib::Dispatcher> disp_colexists = std::make_shared<
+      Glib::Dispatcher>();
+  std::shared_ptr<int> totfiles = std::make_shared<int>(0);
+  std::shared_ptr<int> progr = std::make_shared<int>(0);
   MainWindow *mwl = mw;
   disp_colexists->connect([mwl, par_win, cr_but, cncl_but]
   {
-    mwl->errorWin(3, par_win, nullptr);
+    mwl->errorWin(3, par_win);
     cr_but->set_sensitive(true);
     cncl_but->set_sensitive(true);
     par_win->set_deletable(true);
@@ -513,15 +501,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
       [crcol, disp_finished, mwl, par_win, totfiles, progr, disp_canceled,
        disp_totfiles, disp_progress, disp_colexists, coll_nm]
       {
-	mwl->coll_cr_cancel = 0;
-	delete crcol;
 	par_win->close();
-	delete totfiles;
-	delete progr;
-	delete disp_canceled;
-	delete disp_totfiles;
-	delete disp_progress;
-	delete disp_colexists;
 
 	Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
 	Gtk::Paned *pn =
@@ -535,27 +515,20 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	clgr.formCollCombo(collect_box);
 	collect_box->set_active_text(Glib::ustring(coll_nm));
 
-	mwl->errorWin(2, mwl, disp_finished);
+	mwl->errorWin(2, mwl);
       });
 
   disp_canceled->connect(
       [crcol, disp_finished, mwl, par_win, totfiles, progr, disp_canceled,
        disp_totfiles, disp_progress, disp_colexists]
       {
-	mwl->coll_cr_cancel = 0;
-	delete crcol;
 	par_win->close();
-	delete totfiles;
-	delete progr;
-	delete disp_finished;
-	delete disp_totfiles;
-	delete disp_progress;
-	delete disp_colexists;
-	mwl->errorWin(4, mwl, disp_canceled);
+	mwl->errorWin(4, mwl);
       });
 
   disp_totfiles->connect(
-      sigc::bind(sigc::mem_fun(*mwl, &MainWindow::creationPulseWin), par_win));
+      sigc::bind(sigc::mem_fun(*mwl, &MainWindow::creationPulseWin), par_win,
+		 cncl));
 
   disp_progress->connect(
       [progr, totfiles, mwl]
@@ -620,7 +593,9 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
       dnm = Glib::ustring(gettext("Export as..."));
     }
 
-  Gtk::Dialog *fch = new Gtk::Dialog(dnm, *window, true, false);
+  std::shared_ptr<Gtk::Dialog> fch = std::make_shared<Gtk::Dialog>(dnm, *window,
+								   true, false);
+  fch->set_application(mwl->get_application());
 
   Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
   fchw->set_margin(5);
@@ -674,7 +649,7 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
       (int resp_id)
 	{
 	  CollectionOpWindows copw(mwl);
-	  copw.openDialogExportFunc(resp_id, fch, fchw, path_ent);
+	  copw.openDialogExportFunc(resp_id, fch.get(), fchw, path_ent);
 	});
 
     }
@@ -688,7 +663,6 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
   fch->signal_close_request().connect([fch]
   {
     fch->hide();
-    delete fch;
     return true;
   },
 				      false);
@@ -712,9 +686,10 @@ CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
       std::filesystem::path p = std::filesystem::u8path(filename);
       if(std::filesystem::exists(p))
 	{
-	  Gtk::MessageDialog *conf = new Gtk::MessageDialog(
-	      *fch, "", false, Gtk::MessageType::QUESTION,
-	      Gtk::ButtonsType::YES_NO, true);
+	  std::shared_ptr<Gtk::MessageDialog> conf = std::make_shared<
+	      Gtk::MessageDialog>(*fch, "", false, Gtk::MessageType::QUESTION,
+				  Gtk::ButtonsType::YES_NO, true);
+	  conf->set_application(fch->get_application());
 	  conf->set_message(
 	      gettext("File or directory already exists. Replace?"), false);
 	  conf->signal_response().connect([conf, path_ent, fch, p]
@@ -734,7 +709,6 @@ CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
 	  conf->signal_close_request().connect([conf]
 	  {
 	    conf->hide();
-	    delete conf;
 	    return true;
 	  },
 					       false);
@@ -751,10 +725,10 @@ CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
 void
 CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 				       Gtk::CheckButton *rem_empty_ch,
-				       Gtk::Window *win1, Gtk::Window *win2)
+				       Gtk::Window *win)
 {
   std::string coll_nm(cmb->get_active_text());
-  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win1->get_child());
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
   Gtk::Entry *thr_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(1, 2));
   std::stringstream strm;
   std::locale loc("C");
@@ -767,9 +741,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
       thr_num = 1;
     }
   bool col_empty_ch = rem_empty_ch->get_active();
-  win2->close();
-  win1->close();
-  Gtk::Window *window = new Gtk::Window;
+  win->close();
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Collection refreshing"));
   window->set_transient_for(*mw);
@@ -796,23 +769,24 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  sigc::connection *con = new sigc::connection;
+  std::shared_ptr<sigc::connection> con = std::make_shared<sigc::connection>();
   MainWindow *mwl = mw;
-  *con = cancel->signal_clicked().connect([mwl]
+  std::shared_ptr<int> cncl = std::make_shared<int>(0);
+  *con = cancel->signal_clicked().connect([cncl]
   {
-    mwl->coll_refresh_cancel = 1;
+    *cncl = 1;
   });
   grid->attach(*cancel, 0, 2, 1, 1);
 
-  RefreshCollection *rc = new RefreshCollection(coll_nm, thr_num,
-						&mwl->coll_refresh_cancel);
+  std::shared_ptr<RefreshCollection> rc = std::make_shared<RefreshCollection>(
+      coll_nm, thr_num, cncl);
 
-  Glib::Dispatcher *disp_cancel = new Glib::Dispatcher;
+  std::shared_ptr<Glib::Dispatcher> disp_cancel = std::make_shared<
+      Glib::Dispatcher>();
 
   disp_cancel->connect(
       [lab, con, cancel, window, mwl, prgb]
       {
-	mwl->coll_refresh_cancel = 0;
 	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection refreshing canceled"));
@@ -827,7 +801,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     disp_cancel->emit();
   };
 
-  Glib::Dispatcher *disp_finished = new Glib::Dispatcher;
+  std::shared_ptr<Glib::Dispatcher> disp_finished = std::make_shared<
+      Glib::Dispatcher>();
   disp_finished->connect(
       [lab, con, cancel, window, mwl, prgb]
       {
@@ -851,9 +826,12 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     disp_finished->emit();
   };
 
-  long unsigned int *tothsh = new long unsigned int(0);
-  long unsigned int *hashed = new long unsigned int(0);
-  Glib::Dispatcher *disp_tothash = new Glib::Dispatcher;
+  std::shared_ptr<long unsigned int> tothsh =
+      std::make_shared<long unsigned int>(0);
+  std::shared_ptr<long unsigned int> hashed =
+      std::make_shared<long unsigned int>(0);
+  std::shared_ptr<Glib::Dispatcher> disp_tothash = std::make_shared<
+      Glib::Dispatcher>();
   disp_tothash->connect([prgb]
   {
     prgb->set_fraction(0.0);
@@ -863,7 +841,9 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     {
       *tothsh = tot;
     };
-  Glib::Dispatcher *disp_hashed = new Glib::Dispatcher;
+
+  std::shared_ptr<Glib::Dispatcher> disp_hashed = std::make_shared<
+      Glib::Dispatcher>();
   disp_hashed->connect([tothsh, hashed, prgb]
   {
     mpf_set_default_prec(128);
@@ -885,9 +865,10 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
       disp_hashed->emit();
     };
 
-  double *totf = new double(0.0);
-  double *added = new double(0.0);
-  Glib::Dispatcher *disp_totalfiles = new Glib::Dispatcher;
+  std::shared_ptr<double> totf = std::make_shared<double>(0.0);
+  std::shared_ptr<double> added = std::make_shared<double>(0.0);
+  std::shared_ptr<Glib::Dispatcher> disp_totalfiles = std::make_shared<
+      Glib::Dispatcher>();
   disp_totalfiles->connect([prgb, lab]
   {
     lab->set_text(gettext("Collection refreshing..."));
@@ -900,7 +881,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
       disp_totalfiles->emit();
     };
 
-  Glib::Dispatcher *disp_progr = new Glib::Dispatcher;
+  std::shared_ptr<Glib::Dispatcher> disp_progr = std::make_shared<
+      Glib::Dispatcher>();
   disp_progr->connect([prgb, added]
   {
     prgb->set_fraction(*added);
@@ -913,11 +895,11 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
       disp_progr->emit();
     };
 
-  Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher;
+  std::shared_ptr<Glib::Dispatcher> disp_coll_nf = std::make_shared<
+      Glib::Dispatcher>();
   disp_coll_nf->connect(
       [lab, con, cancel, window, mwl, prgb]
       {
-	mwl->coll_refresh_cancel = 0;
 	mwl->prev_search_nm.clear();
 	con->disconnect();
 	lab->set_label(gettext("Collection book directory not found"));
@@ -933,32 +915,17 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
   };
 
   window->signal_close_request().connect(
-      [window, rc, con, disp_cancel, disp_finished, disp_tothash,
-       disp_totalfiles, disp_hashed, tothsh, hashed, disp_progr, disp_coll_nf,
-       totf, added]
+      [window, disp_cancel, disp_finished, disp_tothash, disp_totalfiles,
+       disp_hashed, disp_progr, disp_coll_nf]
       {
-	delete rc;
-	delete con;
-	delete disp_cancel;
-	delete disp_finished;
-	delete disp_tothash;
-	delete disp_hashed;
-	delete disp_totalfiles;
-	delete disp_progr;
-	delete disp_coll_nf;
-	delete tothsh;
-	delete hashed;
-	delete totf;
-	delete added;
 	window->hide();
-	delete window;
 	return true;
       },
       false);
   Gtk::Requisition min, nat;
   grid->get_preferred_size(min, nat);
   window->set_default_size(nat.get_width(), nat.get_height());
-  window->show();
+  window->present();
 
   std::thread *thr = new std::thread([rc, col_empty_ch]
   {
@@ -975,7 +942,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 void
 CollectionOpWindows::importCollection()
 {
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window>window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Collection import"));
   window->set_transient_for(*mw);
@@ -1016,7 +983,7 @@ CollectionOpWindows::importCollection()
   open_coll->set_margin(5);
   open_coll->set_label(gettext("Open"));
   open_coll->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window,
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
 		 coll_path_ent, 2));
   grid->attach(*open_coll, 1, 3, 1, 1);
 
@@ -1039,7 +1006,7 @@ CollectionOpWindows::importCollection()
   open_book->set_margin(5);
   open_book->set_label(gettext("Open"));
   open_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window,
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
 		 book_path_ent, 1));
   grid->attach(*open_book, 1, 5, 1, 1);
 
@@ -1051,7 +1018,7 @@ CollectionOpWindows::importCollection()
   import_coll->signal_clicked().connect(
       [window, coll_nm_ent, coll_path_ent, book_path_ent, mwl]
       {
-	mwl->importCollectionFunc(window, coll_nm_ent, coll_path_ent,
+	mwl->importCollectionFunc(window.get(), coll_nm_ent, coll_path_ent,
 				  book_path_ent);
       });
   grid->attach(*import_coll, 0, 6, 1, 1);
@@ -1066,11 +1033,10 @@ CollectionOpWindows::importCollection()
   window->signal_close_request().connect([window]
   {
     window->hide();
-    delete window;
     return true;
   },
 					 false);
-  window->show();
+  window->present();
 }
 
 void
@@ -1081,7 +1047,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 {
   if(coll_nm_ent->get_text().empty())
     {
-      mw->errorWin(0, window, nullptr);
+      mw->errorWin(0, window);
       return void();
     }
   else
@@ -1094,18 +1060,18 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
       std::filesystem::path filepath = std::filesystem::u8path(filename);
       if(std::filesystem::exists(filepath))
 	{
-	  mw->errorWin(3, window, nullptr);
+	  mw->errorWin(3, window);
 	  return void();
 	}
     }
   if(coll_path_ent->get_text().empty())
     {
-      mw->errorWin(5, window, nullptr);
+      mw->errorWin(5, window);
       return void();
     }
   if(book_path_ent->get_text().empty())
     {
-      mw->errorWin(1, window, nullptr);
+      mw->errorWin(1, window);
       return void();
     }
   std::string book_path(book_path_ent->get_text());
@@ -1252,7 +1218,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 void
 CollectionOpWindows::exportCollection()
 {
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window>window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Export collection"));
   window->set_transient_for(*mw);
@@ -1295,7 +1261,7 @@ CollectionOpWindows::exportCollection()
   open->set_margin(5);
   open->set_label(gettext("Export as..."));
   open->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window,
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
 		 exp_path_ent, 3));
   grid->attach(*open, 1, 3, 1, 1);
 
@@ -1305,7 +1271,7 @@ CollectionOpWindows::exportCollection()
   confirm->set_label(gettext("Export"));
   confirm->signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::exportCollectionFunc), cmb,
-		 exp_path_ent, window));
+		 exp_path_ent, window.get()));
   grid->attach(*confirm, 0, 4, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -1318,11 +1284,10 @@ CollectionOpWindows::exportCollection()
   window->signal_close_request().connect([window]
   {
     window->hide();
-    delete window;
     return true;
   },
 					 false);
-  window->show();
+  window->present();
 }
 
 void
@@ -1333,16 +1298,16 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   std::string filename(exp_path_ent->get_text());
   if(filename.empty())
     {
-      mw->errorWin(6, win, nullptr);
+      mw->errorWin(6, win);
       return void();
     }
+  std::string coll_nm(cmb->get_active_text());
   win->unset_child();
   Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
   while(mc->pending())
     {
       mc->iteration(true);
     }
-  std::string coll_nm(cmb->get_active_text());
   std::filesystem::path outfolder = std::filesystem::u8path(filename);
   AuxFunc af;
   af.homePath(&filename);
@@ -1354,78 +1319,7 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
     }
   std::filesystem::copy(src_path, outfolder);
 
-  if(std::filesystem::exists(outfolder))
-    {
-      for(auto &dirit : std::filesystem::directory_iterator(outfolder))
-	{
-	  std::filesystem::path p = dirit.path();
-	  if(!std::filesystem::is_directory(p))
-	    {
-	      std::string::size_type n;
-	      n = p.u8string().find("base");
-	      if(n != std::string::npos)
-		{
-		  std::fstream f;
-		  f.open(p, std::ios_base::in | std::ios_base::binary);
-		  if(f.is_open())
-		    {
-		      std::string file_str;
-		      file_str.resize(std::filesystem::file_size(p));
-		      f.read(&file_str[0], file_str.size());
-		      f.close();
-		      std::string er_str = file_str.substr(
-			  0, file_str.find("</bp>"));
-		      er_str.erase(0, std::string("<bp>").size());
-		      file_str.erase(std::string("<bp>").size(), er_str.size());
-		      f.open(p, std::ios_base::out | std::ios_base::binary);
-		      if(f.is_open())
-			{
-			  f.write(file_str.c_str(), file_str.size());
-			  f.close();
-			}
-		    }
-		}
-	      else
-		{
-		  n = p.u8string().find("hash");
-		  if(n != std::string::npos)
-		    {
-		      std::vector<std::string> tv;
-		      std::fstream f;
-		      f.open(p, std::ios_base::in);
-		      if(f.is_open())
-			{
-			  while(!f.eof())
-			    {
-			      std::string line;
-			      getline(f, line);
-			      if(!line.empty())
-				{
-				  tv.push_back(line);
-				}
-			    }
-			  f.close();
-			  if(tv.size() > 0)
-			    {
-			      tv[0] = "book_path";
-			    }
-			  f.open(p, std::ios_base::out | std::ios_base::binary);
-			  if(f.is_open())
-			    {
-			      for(size_t i = 0; i < tv.size(); i++)
-				{
-				  std::string line = tv[i] + "\n";
-				  f.write(line.c_str(), line.size());
-				}
-			      f.close();
-			    }
-			}
-		    }
-		}
-	    }
-	}
-    }
-
+  win->set_default_size(1, 1);
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
@@ -1443,8 +1337,4 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   close->set_label(gettext("Close"));
   close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close));
   grid->attach(*close, 0, 1, 1, 1);
-
-  Gtk::Requisition min, nat;
-  grid->get_preferred_size(min, nat);
-  win->set_default_size(nat.get_width(), nat.get_height());
 }

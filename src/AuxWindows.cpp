@@ -28,12 +28,13 @@ AuxWindows::~AuxWindows()
 }
 
 void
-AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
+AuxWindows::errorWin(int type, Gtk::Window *par_win)
 {
-  Gtk::MessageDialog *info = new Gtk::MessageDialog(*par_win, "", false,
-						    Gtk::MessageType::INFO,
-						    Gtk::ButtonsType::CLOSE,
-						    true);
+  std::shared_ptr<Gtk::MessageDialog> info =
+      std::make_shared<Gtk::MessageDialog>(*par_win, "", false,
+					   Gtk::MessageType::INFO,
+					   Gtk::ButtonsType::CLOSE, true);
+  info->set_application(mw->get_application());
   if(type == 0)
     {
       info->set_message(gettext("Collection name cannot be empty!"), false);
@@ -89,12 +90,9 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp)
 	}
     });
 
-  info->signal_close_request().connect([info, disp]
+  info->signal_close_request().connect([info]
   {
-
-    delete disp;
     info->hide();
-    delete info;
     return true;
   },
 				       false);
@@ -168,7 +166,7 @@ AuxWindows::bookmarkWindow()
 	}
     }
 
-  Gtk::Window *window = new Gtk::Window;
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Book-marks"));
   window->set_transient_for(*mw);
@@ -205,17 +203,18 @@ AuxWindows::bookmarkWindow()
 		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 2));
   acgroup->add_action(
       "removebook",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2, window));
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2,
+		 window.get()));
   acgroup->add_action(
       "copyto",
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
-		 window));
+		 window.get()));
   mw->bm_tv->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
   menu->append(gettext("Save book as..."), "popup.copyto");
   menu->append(gettext("Remove book from book-marks"), "popup.removebook");
-  Gtk::PopoverMenu *Menu = new Gtk::PopoverMenu;
+  std::shared_ptr<Gtk::PopoverMenu> Menu = std::make_shared<Gtk::PopoverMenu>();
   Menu->set_parent(*mw->bm_tv);
   Menu->set_menu_model(menu);
   Menu->set_has_arrow(false);
@@ -244,7 +243,7 @@ AuxWindows::bookmarkWindow()
   copy_book->set_label(gettext("Save book as..."));
   copy_book->signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
-		 window));
+		 window.get()));
   grid->attach(*copy_book, 1, 1, 1, 1);
 
   Gtk::Button *del_book = Gtk::make_managed<Gtk::Button>();
@@ -252,26 +251,27 @@ AuxWindows::bookmarkWindow()
   del_book->set_halign(Gtk::Align::CENTER);
   del_book->set_label(gettext("Remove selected book from book-marks"));
   del_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2, window));
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2,
+		 window.get()));
   grid->attach(*del_book, 2, 1, 1, 1);
   MainWindow *mwl = mw;
-  window->signal_close_request().connect([mwl, window, Menu]
+  window->signal_close_request().connect([mwl, window]
   {
     mwl->bookmark_v.clear();
     mwl->bm_tv = nullptr;
     window->hide();
-    delete window;
-    delete Menu;
+
     return true;
   },
 					 false);
-  window->show();
+  window->present();
 }
 
 void
 AuxWindows::aboutProg()
 {
-  Gtk::AboutDialog *aboutd = new Gtk::AboutDialog;
+  std::shared_ptr<Gtk::AboutDialog> aboutd =
+      std::make_shared<Gtk::AboutDialog>();
   aboutd->set_transient_for(*mw);
   aboutd->set_application(mw->get_application());
 
@@ -329,63 +329,44 @@ AuxWindows::aboutProg()
   aboutd->signal_close_request().connect([aboutd]
   {
     aboutd->hide();
-    delete aboutd;
     return true;
   },
 					 false);
-  aboutd->show();
+  aboutd->present();
 }
 
 void
 AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
 {
-  Gtk::Window *window = new Gtk::Window();
-  window->set_application(mw->get_application());
-  window->set_transient_for(*win);
-  window->set_modal(true);
-  window->set_default_size(1, 1);
+  std::shared_ptr<Gtk::MessageDialog> msg =
+      std::make_shared<Gtk::MessageDialog>(*win,
+					   gettext("Book file exits. Replace?"),
+					   false, Gtk::MessageType::QUESTION,
+					   Gtk::ButtonsType::YES_NO, true);
+  msg->set_application(mw->get_application());
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::CENTER);
-  grid->set_valign(Gtk::Align::CENTER);
-  window->set_child(*grid);
+  msg->signal_response().connect([msg, addbmtx, stopper]
+  (int resp)
+    {
+      if(resp == Gtk::ResponseType::YES)
+	{
+	  *stopper = 0;
+	  addbmtx->unlock();
+	  msg->close();
+	}
+      else if(resp == Gtk::ResponseType::NO)
+	{
+	  *stopper = 1;
+	  addbmtx->unlock();
+	  msg->close();
+	}
+    });
 
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  lab->set_text(gettext("Book file exits. Replace?"));
-  grid->attach(*lab, 0, 0, 2, 1);
-
-  Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
-  yes->set_halign(Gtk::Align::CENTER);
-  yes->set_margin(5);
-  yes->set_label(gettext("Yes"));
-  yes->signal_clicked().connect([window, addbmtx, stopper]
+  msg->signal_close_request().connect([msg]
   {
-    *stopper = 0;
-    addbmtx->unlock();
-    window->close();
-  });
-  grid->attach(*yes, 0, 1, 1, 1);
-
-  Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
-  no->set_halign(Gtk::Align::CENTER);
-  no->set_margin(5);
-  no->set_label(gettext("No"));
-  no->signal_clicked().connect([window, addbmtx, stopper]
-  {
-    *stopper = 1;
-    addbmtx->unlock();
-    window->close();
-  });
-  grid->attach(*no, 1, 1, 1, 1);
-
-  window->signal_close_request().connect([window]
-  {
-    window->hide();
-    delete window;
+    msg->hide();
     return true;
   },
-					 false);
-  window->show();
+				      false);
+  msg->present();
 }

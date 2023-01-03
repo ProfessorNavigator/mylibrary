@@ -34,6 +34,10 @@ public:
   void
   bookRemoveWin(int variant, Gtk::Window *win);
   void
+  bookRemoveVar1();
+  void
+  bookRemoveVar2(Gtk::Window *win);
+  void
   fileInfo();
   void
   editBook();

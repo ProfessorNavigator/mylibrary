@@ -28,7 +28,7 @@ public:
   virtual
   ~AuxWindows();
   void
-  errorWin(int type, Gtk::Window *par_win, Glib::Dispatcher *disp);
+  errorWin(int type, Gtk::Window *par_win);
   void
   bookmarkWindow();
   void

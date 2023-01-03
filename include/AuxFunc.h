@@ -63,11 +63,11 @@ public:
   void
   stringToLower(std::string &line);
   std::vector<char>
-  filehash(std::filesystem::path filepath, int *cancel);
+  filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel);
   std::vector<char>
   filehash(std::filesystem::path filepath, std::function<void
   (uint64_t)> progress,
-	   int *cancel);
+	   std::shared_ptr<int> cancel);
   std::string
   to_hex(std::vector<char> *source);
   std::string

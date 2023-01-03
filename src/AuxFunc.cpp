@@ -483,7 +483,7 @@ AuxFunc::stringToLower(std::string &line)
 }
 
 std::vector<char>
-AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
+AuxFunc::filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel)
 {
   std::vector<char> result;
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
@@ -557,7 +557,7 @@ AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
 std::vector<char>
 AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 (uint64_t)> progress,
-		  int *cancel)
+		  std::shared_ptr<int> cancel)
 {
   std::vector<char> result;
   if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
