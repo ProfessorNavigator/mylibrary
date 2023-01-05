@@ -93,6 +93,17 @@ SearchBook::searchBook()
       else
 	{
 	  std::cerr << "Search error: collection not found" << std::endl;
+	  if(search_completed)
+	    {
+	      search_completed();
+	    }
+	}
+    }
+  else
+    {
+      if(search_completed)
+	{
+	  search_completed();
 	}
     }
 }

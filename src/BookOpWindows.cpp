@@ -111,7 +111,7 @@ void
 BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
 {
   Glib::ustring msgtxt;
-  Gtk::Window *trans;
+  Gtk::Window *trans = nullptr;
   if(variant == 1)
     {
       msgtxt =
@@ -127,54 +127,56 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
       trans = win;
     }
 
-  std::shared_ptr<Gtk::MessageDialog> msg =
-      std::make_shared<Gtk::MessageDialog>(*trans, msgtxt, false,
-					   Gtk::MessageType::QUESTION,
-					   Gtk::ButtonsType::YES_NO, true);
-  msg->set_application(mw->get_application());
+  if(trans)
+    {
+      std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
+	  Gtk::MessageDialog>(*trans, msgtxt, false, Gtk::MessageType::QUESTION,
+			      Gtk::ButtonsType::YES_NO, true);
+      msg->set_application(mw->get_application());
 
-  MainWindow *mwl = mw;
-  if(variant == 1)
-    {
-      msg->signal_response().connect([mwl, msg]
-      (int resp)
+      MainWindow *mwl = mw;
+      if(variant == 1)
 	{
-	  if(resp == Gtk::ResponseType::YES)
+	  msg->signal_response().connect([mwl, msg]
+	  (int resp)
 	    {
-	      msg->close();
-	      BookOpWindows bopw(mwl);
-	      bopw.bookRemoveVar1();
-	    }
-	  else if(resp == Gtk::ResponseType::NO)
-	    {
-	      msg->close();
-	    }
-	});
-    }
-  else if(variant == 2)
-    {
-      msg->signal_response().connect([msg, win, mwl]
-      (int resp)
+	      if(resp == Gtk::ResponseType::YES)
+		{
+		  msg->close();
+		  BookOpWindows bopw(mwl);
+		  bopw.bookRemoveVar1();
+		}
+	      else if(resp == Gtk::ResponseType::NO)
+		{
+		  msg->close();
+		}
+	    });
+	}
+      else if(variant == 2)
 	{
-	  if(resp == Gtk::ResponseType::NO)
+	  msg->signal_response().connect([msg, win, mwl]
+	  (int resp)
 	    {
-	      msg->close();
-	    }
-	  else if(resp == Gtk::ResponseType::YES)
-	    {
-	      BookOpWindows bopw(mwl);
-	      bopw.bookRemoveVar2(win);
-	      msg->close();
-	    }
-	});
+	      if(resp == Gtk::ResponseType::NO)
+		{
+		  msg->close();
+		}
+	      else if(resp == Gtk::ResponseType::YES)
+		{
+		  BookOpWindows bopw(mwl);
+		  bopw.bookRemoveVar2(win);
+		  msg->close();
+		}
+	    });
+	}
+      msg->signal_close_request().connect([msg]
+      {
+	msg->hide();
+	return true;
+      },
+					  false);
+      msg->present();
     }
-  msg->signal_close_request().connect([msg]
-  {
-    msg->hide();
-    return true;
-  },
-				      false);
-  msg->present();
 }
 
 void
