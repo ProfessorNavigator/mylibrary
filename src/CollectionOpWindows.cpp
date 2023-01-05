@@ -295,7 +295,8 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 		  std::string filename;
 		  AuxFunc af;
 		  af.homePath(&filename);
-		  filename = filename + "/.MyLibrary/Collections/" + std::string(cmb->get_active_text());
+		  filename = filename + "/.MyLibrary/Collections/" +
+		  std::string(cmb->get_active_text());
 		  std::filesystem::path filepath = std::filesystem::u8path(filename);
 		  std::filesystem::remove_all(filepath);
 
@@ -593,9 +594,16 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
       dnm = Glib::ustring(gettext("Export as..."));
     }
 
-  std::shared_ptr<Gtk::Dialog> fch = std::make_shared<Gtk::Dialog>(dnm, *window,
-								   true, false);
-  fch->set_application(mwl->get_application());
+  std::shared_ptr<Gtk::Window> fch = std::make_shared<Gtk::Window>();
+  fch->set_application(mw->get_application());
+  fch->set_title(dnm);
+  fch->set_transient_for(*window);
+  fch->set_modal(true);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  fch->set_child(*grid);
 
   Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
   fchw->set_margin(5);
@@ -604,61 +612,68 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
   af.homePath(&filename);
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
   fchw->set_current_folder(fl);
-  Gtk::Box *cont = fch->get_content_area();
-  cont->append(*fchw);
 
-  Gtk::Button *cancel = fch->add_button(gettext("Cancel"),
-					Gtk::ResponseType::CANCEL);
-  cancel->set_margin(5);
-  cancel->set_halign(Gtk::Align::START);
-  Gtk::Button *export_but;
   if(variant == 1 || variant == 2)
     {
       fchw->set_action(Gtk::FileChooser::Action::SELECT_FOLDER);
-      export_but = fch->add_button(gettext("Open"), Gtk::ResponseType::APPLY);
-      export_but->set_name("applyBut");
-      export_but->get_style_context()->add_provider(mw->css_provider,
+      grid->attach(*fchw, 0, 0, 2, 1);
+
+      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+      cancel->set_halign(Gtk::Align::START);
+      cancel->set_margin(5);
+      cancel->set_label(gettext("Cancel"));
+      cancel->signal_clicked().connect(
+	  sigc::mem_fun(*fch, &Gtk::Window::close));
+      grid->attach(*cancel, 0, 1, 1, 1);
+
+      Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
+      open->set_halign(Gtk::Align::END);
+      open->set_margin(5);
+      open->set_label(gettext("Open"));
+      open->set_name("applyBut");
+      open->get_style_context()->add_provider(mw->css_provider,
       GTK_STYLE_PROVIDER_PRIORITY_USER);
-
-      fch->signal_response().connect([fchw, path_ent, fch]
-      (int resp_id)
-	{
-
-	  if(resp_id == Gtk::ResponseType::CANCEL)
-	    {
-	      fch->close();
-	    }
-	  else if(resp_id == Gtk::ResponseType::APPLY)
-	    {
-	      Glib::RefPtr<Gio::File>fl = fchw->get_file();
-	      std::string loc = fl->get_path();
-	      path_ent->set_text(Glib::ustring(loc));
-	      fch->close();
-	    }
-	});
+      open->signal_clicked().connect([fchw, path_ent, fch]
+      {
+	Glib::RefPtr<Gio::File> fl = fchw->get_file();
+	if(fl)
+	  {
+	    std::string loc = fl->get_path();
+	    path_ent->set_text(Glib::ustring(loc));
+	    fch->close();
+	  }
+      });
+      grid->attach(*open, 1, 1, 1, 1);
     }
-  else
+  else if(variant == 3)
     {
       fchw->set_action(Gtk::FileChooser::Action::SAVE);
-      export_but = fch->add_button(gettext("Export"), Gtk::ResponseType::APPLY);
+      fchw->set_create_folders(true);
+      fchw->set_select_multiple(false);
+      grid->attach(*fchw, 0, 0, 2, 1);
+
+      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+      cancel->set_halign(Gtk::Align::START);
+      cancel->set_margin(5);
+      cancel->set_label(gettext("Cancel"));
+      cancel->signal_clicked().connect(
+	  sigc::mem_fun(*fch, &Gtk::Window::close));
+      grid->attach(*cancel, 0, 1, 1, 1);
+
+      Gtk::Button *export_but = Gtk::make_managed<Gtk::Button>();
+      export_but->set_halign(Gtk::Align::END);
+      export_but->set_margin(5);
+      export_but->set_label(gettext("Export"));
       export_but->set_name("applyBut");
       export_but->get_style_context()->add_provider(mw->css_provider,
       GTK_STYLE_PROVIDER_PRIORITY_USER);
-
-      fch->signal_response().connect([fch, fchw, path_ent, mwl]
-      (int resp_id)
-	{
-	  CollectionOpWindows copw(mwl);
-	  copw.openDialogExportFunc(resp_id, fch.get(), fchw, path_ent);
-	});
-
+      export_but->signal_clicked().connect([fch, fchw, path_ent, mwl]
+      {
+	CollectionOpWindows copw(mwl);
+	copw.openDialogExportFunc(fch.get(), fchw, path_ent);
+      });
+      grid->attach(*export_but, 1, 1, 1, 1);
     }
-  export_but->set_margin_bottom(5);
-  export_but->set_margin_end(5);
-  export_but->set_margin_top(5);
-  Gtk::Requisition min, nat;
-  fch->get_preferred_size(min, nat);
-  export_but->set_margin_start(nat.get_width() - 15);
 
   fch->signal_close_request().connect([fch]
   {
@@ -667,31 +682,27 @@ CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
   },
 				      false);
   fch->present();
-
 }
 
 void
-CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
+CollectionOpWindows::openDialogExportFunc(Gtk::Window *fch,
 					  Gtk::FileChooserWidget *fchw,
 					  Gtk::Entry *path_ent)
 {
-  if(resp_id == Gtk::ResponseType::CANCEL)
+  Glib::RefPtr<Gio::File> fl = fchw->get_file();
+  if(fl)
     {
-      fch->close();
-    }
-  else if(resp_id == Gtk::ResponseType::APPLY)
-    {
-      Glib::RefPtr<Gio::File> fl = fchw->get_file();
       std::string filename = fl->get_path();
       std::filesystem::path p = std::filesystem::u8path(filename);
+      p.make_preferred();
       if(std::filesystem::exists(p))
 	{
+	  Glib::ustring msg = Glib::ustring(p.u8string())
+	      + Glib::ustring(gettext(" already exists. Replace?"));
 	  std::shared_ptr<Gtk::MessageDialog> conf = std::make_shared<
-	      Gtk::MessageDialog>(*fch, "", false, Gtk::MessageType::QUESTION,
+	      Gtk::MessageDialog>(*fch, msg, false, Gtk::MessageType::QUESTION,
 				  Gtk::ButtonsType::YES_NO, true);
 	  conf->set_application(fch->get_application());
-	  conf->set_message(
-	      gettext("File or directory already exists. Replace?"), false);
 	  conf->signal_response().connect([conf, path_ent, fch, p]
 	  (int resp_id)
 	    {
@@ -719,6 +730,30 @@ CollectionOpWindows::openDialogExportFunc(int resp_id, Gtk::Dialog *fch,
 	  path_ent->set_text(p.u8string());
 	  fch->close();
 	}
+    }
+  else
+    {
+      std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
+	  Gtk::MessageDialog>(*fch, gettext("File path is not valid!"), false,
+			      Gtk::MessageType::INFO, Gtk::ButtonsType::CLOSE,
+			      true);
+      msg->set_application(fch->get_application());
+      msg->signal_response().connect([msg]
+      (int resp)
+	{
+	  if(resp == Gtk::ResponseType::CLOSE)
+	    {
+	      msg->close();
+	    }
+	});
+
+      msg->signal_close_request().connect([msg]
+      {
+	msg->hide();
+	return true;
+      },
+					  false);
+      msg->present();
     }
 }
 
@@ -942,7 +977,7 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 void
 CollectionOpWindows::importCollection()
 {
-  std::shared_ptr<Gtk::Window>window = std::make_shared<Gtk::Window>();
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Collection import"));
   window->set_transient_for(*mw);
@@ -1218,7 +1253,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 void
 CollectionOpWindows::exportCollection()
 {
-  std::shared_ptr<Gtk::Window>window = std::make_shared<Gtk::Window>();
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
   window->set_application(mw->get_application());
   window->set_title(gettext("Export collection"));
   window->set_transient_for(*mw);

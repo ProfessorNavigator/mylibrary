@@ -22,7 +22,7 @@ CreateCollection::CreateCollection(
     std::filesystem::path book_p,
     unsigned int nm_thr,
     std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-    std::shared_ptr<int>cancel)
+    std::shared_ptr<int> cancel)
 {
   this->coll_nm = coll_nm;
   this->book_p = book_p;
@@ -1563,7 +1563,10 @@ CreateCollection::fb2parser(std::filesystem::path filepath)
       n = date.find("<date");
       std::string::size_type n_tmp;
       n_tmp = date.find("<date/");
-      if(n != std::string::npos && n_tmp == std::string::npos)
+      std::string::size_type n_tmp2;
+      n_tmp2 = date.find("<date /");
+      if(n != std::string::npos && n_tmp == std::string::npos
+	  && n_tmp2 == std::string::npos)
 	{
 	  date.erase(0, n);
 	  date = date.substr(
@@ -1876,7 +1879,10 @@ CreateCollection::fb2parser(std::string input)
   n = date.find("<date");
   std::string::size_type n_tmp;
   n_tmp = date.find("<date/");
-  if(n != std::string::npos && n_tmp == std::string::npos)
+  std::string::size_type n_tmp2;
+  n_tmp2 = date.find("<date /");
+  if(n != std::string::npos && n_tmp == std::string::npos
+      && n_tmp2 == std::string::npos)
     {
       date.erase(0, n);
       date = date.substr(0,

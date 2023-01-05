@@ -390,156 +390,191 @@ BookOpWindows::fileInfo()
 	      strm >> index;
 	      filepath = std::filesystem::u8path(archpath);
 	      filepath.make_preferred();
-
-	      Gtk::Label *arch_lb = Gtk::make_managed<Gtk::Label>();
-	      arch_lb->set_margin(5);
-	      arch_lb->set_halign(Gtk::Align::START);
-	      arch_lb->set_use_markup(true);
-	      arch_lb->set_markup(
-		  Glib::ustring("<b>") + Glib::ustring(gettext("Archive: "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*arch_lb, 0, 0, 1, 1);
-
-	      Gtk::Label *arch_path_lb = Gtk::make_managed<Gtk::Label>();
-	      arch_path_lb->set_margin(5);
-	      arch_path_lb->set_halign(Gtk::Align::START);
-	      arch_path_lb->set_use_markup(true);
-	      arch_path_lb->set_markup(
-		  Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
-		      + Glib::ustring("</i>"));
-	      grid->attach(*arch_path_lb, 1, 0, 1, 1);
-
-	      AuxFunc af;
-	      std::vector<std::tuple<std::string, std::string>> infov;
-	      infov = af.fileinfo(filepath.u8string(), index);
-
-	      Gtk::Label *nm_lb = Gtk::make_managed<Gtk::Label>();
-	      nm_lb->set_margin(5);
-	      nm_lb->set_halign(Gtk::Align::START);
-	      nm_lb->set_use_markup(true);
-	      nm_lb->set_markup(
-		  Glib::ustring("<b>")
-		      + Glib::ustring(gettext("File path in archive: "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*nm_lb, 0, 1, 1, 1);
-
-	      Gtk::Label *file_nm_lb = Gtk::make_managed<Gtk::Label>();
-	      file_nm_lb->set_margin(5);
-	      file_nm_lb->set_halign(Gtk::Align::START);
-	      file_nm_lb->set_use_markup(true);
-	      auto itinfv = std::find_if(infov.begin(), infov.end(), []
-	      (auto &el)
+	      if(std::filesystem::exists(filepath))
 		{
-		  return std::get<0>(el) == "filename";
-		});
-	      if(itinfv != infov.end())
-		{
-		  file_nm_lb->set_markup(
-		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
+		  Gtk::Label *arch_lb = Gtk::make_managed<Gtk::Label>();
+		  arch_lb->set_margin(5);
+		  arch_lb->set_halign(Gtk::Align::START);
+		  arch_lb->set_use_markup(true);
+		  arch_lb->set_markup(
+		      Glib::ustring("<b>") + Glib::ustring(gettext("Archive: "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*arch_lb, 0, 0, 1, 1);
+
+		  Gtk::Label *arch_path_lb = Gtk::make_managed<Gtk::Label>();
+		  arch_path_lb->set_margin(5);
+		  arch_path_lb->set_halign(Gtk::Align::START);
+		  arch_path_lb->set_use_markup(true);
+		  arch_path_lb->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
 			  + Glib::ustring("</i>"));
+		  grid->attach(*arch_path_lb, 1, 0, 1, 1);
+
+		  AuxFunc af;
+		  std::vector<std::tuple<std::string, std::string>> infov;
+		  infov = af.fileinfo(filepath.u8string(), index);
+
+		  Gtk::Label *nm_lb = Gtk::make_managed<Gtk::Label>();
+		  nm_lb->set_margin(5);
+		  nm_lb->set_halign(Gtk::Align::START);
+		  nm_lb->set_use_markup(true);
+		  nm_lb->set_markup(
+		      Glib::ustring("<b>")
+			  + Glib::ustring(gettext("File path in archive: "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*nm_lb, 0, 1, 1, 1);
+
+		  Gtk::Label *file_nm_lb = Gtk::make_managed<Gtk::Label>();
+		  file_nm_lb->set_margin(5);
+		  file_nm_lb->set_halign(Gtk::Align::START);
+		  file_nm_lb->set_use_markup(true);
+		  auto itinfv = std::find_if(infov.begin(), infov.end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "filename";
+		    });
+		  if(itinfv != infov.end())
+		    {
+		      file_nm_lb->set_markup(
+			  Glib::ustring("<i>")
+			      + Glib::ustring(std::get<1>(*itinfv))
+			      + Glib::ustring("</i>"));
+		    }
+		  grid->attach(*file_nm_lb, 1, 1, 1, 1);
+
+		  Gtk::Label *u_sz_lb = Gtk::make_managed<Gtk::Label>();
+		  u_sz_lb->set_margin(5);
+		  u_sz_lb->set_halign(Gtk::Align::START);
+		  u_sz_lb->set_use_markup(true);
+		  u_sz_lb->set_markup(
+		      Glib::ustring("<b>")
+			  + Glib::ustring(gettext("File size (uncompressed): "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*u_sz_lb, 0, 2, 1, 1);
+
+		  Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
+		  sz_lb->set_margin(5);
+		  sz_lb->set_halign(Gtk::Align::START);
+		  sz_lb->set_use_markup(true);
+		  itinfv = std::find_if(infov.begin(), infov.end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "filesizeunc";
+		    });
+		  if(itinfv != infov.end())
+		    {
+		      sz_lb->set_markup(
+			  Glib::ustring("<i>")
+			      + Glib::ustring(std::get<1>(*itinfv))
+			      + Glib::ustring("</i> ")
+			      + Glib::ustring(gettext("bytes")));
+		    }
+		  grid->attach(*sz_lb, 1, 2, 1, 1);
+
+		  Gtk::Label *c_sz_lb = Gtk::make_managed<Gtk::Label>();
+		  c_sz_lb->set_margin(5);
+		  c_sz_lb->set_halign(Gtk::Align::START);
+		  c_sz_lb->set_use_markup(true);
+		  c_sz_lb->set_markup(
+		      Glib::ustring("<b>")
+			  + Glib::ustring(gettext("File size (compressed): "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*c_sz_lb, 0, 3, 1, 1);
+
+		  Gtk::Label *sz_lb2 = Gtk::make_managed<Gtk::Label>();
+		  sz_lb2->set_margin(5);
+		  sz_lb2->set_halign(Gtk::Align::START);
+		  sz_lb2->set_use_markup(true);
+		  itinfv = std::find_if(infov.begin(), infov.end(), []
+		  (auto &el)
+		    {
+		      return std::get<0>(el) == "filesizec";
+		    });
+		  if(itinfv != infov.end())
+		    {
+		      sz_lb2->set_markup(
+			  Glib::ustring("<i>")
+			      + Glib::ustring(std::get<1>(*itinfv))
+			      + Glib::ustring("</i> ")
+			      + Glib::ustring(gettext("bytes")));
+		    }
+		  grid->attach(*sz_lb2, 1, 3, 1, 1);
 		}
-	      grid->attach(*file_nm_lb, 1, 1, 1, 1);
-
-	      Gtk::Label *u_sz_lb = Gtk::make_managed<Gtk::Label>();
-	      u_sz_lb->set_margin(5);
-	      u_sz_lb->set_halign(Gtk::Align::START);
-	      u_sz_lb->set_use_markup(true);
-	      u_sz_lb->set_markup(
-		  Glib::ustring("<b>")
-		      + Glib::ustring(gettext("File size (uncompressed): "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*u_sz_lb, 0, 2, 1, 1);
-
-	      Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
-	      sz_lb->set_margin(5);
-	      sz_lb->set_halign(Gtk::Align::START);
-	      sz_lb->set_use_markup(true);
-	      itinfv = std::find_if(infov.begin(), infov.end(), []
-	      (auto &el)
+	      else
 		{
-		  return std::get<0>(el) == "filesizeunc";
-		});
-	      if(itinfv != infov.end())
-		{
-		  sz_lb->set_markup(
-		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
-			  + Glib::ustring("</i> ")
-			  + Glib::ustring(gettext("bytes")));
+		  window->set_default_size(1, 1);
+		  Gtk::Label *warn_lb = Gtk::make_managed<Gtk::Label>();
+		  warn_lb->set_margin(5);
+		  warn_lb->set_halign(Gtk::Align::START);
+		  warn_lb->set_use_markup(true);
+		  warn_lb->set_markup(
+		      Glib::ustring("<i>")
+			  + Glib::ustring(gettext("File does not exists!"))
+			  + Glib::ustring("</i>"));
+		  grid->attach(*warn_lb, 0, 0, 1, 1);
 		}
-	      grid->attach(*sz_lb, 1, 2, 1, 1);
-
-	      Gtk::Label *c_sz_lb = Gtk::make_managed<Gtk::Label>();
-	      c_sz_lb->set_margin(5);
-	      c_sz_lb->set_halign(Gtk::Align::START);
-	      c_sz_lb->set_use_markup(true);
-	      c_sz_lb->set_markup(
-		  Glib::ustring("<b>")
-		      + Glib::ustring(gettext("File size (compressed): "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*c_sz_lb, 0, 3, 1, 1);
-
-	      Gtk::Label *sz_lb2 = Gtk::make_managed<Gtk::Label>();
-	      sz_lb2->set_margin(5);
-	      sz_lb2->set_halign(Gtk::Align::START);
-	      sz_lb2->set_use_markup(true);
-	      itinfv = std::find_if(infov.begin(), infov.end(), []
-	      (auto &el)
-		{
-		  return std::get<0>(el) == "filesizec";
-		});
-	      if(itinfv != infov.end())
-		{
-		  sz_lb2->set_markup(
-		      Glib::ustring("<i>") + Glib::ustring(std::get<1>(*itinfv))
-			  + Glib::ustring("</i> ")
-			  + Glib::ustring(gettext("bytes")));
-		}
-	      grid->attach(*sz_lb2, 1, 3, 1, 1);
 	    }
 	  else
 	    {
 	      filepath = std::filesystem::u8path(filename);
 	      filepath.make_preferred();
-	      Gtk::Label *fp_lb = Gtk::make_managed<Gtk::Label>();
-	      fp_lb->set_margin(5);
-	      fp_lb->set_halign(Gtk::Align::START);
-	      fp_lb->set_use_markup(true);
-	      fp_lb->set_markup(
-		  Glib::ustring("<b>") + Glib::ustring(gettext("File: "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*fp_lb, 0, 0, 1, 1);
+	      if(std::filesystem::exists(filepath))
+		{
+		  Gtk::Label *fp_lb = Gtk::make_managed<Gtk::Label>();
+		  fp_lb->set_margin(5);
+		  fp_lb->set_halign(Gtk::Align::START);
+		  fp_lb->set_use_markup(true);
+		  fp_lb->set_markup(
+		      Glib::ustring("<b>") + Glib::ustring(gettext("File: "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*fp_lb, 0, 0, 1, 1);
 
-	      Gtk::Label *path_lb = Gtk::make_managed<Gtk::Label>();
-	      path_lb->set_margin(5);
-	      path_lb->set_halign(Gtk::Align::START);
-	      path_lb->set_use_markup(true);
-	      path_lb->set_markup(
-		  Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
-		      + Glib::ustring("</i>"));
-	      grid->attach(*path_lb, 1, 0, 1, 1);
+		  Gtk::Label *path_lb = Gtk::make_managed<Gtk::Label>();
+		  path_lb->set_margin(5);
+		  path_lb->set_halign(Gtk::Align::START);
+		  path_lb->set_use_markup(true);
+		  path_lb->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(filepath.u8string())
+			  + Glib::ustring("</i>"));
+		  grid->attach(*path_lb, 1, 0, 1, 1);
 
-	      Gtk::Label *fsz_lb = Gtk::make_managed<Gtk::Label>();
-	      fsz_lb->set_margin(5);
-	      fsz_lb->set_halign(Gtk::Align::START);
-	      fsz_lb->set_use_markup(true);
-	      fsz_lb->set_markup(
-		  Glib::ustring("<b>") + Glib::ustring(gettext("File size: "))
-		      + Glib::ustring("</b>"));
-	      grid->attach(*fsz_lb, 0, 1, 1, 1);
+		  Gtk::Label *fsz_lb = Gtk::make_managed<Gtk::Label>();
+		  fsz_lb->set_margin(5);
+		  fsz_lb->set_halign(Gtk::Align::START);
+		  fsz_lb->set_use_markup(true);
+		  fsz_lb->set_markup(
+		      Glib::ustring("<b>")
+			  + Glib::ustring(gettext("File size: "))
+			  + Glib::ustring("</b>"));
+		  grid->attach(*fsz_lb, 0, 1, 1, 1);
 
-	      Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
-	      sz_lb->set_margin(5);
-	      sz_lb->set_halign(Gtk::Align::START);
-	      sz_lb->set_use_markup(true);
-	      std::stringstream strm;
-	      std::locale loc("C");
-	      strm.imbue(loc);
-	      strm << std::filesystem::file_size(filepath);
-	      sz_lb->set_markup(
-		  Glib::ustring("<i>") + Glib::ustring(strm.str())
-		      + Glib::ustring("</i> ")
-		      + Glib::ustring(gettext("bytes")));
-	      grid->attach(*sz_lb, 1, 1, 1, 1);
+		  Gtk::Label *sz_lb = Gtk::make_managed<Gtk::Label>();
+		  sz_lb->set_margin(5);
+		  sz_lb->set_halign(Gtk::Align::START);
+		  sz_lb->set_use_markup(true);
+		  std::stringstream strm;
+		  std::locale loc("C");
+		  strm.imbue(loc);
+		  strm << std::filesystem::file_size(filepath);
+		  sz_lb->set_markup(
+		      Glib::ustring("<i>") + Glib::ustring(strm.str())
+			  + Glib::ustring("</i> ")
+			  + Glib::ustring(gettext("bytes")));
+		  grid->attach(*sz_lb, 1, 1, 1, 1);
+		}
+	      else
+		{
+		  window->set_default_size(1, 1);
+		  Gtk::Label *warn_lb = Gtk::make_managed<Gtk::Label>();
+		  warn_lb->set_margin(5);
+		  warn_lb->set_halign(Gtk::Align::START);
+		  warn_lb->set_use_markup(true);
+		  warn_lb->set_markup(
+		      Glib::ustring("<i>")
+			  + Glib::ustring(gettext("File does not exists!"))
+			  + Glib::ustring("</i>"));
+		  grid->attach(*warn_lb, 0, 0, 1, 1);
+		}
 	    }
 	  window->signal_close_request().connect([window]
 	  {

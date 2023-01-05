@@ -2818,8 +2818,7 @@ RefreshCollection::editBook(
 		  filebase.push_back(filetup);
 		}
 	    }
-	  std::filesystem::path cvp = std::filesystem::u8path(book_str);
-	  cvp = cvp.parent_path();
+	  std::filesystem::path cvp = std::filesystem::u8path(bookpath);
 	  std::string oldfp = book_str;
 	  oldfp.erase(0, cvp.u8string().size());
 	  auto itfb = std::find_if(filebase.begin(), filebase.end(), [oldfp]
