@@ -53,23 +53,47 @@ MainWindow::mainWindow()
   grid->set_vexpand(true);
 
   Glib::RefPtr<Gio::SimpleActionGroup> pref = Gio::SimpleActionGroup::create();
-  pref->add_action("collectioncr",
-		   sigc::mem_fun(*this, &MainWindow::collectionCreate));
-  pref->add_action(
-      "collectionrem",
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::collectionOp), 1));
-  pref->add_action(
-      "collectionrefr",
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::collectionOp), 2));
-  pref->add_action("bookm", sigc::mem_fun(*this, &MainWindow::bookmarkWindow));
-  pref->add_action(
-      "book_add",
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::collectionOp), 3));
-  pref->add_action("about", sigc::mem_fun(*this, &MainWindow::aboutProg));
-  pref->add_action("collimport",
-		   sigc::mem_fun(*this, &MainWindow::importCollection));
-  pref->add_action("collexport",
-		   sigc::mem_fun(*this, &MainWindow::exportCollection));
+  pref->add_action("collectioncr", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.collectionCreate();
+  });
+  pref->add_action("collectionrem", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.collectionOp(1);
+  });
+
+  pref->add_action("collectionrefr", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.collectionOp(2);
+  });
+  pref->add_action("bookm", [this]
+  {
+    AuxWindows aw(this);
+    aw.bookmarkWindow();
+  });
+  pref->add_action("book_add", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.collectionOp(3);
+  });
+  pref->add_action("about", [this]
+  {
+    AuxWindows aw(this);
+    aw.aboutProg();
+  });
+  pref->add_action("collimport", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.importCollection();
+  });
+  pref->add_action("collexport", [this]
+  {
+    CollectionOpWindows copw(this);
+    copw.exportCollection();
+  });
   Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create();
   this->insert_action_group("prefgr", pref);
   builder->add_from_resource("/mainmenu/mainmenu.xml");
@@ -134,21 +158,6 @@ MainWindow::readCollection(Gtk::ComboBoxText *collect_box)
 }
 
 void
-MainWindow::collectionCreate()
-{
-  CollectionOpWindows copw(this);
-  copw.collectionCreate();
-}
-
-void
-MainWindow::collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
-				 Gtk::Entry *thr_ent, Gtk::Window *par_win)
-{
-  CollectionOpWindows copw(this);
-  copw.collectionCreateFunc(coll_ent, path_ent, thr_ent, par_win);
-}
-
-void
 MainWindow::creationPulseWin(Gtk::Window *window, std::shared_ptr<int> cncl)
 {
   Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
@@ -188,45 +197,6 @@ MainWindow::creationPulseWin(Gtk::Window *window, std::shared_ptr<int> cncl)
     *cncl = 1;
   });
   grid->attach(*cancel, 0, 2, 1, 1);
-}
-
-void
-MainWindow::collectionOp(int variant)
-{
-  CollectionOpWindows copw(this);
-  copw.collectionOp(variant);
-}
-
-void
-MainWindow::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
-			     Gtk::CheckButton *rem_empty_ch, int variant)
-{
-  CollectionOpWindows copw(this);
-  copw.collectionOpFunc(cmb, win, rem_empty_ch, variant);
-}
-
-void
-MainWindow::errorWin(int type, Gtk::Window *par_win)
-{
-  AuxWindows aw(this);
-  aw.errorWin(type, par_win);
-}
-
-void
-MainWindow::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant)
-{
-  CollectionOpWindows copw(this);
-  copw.openDialogCC(window, path_ent, variant);
-}
-
-void
-MainWindow::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
-		       Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
-		       Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent)
-{
-  BookOpWindows bopw(this);
-  bopw.searchBook(coll_nm, surname_ent, name_ent, secname_ent, booknm_ent,
-		  ser_ent);
 }
 
 void
@@ -433,342 +403,6 @@ MainWindow::drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width,
   cover_image.clear();
 }
 
-void
-MainWindow::openBook(int variant)
-{
-  Glib::RefPtr<Gtk::TreeSelection> selection;
-  if(variant == 1)
-    {
-      Gtk::Widget *widg = this->get_child();
-      Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
-      widg = main_grid->get_child_at(0, 1);
-      Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
-      widg = pn->get_end_child();
-      Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-      widg = right_grid->get_child_at(0, 0);
-      Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
-      widg = sres_scrl->get_child();
-      Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
-      selection = sres->get_selection();
-    }
-  else if(variant == 2)
-    {
-      selection = bm_tv->get_selection();
-    }
-  if(selection)
-    {
-      Gtk::TreeModel::iterator iter = selection->get_selected();
-      if(iter)
-	{
-	  size_t id;
-	  AuxFunc af;
-	  std::filesystem::path filepath;
-	  iter->get_value(0, id);
-	  std::string filename;
-	  if(variant == 1)
-	    {
-	      filename = std::get<5>(search_result_v[id - 1]);
-	    }
-	  else if(variant == 2)
-	    {
-	      filename = std::get<5>(bookmark_v[id - 1]);
-	    }
-	  std::string::size_type n;
-	  n = filename.find("<zip>");
-	  if(n != std::string::npos)
-	    {
-	      std::string archpath = filename;
-	      archpath.erase(
-		  0,
-		  archpath.find("<archpath>")
-		      + std::string("<archpath>").size());
-	      archpath = archpath.substr(0, archpath.find("</archpath>"));
-	      std::string ind_str = filename;
-	      ind_str.erase(
-		  0, ind_str.find("<index>") + std::string("<index>").size());
-	      ind_str = ind_str.substr(0, ind_str.find("</index>"));
-	      std::stringstream strm;
-	      std::locale loc("C");
-	      strm.imbue(loc);
-	      strm << ind_str;
-	      int index;
-	      strm >> index;
-	      std::string outfolder;
-#ifdef __linux
-	      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      outfolder =
-	      		  std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-	      outfolder = outfolder + "/MyLibraryForReading";
-	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
-	      if(std::filesystem::exists(ffr))
-		{
-		  std::filesystem::remove_all(ffr);
-		}
-	      af.unpackByIndex(archpath, outfolder, index);
-	      if(std::filesystem::exists(ffr))
-		{
-		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
-		    {
-		      std::filesystem::path p = dirit.path();
-		      if(!std::filesystem::is_directory(p))
-			{
-			  filepath = p;
-			  break;
-			}
-		    }
-		}
-	    }
-	  else
-	    {
-	      filepath = std::filesystem::u8path(filename);
-	    }
-	  if(std::filesystem::exists(filepath))
-	    {
-	      std::string commstr;
-#ifdef __linux
-	      commstr = "xdg-open \'" + filepath.u8string() + "\'";
-#endif
-#ifdef _WIN32
-	      commstr = filepath.u8string();
-#endif
-	      commstr = af.utf8to(commstr);
-#ifdef __linux
-	      int check = std::system(commstr.c_str());
-	      std::cout << "Book open command result code: " << check
-		  << std::endl;
-#endif
-#ifdef _WIN32
-	      ShellExecuteA (0, af.utf8to ("open").c_str (), commstr.c_str (), 0, 0, 0);
-#endif
-	    }
-	}
-    }
-}
-
-void
-MainWindow::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
-{
-  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
-  if(selection)
-    {
-      Gtk::TreeModel::iterator iter = selection->get_selected();
-      if(iter)
-	{
-	  size_t id;
-	  AuxFunc af;
-	  std::filesystem::path filepath;
-	  bool archive = false;
-	  iter->get_value(0, id);
-	  std::string filename;
-	  if(variant == 1)
-	    {
-	      filename = std::get<5>(search_result_v[id - 1]);
-	    }
-	  else if(variant == 2)
-	    {
-	      filename = std::get<5>(bookmark_v[id - 1]);
-	    }
-	  std::string::size_type n;
-	  n = filename.find("<zip>");
-	  if(n != std::string::npos)
-	    {
-	      std::string archpath = filename;
-	      archpath.erase(
-		  0,
-		  archpath.find("<archpath>")
-		      + std::string("<archpath>").size());
-	      archpath = archpath.substr(0, archpath.find("</archpath>"));
-	      std::string ind_str = filename;
-	      ind_str.erase(
-		  0, ind_str.find("<index>") + std::string("<index>").size());
-	      ind_str = ind_str.substr(0, ind_str.find("</index>"));
-	      std::stringstream strm;
-	      std::locale loc("C");
-	      strm.imbue(loc);
-	      strm << ind_str;
-	      int index;
-	      strm >> index;
-	      std::string outfolder;
-#ifdef __linux
-	      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      outfolder =
-		  std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-	      outfolder = outfolder + "/" + af.randomFileName();
-	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
-	      if(std::filesystem::exists(ffr))
-		{
-		  std::filesystem::remove_all(ffr);
-		}
-	      af.unpackByIndex(archpath, outfolder, index);
-	      if(std::filesystem::exists(ffr))
-		{
-		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
-		    {
-		      std::filesystem::path p = dirit.path();
-		      if(!std::filesystem::is_directory(p))
-			{
-			  filepath = p;
-			  break;
-			}
-		    }
-		}
-	      archive = true;
-	    }
-	  else if(!filename.empty())
-	    {
-	      filepath = std::filesystem::u8path(filename);
-	    }
-
-	  if(std::filesystem::exists(filepath))
-	    {
-	      saveDialog(filepath, archive, win);
-	    }
-	}
-    }
-}
-
-void
-MainWindow::saveDialog(std::filesystem::path filepath, bool archive,
-		       Gtk::Window *win)
-{
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
-  window->set_application(this->get_application());
-  window->set_title(gettext("Save as..."));
-  window->set_transient_for(*win);
-  window->set_modal(true);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::FILL);
-  window->set_child(*grid);
-
-  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
-  fchw->set_action(Gtk::FileChooser::Action::SAVE);
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fchw->set_current_folder(fl);
-  fchw->set_current_name(Glib::ustring(filepath.filename().u8string()));
-  fchw->set_select_multiple(false);
-  fchw->set_margin(5);
-  grid->attach(*fchw, 0, 0, 2, 1);
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_halign(Gtk::Align::START);
-  cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*cancel, 0, 1, 1, 1);
-
-  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
-  save->set_halign(Gtk::Align::END);
-  save->set_margin(5);
-  save->set_label(gettext("Save"));
-  save->set_name("applyBut");
-  save->get_style_context()->add_provider(this->css_provider,
-  GTK_STYLE_PROVIDER_PRIORITY_USER);
-  save->signal_clicked().connect(
-      [window, fchw, filepath, this, win]
-      {
-	Glib::RefPtr<Gio::File> fl = fchw->get_file();
-	std::string loc;
-	if(fl)
-	  {
-	    loc = fl->get_path();
-	    std::filesystem::path outpath = std::filesystem::u8path(loc);
-	    if(!std::filesystem::exists(outpath))
-	      {
-		std::filesystem::copy(filepath, outpath);
-		window->close();
-		this->errorWin(9, win);
-	      }
-	    else
-	      {
-		Glib::ustring msgtxt = Glib::ustring(outpath.u8string())
-		    + Glib::ustring(gettext(" already exists. Replace?"));
-		std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-		    Gtk::MessageDialog>(*window, msgtxt, false,
-					Gtk::MessageType::QUESTION,
-					Gtk::ButtonsType::YES_NO, true);
-		msg->set_application(this->get_application());
-		msg->signal_response().connect(
-		    [msg, window, this, outpath, filepath, win]
-		    (int resp)
-		      {
-			if(resp == Gtk::ResponseType::NO)
-			  {
-			    msg->close();
-			  }
-			else if(resp == Gtk::ResponseType::YES)
-			  {
-			    std::filesystem::remove_all(outpath);
-			    std::filesystem::copy(filepath, outpath);
-			    msg->close();
-			    window->close();
-			    this->errorWin(9, win);
-			  }
-		      });
-
-		msg->signal_close_request().connect([msg]
-		{
-		  msg->hide();
-		  return true;
-		},
-						    false);
-		msg->present();
-	      }
-	  }
-	else
-	  {
-	    std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-		Gtk::MessageDialog>(*window, gettext("File path is not valid!"),
-				    false, Gtk::MessageType::INFO,
-				    Gtk::ButtonsType::CLOSE, true);
-	    msg->set_application(this->get_application());
-	    msg->signal_response().connect([msg]
-	    (int resp)
-	      {
-		if(resp == Gtk::ResponseType::CLOSE)
-		  {
-		    msg->close();
-		  }
-	      });
-
-	    msg->signal_close_request().connect([msg]
-	    {
-	      msg->hide();
-	      return true;
-	    },
-						false);
-	    msg->present();
-	  }
-      });
-  grid->attach(*save, 1, 1, 1, 1);
-
-  window->signal_close_request().connect([window, archive, filepath]
-  {
-    if(archive)
-      {
-	if(std::filesystem::exists(filepath.parent_path()))
-	  {
-	    std::filesystem::remove_all(filepath.parent_path());
-	  }
-      }
-    window->hide();
-    return true;
-  },
-					 false);
-
-  window->present();
-}
-
 bool
 MainWindow::closeFunc()
 {
@@ -819,36 +453,6 @@ MainWindow::closeFunc()
 }
 
 void
-MainWindow::bookRemoveWin(int variant, Gtk::Window *win)
-{
-  BookOpWindows bopw(this);
-  bopw.bookRemoveWin(variant, win);
-}
-
-void
-MainWindow::fileInfo()
-{
-  BookOpWindows bopw(this);
-  bopw.fileInfo();
-}
-
-void
-MainWindow::editBook()
-{
-  BookOpWindows bopw(this);
-  bopw.editBook();
-}
-
-void
-MainWindow::bookSaveRestore(
-    Gtk::Window *win, std::vector<std::tuple<std::string, std::string>> *bookv,
-    int variant)
-{
-  BookOpWindows bopw(this);
-  bopw.bookSaveRestore(win, bookv, variant);
-}
-
-void
 MainWindow::createBookmark()
 {
   Gtk::Widget *widg = this->get_child();
@@ -895,16 +499,10 @@ MainWindow::createBookmark()
 	      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
 	  f.write(bookline.c_str(), bookline.size());
 	  f.close();
-	  errorWin(8, this);
+	  AuxWindows aw(this);
+	  aw.errorWin(8, this);
 	}
     }
-}
-
-void
-MainWindow::bookmarkWindow()
-{
-  AuxWindows aw(this);
-  aw.bookmarkWindow();
 }
 
 void
@@ -925,7 +523,7 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
   std::string filename;
   AuxFunc af;
   af.homePath(&filename);
-  Glib::RefPtr<Gio::File>fl = Gio::File::create_for_path(filename);
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
   Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
   fchw->set_margin(5);
   fchw->set_action(Gtk::FileChooser::Action::OPEN);
@@ -1096,7 +694,8 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
       Glib::Dispatcher>();
   disp_book_exists->connect([window, this, ttup]
   {
-    this->bookCopyConfirm(window.get(), std::get<0>(*ttup), std::get<1>(*ttup));
+    AuxWindows aw(this);
+    aw.bookCopyConfirm(window.get(), std::get<0>(*ttup), std::get<1>(*ttup));
   });
   rc->file_exists = [ttup, disp_book_exists]
   (std::mutex *inmtx, int *instopper)
@@ -1160,50 +759,4 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
   });
   thr->detach();
   delete thr;
-
-}
-
-void
-MainWindow::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
-{
-  AuxWindows aw(this);
-  aw.bookCopyConfirm(win, addbmtx, stopper);
-}
-
-void
-MainWindow::importCollection()
-{
-  CollectionOpWindows copw(this);
-  copw.importCollection();
-}
-
-void
-MainWindow::importCollectionFunc(Gtk::Window *window, Gtk::Entry *coll_nm_ent,
-				 Gtk::Entry *coll_path_ent,
-				 Gtk::Entry *book_path_ent)
-{
-  CollectionOpWindows copw(this);
-  copw.importCollectionFunc(window, coll_nm_ent, coll_path_ent, book_path_ent);
-}
-
-void
-MainWindow::exportCollection()
-{
-  CollectionOpWindows copw(this);
-  copw.exportCollection();
-}
-
-void
-MainWindow::exportCollectionFunc(Gtk::ComboBoxText *cmb,
-				 Gtk::Entry *exp_path_ent, Gtk::Window *win)
-{
-  CollectionOpWindows copw(this);
-  copw.exportCollectionFunc(cmb, exp_path_ent, win);
-}
-
-void
-MainWindow::aboutProg()
-{
-  AuxWindows aw(this);
-  aw.aboutProg();
 }

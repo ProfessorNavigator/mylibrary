@@ -185,6 +185,7 @@ CollectionOpWindows::collectionOp(int variant)
       grid->attach(*ch_pack, 1, 6, 1, 1);
     }
 
+  MainWindow *mwl = mw;
   Gtk::Button *remove = Gtk::make_managed<Gtk::Button>();
   remove->set_halign(Gtk::Align::START);
   remove->set_margin(5);
@@ -203,15 +204,20 @@ CollectionOpWindows::collectionOp(int variant)
 
   if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 1)
     {
-      remove->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window.get(), nullptr, variant));
+      remove->signal_clicked().connect([mwl, cmb, window, variant]
+      {
+	CollectionOpWindows copw(mwl);
+	copw.collectionOpFunc(cmb, window.get(), nullptr, variant);
+      });
+
     }
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
     {
-      remove->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionOpFunc), cmb,
-		     window.get(), rem_empty_ch, variant));
+      remove->signal_clicked().connect([mwl, cmb, window, rem_empty_ch, variant]
+      {
+	CollectionOpWindows copw(mwl);
+	copw.collectionOpFunc(cmb, window.get(), rem_empty_ch, variant);
+      });
     }
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3
       && ch_pack)
@@ -374,9 +380,13 @@ CollectionOpWindows::collectionCreate()
   opbut->set_halign(Gtk::Align::CENTER);
   opbut->set_margin(5);
   opbut->set_label(gettext("Open"));
-  opbut->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
-		 path_ent, 1));
+  MainWindow *mwl = mw;
+  opbut->signal_clicked().connect([mwl, window, path_ent]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.openDialogCC(window.get(), path_ent, 1);
+  });
+
   grid->attach(*opbut, 1, 3, 1, 1);
 
   Gtk::Label *thr_nm_lb = Gtk::make_managed<Gtk::Label>();
@@ -410,9 +420,12 @@ CollectionOpWindows::collectionCreate()
   create->set_halign(Gtk::Align::START);
   create->set_margin(5);
   create->set_label(gettext("Create"));
-  create->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::collectionCreateFunc),
-		 coll_ent, path_ent, thr_ent, window.get()));
+  create->signal_clicked().connect([mwl, coll_ent, path_ent, thr_ent, window]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.collectionCreateFunc(coll_ent, path_ent, thr_ent, window.get());
+  });
+
   grid->attach(*create, 0, 5, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -459,9 +472,10 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
     }
   std::string filename(buf_path->get_text());
   std::filesystem::path filepath = std::filesystem::u8path(filename);
+  AuxWindows aw(mw);
   if(coll_nm.empty())
     {
-      mw->errorWin(0, par_win);
+      aw.errorWin(0, par_win);
       cr_but->set_sensitive(true);
       cncl_but->set_sensitive(true);
       par_win->set_deletable(true);
@@ -469,7 +483,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
     }
   if(filename.empty())
     {
-      mw->errorWin(1, par_win);
+      aw.errorWin(1, par_win);
       cr_but->set_sensitive(true);
       cncl_but->set_sensitive(true);
       par_win->set_deletable(true);
@@ -493,7 +507,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
   MainWindow *mwl = mw;
   disp_colexists->connect([mwl, par_win, cr_but, cncl_but]
   {
-    mwl->errorWin(3, par_win);
+    AuxWindows aw(mwl);
+    aw.errorWin(3, par_win);
     cr_but->set_sensitive(true);
     cncl_but->set_sensitive(true);
     par_win->set_deletable(true);
@@ -515,8 +530,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	CreateLeftGrid clgr(mwl);
 	clgr.formCollCombo(collect_box);
 	collect_box->set_active_text(Glib::ustring(coll_nm));
-
-	mwl->errorWin(2, mwl);
+	AuxWindows aw(mwl);
+	aw.errorWin(2, mwl);
       });
 
   disp_canceled->connect(
@@ -524,7 +539,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
        disp_totfiles, disp_progress, disp_colexists]
       {
 	par_win->close();
-	mwl->errorWin(4, mwl);
+	AuxWindows aw(mwl);
+	aw.errorWin(4, mwl);
       });
 
   disp_totfiles->connect(
@@ -1017,9 +1033,12 @@ CollectionOpWindows::importCollection()
   open_coll->set_halign(Gtk::Align::CENTER);
   open_coll->set_margin(5);
   open_coll->set_label(gettext("Open"));
-  open_coll->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
-		 coll_path_ent, 2));
+  MainWindow *mwl = mw;
+  open_coll->signal_clicked().connect([mwl, window, coll_path_ent]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.openDialogCC(window.get(), coll_path_ent, 2);
+  });
   grid->attach(*open_coll, 1, 3, 1, 1);
 
   Gtk::Label *book_path_lb = Gtk::make_managed<Gtk::Label>();
@@ -1040,20 +1059,22 @@ CollectionOpWindows::importCollection()
   open_book->set_halign(Gtk::Align::CENTER);
   open_book->set_margin(5);
   open_book->set_label(gettext("Open"));
-  open_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
-		 book_path_ent, 1));
+  open_book->signal_clicked().connect([mwl, window, book_path_ent]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.openDialogCC(window.get(), book_path_ent, 1);
+  });
   grid->attach(*open_book, 1, 5, 1, 1);
 
   Gtk::Button *import_coll = Gtk::make_managed<Gtk::Button>();
   import_coll->set_halign(Gtk::Align::CENTER);
   import_coll->set_margin(5);
   import_coll->set_label(gettext("Import collection"));
-  MainWindow *mwl = mw;
   import_coll->signal_clicked().connect(
       [window, coll_nm_ent, coll_path_ent, book_path_ent, mwl]
       {
-	mwl->importCollectionFunc(window.get(), coll_nm_ent, coll_path_ent,
+	CollectionOpWindows copw(mwl);
+	copw.importCollectionFunc(window.get(), coll_nm_ent, coll_path_ent,
 				  book_path_ent);
       });
   grid->attach(*import_coll, 0, 6, 1, 1);
@@ -1080,9 +1101,10 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 					  Gtk::Entry *coll_path_ent,
 					  Gtk::Entry *book_path_ent)
 {
+  AuxWindows aw(mw);
   if(coll_nm_ent->get_text().empty())
     {
-      mw->errorWin(0, window);
+      aw.errorWin(0, window);
       return void();
     }
   else
@@ -1095,18 +1117,18 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
       std::filesystem::path filepath = std::filesystem::u8path(filename);
       if(std::filesystem::exists(filepath))
 	{
-	  mw->errorWin(3, window);
+	  aw.errorWin(3, window);
 	  return void();
 	}
     }
   if(coll_path_ent->get_text().empty())
     {
-      mw->errorWin(5, window);
+      aw.errorWin(5, window);
       return void();
     }
   if(book_path_ent->get_text().empty())
     {
-      mw->errorWin(1, window);
+      aw.errorWin(1, window);
       return void();
     }
   std::string book_path(book_path_ent->get_text());
@@ -1295,18 +1317,23 @@ CollectionOpWindows::exportCollection()
   open->set_halign(Gtk::Align::CENTER);
   open->set_margin(5);
   open->set_label(gettext("Export as..."));
-  open->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openDialogCC), window.get(),
-		 exp_path_ent, 3));
+  MainWindow *mwl = mw;
+  open->signal_clicked().connect([mwl, window, exp_path_ent]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.openDialogCC(window.get(), exp_path_ent, 3);
+  });
   grid->attach(*open, 1, 3, 1, 1);
 
   Gtk::Button *confirm = Gtk::make_managed<Gtk::Button>();
   confirm->set_halign(Gtk::Align::START);
   confirm->set_margin(5);
   confirm->set_label(gettext("Export"));
-  confirm->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::exportCollectionFunc), cmb,
-		 exp_path_ent, window.get()));
+  confirm->signal_clicked().connect([mwl, cmb, exp_path_ent, window]
+  {
+    CollectionOpWindows copw(mwl);
+    copw.exportCollectionFunc(cmb, exp_path_ent, window.get());
+  });
   grid->attach(*confirm, 0, 4, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -1333,7 +1360,8 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   std::string filename(exp_path_ent->get_text());
   if(filename.empty())
     {
-      mw->errorWin(6, win);
+      AuxWindows aw(mw);
+      aw.errorWin(6, win);
       return void();
     }
   std::string coll_nm(cmb->get_active_text());

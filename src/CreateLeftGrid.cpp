@@ -240,8 +240,13 @@ CreateLeftGrid::formLeftGrid()
   searchbut->set_margin(5);
   searchbut->set_label(gettext("Search"));
   searchbut->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::searchBook), collect_box,
-		 surname_ent, name_ent, secname_ent, booknm_ent, ser_ent));
+      [mwl, collect_box, surname_ent, name_ent, secname_ent, booknm_ent,
+       ser_ent]
+      {
+	BookOpWindows bopw(mwl);
+	bopw.searchBook(collect_box, surname_ent, name_ent, secname_ent,
+			booknm_ent, ser_ent);
+      });
   left_gr->attach(*searchbut, 0, 16, 1, 1);
   mw->set_default_widget(*searchbut);
 

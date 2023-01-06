@@ -197,18 +197,25 @@ AuxWindows::bookmarkWindow()
   columni->cell_get_size(x, y, w, h);
   scrl->set_min_content_height(10 * h);
 
+  MainWindow *mwl = mw;
   Glib::RefPtr<Gio::SimpleActionGroup> acgroup =
       Gio::SimpleActionGroup::create();
-  acgroup->add_action("openbook",
-		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 2));
-  acgroup->add_action(
-      "removebook",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2,
-		 window.get()));
-  acgroup->add_action(
-      "copyto",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
-		 window.get()));
+  acgroup->add_action("openbook", [mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.openBook(2);
+  });
+  acgroup->add_action("removebook", [mwl, window]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.bookRemoveWin(2, window.get(), mwl->bm_tv);
+  });
+  acgroup->add_action("copyto", [mwl, window]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.copyTo(mwl->bm_tv, 2, window.get());
+  });
+
   mw->bm_tv->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
@@ -233,28 +240,35 @@ AuxWindows::bookmarkWindow()
   o_book->set_margin(5);
   o_book->set_halign(Gtk::Align::CENTER);
   o_book->set_label(gettext("Open selected book"));
-  o_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 2));
+  o_book->signal_clicked().connect([mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.openBook(2);
+  });
   grid->attach(*o_book, 0, 1, 1, 1);
 
   Gtk::Button *copy_book = Gtk::make_managed<Gtk::Button>();
   copy_book->set_margin(5);
   copy_book->set_halign(Gtk::Align::CENTER);
   copy_book->set_label(gettext("Save book as..."));
-  copy_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), mw->bm_tv, 2,
-		 window.get()));
+  copy_book->signal_clicked().connect([mwl, window]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.copyTo(mwl->bm_tv, 2, window.get());
+  });
   grid->attach(*copy_book, 1, 1, 1, 1);
 
   Gtk::Button *del_book = Gtk::make_managed<Gtk::Button>();
   del_book->set_margin(5);
   del_book->set_halign(Gtk::Align::CENTER);
   del_book->set_label(gettext("Remove selected book from book-marks"));
-  del_book->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 2,
-		 window.get()));
+  del_book->signal_clicked().connect([mwl, window]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.bookRemoveWin(2, window.get(), mwl->bm_tv);
+  });
+
   grid->attach(*del_book, 2, 1, 1, 1);
-  MainWindow *mwl = mw;
   window->signal_close_request().connect([mwl, window]
   {
     mwl->bookmark_v.clear();
@@ -276,7 +290,7 @@ AuxWindows::aboutProg()
   aboutd->set_application(mw->get_application());
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("2.0");
+  aboutd->set_version("2.0.1");
   aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());

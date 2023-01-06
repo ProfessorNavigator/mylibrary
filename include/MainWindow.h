@@ -53,21 +53,7 @@ private:
   void
   mainWindow();
   void
-  collectionCreate();
-  void
-  collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
-		   Gtk::CheckButton *rem_empty_ch, int variant);
-  void
-  collectionOp(int variant);
-  void
-  collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
-		       Gtk::Entry *thr_ent, Gtk::Window *par_win);
-  void
   creationPulseWin(Gtk::Window *window, std::shared_ptr<int> cncl);
-  void
-  openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant);
-  void
-  errorWin(int type, Gtk::Window *par_win);
   void
   formCollCombo(Gtk::ComboBoxText *combo);
   void
@@ -75,46 +61,18 @@ private:
   void
   drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
   void
-  openBook(int variant);
-  void
-  copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win);
-  void
-  saveDialog(std::filesystem::path filepath, bool archive, Gtk::Window *win);
-  void
-  bookRemoveWin(int variant, Gtk::Window *win);
-  void
-  fileInfo();
-  void
-  editBook();
-  void
-  bookSaveRestore(Gtk::Window *win,
-		  std::vector<std::tuple<std::string, std::string>> *bookv,
-		  int variant);
-  void
   bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	     Gtk::Entry *book_nm_ent);
   void
   bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack);
   void
-  bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper);
-  void
   createBookmark();
-  void
-  bookmarkWindow();
-  void
-  importCollection();
-  void
-  importCollectionFunc(Gtk::Window *window, Gtk::Entry *coll_nm_ent,
-		       Gtk::Entry *coll_path_ent, Gtk::Entry *book_path_ent);
-  void
-  exportCollection();
-  void
-  exportCollectionFunc(Gtk::ComboBoxText *cmb, Gtk::Entry *exp_path_ent,
-		       Gtk::Window *win);
-  void
-  aboutProg();
   bool
   closeFunc();
+  Gdk::Rectangle
+  screenRes();
+  void
+  readCollection(Gtk::ComboBoxText *collect_box);
 
   Gtk::ProgressBar *coll_cr_prog = nullptr;
   int search_cancel = 0;
@@ -129,14 +87,6 @@ private:
       std::tuple<std::string, std::vector<std::tuple<std::string, std::string>>>> *genrev =
       nullptr;
   std::string prev_search_nm;
-  void
-  searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
-	     Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
-	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
-  Gdk::Rectangle
-  screenRes();
-  void
-  readCollection(Gtk::ComboBoxText *collect_box);
   std::vector<
       std::tuple<std::string, std::string, std::string, std::string,
 	  std::string, std::string>> search_result_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book

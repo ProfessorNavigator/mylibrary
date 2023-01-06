@@ -18,7 +18,7 @@
 #include "RefreshCollection.h"
 
 RefreshCollection::RefreshCollection(std::string collname, unsigned int thr_num,
-				     std::shared_ptr<int>cancel)
+				     std::shared_ptr<int> cancel)
 {
   this->collname = collname;
   this->cancel = cancel;
@@ -865,6 +865,7 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
   af.homePath(&filename);
   filename = filename + "/.MyLibrary/Collections/" + collname;
   std::filesystem::path filepath = std::filesystem::u8path(filename);
+  bookpath.clear();
   if(std::filesystem::exists(filepath))
     {
       for(auto &dirit : std::filesystem::directory_iterator(filepath))
@@ -873,9 +874,8 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	  std::string ext_p = p.filename().u8string();
 	  if(!std::filesystem::is_directory(p))
 	    {
-	      if(ext_p.find("base"))
+	      if(ext_p.find("base") != std::string::npos)
 		{
-		  bookpath.clear();
 		  std::fstream f;
 		  f.open(p, std::ios_base::in | std::ios_base::binary);
 		  if(f.is_open())
@@ -894,11 +894,11 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			    }
 			}
 		      f.close();
+		      std::cout << "Bpth " << bookpath << std::endl;
 		    }
 		}
-	      else if(ext_p.find("hash"))
+	      else if(ext_p.find("hash") != std::string::npos)
 		{
-		  bookpath.clear();
 		  std::fstream f;
 		  f.open(p, std::ios_base::in);
 		  if(f.is_open())

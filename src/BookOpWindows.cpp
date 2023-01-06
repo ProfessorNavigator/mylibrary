@@ -108,74 +108,85 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
 }
 
 void
-BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win)
+BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres)
 {
-  Glib::ustring msgtxt;
-  Gtk::Window *trans = nullptr;
-  if(variant == 1)
+  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+  if(selection)
     {
-      msgtxt =
-	  Glib::ustring(
-	      gettext(
-		  "This action will remove book from collection and file system. Continue?"));
-      trans = mw;
-    }
-  else if(variant == 2)
-    {
-      msgtxt = Glib::ustring(
-	  gettext("This action will remove book from bookmarks. Continue?"));
-      trans = win;
-    }
-
-  if(trans)
-    {
-      std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-	  Gtk::MessageDialog>(*trans, msgtxt, false, Gtk::MessageType::QUESTION,
-			      Gtk::ButtonsType::YES_NO, true);
-      msg->set_application(mw->get_application());
-
-      MainWindow *mwl = mw;
-      if(variant == 1)
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
 	{
-	  msg->signal_response().connect([mwl, msg]
-	  (int resp)
+	  Glib::ustring msgtxt;
+	  Gtk::Window *trans = nullptr;
+	  if(variant == 1)
 	    {
-	      if(resp == Gtk::ResponseType::YES)
-		{
-		  msg->close();
-		  BookOpWindows bopw(mwl);
-		  bopw.bookRemoveVar1();
-		}
-	      else if(resp == Gtk::ResponseType::NO)
-		{
-		  msg->close();
-		}
-	    });
-	}
-      else if(variant == 2)
-	{
-	  msg->signal_response().connect([msg, win, mwl]
-	  (int resp)
+	      msgtxt =
+		  Glib::ustring(
+		      gettext(
+			  "This action will remove book from collection and file system. Continue?"));
+	      trans = mw;
+	    }
+	  else if(variant == 2)
 	    {
-	      if(resp == Gtk::ResponseType::NO)
+	      msgtxt =
+		  Glib::ustring(
+		      gettext(
+			  "This action will remove book from bookmarks. Continue?"));
+	      trans = win;
+	    }
+
+	  if(trans)
+	    {
+	      std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
+		  Gtk::MessageDialog>(*trans, msgtxt, false,
+				      Gtk::MessageType::QUESTION,
+				      Gtk::ButtonsType::YES_NO, true);
+	      msg->set_application(mw->get_application());
+
+	      MainWindow *mwl = mw;
+	      if(variant == 1)
 		{
-		  msg->close();
+		  msg->signal_response().connect([mwl, msg]
+		  (int resp)
+		    {
+		      if(resp == Gtk::ResponseType::YES)
+			{
+			  msg->close();
+			  BookOpWindows bopw(mwl);
+			  bopw.bookRemoveVar1();
+			}
+		      else if(resp == Gtk::ResponseType::NO)
+			{
+			  msg->close();
+			}
+		    });
 		}
-	      else if(resp == Gtk::ResponseType::YES)
+	      else if(variant == 2)
 		{
-		  BookOpWindows bopw(mwl);
-		  bopw.bookRemoveVar2(win);
-		  msg->close();
+		  msg->signal_response().connect([msg, win, mwl]
+		  (int resp)
+		    {
+		      if(resp == Gtk::ResponseType::NO)
+			{
+			  msg->close();
+			}
+		      else if(resp == Gtk::ResponseType::YES)
+			{
+			  BookOpWindows bopw(mwl);
+			  bopw.bookRemoveVar2(win);
+			  msg->close();
+			}
+		    });
 		}
-	    });
+	      msg->signal_close_request().connect([msg]
+	      {
+		msg->hide();
+		return true;
+	      },
+						  false);
+	      msg->present();
+	    }
 	}
-      msg->signal_close_request().connect([msg]
-      {
-	msg->hide();
-	return true;
-      },
-					  false);
-      msg->present();
     }
 }
 
@@ -225,7 +236,8 @@ BookOpWindows::bookRemoveVar1()
       Glib::Dispatcher>();
   disp_file_nexists->connect([mwl]
   {
-    mwl->errorWin(7, mwl);
+    AuxWindows aw(mwl);
+    aw.errorWin(7, mwl);
   });
   rc->collection_not_exists = [disp_file_nexists]
   {
@@ -642,309 +654,316 @@ BookOpWindows::editBook()
 	  std::get<0>(ttup) = "filepath";
 	  std::get<1>(ttup) = std::get<5>(mw->search_result_v[id - 1]);
 	  bookv->push_back(ttup);
-	}
-    }
 
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Book entry editor"));
-  window->set_transient_for(*mw);
-  window->set_modal(true);
+	  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+	  window->set_application(mw->get_application());
+	  window->set_title(gettext("Book entry editor"));
+	  window->set_transient_for(*mw);
+	  window->set_modal(true);
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::FILL);
-  window->set_child(*grid);
+	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+	  grid->set_halign(Gtk::Align::FILL);
+	  grid->set_valign(Gtk::Align::FILL);
+	  window->set_child(*grid);
 
-  Gtk::Label *auth_lb = Gtk::make_managed<Gtk::Label>();
-  auth_lb->set_halign(Gtk::Align::START);
-  auth_lb->set_margin(5);
-  auth_lb->set_text(gettext("Author:"));
-  grid->attach(*auth_lb, 0, 0, 1, 1);
+	  Gtk::Label *auth_lb = Gtk::make_managed<Gtk::Label>();
+	  auth_lb->set_halign(Gtk::Align::START);
+	  auth_lb->set_margin(5);
+	  auth_lb->set_text(gettext("Author:"));
+	  grid->attach(*auth_lb, 0, 0, 1, 1);
 
-  Gtk::Entry *auth_ent = Gtk::make_managed<Gtk::Entry>();
-  auth_ent->set_halign(Gtk::Align::START);
-  auth_ent->set_margin(5);
-  auth_ent->set_width_chars(80);
-  auto itbv = std::find_if(bookv->begin(), bookv->end(), []
-  (auto &el)
-    {
-      return std::get<0>(el) == "Author";
-    });
-  if(itbv != bookv->end())
-    {
-      auth_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
-    }
-  grid->attach(*auth_ent, 0, 1, 3, 1);
-
-  Gtk::Label *book_lb = Gtk::make_managed<Gtk::Label>();
-  book_lb->set_halign(Gtk::Align::START);
-  book_lb->set_margin(5);
-  book_lb->set_text(gettext("Book:"));
-  grid->attach(*book_lb, 0, 2, 1, 1);
-
-  Gtk::Entry *book_ent = Gtk::make_managed<Gtk::Entry>();
-  book_ent->set_halign(Gtk::Align::START);
-  book_ent->set_margin(5);
-  book_ent->set_width_chars(80);
-  itbv = std::find_if(bookv->begin(), bookv->end(), []
-  (auto &el)
-    {
-      return std::get<0>(el) == "Book";
-    });
-  if(itbv != bookv->end())
-    {
-      book_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
-    }
-  grid->attach(*book_ent, 0, 3, 3, 1);
-
-  Gtk::Label *series_lb = Gtk::make_managed<Gtk::Label>();
-  series_lb->set_halign(Gtk::Align::START);
-  series_lb->set_margin(5);
-  series_lb->set_text(gettext("Series:"));
-  grid->attach(*series_lb, 0, 4, 1, 1);
-
-  Gtk::Entry *series_ent = Gtk::make_managed<Gtk::Entry>();
-  series_ent->set_halign(Gtk::Align::START);
-  series_ent->set_margin(5);
-  series_ent->set_width_chars(80);
-  itbv = std::find_if(bookv->begin(), bookv->end(), []
-  (auto &el)
-    {
-      return std::get<0>(el) == "Series";
-    });
-  if(itbv != bookv->end())
-    {
-      series_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
-    }
-  grid->attach(*series_ent, 0, 5, 3, 1);
-
-  Gtk::Label *genre_lb = Gtk::make_managed<Gtk::Label>();
-  genre_lb->set_halign(Gtk::Align::START);
-  genre_lb->set_margin(5);
-  genre_lb->set_text(gettext("Genre:"));
-  grid->attach(*genre_lb, 0, 6, 1, 1);
-
-  Gtk::Entry *genre_ent = Gtk::make_managed<Gtk::Entry>();
-  genre_ent->set_halign(Gtk::Align::START);
-  genre_ent->set_margin(5);
-  genre_ent->set_width_chars(80);
-  itbv = std::find_if(bookv->begin(), bookv->end(), []
-  (auto &el)
-    {
-      return std::get<0>(el) == "Genre";
-    });
-  if(itbv != bookv->end())
-    {
-      genre_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
-    }
-  grid->attach(*genre_ent, 0, 7, 3, 1);
-
-  Gtk::Label *addgenre_lb = Gtk::make_managed<Gtk::Label>();
-  addgenre_lb->set_halign(Gtk::Align::START);
-  addgenre_lb->set_margin(5);
-  addgenre_lb->set_text(gettext("Add genre:"));
-  grid->attach(*addgenre_lb, 0, 8, 1, 1);
-
-  Gtk::MenuButton *genre_but = Gtk::make_managed<Gtk::MenuButton>();
-  genre_but->set_halign(Gtk::Align::START);
-  genre_but->set_margin(5);
-  genre_but->set_label(gettext("<No>"));
-
-  Gtk::ScrolledWindow *scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
-  scrl->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
-  Gtk::Grid *scrl_gr = Gtk::make_managed<Gtk::Grid>();
-  scrl_gr->set_halign(Gtk::Align::START);
-
-  Gtk::Popover *popover = Gtk::make_managed<Gtk::Popover>();
-  popover->set_child(*scrl);
-  genre_but->set_popover(*popover);
-
-  int maxl = 0;
-  Gtk::Expander *maxexp = nullptr;
-  for(size_t i = 0; i < mw->genrev->size(); i++)
-    {
-      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
-
-      if(i == 0)
-	{
-	  Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
-	  txtl->set_margin(2);
-	  txtl->set_halign(Gtk::Align::START);
-	  txtl->set_text(g_group);
-	  Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
-	  clck->set_button(1);
-	  clck->signal_pressed().connect([txtl, genre_but]
-	  (int but, double x, double y)
+	  Gtk::Entry *auth_ent = Gtk::make_managed<Gtk::Entry>();
+	  auth_ent->set_halign(Gtk::Align::START);
+	  auth_ent->set_margin(5);
+	  auth_ent->set_width_chars(80);
+	  auto itbv = std::find_if(bookv->begin(), bookv->end(), []
+	  (auto &el)
 	    {
-	      genre_but->set_label(txtl->get_text());
-	      genre_but->popdown();
+	      return std::get<0>(el) == "Author";
 	    });
-	  txtl->add_controller(clck);
-	  scrl_gr->attach(*txtl, 0, i, 1, 1);
-	}
-      else
-	{
-	  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
-	  std::vector<std::tuple<std::string, std::string>> tmpv = std::get<1>(
-	      mw->genrev->at(i));
-	  chexp->set_halign(Gtk::Align::START);
-	  chexp->set_margin(2);
-	  chexp->set_expanded(false);
-	  chexp->set_label(g_group);
-	  Gtk::Grid *chexp_gr = Gtk::make_managed<Gtk::Grid>();
-	  chexp_gr->set_halign(Gtk::Align::CENTER);
-	  chexp->set_child(*chexp_gr);
-
-	  if(int(g_group.size()) > maxl)
+	  if(itbv != bookv->end())
 	    {
-	      maxl = g_group.size();
-	      maxexp = chexp;
+	      auth_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
 	    }
+	  grid->attach(*auth_ent, 0, 1, 3, 1);
 
-	  for(size_t j = 0; j < tmpv.size(); j++)
-	    {
-	      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
-	      txtl->set_margin(2);
-	      txtl->set_halign(Gtk::Align::END);
-	      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
-	      std::string code = std::get<0>(tmpv[j]);
-	      Glib::RefPtr<Gtk::GestureClick> clck =
-		  Gtk::GestureClick::create();
-	      clck->set_button(1);
-	      clck->signal_pressed().connect(
-		  [chexp, txtl, genre_but, code, genre_ent]
-		  (int but,
-		   double x,
-		   double y)
-		     {
-		       std::string ent(genre_ent->get_text());
-		       ent.erase(std::remove_if(ent.begin(), ent.end(), [](auto &el)
-				 {
-				   return el == ' ';
-				 }), ent.end());
-		       if(!ent.empty() && code != "nill")
-			 {
-			   ent = std::string(genre_ent->get_text());
-			   ent = ent + ", " + code;
-			   genre_ent->set_text(Glib::ustring(ent));
-			 }
-		       else
-			 {
-			   ent = code;
-			   genre_ent->set_text(Glib::ustring(ent));
-			 }
-		       genre_but->popdown();
-		     });
-	      txtl->add_controller(clck);
-	      chexp_gr->attach(*txtl, 0, j, 1, 1);
-	    }
-	  scrl_gr->attach(*chexp, 0, i, 1, 1);
-	}
-    }
-  int gvsz = mw->genrev->size();
+	  Gtk::Label *book_lb = Gtk::make_managed<Gtk::Label>();
+	  book_lb->set_halign(Gtk::Align::START);
+	  book_lb->set_margin(5);
+	  book_lb->set_text(gettext("Book:"));
+	  grid->attach(*book_lb, 0, 2, 1, 1);
 
-  if(maxexp != nullptr)
-    {
-      Gtk::Requisition minreq, natreq;
-      maxexp->get_preferred_size(minreq, natreq);
-      Gdk::Rectangle req = mw->screenRes();
-      if(natreq.get_width() < req.get_width())
-	{
-	  scrl->set_min_content_width(natreq.get_width());
-	}
-      else
-	{
-	  int width = natreq.get_width();
-	  while(width > req.get_width())
+	  Gtk::Entry *book_ent = Gtk::make_managed<Gtk::Entry>();
+	  book_ent->set_halign(Gtk::Align::START);
+	  book_ent->set_margin(5);
+	  book_ent->set_width_chars(80);
+	  itbv = std::find_if(bookv->begin(), bookv->end(), []
+	  (auto &el)
 	    {
-	      width--;
+	      return std::get<0>(el) == "Book";
+	    });
+	  if(itbv != bookv->end())
+	    {
+	      book_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
 	    }
-	  scrl->set_min_content_width(width);
-	}
+	  grid->attach(*book_ent, 0, 3, 3, 1);
 
-      if(gvsz > 0)
-	{
-	  if(natreq.get_height() * gvsz < req.get_height())
+	  Gtk::Label *series_lb = Gtk::make_managed<Gtk::Label>();
+	  series_lb->set_halign(Gtk::Align::START);
+	  series_lb->set_margin(5);
+	  series_lb->set_text(gettext("Series:"));
+	  grid->attach(*series_lb, 0, 4, 1, 1);
+
+	  Gtk::Entry *series_ent = Gtk::make_managed<Gtk::Entry>();
+	  series_ent->set_halign(Gtk::Align::START);
+	  series_ent->set_margin(5);
+	  series_ent->set_width_chars(80);
+	  itbv = std::find_if(bookv->begin(), bookv->end(), []
+	  (auto &el)
 	    {
-	      scrl->set_min_content_height(natreq.get_height() * gvsz);
+	      return std::get<0>(el) == "Series";
+	    });
+	  if(itbv != bookv->end())
+	    {
+	      series_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
 	    }
-	  else
+	  grid->attach(*series_ent, 0, 5, 3, 1);
+
+	  Gtk::Label *genre_lb = Gtk::make_managed<Gtk::Label>();
+	  genre_lb->set_halign(Gtk::Align::START);
+	  genre_lb->set_margin(5);
+	  genre_lb->set_text(gettext("Genre:"));
+	  grid->attach(*genre_lb, 0, 6, 1, 1);
+
+	  Gtk::Entry *genre_ent = Gtk::make_managed<Gtk::Entry>();
+	  genre_ent->set_halign(Gtk::Align::START);
+	  genre_ent->set_margin(5);
+	  genre_ent->set_width_chars(80);
+	  itbv = std::find_if(bookv->begin(), bookv->end(), []
+	  (auto &el)
 	    {
-	      int height = natreq.get_height() * gvsz;
-	      while(height > req.get_height())
+	      return std::get<0>(el) == "Genre";
+	    });
+	  if(itbv != bookv->end())
+	    {
+	      genre_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	    }
+	  grid->attach(*genre_ent, 0, 7, 3, 1);
+
+	  Gtk::Label *addgenre_lb = Gtk::make_managed<Gtk::Label>();
+	  addgenre_lb->set_halign(Gtk::Align::START);
+	  addgenre_lb->set_margin(5);
+	  addgenre_lb->set_text(gettext("Add genre:"));
+	  grid->attach(*addgenre_lb, 0, 8, 1, 1);
+
+	  Gtk::MenuButton *genre_but = Gtk::make_managed<Gtk::MenuButton>();
+	  genre_but->set_halign(Gtk::Align::START);
+	  genre_but->set_margin(5);
+	  genre_but->set_label(gettext("<No>"));
+
+	  Gtk::ScrolledWindow *scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
+	  scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
+			   Gtk::PolicyType::AUTOMATIC);
+	  Gtk::Grid *scrl_gr = Gtk::make_managed<Gtk::Grid>();
+	  scrl_gr->set_halign(Gtk::Align::START);
+
+	  Gtk::Popover *popover = Gtk::make_managed<Gtk::Popover>();
+	  popover->set_child(*scrl);
+	  genre_but->set_popover(*popover);
+
+	  int maxl = 0;
+	  Gtk::Expander *maxexp = nullptr;
+	  for(size_t i = 0; i < mw->genrev->size(); i++)
+	    {
+	      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
+
+	      if(i == 0)
 		{
-		  height = height - natreq.get_height();
+		  Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
+		  txtl->set_margin(2);
+		  txtl->set_halign(Gtk::Align::START);
+		  txtl->set_text(g_group);
+		  Glib::RefPtr<Gtk::GestureClick> clck =
+		      Gtk::GestureClick::create();
+		  clck->set_button(1);
+		  clck->signal_pressed().connect([txtl, genre_but]
+		  (int but, double x, double y)
+		    {
+		      genre_but->set_label(txtl->get_text());
+		      genre_but->popdown();
+		    });
+		  txtl->add_controller(clck);
+		  scrl_gr->attach(*txtl, 0, i, 1, 1);
 		}
-	      scrl->set_min_content_height(height);
+	      else
+		{
+		  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
+		  std::vector<std::tuple<std::string, std::string>> tmpv =
+		      std::get<1>(mw->genrev->at(i));
+		  chexp->set_halign(Gtk::Align::START);
+		  chexp->set_margin(2);
+		  chexp->set_expanded(false);
+		  chexp->set_label(g_group);
+		  Gtk::Grid *chexp_gr = Gtk::make_managed<Gtk::Grid>();
+		  chexp_gr->set_halign(Gtk::Align::CENTER);
+		  chexp->set_child(*chexp_gr);
+
+		  if(int(g_group.size()) > maxl)
+		    {
+		      maxl = g_group.size();
+		      maxexp = chexp;
+		    }
+
+		  for(size_t j = 0; j < tmpv.size(); j++)
+		    {
+		      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
+		      txtl->set_margin(2);
+		      txtl->set_halign(Gtk::Align::END);
+		      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
+		      std::string code = std::get<0>(tmpv[j]);
+		      Glib::RefPtr<Gtk::GestureClick> clck =
+			  Gtk::GestureClick::create();
+		      clck->set_button(1);
+		      clck->signal_pressed().connect(
+			  [chexp, txtl, genre_but, code, genre_ent]
+			  (int but,
+			   double x,
+			   double y)
+			     {
+			       std::string ent(genre_ent->get_text());
+			       ent.erase(std::remove_if(ent.begin(), ent.end(), [](auto &el)
+					 {
+					   return el == ' ';
+					 }), ent.end());
+			       if(!ent.empty() && code != "nill")
+				 {
+				   ent = std::string(genre_ent->get_text());
+				   ent = ent + ", " + code;
+				   genre_ent->set_text(Glib::ustring(ent));
+				 }
+			       else
+				 {
+				   ent = code;
+				   genre_ent->set_text(Glib::ustring(ent));
+				 }
+			       genre_but->popdown();
+			     });
+		      txtl->add_controller(clck);
+		      chexp_gr->attach(*txtl, 0, j, 1, 1);
+		    }
+		  scrl_gr->attach(*chexp, 0, i, 1, 1);
+		}
 	    }
+	  int gvsz = mw->genrev->size();
+
+	  if(maxexp != nullptr)
+	    {
+	      Gtk::Requisition minreq, natreq;
+	      maxexp->get_preferred_size(minreq, natreq);
+	      Gdk::Rectangle req = mw->screenRes();
+	      if(natreq.get_width() < req.get_width())
+		{
+		  scrl->set_min_content_width(natreq.get_width());
+		}
+	      else
+		{
+		  int width = natreq.get_width();
+		  while(width > req.get_width())
+		    {
+		      width--;
+		    }
+		  scrl->set_min_content_width(width);
+		}
+
+	      if(gvsz > 0)
+		{
+		  if(natreq.get_height() * gvsz < req.get_height())
+		    {
+		      scrl->set_min_content_height(natreq.get_height() * gvsz);
+		    }
+		  else
+		    {
+		      int height = natreq.get_height() * gvsz;
+		      while(height > req.get_height())
+			{
+			  height = height - natreq.get_height();
+			}
+		      scrl->set_min_content_height(height);
+		    }
+		}
+	    }
+	  scrl->set_child(*scrl_gr);
+	  Gtk::Requisition minreq, natreq;
+	  maxexp->get_preferred_size(minreq, natreq);
+	  genre_but->set_size_request(natreq.get_width(), -1);
+	  grid->attach(*genre_but, 0, 9, 2, 1);
+
+	  Gtk::Label *date_lb = Gtk::make_managed<Gtk::Label>();
+	  date_lb->set_halign(Gtk::Align::START);
+	  date_lb->set_margin(5);
+	  date_lb->set_text(gettext("Date:"));
+	  grid->attach(*date_lb, 0, 10, 1, 1);
+
+	  Gtk::Entry *date_ent = Gtk::make_managed<Gtk::Entry>();
+	  date_ent->set_halign(Gtk::Align::START);
+	  date_ent->set_margin(5);
+	  date_ent->set_width_chars(30);
+	  itbv = std::find_if(bookv->begin(), bookv->end(), []
+	  (auto &el)
+	    {
+	      return std::get<0>(el) == "Date";
+	    });
+	  if(itbv != bookv->end())
+	    {
+	      date_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
+	    }
+	  grid->attach(*date_ent, 0, 11, 3, 1);
+
+	  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
+	  save->set_halign(Gtk::Align::CENTER);
+	  save->set_margin(5);
+	  save->set_label(gettext("Save"));
+	  MainWindow *mwl = mw;
+	  save->signal_clicked().connect(
+	      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl,
+	       window]
+	      {
+		BookOpWindows bopw(mwl);
+		bopw.bookSaveRestore(window.get(), bookv.get(), 1);
+	      });
+	  grid->attach(*save, 0, 12, 1, 1);
+
+	  Gtk::Button *restore = Gtk::make_managed<Gtk::Button>();
+	  restore->set_halign(Gtk::Align::CENTER);
+	  restore->set_margin(5);
+	  restore->set_label(gettext("Restore"));
+	  restore->signal_clicked().connect(
+	      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl,
+	       window]
+	      {
+		BookOpWindows bopw(mwl);
+		bopw.bookSaveRestore(window.get(), bookv.get(), 2);
+	      });
+	  grid->attach(*restore, 1, 12, 1, 1);
+
+	  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+	  cancel->set_halign(Gtk::Align::CENTER);
+	  cancel->set_margin(5);
+	  cancel->set_label(gettext("Cancel"));
+	  cancel->signal_clicked().connect(
+	      sigc::mem_fun(*window, &Gtk::Window::close));
+	  grid->attach(*cancel, 2, 12, 1, 1);
+
+	  window->signal_close_request().connect([window, bookv]
+	  {
+	    bookv->clear();
+	    window->hide();
+	    return true;
+	  },
+						 false);
+	  window->present();
 	}
     }
-  scrl->set_child(*scrl_gr);
-  Gtk::Requisition minreq, natreq;
-  maxexp->get_preferred_size(minreq, natreq);
-  genre_but->set_size_request(natreq.get_width(), -1);
-  grid->attach(*genre_but, 0, 9, 2, 1);
-
-  Gtk::Label *date_lb = Gtk::make_managed<Gtk::Label>();
-  date_lb->set_halign(Gtk::Align::START);
-  date_lb->set_margin(5);
-  date_lb->set_text(gettext("Date:"));
-  grid->attach(*date_lb, 0, 10, 1, 1);
-
-  Gtk::Entry *date_ent = Gtk::make_managed<Gtk::Entry>();
-  date_ent->set_halign(Gtk::Align::START);
-  date_ent->set_margin(5);
-  date_ent->set_width_chars(30);
-  itbv = std::find_if(bookv->begin(), bookv->end(), []
-  (auto &el)
-    {
-      return std::get<0>(el) == "Date";
-    });
-  if(itbv != bookv->end())
-    {
-      date_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
-    }
-  grid->attach(*date_ent, 0, 11, 3, 1);
-
-  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
-  save->set_halign(Gtk::Align::CENTER);
-  save->set_margin(5);
-  save->set_label(gettext("Save"));
-  MainWindow *mwl = mw;
-  save->signal_clicked().connect(
-      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
-      {
-	mwl->bookSaveRestore(window.get(), bookv.get(), 1);
-      });
-  grid->attach(*save, 0, 12, 1, 1);
-
-  Gtk::Button *restore = Gtk::make_managed<Gtk::Button>();
-  restore->set_halign(Gtk::Align::CENTER);
-  restore->set_margin(5);
-  restore->set_label(gettext("Restore"));
-  restore->signal_clicked().connect(
-      [bookv, auth_ent, book_ent, series_ent, genre_ent, date_ent, mwl, window]
-      {
-	mwl->bookSaveRestore(window.get(), bookv.get(), 2);
-      });
-  grid->attach(*restore, 1, 12, 1, 1);
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_halign(Gtk::Align::CENTER);
-  cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*cancel, 2, 12, 1, 1);
-
-  window->signal_close_request().connect([window, bookv]
-  {
-    bookv->clear();
-    window->hide();
-    return true;
-  },
-					 false);
-  window->present();
 }
 
 void
@@ -1222,4 +1241,344 @@ BookOpWindows::bookSaveRestore(
 	  date_ent->set_text(Glib::ustring(std::get<1>(*itbv)));
 	}
     }
+}
+
+void
+BookOpWindows::openBook(int variant)
+{
+  Glib::RefPtr<Gtk::TreeSelection> selection;
+  if(variant == 1)
+    {
+      Gtk::Widget *widg = mw->get_child();
+      Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
+      widg = main_grid->get_child_at(0, 1);
+      Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
+      widg = pn->get_end_child();
+      Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
+      widg = right_grid->get_child_at(0, 0);
+      Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
+      widg = sres_scrl->get_child();
+      Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
+      selection = sres->get_selection();
+    }
+  else if(variant == 2)
+    {
+      selection = mw->bm_tv->get_selection();
+    }
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  size_t id;
+	  AuxFunc af;
+	  std::filesystem::path filepath;
+	  iter->get_value(0, id);
+	  std::string filename;
+	  if(variant == 1)
+	    {
+	      filename = std::get<5>(mw->search_result_v[id - 1]);
+	    }
+	  else if(variant == 2)
+	    {
+	      filename = std::get<5>(mw->bookmark_v[id - 1]);
+	    }
+	  std::string::size_type n;
+	  n = filename.find("<zip>");
+	  if(n != std::string::npos)
+	    {
+	      std::string archpath = filename;
+	      archpath.erase(
+		  0,
+		  archpath.find("<archpath>")
+		      + std::string("<archpath>").size());
+	      archpath = archpath.substr(0, archpath.find("</archpath>"));
+	      std::string ind_str = filename;
+	      ind_str.erase(
+		  0, ind_str.find("<index>") + std::string("<index>").size());
+	      ind_str = ind_str.substr(0, ind_str.find("</index>"));
+	      std::stringstream strm;
+	      std::locale loc("C");
+	      strm.imbue(loc);
+	      strm << ind_str;
+	      int index;
+	      strm >> index;
+	      std::string outfolder;
+#ifdef __linux
+	      outfolder = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+	      outfolder =
+	      		  std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+	      outfolder = outfolder + "/MyLibraryForReading";
+	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
+	      if(std::filesystem::exists(ffr))
+		{
+		  std::filesystem::remove_all(ffr);
+		}
+	      af.unpackByIndex(archpath, outfolder, index);
+	      if(std::filesystem::exists(ffr))
+		{
+		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
+		    {
+		      std::filesystem::path p = dirit.path();
+		      if(!std::filesystem::is_directory(p))
+			{
+			  filepath = p;
+			  break;
+			}
+		    }
+		}
+	    }
+	  else
+	    {
+	      filepath = std::filesystem::u8path(filename);
+	    }
+	  if(std::filesystem::exists(filepath))
+	    {
+	      std::string commstr;
+#ifdef __linux
+	      commstr = "xdg-open \'" + filepath.u8string() + "\'";
+#endif
+#ifdef _WIN32
+	      commstr = filepath.u8string();
+#endif
+	      commstr = af.utf8to(commstr);
+#ifdef __linux
+	      int check = std::system(commstr.c_str());
+	      std::cout << "Book open command result code: " << check
+		  << std::endl;
+#endif
+#ifdef _WIN32
+	      ShellExecuteA (0, af.utf8to ("open").c_str (), commstr.c_str (), 0, 0, 0);
+#endif
+	    }
+	}
+    }
+}
+
+void
+BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
+{
+  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+  if(selection)
+    {
+      Gtk::TreeModel::iterator iter = selection->get_selected();
+      if(iter)
+	{
+	  size_t id;
+	  AuxFunc af;
+	  std::filesystem::path filepath;
+	  bool archive = false;
+	  iter->get_value(0, id);
+	  std::string filename;
+	  if(variant == 1)
+	    {
+	      filename = std::get<5>(mw->search_result_v[id - 1]);
+	    }
+	  else if(variant == 2)
+	    {
+	      filename = std::get<5>(mw->bookmark_v[id - 1]);
+	    }
+	  std::string::size_type n;
+	  n = filename.find("<zip>");
+	  if(n != std::string::npos)
+	    {
+	      std::string archpath = filename;
+	      archpath.erase(
+		  0,
+		  archpath.find("<archpath>")
+		      + std::string("<archpath>").size());
+	      archpath = archpath.substr(0, archpath.find("</archpath>"));
+	      std::string ind_str = filename;
+	      ind_str.erase(
+		  0, ind_str.find("<index>") + std::string("<index>").size());
+	      ind_str = ind_str.substr(0, ind_str.find("</index>"));
+	      std::stringstream strm;
+	      std::locale loc("C");
+	      strm.imbue(loc);
+	      strm << ind_str;
+	      int index;
+	      strm >> index;
+	      std::string outfolder;
+#ifdef __linux
+	      outfolder = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+	      outfolder =
+		  std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+	      outfolder = outfolder + "/" + af.randomFileName();
+	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
+	      if(std::filesystem::exists(ffr))
+		{
+		  std::filesystem::remove_all(ffr);
+		}
+	      af.unpackByIndex(archpath, outfolder, index);
+	      if(std::filesystem::exists(ffr))
+		{
+		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
+		    {
+		      std::filesystem::path p = dirit.path();
+		      if(!std::filesystem::is_directory(p))
+			{
+			  filepath = p;
+			  break;
+			}
+		    }
+		}
+	      archive = true;
+	    }
+	  else if(!filename.empty())
+	    {
+	      filepath = std::filesystem::u8path(filename);
+	    }
+
+	  if(std::filesystem::exists(filepath))
+	    {
+	      BookOpWindows bopw(mw);
+	      bopw.saveDialog(filepath, archive, win);
+	    }
+	}
+    }
+}
+
+void
+BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
+			  Gtk::Window *win)
+{
+  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+  window->set_application(mw->get_application());
+  window->set_title(gettext("Save as..."));
+  window->set_transient_for(*win);
+  window->set_modal(true);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  window->set_child(*grid);
+
+  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
+  fchw->set_action(Gtk::FileChooser::Action::SAVE);
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
+  fchw->set_current_folder(fl);
+  fchw->set_current_name(Glib::ustring(filepath.filename().u8string()));
+  fchw->set_select_multiple(false);
+  fchw->set_margin(5);
+  grid->attach(*fchw, 0, 0, 2, 1);
+
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_halign(Gtk::Align::START);
+  cancel->set_margin(5);
+  cancel->set_label(gettext("Cancel"));
+  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  grid->attach(*cancel, 0, 1, 1, 1);
+
+  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
+  save->set_halign(Gtk::Align::END);
+  save->set_margin(5);
+  save->set_label(gettext("Save"));
+  save->set_name("applyBut");
+  save->get_style_context()->add_provider(mw->css_provider,
+  GTK_STYLE_PROVIDER_PRIORITY_USER);
+  MainWindow *mwl = mw;
+  save->signal_clicked().connect(
+      [window, fchw, filepath, mwl, win]
+      {
+	Glib::RefPtr<Gio::File> fl = fchw->get_file();
+	std::string loc;
+	if(fl)
+	  {
+	    loc = fl->get_path();
+	    std::filesystem::path outpath = std::filesystem::u8path(loc);
+	    if(!std::filesystem::exists(outpath))
+	      {
+		std::filesystem::copy(filepath, outpath);
+		window->close();
+		AuxWindows aw(mwl);
+		aw.errorWin(9, win);
+	      }
+	    else
+	      {
+		Glib::ustring msgtxt = Glib::ustring(outpath.u8string())
+		    + Glib::ustring(gettext(" already exists. Replace?"));
+		std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
+		    Gtk::MessageDialog>(*window, msgtxt, false,
+					Gtk::MessageType::QUESTION,
+					Gtk::ButtonsType::YES_NO, true);
+		msg->set_application(mwl->get_application());
+		msg->signal_response().connect(
+		    [msg, window, mwl, outpath, filepath, win]
+		    (int resp)
+		      {
+			if(resp == Gtk::ResponseType::NO)
+			  {
+			    msg->close();
+			  }
+			else if(resp == Gtk::ResponseType::YES)
+			  {
+			    std::filesystem::remove_all(outpath);
+			    std::filesystem::copy(filepath, outpath);
+			    msg->close();
+			    window->close();
+			    AuxWindows aw(mwl);
+			    aw.errorWin(9, win);
+			  }
+		      });
+
+		msg->signal_close_request().connect([msg]
+		{
+		  msg->hide();
+		  return true;
+		},
+						    false);
+		msg->present();
+	      }
+	  }
+	else
+	  {
+	    std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
+		Gtk::MessageDialog>(*window, gettext("File path is not valid!"),
+				    false, Gtk::MessageType::INFO,
+				    Gtk::ButtonsType::CLOSE, true);
+	    msg->set_application(mwl->get_application());
+	    msg->signal_response().connect([msg]
+	    (int resp)
+	      {
+		if(resp == Gtk::ResponseType::CLOSE)
+		  {
+		    msg->close();
+		  }
+	      });
+
+	    msg->signal_close_request().connect([msg]
+	    {
+	      msg->hide();
+	      return true;
+	    },
+						false);
+	    msg->present();
+	  }
+      });
+  grid->attach(*save, 1, 1, 1, 1);
+
+  window->signal_close_request().connect([window, archive, filepath]
+  {
+    if(archive)
+      {
+	if(std::filesystem::exists(filepath.parent_path()))
+	  {
+	    std::filesystem::remove_all(filepath.parent_path());
+	  }
+      }
+    window->hide();
+    return true;
+  },
+					 false);
+
+  window->present();
 }

@@ -56,20 +56,40 @@ CreateRightGrid::formRightGrid()
   sres->signal_row_activated().connect(
       sigc::mem_fun(*mw, &MainWindow::rowActivated));
   sres->set_hexpand(true);
+
+  MainWindow *mwl = mw;
   Glib::RefPtr<Gio::SimpleActionGroup> acgroup =
       Gio::SimpleActionGroup::create();
-  acgroup->add_action("openbook",
-		      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
-  acgroup->add_action("fileinfo", sigc::mem_fun(*mw, &MainWindow::fileInfo));
-  acgroup->add_action(
-      "copyto",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
-  acgroup->add_action(
-      "removebook",
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
+  acgroup->add_action("openbook", [mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.openBook(1);
+  });
+  acgroup->add_action("fileinfo", [mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.fileInfo();
+  });
+
+  acgroup->add_action("copyto", [mwl, sres]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.copyTo(sres, 1, mwl);
+  });
+
+  acgroup->add_action("removebook", [mwl, sres]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.bookRemoveWin(1, nullptr, sres);
+  });
+
   acgroup->add_action("bookmark",
 		      sigc::mem_fun(*mw, &MainWindow::createBookmark));
-  acgroup->add_action("editbook", sigc::mem_fun(*mw, &MainWindow::editBook));
+  acgroup->add_action("editbook", [mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.editBook();
+  });
   sres->insert_action_group("popup", acgroup);
   Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
   menu->append(gettext("Open book"), "popup.openbook");
@@ -102,8 +122,11 @@ CreateRightGrid::formRightGrid()
   openbook->set_valign(Gtk::Align::CENTER);
   openbook->set_margin(5);
   openbook->set_label(gettext("Open selected book"));
-  openbook->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::openBook), 1));
+  openbook->signal_clicked().connect([mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.openBook(1);
+  });
   book_op_pop_gr->attach(*openbook, 0, 0, 1, 1);
 
   Gtk::Button *fileinfo = Gtk::make_managed<Gtk::Button>();
@@ -111,7 +134,11 @@ CreateRightGrid::formRightGrid()
   fileinfo->set_valign(Gtk::Align::CENTER);
   fileinfo->set_margin(5);
   fileinfo->set_label(gettext("File info"));
-  fileinfo->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::fileInfo));
+  fileinfo->signal_clicked().connect([mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.fileInfo();
+  });
   book_op_pop_gr->attach(*fileinfo, 0, 1, 1, 1);
 
   Gtk::Button *bookmark = Gtk::make_managed<Gtk::Button>();
@@ -128,7 +155,11 @@ CreateRightGrid::formRightGrid()
   editbook->set_valign(Gtk::Align::CENTER);
   editbook->set_margin(5);
   editbook->set_label(gettext("Edit book entry"));
-  editbook->signal_clicked().connect(sigc::mem_fun(*mw, &MainWindow::editBook));
+  editbook->signal_clicked().connect([mwl]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.editBook();
+  });
   book_op_pop_gr->attach(*editbook, 0, 3, 1, 1);
 
   Gtk::Button *copyto = Gtk::make_managed<Gtk::Button>();
@@ -136,8 +167,11 @@ CreateRightGrid::formRightGrid()
   copyto->set_valign(Gtk::Align::CENTER);
   copyto->set_margin(5);
   copyto->set_label(gettext("Save book as..."));
-  copyto->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::copyTo), sres, 1, mw));
+  copyto->signal_clicked().connect([mwl, sres]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.copyTo(sres, 1, mwl);
+  });
   book_op_pop_gr->attach(*copyto, 0, 4, 1, 1);
 
   Gtk::Button *removebook = Gtk::make_managed<Gtk::Button>();
@@ -145,8 +179,11 @@ CreateRightGrid::formRightGrid()
   removebook->set_valign(Gtk::Align::CENTER);
   removebook->set_margin(5);
   removebook->set_label(gettext("Remove book"));
-  removebook->signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookRemoveWin), 1, nullptr));
+  removebook->signal_clicked().connect([mwl, sres]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.bookRemoveWin(1, nullptr, sres);
+  });
   book_op_pop_gr->attach(*removebook, 0, 5, 1, 1);
 
   Gtk::Popover *book_op_pop = Gtk::make_managed<Gtk::Popover>();
@@ -184,7 +221,6 @@ CreateRightGrid::formRightGrid()
   drar->set_vexpand(false);
   right_grid->attach(*drar, 1, 2, 1, 1);
 
-  MainWindow *mwl = mw;
   mw->signal_show().connect([mwl]
   {
     Gdk::Rectangle scr_res = mwl->screenRes();
@@ -315,7 +351,7 @@ CreateRightGrid::searchResultShow(int variant)
 	  row[series] = std::get<2>(mw->bookmark_v[i]);
 	}
 
-      std::shared_ptr<std::string>genre_str = std::make_shared<std::string>();
+      std::shared_ptr<std::string> genre_str = std::make_shared<std::string>();
       std::vector<std::string> genre_v;
       std::string::size_type genre_n = 0;
       std::string tmp;

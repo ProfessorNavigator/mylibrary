@@ -32,7 +32,7 @@ public:
 	     Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
 	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
   void
-  bookRemoveWin(int variant, Gtk::Window *win);
+  bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres);
   void
   bookRemoveVar1();
   void
@@ -45,6 +45,12 @@ public:
   bookSaveRestore(Gtk::Window *win,
 		  std::vector<std::tuple<std::string, std::string>> *bookv,
 		  int variant);
+  void
+  openBook(int variant);
+  void
+  copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win);
+  void
+  saveDialog(std::filesystem::path filepath, bool archive, Gtk::Window *win);
 private:
   MainWindow *mw;
 };
