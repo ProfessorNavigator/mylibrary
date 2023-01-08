@@ -509,25 +509,20 @@ void
 MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 		       Gtk::Entry *book_nm_ent)
 {
-  Gtk::Window *fch = new Gtk::Window;
-  fch->set_application(this->get_application());
-  fch->set_title(gettext("Choose a book"));
-  fch->set_transient_for(*win);
-  fch->set_modal(true);
+  Gtk::FileChooserDialog *fchd = new Gtk::FileChooserDialog(
+      *win, gettext("Choose a book"), Gtk::FileChooser::Action::OPEN, false);
+  fchd->set_application(this->get_application());
+  fchd->set_modal(true);
+  fchd->set_select_multiple(false);
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::FILL);
-  fch->set_child(*grid);
+  Gtk::Box *cont = fchd->get_content_area();
+  cont->set_margin(5);
 
   std::string filename;
   AuxFunc af;
   af.homePath(&filename);
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
-  fchw->set_margin(5);
-  fchw->set_action(Gtk::FileChooser::Action::OPEN);
-  fchw->set_current_folder(fl);
+  fchd->set_current_folder(fl);
 
   Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(gettext("All supported"));
@@ -536,91 +531,81 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
   fl_filter->add_pattern("*.epub");
   fl_filter->add_pattern("*.pdf");
   fl_filter->add_pattern("*.djvu");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".fb2");
   fl_filter->add_pattern("*.fb2");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".zip");
   fl_filter->add_pattern("*.zip");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".epub");
   fl_filter->add_pattern("*.epub");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".pdf");
   fl_filter->add_pattern("*.pdf");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
   fl_filter = Gtk::FileFilter::create();
   fl_filter->set_name(".djvu");
   fl_filter->add_pattern("*.djvu");
-  fchw->add_filter(fl_filter);
+  fchd->add_filter(fl_filter);
 
-  fchw->set_select_multiple(false);
-
-  grid->attach(*fchw, 0, 0, 2, 1);
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_halign(Gtk::Align::START);
+  Gtk::Button *cancel = fchd->add_button(gettext("Cancel"),
+					 Gtk::ResponseType::CANCEL);
   cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*fch, &Gtk::Window::close));
-  grid->attach(*cancel, 0, 1, 1, 1);
 
-  Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
-  open->set_halign(Gtk::Align::END);
-  open->set_margin(5);
-  open->set_label(gettext("Open"));
+  Gtk::Requisition min, nat;
+  fchd->get_preferred_size(min, nat);
+
+  Gtk::Button *open = fchd->add_button(gettext("Open"),
+				       Gtk::ResponseType::ACCEPT);
+  open->set_margin_bottom(5);
+  open->set_margin_end(5);
+  open->set_margin_top(5);
+  open->set_margin_start(nat.get_width() - 15);
+
   open->set_name("applyBut");
   open->get_style_context()->add_provider(this->css_provider,
   GTK_STYLE_PROVIDER_PRIORITY_USER);
-  open->signal_clicked().connect([fchw, book_path_ent, book_nm_ent, fch]
-  {
-    Glib::RefPtr<Gio::File> fl = fchw->get_file();
-    if(fl)
-      {
-	std::filesystem::path chp = std::filesystem::u8path(fl->get_path());
-	if(std::filesystem::is_directory(chp))
-	  {
-	    fchw->set_current_folder(fl);
-	  }
-	else
-	  {
-	    book_path_ent->set_text(Glib::ustring(fl->get_path()));
-	    std::string ch(book_nm_ent->get_text());
-	    ch.erase(std::remove_if(ch.begin(), ch.end(), []
-	    (auto &el)
-	      {
-		return el == ' ';
-	      }),
-		     ch.end());
-	    if(ch.empty())
-	      {
-		std::filesystem::path p;
-		p = std::filesystem::u8path(std::string(fl->get_path()));
-		book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
-	      }
-	    fch->close();
-	  }
-      }
-  });
-  grid->attach(*open, 1, 1, 1, 1);
 
-  fch->signal_close_request().connect([fch]
+  fchd->signal_response().connect(
+      [fchd, book_path_ent, book_nm_ent]
+      (int resp_id)
+	{
+	  if(resp_id == Gtk::ResponseType::CANCEL)
+	    {
+	      fchd->close();
+	    }
+	  else if (resp_id == Gtk::ResponseType::ACCEPT)
+	    {
+	      Glib::RefPtr<Gio::File> fl = fchd->get_file();
+	      if(fl)
+		{
+		  std::filesystem::path p;
+		  p = std::filesystem::u8path(std::string(fl->get_path()));
+		  book_path_ent->set_text(Glib::ustring(p.make_preferred().u8string()));
+		  book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
+		  fchd->close();
+		}
+	    }
+	});
+
+  fchd->signal_close_request().connect([fchd]
   {
-    fch->hide();
-    delete fch;
+    fchd->hide();
+    delete fchd;
     return true;
   },
-				      false);
-  fch->present();
+				       false);
+  fchd->present();
 }
 
 void

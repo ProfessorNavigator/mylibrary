@@ -1449,52 +1449,68 @@ void
 BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 			  Gtk::Window *win)
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Save as..."));
-  window->set_transient_for(*win);
-  window->set_modal(true);
+  Gtk::FileChooserDialog *fchd = new Gtk::FileChooserDialog(
+      *win, gettext("Save as..."), Gtk::FileChooser::Action::SAVE, false);
+  fchd->set_application(mw->get_application());
+  fchd->set_modal(true);
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::FILL);
-  window->set_child(*grid);
+  Gtk::Box *cont = fchd->get_content_area();
+  cont->set_margin(5);
 
-  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
-  fchw->set_action(Gtk::FileChooser::Action::SAVE);
+  fchd->set_current_name(Glib::ustring(filepath.filename().u8string()));
+
   std::string filename;
   AuxFunc af;
   af.homePath(&filename);
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fchw->set_current_folder(fl);
-  fchw->set_current_name(Glib::ustring(filepath.filename().u8string()));
-  fchw->set_select_multiple(false);
-  fchw->set_margin(5);
-  grid->attach(*fchw, 0, 0, 2, 1);
+  fchd->set_current_folder(fl);
 
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_halign(Gtk::Align::START);
+  Gtk::Button *cancel = fchd->add_button(gettext("Cancel"),
+					 Gtk::ResponseType::CANCEL);
   cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
-  grid->attach(*cancel, 0, 1, 1, 1);
 
-  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
-  save->set_halign(Gtk::Align::END);
-  save->set_margin(5);
-  save->set_label(gettext("Save"));
+  Gtk::Requisition min, nat;
+  fchd->get_preferred_size(min, nat);
+
+  Gtk::Button *save = fchd->add_button(gettext("Save"),
+				       Gtk::ResponseType::ACCEPT);
+  save->set_margin_bottom(5);
+  save->set_margin_end(5);
+  save->set_margin_top(5);
+  save->set_margin_start(nat.get_width() - 15);
   save->set_name("applyBut");
   save->get_style_context()->add_provider(mw->css_provider,
   GTK_STYLE_PROVIDER_PRIORITY_USER);
-  MainWindow *mwl = mw;
-  save->signal_clicked().connect([window, fchw, filepath, mwl, win]
-  {
-    BookOpWindows bopw(mwl);
-    bopw.saveDialogFunc(window, fchw, filepath, win);
-  });
-  grid->attach(*save, 1, 1, 1, 1);
 
-  window->signal_close_request().connect([window, archive, filepath]
+  MainWindow *mwl = mw;
+  fchd->signal_response().connect([fchd, filepath, mwl, win]
+  (int resp_id)
+    {
+      if(resp_id == Gtk::ResponseType::CANCEL)
+	{
+	  fchd->close();
+	}
+      else if (resp_id == Gtk::ResponseType::ACCEPT)
+	{
+	  Glib::RefPtr<Gio::File> fl = fchd->get_file();
+	  std::string loc;
+	  if(fl)
+	    {
+	      loc = fl->get_path();
+	      std::filesystem::path outpath = std::filesystem::u8path(loc);
+	      if(std::filesystem::exists(outpath))
+		{
+		  std::filesystem::remove_all(outpath);
+		}
+	      std::filesystem::copy(filepath, outpath);
+	      AuxWindows aw(mwl);
+	      aw.errorWin(9, win);
+	      fchd->close();
+	    }
+	}
+    });
+
+  fchd->signal_close_request().connect([fchd, archive, filepath]
   {
     if(archive)
       {
@@ -1503,102 +1519,10 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 	    std::filesystem::remove_all(filepath.parent_path());
 	  }
       }
-    window->hide();
-    delete window;
+    fchd->hide();
+    delete fchd;
     return true;
   },
-					 false);
-
-  window->present();
-}
-
-void
-BookOpWindows::saveDialogFunc(Gtk::Window *window, Gtk::FileChooserWidget *fchw,
-			      std::filesystem::path filepath, Gtk::Window *win)
-{
-  MainWindow *mwl = mw;
-  bool chdel = false;
-  Glib::RefPtr<Gio::File> fl = fchw->get_file();
-  std::string loc;
-  if(fl)
-    {
-      loc = fl->get_path();
-      std::filesystem::path outpath = std::filesystem::u8path(loc);
-      if(!std::filesystem::exists(outpath))
-	{
-	  std::filesystem::copy(filepath, outpath);
-	  chdel = true;
-	  AuxWindows aw(mwl);
-	  aw.errorWin(9, win);
-	}
-      else
-	{
-	  Glib::ustring msgtxt = Glib::ustring(outpath.u8string())
-	      + Glib::ustring(gettext(" already exists. Replace?"));
-	  Gtk::MessageDialog *msg = new Gtk::MessageDialog(
-	      *window, msgtxt, false, Gtk::MessageType::QUESTION,
-	      Gtk::ButtonsType::YES_NO, true);
-	  msg->set_application(mwl->get_application());
-	  msg->signal_response().connect(
-	      [msg, window, mwl, outpath, filepath, win]
-	      (int resp)
-		{
-		  if(resp == Gtk::ResponseType::NO)
-		    {
-		      msg->close();
-		    }
-		  else if(resp == Gtk::ResponseType::YES)
-		    {
-		      std::filesystem::remove_all(outpath);
-		      std::filesystem::copy(filepath, outpath);
-		      msg->close();
-		      window->close();
-		      AuxWindows aw(mwl);
-		      aw.errorWin(9, win);
-		    }
-		});
-
-	  msg->signal_close_request().connect([msg]
-	  {
-	    msg->hide();
-	    delete msg;
-	    return true;
-	  },
-					      false);
-	  msg->present();
-	}
-    }
-  else
-    {
-      Gtk::MessageDialog *msg = new Gtk::MessageDialog(
-	  *window, gettext("File path is not valid!"), false,
-	  Gtk::MessageType::INFO, Gtk::ButtonsType::CLOSE, true);
-      msg->set_application(mwl->get_application());
-      msg->signal_response().connect([msg]
-      (int resp)
-	{
-	  if(resp == Gtk::ResponseType::CLOSE)
-	    {
-	      msg->close();
-	    }
-	});
-
-      msg->signal_close_request().connect([msg]
-      {
-	msg->hide();
-	delete msg;
-	return true;
-      },
-					  false);
-      msg->present();
-    }
-  if(chdel)
-    {
-      Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-      while(mc->pending())
-	{
-	  mc->iteration(true);
-	}
-      window->close();
-    }
+				       false);
+  fchd->present();
 }

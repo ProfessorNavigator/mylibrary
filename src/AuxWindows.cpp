@@ -290,7 +290,7 @@ AuxWindows::aboutProg()
   aboutd->set_application(mw->get_application());
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("2.0.1");
+  aboutd->set_version("2.0.2");
   aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());

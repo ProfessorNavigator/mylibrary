@@ -600,184 +600,97 @@ void
 CollectionOpWindows::openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent,
 				  int variant)
 {
-  MainWindow *mwl = mw;
   Glib::ustring dnm;
+  Gtk::FileChooser::Action action;
   if(variant == 1)
     {
       dnm = Glib::ustring(gettext("Book directory"));
+      action = Gtk::FileChooser::Action::SELECT_FOLDER;
     }
   else if(variant == 2)
     {
       dnm = Glib::ustring(gettext("Path to collection"));
+      action = Gtk::FileChooser::Action::SELECT_FOLDER;
     }
   else if(variant == 3)
     {
       dnm = Glib::ustring(gettext("Export as..."));
+      action = Gtk::FileChooser::Action::SAVE;
     }
+  Gtk::FileChooserDialog *fchd = new Gtk::FileChooserDialog(*window, dnm,
+							    action, false);
+  fchd->set_application(mw->get_application());
+  fchd->set_modal(true);
 
-  Gtk::Window *fch = new Gtk::Window;
-  fch->set_application(mw->get_application());
-  fch->set_title(dnm);
-  fch->set_transient_for(*window);
-  fch->set_modal(true);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  grid->set_valign(Gtk::Align::FILL);
-  fch->set_child(*grid);
-
-  Gtk::FileChooserWidget *fchw = Gtk::make_managed<Gtk::FileChooserWidget>();
-  fchw->set_margin(5);
-  AuxFunc af;
   std::string filename;
+  AuxFunc af;
   af.homePath(&filename);
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fchw->set_current_folder(fl);
+  fchd->set_current_folder(fl);
+
+  Gtk::Box *cont = fchd->get_content_area();
+  cont->set_margin(5);
+
+  Gtk::Requisition min, nat;
+  fchd->get_preferred_size(min, nat);
+
+  Gtk::Button *cancel = fchd->add_button(gettext("Cancel"),
+					 Gtk::ResponseType::CANCEL);
+  cancel->set_margin(5);
 
   if(variant == 1 || variant == 2)
     {
-      fchw->set_action(Gtk::FileChooser::Action::SELECT_FOLDER);
-      grid->attach(*fchw, 0, 0, 2, 1);
-
-      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-      cancel->set_halign(Gtk::Align::START);
-      cancel->set_margin(5);
-      cancel->set_label(gettext("Cancel"));
-      cancel->signal_clicked().connect(
-	  sigc::mem_fun(*fch, &Gtk::Window::close));
-      grid->attach(*cancel, 0, 1, 1, 1);
-
-      Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
-      open->set_halign(Gtk::Align::END);
-      open->set_margin(5);
-      open->set_label(gettext("Open"));
-      open->set_name("applyBut");
-      open->get_style_context()->add_provider(mw->css_provider,
-      GTK_STYLE_PROVIDER_PRIORITY_USER);
-      open->signal_clicked().connect([fchw, path_ent, fch]
-      {
-	Glib::RefPtr<Gio::File> fl = fchw->get_file();
-	if(fl)
-	  {
-	    std::string loc = fl->get_path();
-	    path_ent->set_text(Glib::ustring(loc));
-	    fch->close();
-	  }
-      });
-      grid->attach(*open, 1, 1, 1, 1);
-    }
-  else if(variant == 3)
-    {
-      fchw->set_action(Gtk::FileChooser::Action::SAVE);
-      fchw->set_create_folders(true);
-      fchw->set_select_multiple(false);
-      grid->attach(*fchw, 0, 0, 2, 1);
-
-      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-      cancel->set_halign(Gtk::Align::START);
-      cancel->set_margin(5);
-      cancel->set_label(gettext("Cancel"));
-      cancel->signal_clicked().connect(
-	  sigc::mem_fun(*fch, &Gtk::Window::close));
-      grid->attach(*cancel, 0, 1, 1, 1);
-
-      Gtk::Button *export_but = Gtk::make_managed<Gtk::Button>();
-      export_but->set_halign(Gtk::Align::END);
-      export_but->set_margin(5);
-      export_but->set_label(gettext("Export"));
+      Gtk::Button *export_but = fchd->add_button(gettext("Open"),
+						 Gtk::ResponseType::ACCEPT);
+      export_but->set_margin_end(5);
+      export_but->set_margin_top(5);
+      export_but->set_margin_start(nat.get_width() - 15);
       export_but->set_name("applyBut");
       export_but->get_style_context()->add_provider(mw->css_provider,
       GTK_STYLE_PROVIDER_PRIORITY_USER);
-      export_but->signal_clicked().connect([fch, fchw, path_ent, mwl]
-      {
-	CollectionOpWindows copw(mwl);
-	copw.openDialogExportFunc(fch, fchw, path_ent);
-      });
-      grid->attach(*export_but, 1, 1, 1, 1);
+    }
+  else if(variant == 3)
+    {
+
+      Gtk::Button *export_but = fchd->add_button(gettext("Export"),
+						 Gtk::ResponseType::ACCEPT);
+      export_but->set_margin_end(5);
+      export_but->set_margin_top(5);
+      export_but->set_margin_start(nat.get_width() - 15);
+      export_but->set_name("applyBut");
+      export_but->get_style_context()->add_provider(mw->css_provider,
+      GTK_STYLE_PROVIDER_PRIORITY_USER);
     }
 
-  fch->signal_close_request().connect([fch]
+  fchd->signal_response().connect([fchd, path_ent]
+  (int resp_id)
+    {
+      if(resp_id == Gtk::ResponseType::CANCEL)
+	{
+	  fchd->close();
+	}
+      else if(resp_id == Gtk::ResponseType::ACCEPT)
+	{
+	  Glib::RefPtr<Gio::File> fl = fchd->get_file();
+	  if(fl)
+	    {
+	      std::string filename = fl->get_path();
+	      std::filesystem::path p = std::filesystem::u8path(filename);
+	      p.make_preferred();
+	      path_ent->set_text(Glib::ustring(p.u8string()));
+	      fchd->close();
+	    }
+	}
+    });
+
+  fchd->signal_close_request().connect([fchd]
   {
-    fch->hide();
-    delete fch;
+    fchd->hide();
+    delete fchd;
     return true;
   },
-				      false);
-  fch->present();
-}
-
-void
-CollectionOpWindows::openDialogExportFunc(Gtk::Window *fch,
-					  Gtk::FileChooserWidget *fchw,
-					  Gtk::Entry *path_ent)
-{
-  Glib::RefPtr<Gio::File> fl = fchw->get_file();
-  if(fl)
-    {
-      std::string filename = fl->get_path();
-      std::filesystem::path p = std::filesystem::u8path(filename);
-      p.make_preferred();
-      if(std::filesystem::exists(p))
-	{
-	  Glib::ustring msg = Glib::ustring(p.u8string())
-	      + Glib::ustring(gettext(" already exists. Replace?"));
-	  Gtk::MessageDialog *conf = new Gtk::MessageDialog(
-	      *fch, msg, false, Gtk::MessageType::QUESTION,
-	      Gtk::ButtonsType::YES_NO, true);
-	  conf->set_application(fch->get_application());
-	  conf->signal_response().connect([conf, path_ent, fch, p]
-	  (int resp_id)
-	    {
-	      if(resp_id == Gtk::ResponseType::NO)
-		{
-		  conf->close();
-		}
-	      else if(resp_id == Gtk::ResponseType::YES)
-		{
-		  path_ent->set_text(p.u8string());
-		  conf->close();
-		  fch->close();
-		}
-	    });
-	  conf->signal_close_request().connect([conf]
-	  {
-	    conf->hide();
-	    delete conf;
-	    return true;
-	  },
-					       false);
-	  conf->present();
-	}
-      else
-	{
-	  path_ent->set_text(p.u8string());
-	  fch->close();
-	}
-    }
-  else
-    {
-      Gtk::MessageDialog *msg = new Gtk::MessageDialog(
-	  *fch, gettext("File path is not valid!"), false,
-	  Gtk::MessageType::INFO, Gtk::ButtonsType::CLOSE, true);
-      msg->set_application(fch->get_application());
-      msg->signal_response().connect([msg]
-      (int resp)
-	{
-	  if(resp == Gtk::ResponseType::CLOSE)
-	    {
-	      msg->close();
-	    }
-	});
-
-      msg->signal_close_request().connect([msg]
-      {
-	msg->hide();
-	delete msg;
-	return true;
-      },
-					  false);
-      msg->present();
-    }
+				       false);
+  fchd->present();
 }
 
 void
