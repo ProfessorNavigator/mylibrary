@@ -509,7 +509,7 @@ void
 MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 		       Gtk::Entry *book_nm_ent)
 {
-  std::shared_ptr<Gtk::Window> fch = std::make_shared<Gtk::Window>();
+  Gtk::Window *fch = new Gtk::Window;
   fch->set_application(this->get_application());
   fch->set_title(gettext("Choose a book"));
   fch->set_transient_for(*win);
@@ -616,6 +616,7 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
   fch->signal_close_request().connect([fch]
   {
     fch->hide();
+    delete fch;
     return true;
   },
 				      false);
@@ -638,7 +639,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
 
   bool pack = ch_pack->get_active();
 
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+  Gtk::Window *window = new Gtk::Window;
   window->set_application(this->get_application());
   window->set_title(gettext("Books adding..."));
   window->set_transient_for(*win);
@@ -695,7 +696,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
   disp_book_exists->connect([window, this, ttup]
   {
     AuxWindows aw(this);
-    aw.bookCopyConfirm(window.get(), std::get<0>(*ttup), std::get<1>(*ttup));
+    aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
   });
   rc->file_exists = [ttup, disp_book_exists]
   (std::mutex *inmtx, int *instopper)
@@ -747,6 +748,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack)
        window]
       {
 	window->hide();
+	delete window;
 	return true;
       },
       false);

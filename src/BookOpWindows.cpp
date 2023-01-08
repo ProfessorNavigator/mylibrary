@@ -45,7 +45,7 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
       collnm, surnm, name, secname, book, series, genre, &mw->prev_search_nm,
       &mw->base_v, &mw->search_result_v, &mw->search_cancel);
 
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+  Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
   window->set_title(gettext("Search"));
   window->set_deletable(false);
@@ -81,27 +81,25 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
     crgr.searchResultShow(1);
     window->close();
   });
-  sb->search_completed = [search_compl_disp]
-  {
-    search_compl_disp->emit();
-  };
 
   window->signal_close_request().connect([mwl, window, search_compl_disp]
   {
     mwl->search_cancel = 0;
     window->hide();
+    delete window;
     return true;
   },
 					 false);
 
   window->present();
 
-  std::thread *thr = new std::thread([sb, mwl]
+  std::thread *thr = new std::thread([sb, mwl, search_compl_disp]
   {
     mwl->searchmtx->lock();
     sb->searchBook();
     sb->cleanSearchV();
     mwl->searchmtx->unlock();
+    search_compl_disp->emit();
   });
   thr->detach();
   delete thr;
@@ -137,10 +135,9 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres)
 
 	  if(trans)
 	    {
-	      std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-		  Gtk::MessageDialog>(*trans, msgtxt, false,
-				      Gtk::MessageType::QUESTION,
-				      Gtk::ButtonsType::YES_NO, true);
+	      Gtk::MessageDialog *msg = new Gtk::MessageDialog(
+		  *trans, msgtxt, false, Gtk::MessageType::QUESTION,
+		  Gtk::ButtonsType::YES_NO, true);
 	      msg->set_application(mw->get_application());
 
 	      MainWindow *mwl = mw;
@@ -181,6 +178,7 @@ BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres)
 	      msg->signal_close_request().connect([msg]
 	      {
 		msg->hide();
+		delete msg;
 		return true;
 	      },
 						  false);
@@ -194,10 +192,9 @@ void
 BookOpWindows::bookRemoveVar1()
 {
   MainWindow *mwl = mw;
-  std::shared_ptr<Gtk::MessageDialog> msg =
-      std::make_shared<Gtk::MessageDialog>(
-	  *mwl, gettext("Removing... It will take some time"), false,
-	  Gtk::MessageType::INFO, Gtk::ButtonsType::NONE, true);
+  Gtk::MessageDialog *msg = new Gtk::MessageDialog(
+      *mwl, gettext("Removing... It will take some time"), false,
+      Gtk::MessageType::INFO, Gtk::ButtonsType::NONE, true);
 
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
@@ -287,6 +284,7 @@ BookOpWindows::bookRemoveVar1()
   msg->signal_close_request().connect([msg, disp_finished, disp_file_nexists]
   {
     msg->hide();
+    delete msg;
     return true;
   },
 				      false);
@@ -366,7 +364,7 @@ BookOpWindows::fileInfo()
       Gtk::TreeModel::iterator iter = selection->get_selected();
       if(iter)
 	{
-	  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+	  Gtk::Window *window = new Gtk::Window;
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book file info"));
 	  window->set_transient_for(*mw);
@@ -593,6 +591,7 @@ BookOpWindows::fileInfo()
 	  window->signal_close_request().connect([window]
 	  {
 	    window->hide();
+	    delete window;
 	    return true;
 	  },
 						 false);
@@ -655,7 +654,7 @@ BookOpWindows::editBook()
 	  std::get<1>(ttup) = std::get<5>(mw->search_result_v[id - 1]);
 	  bookv->push_back(ttup);
 
-	  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+	  Gtk::Window *window = new Gtk::Window;
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book entry editor"));
 	  window->set_transient_for(*mw);
@@ -929,7 +928,7 @@ BookOpWindows::editBook()
 	       window]
 	      {
 		BookOpWindows bopw(mwl);
-		bopw.bookSaveRestore(window.get(), bookv.get(), 1);
+		bopw.bookSaveRestore(window, bookv.get(), 1);
 	      });
 	  grid->attach(*save, 0, 12, 1, 1);
 
@@ -942,7 +941,7 @@ BookOpWindows::editBook()
 	       window]
 	      {
 		BookOpWindows bopw(mwl);
-		bopw.bookSaveRestore(window.get(), bookv.get(), 2);
+		bopw.bookSaveRestore(window, bookv.get(), 2);
 	      });
 	  grid->attach(*restore, 1, 12, 1, 1);
 
@@ -958,6 +957,7 @@ BookOpWindows::editBook()
 	  {
 	    bookv->clear();
 	    window->hide();
+	    delete window;
 	    return true;
 	  },
 						 false);
@@ -1003,7 +1003,7 @@ BookOpWindows::bookSaveRestore(
       std::get<1>(ttup) = std::string(date_ent->get_text());
       newbase->push_back(ttup);
 
-      std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+      Gtk::Window *window = new Gtk::Window;
       window->set_application(mw->get_application());
       window->set_title(gettext("Confirmation"));
       window->set_transient_for(*win);
@@ -1183,6 +1183,7 @@ BookOpWindows::bookSaveRestore(
       {
 	newbase->clear();
 	window->hide();
+	delete window;
 	return true;
       },
 					     false);
@@ -1448,7 +1449,7 @@ void
 BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 			  Gtk::Window *win)
 {
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+  Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
   window->set_title(gettext("Save as..."));
   window->set_transient_for(*win);
@@ -1486,84 +1487,11 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
   save->get_style_context()->add_provider(mw->css_provider,
   GTK_STYLE_PROVIDER_PRIORITY_USER);
   MainWindow *mwl = mw;
-  save->signal_clicked().connect(
-      [window, fchw, filepath, mwl, win]
-      {
-	Glib::RefPtr<Gio::File> fl = fchw->get_file();
-	std::string loc;
-	if(fl)
-	  {
-	    loc = fl->get_path();
-	    std::filesystem::path outpath = std::filesystem::u8path(loc);
-	    if(!std::filesystem::exists(outpath))
-	      {
-		std::filesystem::copy(filepath, outpath);
-		window->close();
-		AuxWindows aw(mwl);
-		aw.errorWin(9, win);
-	      }
-	    else
-	      {
-		Glib::ustring msgtxt = Glib::ustring(outpath.u8string())
-		    + Glib::ustring(gettext(" already exists. Replace?"));
-		std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-		    Gtk::MessageDialog>(*window, msgtxt, false,
-					Gtk::MessageType::QUESTION,
-					Gtk::ButtonsType::YES_NO, true);
-		msg->set_application(mwl->get_application());
-		msg->signal_response().connect(
-		    [msg, window, mwl, outpath, filepath, win]
-		    (int resp)
-		      {
-			if(resp == Gtk::ResponseType::NO)
-			  {
-			    msg->close();
-			  }
-			else if(resp == Gtk::ResponseType::YES)
-			  {
-			    std::filesystem::remove_all(outpath);
-			    std::filesystem::copy(filepath, outpath);
-			    msg->close();
-			    window->close();
-			    AuxWindows aw(mwl);
-			    aw.errorWin(9, win);
-			  }
-		      });
-
-		msg->signal_close_request().connect([msg]
-		{
-		  msg->hide();
-		  return true;
-		},
-						    false);
-		msg->present();
-	      }
-	  }
-	else
-	  {
-	    std::shared_ptr<Gtk::MessageDialog> msg = std::make_shared<
-		Gtk::MessageDialog>(*window, gettext("File path is not valid!"),
-				    false, Gtk::MessageType::INFO,
-				    Gtk::ButtonsType::CLOSE, true);
-	    msg->set_application(mwl->get_application());
-	    msg->signal_response().connect([msg]
-	    (int resp)
-	      {
-		if(resp == Gtk::ResponseType::CLOSE)
-		  {
-		    msg->close();
-		  }
-	      });
-
-	    msg->signal_close_request().connect([msg]
-	    {
-	      msg->hide();
-	      return true;
-	    },
-						false);
-	    msg->present();
-	  }
-      });
+  save->signal_clicked().connect([window, fchw, filepath, mwl, win]
+  {
+    BookOpWindows bopw(mwl);
+    bopw.saveDialogFunc(window, fchw, filepath, win);
+  });
   grid->attach(*save, 1, 1, 1, 1);
 
   window->signal_close_request().connect([window, archive, filepath]
@@ -1576,9 +1504,101 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 	  }
       }
     window->hide();
+    delete window;
     return true;
   },
 					 false);
 
   window->present();
+}
+
+void
+BookOpWindows::saveDialogFunc(Gtk::Window *window, Gtk::FileChooserWidget *fchw,
+			      std::filesystem::path filepath, Gtk::Window *win)
+{
+  MainWindow *mwl = mw;
+  bool chdel = false;
+  Glib::RefPtr<Gio::File> fl = fchw->get_file();
+  std::string loc;
+  if(fl)
+    {
+      loc = fl->get_path();
+      std::filesystem::path outpath = std::filesystem::u8path(loc);
+      if(!std::filesystem::exists(outpath))
+	{
+	  std::filesystem::copy(filepath, outpath);
+	  chdel = true;
+	  AuxWindows aw(mwl);
+	  aw.errorWin(9, win);
+	}
+      else
+	{
+	  Glib::ustring msgtxt = Glib::ustring(outpath.u8string())
+	      + Glib::ustring(gettext(" already exists. Replace?"));
+	  Gtk::MessageDialog *msg = new Gtk::MessageDialog(
+	      *window, msgtxt, false, Gtk::MessageType::QUESTION,
+	      Gtk::ButtonsType::YES_NO, true);
+	  msg->set_application(mwl->get_application());
+	  msg->signal_response().connect(
+	      [msg, window, mwl, outpath, filepath, win]
+	      (int resp)
+		{
+		  if(resp == Gtk::ResponseType::NO)
+		    {
+		      msg->close();
+		    }
+		  else if(resp == Gtk::ResponseType::YES)
+		    {
+		      std::filesystem::remove_all(outpath);
+		      std::filesystem::copy(filepath, outpath);
+		      msg->close();
+		      window->close();
+		      AuxWindows aw(mwl);
+		      aw.errorWin(9, win);
+		    }
+		});
+
+	  msg->signal_close_request().connect([msg]
+	  {
+	    msg->hide();
+	    delete msg;
+	    return true;
+	  },
+					      false);
+	  msg->present();
+	}
+    }
+  else
+    {
+      Gtk::MessageDialog *msg = new Gtk::MessageDialog(
+	  *window, gettext("File path is not valid!"), false,
+	  Gtk::MessageType::INFO, Gtk::ButtonsType::CLOSE, true);
+      msg->set_application(mwl->get_application());
+      msg->signal_response().connect([msg]
+      (int resp)
+	{
+	  if(resp == Gtk::ResponseType::CLOSE)
+	    {
+	      msg->close();
+	    }
+	});
+
+      msg->signal_close_request().connect([msg]
+      {
+	msg->hide();
+	delete msg;
+	return true;
+      },
+					  false);
+      msg->present();
+    }
+  if(chdel)
+    {
+      Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+      while(mc->pending())
+	{
+	  mc->iteration(true);
+	}
+      window->close();
+    }
 }

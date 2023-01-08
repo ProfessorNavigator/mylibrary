@@ -46,8 +46,6 @@ public:
 	  std::tuple<std::string, std::string, std::string, std::string,
 	      std::string, std::string>> *search_result_v,
       int *cancel);
-  std::function<void
-  ()> search_completed;
   virtual
   ~SearchBook();
   void

@@ -30,10 +30,10 @@ AuxWindows::~AuxWindows()
 void
 AuxWindows::errorWin(int type, Gtk::Window *par_win)
 {
-  std::shared_ptr<Gtk::MessageDialog> info =
-      std::make_shared<Gtk::MessageDialog>(*par_win, "", false,
-					   Gtk::MessageType::INFO,
-					   Gtk::ButtonsType::CLOSE, true);
+  Gtk::MessageDialog *info = new Gtk::MessageDialog(*par_win, "", false,
+						    Gtk::MessageType::INFO,
+						    Gtk::ButtonsType::CLOSE,
+						    true);
   info->set_application(mw->get_application());
   if(type == 0)
     {
@@ -93,6 +93,7 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win)
   info->signal_close_request().connect([info]
   {
     info->hide();
+    delete info;
     return true;
   },
 				       false);
@@ -166,7 +167,7 @@ AuxWindows::bookmarkWindow()
 	}
     }
 
-  std::shared_ptr<Gtk::Window> window = std::make_shared<Gtk::Window>();
+  Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
   window->set_title(gettext("Book-marks"));
   window->set_transient_for(*mw);
@@ -208,12 +209,12 @@ AuxWindows::bookmarkWindow()
   acgroup->add_action("removebook", [mwl, window]
   {
     BookOpWindows bopw(mwl);
-    bopw.bookRemoveWin(2, window.get(), mwl->bm_tv);
+    bopw.bookRemoveWin(2, window, mwl->bm_tv);
   });
   acgroup->add_action("copyto", [mwl, window]
   {
     BookOpWindows bopw(mwl);
-    bopw.copyTo(mwl->bm_tv, 2, window.get());
+    bopw.copyTo(mwl->bm_tv, 2, window);
   });
 
   mw->bm_tv->insert_action_group("popup", acgroup);
@@ -254,7 +255,7 @@ AuxWindows::bookmarkWindow()
   copy_book->signal_clicked().connect([mwl, window]
   {
     BookOpWindows bopw(mwl);
-    bopw.copyTo(mwl->bm_tv, 2, window.get());
+    bopw.copyTo(mwl->bm_tv, 2, window);
   });
   grid->attach(*copy_book, 1, 1, 1, 1);
 
@@ -265,7 +266,7 @@ AuxWindows::bookmarkWindow()
   del_book->signal_clicked().connect([mwl, window]
   {
     BookOpWindows bopw(mwl);
-    bopw.bookRemoveWin(2, window.get(), mwl->bm_tv);
+    bopw.bookRemoveWin(2, window, mwl->bm_tv);
   });
 
   grid->attach(*del_book, 2, 1, 1, 1);
@@ -274,7 +275,7 @@ AuxWindows::bookmarkWindow()
     mwl->bookmark_v.clear();
     mwl->bm_tv = nullptr;
     window->hide();
-
+    delete window;
     return true;
   },
 					 false);
@@ -284,8 +285,7 @@ AuxWindows::bookmarkWindow()
 void
 AuxWindows::aboutProg()
 {
-  std::shared_ptr<Gtk::AboutDialog> aboutd =
-      std::make_shared<Gtk::AboutDialog>();
+  Gtk::AboutDialog *aboutd = new Gtk::AboutDialog;
   aboutd->set_transient_for(*mw);
   aboutd->set_application(mw->get_application());
 
@@ -343,6 +343,7 @@ AuxWindows::aboutProg()
   aboutd->signal_close_request().connect([aboutd]
   {
     aboutd->hide();
+    delete aboutd;
     return true;
   },
 					 false);
@@ -352,8 +353,8 @@ AuxWindows::aboutProg()
 void
 AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
 {
-  std::shared_ptr<Gtk::MessageDialog> msg =
-      std::make_shared<Gtk::MessageDialog>(*win,
+  Gtk::MessageDialog*msg =
+      new Gtk::MessageDialog(*win,
 					   gettext("Book file exits. Replace?"),
 					   false, Gtk::MessageType::QUESTION,
 					   Gtk::ButtonsType::YES_NO, true);
@@ -379,6 +380,7 @@ AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
   msg->signal_close_request().connect([msg]
   {
     msg->hide();
+    delete msg;
     return true;
   },
 				      false);

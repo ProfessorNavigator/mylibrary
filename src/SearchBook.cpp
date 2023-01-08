@@ -93,17 +93,6 @@ SearchBook::searchBook()
       else
 	{
 	  std::cerr << "Search error: collection not found" << std::endl;
-	  if(search_completed)
-	    {
-	      search_completed();
-	    }
-	}
-    }
-  else
-    {
-      if(search_completed)
-	{
-	  search_completed();
 	}
     }
 }
@@ -346,10 +335,6 @@ SearchBook::cleanSearchV()
 	}
       std::get<3>(el) = genrestr;
     });
-  if(search_completed)
-    {
-      search_completed();
-    }
 }
 
 void

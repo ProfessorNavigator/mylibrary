@@ -51,6 +51,9 @@ public:
   copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win);
   void
   saveDialog(std::filesystem::path filepath, bool archive, Gtk::Window *win);
+  void
+  saveDialogFunc(Gtk::Window *window, Gtk::FileChooserWidget *fchw,
+		 std::filesystem::path filepath, Gtk::Window *win);
 private:
   MainWindow *mw;
 };
