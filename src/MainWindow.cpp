@@ -144,9 +144,10 @@ MainWindow::readCollection(Gtk::ComboBoxText *collect_box)
 {
   std::string collnm(collect_box->get_active_text());
 
+  std::shared_ptr<int> search_cancel = std::make_shared<int>(0);
   std::shared_ptr<SearchBook> sb = std::make_shared<SearchBook>(
       collnm, "", "", "", "", "", "", &prev_search_nm, &base_v,
-      &search_result_v, &search_cancel);
+      &search_result_v, search_cancel);
   std::thread *thr = new std::thread([this, sb]
   {
     this->searchmtx->lock();

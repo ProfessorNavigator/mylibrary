@@ -32,7 +32,7 @@ SearchBook::SearchBook(
     std::vector<
 	std::tuple<std::string, std::string, std::string, std::string,
 	    std::string, std::string>> *search_result_v,
-    int *cancel)
+    std::shared_ptr<int> cancel)
 {
   this->collnm = collnm;
   this->surnm = surnm;
@@ -73,18 +73,42 @@ SearchBook::searchBook()
 	  filename = filename + "/fb2base";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
+	  if(*cancel == 1)
+	    {
+	      prev_search_nm->clear();
+	      base_v->clear();
+	      return void();
+	    }
 	  filename = filepath.parent_path().u8string();
 	  filename = filename + "/zipbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readZipBase(filepath);
+	  if(*cancel == 1)
+	    {
+	      prev_search_nm->clear();
+	      base_v->clear();
+	      return void();
+	    }
 	  filename = filepath.parent_path().u8string();
 	  filename = filename + "/epubbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
+	  if(*cancel == 1)
+	    {
+	      prev_search_nm->clear();
+	      base_v->clear();
+	      return void();
+	    }
 	  filename = filepath.parent_path().u8string();
 	  filename = filename + "/pdfbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
+	  if(*cancel == 1)
+	    {
+	      prev_search_nm->clear();
+	      base_v->clear();
+	      return void();
+	    }
 	  filename = filepath.parent_path().u8string();
 	  filename = filename + "/djvubase";
 	  filepath = std::filesystem::u8path(filename);
@@ -100,241 +124,244 @@ SearchBook::searchBook()
 void
 SearchBook::cleanSearchV()
 {
-  *search_result_v = *base_v;
-  std::string searchstr = surnm;
-  AuxFunc af;
-  af.stringToLower(searchstr);
-
-  if(!surnm.empty() && *cancel == 0)
+  if(*cancel != 1)
     {
-      search_result_v->erase(
-	  std::remove_if(search_result_v->begin(), search_result_v->end(),
-			 [searchstr]
-			 (auto &el)
-			   {
-			     std::string line = std::get<0>(el);
-			     AuxFunc af;
-			     af.stringToLower(line);
-			     std::string::size_type n;
-			     n = line.find(searchstr);
-			     if(n != std::string::npos)
-			       {
-				 return false;
-			       }
-			     else
-			       {
-				 return true;
-			       }
-			   }),
-	  search_result_v->end());
-    }
+      *search_result_v = *base_v;
+      std::string searchstr = surnm;
+      AuxFunc af;
+      af.stringToLower(searchstr);
 
-  searchstr = name;
-  af.stringToLower(searchstr);
-  if(!name.empty() && *cancel == 0)
-    {
-      search_result_v->erase(
-	  std::remove_if(search_result_v->begin(), search_result_v->end(),
-			 [searchstr]
-			 (auto &el)
-			   {
-			     std::string line = std::get<0>(el);
-			     AuxFunc af;
-			     af.stringToLower(line);
-			     std::string::size_type n;
-			     n = line.find(searchstr);
-			     if(n != std::string::npos)
+      if(!surnm.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(search_result_v->begin(), search_result_v->end(),
+			     [searchstr]
+			     (auto &el)
 			       {
-				 return false;
-			       }
-			     else
-			       {
-				 return true;
-			       }
-			   }),
-	  search_result_v->end());
-    }
+				 std::string line = std::get<0>(el);
+				 AuxFunc af;
+				 af.stringToLower(line);
+				 std::string::size_type n;
+				 n = line.find(searchstr);
+				 if(n != std::string::npos)
+				   {
+				     return false;
+				   }
+				 else
+				   {
+				     return true;
+				   }
+			       }),
+	      search_result_v->end());
+	}
 
-  searchstr = secname;
-  af.stringToLower(searchstr);
-  if(!secname.empty() && *cancel == 0)
-    {
-      search_result_v->erase(
-	  std::remove_if(search_result_v->begin(), search_result_v->end(),
-			 [searchstr]
-			 (auto &el)
-			   {
-			     std::string line = std::get<0>(el);
-			     AuxFunc af;
-			     af.stringToLower(line);
-			     std::string::size_type n;
-			     n = line.find(searchstr);
-			     if(n != std::string::npos)
+      searchstr = name;
+      af.stringToLower(searchstr);
+      if(!name.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(search_result_v->begin(), search_result_v->end(),
+			     [searchstr]
+			     (auto &el)
 			       {
-				 return false;
-			       }
-			     else
-			       {
-				 return true;
-			       }
-			   }),
-	  search_result_v->end());
-    }
+				 std::string line = std::get<0>(el);
+				 AuxFunc af;
+				 af.stringToLower(line);
+				 std::string::size_type n;
+				 n = line.find(searchstr);
+				 if(n != std::string::npos)
+				   {
+				     return false;
+				   }
+				 else
+				   {
+				     return true;
+				   }
+			       }),
+	      search_result_v->end());
+	}
 
-  searchstr = book;
-  af.stringToLower(searchstr);
-  if(!book.empty() && *cancel == 0)
-    {
-      search_result_v->erase(
-	  std::remove_if(search_result_v->begin(), search_result_v->end(),
-			 [searchstr]
-			 (auto &el)
-			   {
-			     std::string line = std::get<1>(el);
-			     AuxFunc af;
-			     af.stringToLower(line);
-			     std::string::size_type n;
-			     n = line.find(searchstr);
-			     if(n != std::string::npos)
+      searchstr = secname;
+      af.stringToLower(searchstr);
+      if(!secname.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(search_result_v->begin(), search_result_v->end(),
+			     [searchstr]
+			     (auto &el)
 			       {
-				 return false;
-			       }
-			     else
-			       {
-				 return true;
-			       }
-			   }),
-	  search_result_v->end());
-    }
+				 std::string line = std::get<0>(el);
+				 AuxFunc af;
+				 af.stringToLower(line);
+				 std::string::size_type n;
+				 n = line.find(searchstr);
+				 if(n != std::string::npos)
+				   {
+				     return false;
+				   }
+				 else
+				   {
+				     return true;
+				   }
+			       }),
+	      search_result_v->end());
+	}
 
-  searchstr = series;
-  af.stringToLower(searchstr);
-  if(!series.empty() && *cancel == 0)
-    {
-      search_result_v->erase(
-	  std::remove_if(search_result_v->begin(), search_result_v->end(),
-			 [searchstr]
-			 (auto &el)
-			   {
-			     std::string line = std::get<2>(el);
-			     AuxFunc af;
-			     af.stringToLower(line);
-			     std::string::size_type n;
-			     n = line.find(searchstr);
-			     if(n != std::string::npos)
+      searchstr = book;
+      af.stringToLower(searchstr);
+      if(!book.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(search_result_v->begin(), search_result_v->end(),
+			     [searchstr]
+			     (auto &el)
 			       {
-				 return false;
-			       }
-			     else
-			       {
-				 return true;
-			       }
-			   }),
-	  search_result_v->end());
-    }
+				 std::string line = std::get<1>(el);
+				 AuxFunc af;
+				 af.stringToLower(line);
+				 std::string::size_type n;
+				 n = line.find(searchstr);
+				 if(n != std::string::npos)
+				   {
+				     return false;
+				   }
+				 else
+				   {
+				     return true;
+				   }
+			       }),
+	      search_result_v->end());
+	}
 
-  searchstr = genre;
-  if(!genre.empty() && *cancel == 0)
-    {
-      search_result_v->erase(
-	  std::remove_if(
-	      search_result_v->begin(), search_result_v->end(), [searchstr]
-	      (auto &el)
-		{
-		  std::string genrestr = std::get<3>(el);
-		  std::vector<std::string> genre_v;
-		  std::string::size_type n = 0;
-		  while (n != std::string::npos)
+      searchstr = series;
+      af.stringToLower(searchstr);
+      if(!series.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(search_result_v->begin(), search_result_v->end(),
+			     [searchstr]
+			     (auto &el)
+			       {
+				 std::string line = std::get<2>(el);
+				 AuxFunc af;
+				 af.stringToLower(line);
+				 std::string::size_type n;
+				 n = line.find(searchstr);
+				 if(n != std::string::npos)
+				   {
+				     return false;
+				   }
+				 else
+				   {
+				     return true;
+				   }
+			       }),
+	      search_result_v->end());
+	}
+
+      searchstr = genre;
+      if(!genre.empty() && *cancel == 0)
+	{
+	  search_result_v->erase(
+	      std::remove_if(
+		  search_result_v->begin(), search_result_v->end(), [searchstr]
+		  (auto &el)
 		    {
-		      std::string s_s = genrestr;
-		      n = s_s.find(", ");
-		      if(n != std::string::npos)
+		      std::string genrestr = std::get<3>(el);
+		      std::vector<std::string> genre_v;
+		      std::string::size_type n = 0;
+		      while (n != std::string::npos)
 			{
-			  s_s = s_s.substr(0, n);
-			  genre_v.push_back(s_s);
-			  s_s = s_s + ", ";
-			  genrestr.erase(0,
-			      genrestr.find(s_s) + s_s.size());
+			  std::string s_s = genrestr;
+			  n = s_s.find(", ");
+			  if(n != std::string::npos)
+			    {
+			      s_s = s_s.substr(0, n);
+			      genre_v.push_back(s_s);
+			      s_s = s_s + ", ";
+			      genrestr.erase(0,
+				  genrestr.find(s_s) + s_s.size());
+			    }
+			  else
+			    {
+			      if(!genrestr.empty())
+				{
+				  genre_v.push_back(genrestr);
+				}
+			    }
+			}
+
+		      auto itgv = std::find(genre_v.begin(), genre_v.end(),
+			  searchstr);
+		      if(itgv != genre_v.end())
+			{
+			  return false;
 			}
 		      else
 			{
-			  if(!genrestr.empty())
-			    {
-			      genre_v.push_back(genrestr);
-			    }
+			  return true;
 			}
-		    }
-
-		  auto itgv = std::find(genre_v.begin(), genre_v.end(),
-		      searchstr);
-		  if(itgv != genre_v.end())
-		    {
-		      return false;
-		    }
-		  else
-		    {
-		      return true;
-		    }
-		}),
-	  search_result_v->end());
-    }
-  std::sort(search_result_v->begin(), search_result_v->end(), [&af]
-  (auto &el1, auto &el2)
-    {
-      std::string line1, line2;
-      line1 = std::get<0>(el1);
-      line2 = std::get<0>(el2);
-      af.stringToLower(line1);
-      af.stringToLower(line2);
-      if(line1 < line2)
-	{
-	  return true;
+		    }),
+	      search_result_v->end());
 	}
-      else
+      std::sort(search_result_v->begin(), search_result_v->end(), [&af]
+      (auto &el1, auto &el2)
 	{
-	  return false;
-	}
-    });
-  std::for_each(search_result_v->begin(), search_result_v->end(), []
-  (auto &el)
-    {
-      std::string genrestr = std::get<3>(el);
-      std::vector<std::string> genre_v;
-      std::string::size_type n = 0;
-      while (n != std::string::npos)
-	{
-	  std::string s_s = genrestr;
-	  n = s_s.find(", ");
-	  if(n != std::string::npos)
+	  std::string line1, line2;
+	  line1 = std::get<0>(el1);
+	  line2 = std::get<0>(el2);
+	  af.stringToLower(line1);
+	  af.stringToLower(line2);
+	  if(line1 < line2)
 	    {
-	      s_s = s_s.substr(0, n);
-	      genre_v.push_back(s_s);
-	      s_s = s_s + ", ";
-	      genrestr.erase(0,
-		  genrestr.find(s_s) + s_s.size());
+	      return true;
 	    }
 	  else
 	    {
-	      if(!genrestr.empty())
+	      return false;
+	    }
+	});
+      std::for_each(search_result_v->begin(), search_result_v->end(), []
+      (auto &el)
+	{
+	  std::string genrestr = std::get<3>(el);
+	  std::vector<std::string> genre_v;
+	  std::string::size_type n = 0;
+	  while (n != std::string::npos)
+	    {
+	      std::string s_s = genrestr;
+	      n = s_s.find(", ");
+	      if(n != std::string::npos)
 		{
-		  genre_v.push_back(genrestr);
+		  s_s = s_s.substr(0, n);
+		  genre_v.push_back(s_s);
+		  s_s = s_s + ", ";
+		  genrestr.erase(0,
+		      genrestr.find(s_s) + s_s.size());
+		}
+	      else
+		{
+		  if(!genrestr.empty())
+		    {
+		      genre_v.push_back(genrestr);
+		    }
 		}
 	    }
-	}
-      std::sort(genre_v.begin(), genre_v.end());
-      for(size_t i = 0; i < genre_v.size(); i++)
-	{
-	  if(i == 0)
+	  std::sort(genre_v.begin(), genre_v.end());
+	  for(size_t i = 0; i < genre_v.size(); i++)
 	    {
-	      genrestr = genre_v[i];
+	      if(i == 0)
+		{
+		  genrestr = genre_v[i];
+		}
+	      else
+		{
+		  genrestr = genrestr + ", " + genre_v[i];
+		}
 	    }
-	  else
-	    {
-	      genrestr = genrestr + ", " + genre_v[i];
-	    }
-	}
-      std::get<3>(el) = genrestr;
-    });
+	  std::get<3>(el) = genrestr;
+	});
+    }
 }
 
 void

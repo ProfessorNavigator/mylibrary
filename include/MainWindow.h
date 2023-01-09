@@ -75,7 +75,6 @@ private:
   readCollection(Gtk::ComboBoxText *collect_box);
 
   Gtk::ProgressBar *coll_cr_prog = nullptr;
-  int search_cancel = 0;
   std::vector<
       std::tuple<std::string, std::string, std::string, std::string,
 	  std::string, std::string>> bookmark_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book

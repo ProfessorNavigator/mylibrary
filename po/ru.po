@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2023-01-08 23:22+0400\n"
-"PO-Revision-Date: 2023-01-08 23:22+0400\n"
+"POT-Creation-Date: 2023-01-09 19:18+0400\n"
+"PO-Revision-Date: 2023-01-09 19:18+0400\n"
 "Last-Translator: Юрий Бобылев\n"
 "Language-Team: Юрий Бобылев\n"
 "Language: ru\n"
@@ -155,20 +155,20 @@ msgstr "В программе используются следующие биб
 msgid "Book file exits. Replace?"
 msgstr "Файл книги уже существует. Заменить?"
 
-#: src/BookOpWindows.cpp:50 src/CreateLeftGrid.cpp:241
+#: src/BookOpWindows.cpp:51 src/CreateLeftGrid.cpp:241
 msgid "Search"
 msgstr "Поиск"
 
-#: src/BookOpWindows.cpp:62
+#: src/BookOpWindows.cpp:63
 msgid "Search in progress..."
 msgstr "Идёт поиск..."
 
-#: src/BookOpWindows.cpp:68 src/BookOpWindows.cpp:951
+#: src/BookOpWindows.cpp:69 src/BookOpWindows.cpp:951
 #: src/BookOpWindows.cpp:1468 src/CollectionOpWindows.cpp:249
 #: src/CollectionOpWindows.cpp:438 src/CollectionOpWindows.cpp:637
 #: src/CollectionOpWindows.cpp:742 src/CollectionOpWindows.cpp:1006
-#: src/CollectionOpWindows.cpp:1264 src/MainWindow.cpp:194
-#: src/MainWindow.cpp:561 src/MainWindow.cpp:647
+#: src/CollectionOpWindows.cpp:1264 src/MainWindow.cpp:195
+#: src/MainWindow.cpp:562 src/MainWindow.cpp:648
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -278,7 +278,7 @@ msgstr "Запись о книге отредактирована"
 #: src/BookOpWindows.cpp:1134 src/CollectionOpWindows.cpp:766
 #: src/CollectionOpWindows.cpp:791 src/CollectionOpWindows.cpp:879
 #: src/CollectionOpWindows.cpp:1188 src/CollectionOpWindows.cpp:1323
-#: src/MainWindow.cpp:666 src/MainWindow.cpp:700 src/MainWindow.cpp:719
+#: src/MainWindow.cpp:667 src/MainWindow.cpp:701 src/MainWindow.cpp:720
 msgid "Close"
 msgstr "Закрыть"
 
@@ -336,7 +336,7 @@ msgstr "Путь до исходного файла книги:"
 
 #: src/CollectionOpWindows.cpp:150 src/CollectionOpWindows.cpp:386
 #: src/CollectionOpWindows.cpp:643 src/CollectionOpWindows.cpp:956
-#: src/CollectionOpWindows.cpp:982 src/MainWindow.cpp:568
+#: src/CollectionOpWindows.cpp:982 src/MainWindow.cpp:569
 msgid "Open"
 msgstr "Открыть"
 
@@ -931,38 +931,38 @@ msgstr "Жанр"
 msgid "Date"
 msgstr "Дата"
 
-#: src/MainWindow.cpp:170
+#: src/MainWindow.cpp:171
 msgid "Collection creation progress"
 msgstr "Прогресс создания коллекции"
 
-#: src/MainWindow.cpp:181
+#: src/MainWindow.cpp:182
 msgid "Creation progress"
 msgstr "Прогресс создания"
 
-#: src/MainWindow.cpp:513
+#: src/MainWindow.cpp:514
 msgid "Choose a book"
 msgstr "Выберите книгу"
 
-#: src/MainWindow.cpp:528
+#: src/MainWindow.cpp:529
 msgid "All supported"
 msgstr "Все поддерживаемые"
 
-#: src/MainWindow.cpp:629
+#: src/MainWindow.cpp:630
 msgid "Books adding..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:641
+#: src/MainWindow.cpp:642
 msgid "Book adding in progress..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:665
+#: src/MainWindow.cpp:666
 msgid "Book adding canceled"
 msgstr "Добавление книги прекращено"
 
-#: src/MainWindow.cpp:699
+#: src/MainWindow.cpp:700
 msgid "Book adding finished"
 msgstr "Книга добавлена"
 
-#: src/MainWindow.cpp:718
+#: src/MainWindow.cpp:719
 msgid "Collection book path does not exists!"
 msgstr "Папка с книгами коллекции не существует!"

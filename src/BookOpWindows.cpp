@@ -41,9 +41,10 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   std::string series(ser_ent->get_text());
   std::string genre(mw->active_genre);
 
+  std::shared_ptr<int>search_cancel = std::make_shared<int>(0);
   std::shared_ptr<SearchBook> sb = std::make_shared<SearchBook>(
       collnm, surnm, name, secname, book, series, genre, &mw->prev_search_nm,
-      &mw->base_v, &mw->search_result_v, &mw->search_cancel);
+      &mw->base_v, &mw->search_result_v, search_cancel);
 
   Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
@@ -67,9 +68,9 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
   MainWindow *mwl = mw;
-  cancel->signal_clicked().connect([mwl]
+  cancel->signal_clicked().connect([search_cancel]
   {
-    mwl->search_cancel = 1;
+    *search_cancel = 1;
   });
   grid->attach(*cancel, 0, 1, 1, 1);
 
@@ -82,9 +83,8 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
     window->close();
   });
 
-  window->signal_close_request().connect([mwl, window, search_compl_disp]
+  window->signal_close_request().connect([window, search_compl_disp]
   {
-    mwl->search_cancel = 0;
     window->hide();
     delete window;
     return true;
