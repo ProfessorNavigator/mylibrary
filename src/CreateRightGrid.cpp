@@ -542,10 +542,6 @@ CreateRightGrid::searchResultShow(int variant)
   for(size_t i = 0; i < trvc_v.size(); i++)
     {
       Gtk::TreeViewColumn *col = trvc_v[i];
-      if(i == 0)
-	{
-	  col->set_sort_indicator(true);
-	}
       col->signal_clicked().connect([col, i]
       {
 	col->set_sort_column(i + 1);
