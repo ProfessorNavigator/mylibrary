@@ -41,6 +41,7 @@ CreateLeftGrid::formLeftGrid()
   left_gr->attach(*collectlab, 0, 0, 2, 1);
 
   Gtk::ComboBoxText *collect_box = Gtk::make_managed<Gtk::ComboBoxText>();
+  collect_box->set_name("comboBox");
   collect_box->set_halign(Gtk::Align::START);
   collect_box->set_margin(5);
   formCollCombo(collect_box);
@@ -148,6 +149,7 @@ CreateLeftGrid::formLeftGrid()
   left_gr->attach(*genrelab, 0, 14, 2, 1);
 
   Gtk::MenuButton *genre_but = Gtk::make_managed<Gtk::MenuButton>();
+  genre_but->set_name("menBut");
   genre_but->set_halign(Gtk::Align::START);
   genre_but->set_margin(5);
   genre_but->set_label(gettext("<No>"));
@@ -158,6 +160,7 @@ CreateLeftGrid::formLeftGrid()
   scrl_gr->set_halign(Gtk::Align::START);
 
   Gtk::Popover *popover = Gtk::make_managed<Gtk::Popover>();
+  popover->set_name("popoverSt");
   popover->set_child(*scrl);
   genre_but->set_popover(*popover);
 
@@ -236,6 +239,7 @@ CreateLeftGrid::formLeftGrid()
   left_gr->attach(*genre_but, 0, 15, 2, 1);
 
   Gtk::Button *searchbut = Gtk::make_managed<Gtk::Button>();
+  searchbut->set_name("applyBut");
   searchbut->set_halign(Gtk::Align::CENTER);
   searchbut->set_margin(5);
   searchbut->set_label(gettext("Search"));
@@ -251,6 +255,7 @@ CreateLeftGrid::formLeftGrid()
   mw->set_default_widget(*searchbut);
 
   Gtk::Button *clearbut = Gtk::make_managed<Gtk::Button>();
+  clearbut->set_name("cancelBut");
   clearbut->set_halign(Gtk::Align::CENTER);
   clearbut->set_margin(5);
   clearbut->set_label(gettext("Clear"));

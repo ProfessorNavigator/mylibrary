@@ -3,6 +3,7 @@ subdir ('src')
 subdir ('resources')
 subdir ('include')
 gtkmm = dependency ('gtkmm-4.0', method : 'pkg-config')
+gtk = dependency ('gtk4', method : 'pkg-config')
 icu = dependency ('icu-i18n', method : 'pkg-config', version : '>=69')
 zip = dependency ('libzip', method : 'pkg-config')
 libgcrypt = dependency ('libgcrypt', method : 'pkg-config')
@@ -13,7 +14,11 @@ cpp = meson.get_compiler ('cpp')
 thread_dep = dependency ('threads')
 
 if poppler.version() < '22.01'
-  add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
+  	add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
+endif
+
+if gtk.version() < '4.10'
+	add_project_arguments('-DML_GTK_OLD', language : 'cpp')
 endif
 
 subdir ('po')

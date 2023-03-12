@@ -169,6 +169,7 @@ AuxWindows::bookmarkWindow()
 
   Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
+  window->set_name("MLwindow");
   window->set_title(gettext("Book-marks"));
   window->set_transient_for(*mw);
   window->set_modal(true);
@@ -188,8 +189,6 @@ AuxWindows::bookmarkWindow()
 
   mw->bm_tv = Gtk::make_managed<Gtk::TreeView>();
   mw->bm_tv->set_name("searchRes");
-  mw->bm_tv->get_style_context()->add_provider(mw->css_provider,
-  GTK_STYLE_PROVIDER_PRIORITY_USER);
   scrl->set_child(*mw->bm_tv);
   CreateRightGrid crgr(mw);
   crgr.searchResultShow(2);
@@ -199,45 +198,82 @@ AuxWindows::bookmarkWindow()
   scrl->set_min_content_height(10 * h);
 
   MainWindow *mwl = mw;
-  Glib::RefPtr<Gio::SimpleActionGroup> acgroup =
-      Gio::SimpleActionGroup::create();
-  acgroup->add_action("openbook", [mwl]
-  {
-    BookOpWindows bopw(mwl);
-    bopw.openBook(2);
-  });
-  acgroup->add_action("removebook", [mwl, window]
-  {
-    BookOpWindows bopw(mwl);
-    bopw.bookRemoveWin(2, window, mwl->bm_tv);
-  });
-  acgroup->add_action("copyto", [mwl, window]
-  {
-    BookOpWindows bopw(mwl);
-    bopw.copyTo(mwl->bm_tv, 2, window);
-  });
+  Gtk::Grid *bm_pop_grid = Gtk::make_managed<Gtk::Grid>();
+  bm_pop_grid->set_halign(Gtk::Align::CENTER);
+  bm_pop_grid->set_valign(Gtk::Align::CENTER);
 
-  mw->bm_tv->insert_action_group("popup", acgroup);
-  Glib::RefPtr<Gio::Menu> menu = Gio::Menu::create();
-  menu->append(gettext("Open book"), "popup.openbook");
-  menu->append(gettext("Save book as..."), "popup.copyto");
-  menu->append(gettext("Remove book from book-marks"), "popup.removebook");
-  std::shared_ptr<Gtk::PopoverMenu> Menu = std::make_shared<Gtk::PopoverMenu>();
-  Menu->set_parent(*mw->bm_tv);
-  Menu->set_menu_model(menu);
-  Menu->set_has_arrow(false);
+  Gtk::Popover *bm_pop = Gtk::make_managed<Gtk::Popover>();
+  bm_pop->set_name("popoverSt");
+  bm_pop->set_parent(*mw->bm_tv);
+  bm_pop->set_child(*bm_pop_grid);
+
+  Gtk::Label *o_book_men = Gtk::make_managed<Gtk::Label>();
+  o_book_men->set_name("menulab");
+  o_book_men->set_margin(3);
+  o_book_men->set_halign(Gtk::Align::CENTER);
+  o_book_men->set_valign(Gtk::Align::CENTER);
+  o_book_men->set_text(gettext("Open selected book"));
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
+  clck->set_button(1);
+  clck->signal_pressed().connect([mwl, bm_pop]
+  (int num_pressed, double x, double y)
+    {
+      bm_pop->popdown();
+      BookOpWindows bopw(mwl);
+      bopw.openBook(2);
+    });
+  o_book_men->add_controller(clck);
+  bm_pop_grid->attach(*o_book_men, 0, 0, 1, 1);
+
+  Gtk::Label *copy_book_men = Gtk::make_managed<Gtk::Label>();
+  copy_book_men->set_name("menulab");
+  copy_book_men->set_margin(3);
+  copy_book_men->set_halign(Gtk::Align::CENTER);
+  copy_book_men->set_valign(Gtk::Align::CENTER);
+  copy_book_men->set_text(gettext("Save book as..."));
+  clck = Gtk::GestureClick::create();
+  clck->set_button(1);
+  clck->signal_pressed().connect([mwl, window, bm_pop]
+  (int num_pressed, double x, double y)
+    {
+      bm_pop->popdown();
+      BookOpWindows bopw(mwl);
+      bopw.copyTo(mwl->bm_tv, 2, window);
+    });
+  copy_book_men->add_controller(clck);
+  bm_pop_grid->attach(*copy_book_men, 0, 1, 1, 1);
+
+  Gtk::Label *del_book_men = Gtk::make_managed<Gtk::Label>();
+  del_book_men->set_name("menulab");
+  del_book_men->set_margin(3);
+  del_book_men->set_halign(Gtk::Align::CENTER);
+  del_book_men->set_valign(Gtk::Align::CENTER);
+  del_book_men->set_text(gettext("Remove selected book from book-marks"));
+  clck = Gtk::GestureClick::create();
+  clck->set_button(1);
+  clck->signal_pressed().connect([mwl, window, bm_pop]
+  (int num_pressed, double x, double y)
+    {
+      bm_pop->popdown();
+      BookOpWindows bopw(mwl);
+      bopw.bookRemoveWin(2, window, mwl->bm_tv);
+    });
+  del_book_men->add_controller(clck);
+  bm_pop_grid->attach(*del_book_men, 0, 2, 1, 1);
+
+  clck = Gtk::GestureClick::create();
   clck->set_button(3);
-  clck->signal_pressed().connect([Menu]
+  clck->signal_pressed().connect([bm_pop]
   (int n_pressed, double x, double y)
     {
       Gdk::Rectangle rect(x, y, 1, 1);
-      Menu->set_pointing_to(rect);
-      Menu->popup();
+      bm_pop->set_pointing_to(rect);
+      bm_pop->popup();
     });
   mw->bm_tv->add_controller(clck);
 
   Gtk::Button *o_book = Gtk::make_managed<Gtk::Button>();
+  o_book->set_name("applyBut");
   o_book->set_margin(5);
   o_book->set_halign(Gtk::Align::CENTER);
   o_book->set_label(gettext("Open selected book"));
@@ -249,6 +285,7 @@ AuxWindows::bookmarkWindow()
   grid->attach(*o_book, 0, 1, 1, 1);
 
   Gtk::Button *copy_book = Gtk::make_managed<Gtk::Button>();
+  copy_book->set_name("operationBut");
   copy_book->set_margin(5);
   copy_book->set_halign(Gtk::Align::CENTER);
   copy_book->set_label(gettext("Save book as..."));
@@ -260,6 +297,7 @@ AuxWindows::bookmarkWindow()
   grid->attach(*copy_book, 1, 1, 1, 1);
 
   Gtk::Button *del_book = Gtk::make_managed<Gtk::Button>();
+  del_book->set_name("cancelBut");
   del_book->set_margin(5);
   del_book->set_halign(Gtk::Align::CENTER);
   del_book->set_label(gettext("Remove selected book from book-marks"));
@@ -268,8 +306,8 @@ AuxWindows::bookmarkWindow()
     BookOpWindows bopw(mwl);
     bopw.bookRemoveWin(2, window, mwl->bm_tv);
   });
-
   grid->attach(*del_book, 2, 1, 1, 1);
+
   window->signal_close_request().connect([mwl, window]
   {
     mwl->bookmark_v.clear();
@@ -286,11 +324,12 @@ void
 AuxWindows::aboutProg()
 {
   Gtk::AboutDialog *aboutd = new Gtk::AboutDialog;
-  aboutd->set_transient_for(*mw);
   aboutd->set_application(mw->get_application());
+  aboutd->set_transient_for(*mw);
+  aboutd->set_name("MLwindow");
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("2.0.3");
+  aboutd->set_version("2.1");
   aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());
@@ -331,10 +370,11 @@ AuxWindows::aboutProg()
       + Glib::ustring(" <bobilev_yury@mail.ru>.\n")
       + Glib::ustring(gettext("Program uses next libraries:"))
       + Glib::ustring("\n"
-		      "GTK https://www.gtk.org\n"
-		      "libzip https://libzip.org\n"
+		      "GTK https://www.gtk.org/\n"
+		      "libzip https://libzip.org/\n"
+		      "libarchive https://libarchive.org\n"
 		      "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-		      "ICU https://icu.unicode.org\n"
+		      "ICU https://icu.unicode.org/\n"
 		      "GMP https://gmplib.org/\n"
 		      "Poppler https://poppler.freedesktop.org/\n"
 		      "DjVuLibre https://djvu.sourceforge.net/");
@@ -353,11 +393,9 @@ AuxWindows::aboutProg()
 void
 AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
 {
-  Gtk::MessageDialog*msg =
-      new Gtk::MessageDialog(*win,
-					   gettext("Book file exits. Replace?"),
-					   false, Gtk::MessageType::QUESTION,
-					   Gtk::ButtonsType::YES_NO, true);
+  Gtk::MessageDialog *msg = new Gtk::MessageDialog(
+      *win, gettext("Book file exits. Replace?"), false,
+      Gtk::MessageType::QUESTION, Gtk::ButtonsType::YES_NO, true);
   msg->set_application(mw->get_application());
 
   msg->signal_response().connect([msg, addbmtx, stopper]

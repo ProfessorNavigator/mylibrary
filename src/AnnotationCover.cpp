@@ -90,8 +90,15 @@ AnnotationCover::fileRead()
 	{
 	  std::filesystem::remove_all(filepath);
 	}
-
-      af.unpackByIndex(archaddr, outfolder, ind);
+      std::filesystem::path check_non_zip = std::filesystem::u8path(archaddr);
+      if(check_non_zip.extension().u8string() == ".zip")
+	{
+	  af.unpackByIndex(archaddr, outfolder, ind);
+	}
+      else
+	{
+	  af.unpackByIndexNonZip(archaddr, outfolder, ind);
+	}
       if(std::filesystem::exists(filepath))
 	{
 	  for(auto &dirit : std::filesystem::directory_iterator(filepath))
@@ -112,7 +119,14 @@ AnnotationCover::fileRead()
 		  zip_ch_f = false;
 		  epub_path = filepath;
 		  std::vector<std::tuple<int, int, std::string>> listv;
-		  af.fileNames(archaddr, listv);
+		  if(check_non_zip.extension().u8string() == ".zip")
+		    {
+		      af.fileNames(archaddr, listv);
+		    }
+		  else
+		    {
+		      af.fileNamesNonZip(archaddr, listv);
+		    }
 		  auto itlv =
 		      std::find_if(
 			  listv.begin(),
@@ -133,8 +147,16 @@ AnnotationCover::fileRead()
 			    });
 		  if(itlv != listv.end())
 		    {
-		      file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
-					      std::get<1>(*itlv));
+		      if(check_non_zip.extension().u8string() == ".zip")
+			{
+			  file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
+						  std::get<1>(*itlv));
+			}
+		      else
+			{
+			  file = af.unpackByIndexNonZipStr(archaddr,
+							   std::get<0>(*itlv));
+			}
 		      epub_ch_f = false;
 		      fb2_ch_f = true;
 		      std::filesystem::remove_all(filepath);
@@ -157,7 +179,14 @@ AnnotationCover::fileRead()
 		  djvu_ch_f = true;
 		  zip_ch_f = false;
 		  std::vector<std::tuple<int, int, std::string>> listv;
-		  af.fileNames(archaddr, listv);
+		  if(check_non_zip.extension().u8string() == ".zip")
+		    {
+		      af.fileNames(archaddr, listv);
+		    }
+		  else
+		    {
+		      af.fileNamesNonZip(archaddr, listv);
+		    }
 		  auto itlv =
 		      std::find_if(
 			  listv.begin(),
@@ -178,8 +207,16 @@ AnnotationCover::fileRead()
 			    });
 		  if(itlv != listv.end())
 		    {
-		      file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
-					      std::get<1>(*itlv));
+		      if(check_non_zip.extension().u8string() == ".zip")
+			{
+			  file = af.unpackByIndex(archaddr, std::get<0>(*itlv),
+						  std::get<1>(*itlv));
+			}
+		      else
+			{
+			  file = af.unpackByIndexNonZipStr(archaddr,
+							   std::get<0>(*itlv));
+			}
 		      djvu_ch_f = false;
 		      fb2_ch_f = true;
 		    }
@@ -806,7 +843,15 @@ AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
 	}
       std::filesystem::create_directories(pdf_cover_path.parent_path());
       std::vector<std::tuple<int, int, std::string>> listv;
-      af.fileNames(archaddr, listv);
+      std::filesystem::path ch_zip = std::filesystem::u8path(archaddr);
+      if(ch_zip.extension().u8string() == ".zip")
+	{
+	  af.fileNames(archaddr, listv);
+	}
+      else
+	{
+	  af.fileNamesNonZip(archaddr, listv);
+	}
       auto itlv = std::find_if(listv.begin(), listv.end(), [temp_path]
       (auto &el)
 	{

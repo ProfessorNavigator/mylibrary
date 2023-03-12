@@ -53,7 +53,7 @@ private:
   void
   mainWindow();
   void
-  creationPulseWin(Gtk::Window *window, std::shared_ptr<int> cncl);
+  creationPulseWin(Gtk::Window *window, int *cncl);
   void
   formCollCombo(Gtk::ComboBoxText *combo);
   void
@@ -64,7 +64,7 @@ private:
   bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	     Gtk::Entry *book_nm_ent);
   void
-  bookAddWinFunc(Gtk::Window *win, Gtk::CheckButton *ch_pack);
+  bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext);
   void
   createBookmark();
   bool
@@ -81,7 +81,6 @@ private:
 
   std::string cover_image = "";
   std::string cover_image_path = "";
-  Glib::RefPtr<Gtk::CssProvider> css_provider;
   std::vector<
       std::tuple<std::string, std::vector<std::tuple<std::string, std::string>>>> *genrev =
       nullptr;

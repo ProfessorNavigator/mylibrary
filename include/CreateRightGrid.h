@@ -19,6 +19,7 @@
 #define INCLUDE_CREATERIGHTGRID_H_
 
 #include "MainWindow.h"
+
 class MainWindow;
 
 class CreateRightGrid
@@ -32,6 +33,8 @@ public:
   void
   searchResultShow(int variant);
 private:
+  Gtk::Grid*
+  formPopoverGrid(Gtk::TreeView *sres, Gtk::Popover *book_popover);
   MainWindow *mw;
 };
 

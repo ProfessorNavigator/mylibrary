@@ -32,17 +32,18 @@ public:
   collectionOp(int variant);
   void
   collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
-		   Gtk::CheckButton *rem_empty_ch, int variant);
+		   Gtk::CheckButton *rem_empty_ch,
+		   Gtk::CheckButton *fast_refresh, int variant);
   void
   collectionCreate();
   void
   collectionCreateFunc(Gtk::Entry *coll_ent, Gtk::Entry *path_ent,
 		       Gtk::Entry *thr_ent, Gtk::Window *par_win);
   void
-  openDialogCC(Gtk::Window *window, Gtk::Entry *path_ent, int variant);
+  openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent, int variant);
   void
   collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
-		    Gtk::Window *win);
+		    Gtk::CheckButton *fast_refresh, Gtk::Window *win);
   void
   importCollection();
   void

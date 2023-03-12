@@ -41,13 +41,14 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   std::string series(ser_ent->get_text());
   std::string genre(mw->active_genre);
 
-  std::shared_ptr<int>search_cancel = std::make_shared<int>(0);
-  std::shared_ptr<SearchBook> sb = std::make_shared<SearchBook>(
-      collnm, surnm, name, secname, book, series, genre, &mw->prev_search_nm,
-      &mw->base_v, &mw->search_result_v, search_cancel);
+  int *search_cancel = new int(0);
+  SearchBook *sb = new SearchBook(collnm, surnm, name, secname, book, series,
+				  genre, &mw->prev_search_nm, &mw->base_v,
+				  &mw->search_result_v, search_cancel);
 
   Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
+  window->set_name("MLwindow");
   window->set_title(gettext("Search"));
   window->set_deletable(false);
   window->set_transient_for(*mw);
@@ -64,6 +65,7 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_name("cancelBut");
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
@@ -74,16 +76,16 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   });
   grid->attach(*cancel, 0, 1, 1, 1);
 
-  std::shared_ptr<Glib::Dispatcher> search_compl_disp = std::make_shared<
-      Glib::Dispatcher>();
-  search_compl_disp->connect([window, mwl]
+  Glib::Dispatcher *search_compl_disp = new Glib::Dispatcher();
+  search_compl_disp->connect([window, mwl, search_compl_disp]
   {
     CreateRightGrid crgr(mwl);
     crgr.searchResultShow(1);
     window->close();
+    delete search_compl_disp;
   });
 
-  window->signal_close_request().connect([window, search_compl_disp]
+  window->signal_close_request().connect([window]
   {
     window->hide();
     delete window;
@@ -93,13 +95,15 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
 
   window->present();
 
-  std::thread *thr = new std::thread([sb, mwl, search_compl_disp]
+  std::thread *thr = new std::thread([sb, mwl, search_compl_disp, search_cancel]
   {
     mwl->searchmtx->lock();
     sb->searchBook();
     sb->cleanSearchV();
     mwl->searchmtx->unlock();
     search_compl_disp->emit();
+    delete sb;
+    delete search_cancel;
   });
   thr->detach();
   delete thr;
@@ -202,13 +206,23 @@ BookOpWindows::bookRemoveVar1()
   Gtk::ComboBoxText *collect_box =
       dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
 
-  std::shared_ptr<int> cncl = std::make_shared<int>(0);
-  std::shared_ptr<RefreshCollection> rc = std::make_shared<RefreshCollection>(
-      std::string(collect_box->get_active_text()), 1, cncl);
+  int *cncl = new int(0);
+  RefreshCollection *rc = new RefreshCollection(
+      std::string(collect_box->get_active_text()), 1, false, cncl);
 
-  std::shared_ptr<Glib::Dispatcher> disp_finished = std::make_shared<
-      Glib::Dispatcher>();
-  disp_finished->connect([msg, mwl]
+  Glib::Dispatcher *disp_file_nexists = new Glib::Dispatcher();
+  disp_file_nexists->connect([mwl]
+  {
+    AuxWindows aw(mwl);
+    aw.errorWin(7, mwl);
+  });
+  rc->collection_not_exists = [disp_file_nexists]
+  {
+    disp_file_nexists->emit();
+  };
+
+  Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
+  disp_finished->connect([msg, mwl, disp_finished, disp_file_nexists]
   {
     mwl->prev_search_nm.clear();
     Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
@@ -227,19 +241,9 @@ BookOpWindows::bookRemoveVar1()
       }
     adj->set_value(pos);
     msg->close();
+    delete disp_file_nexists;
+    delete disp_finished;
   });
-
-  std::shared_ptr<Glib::Dispatcher> disp_file_nexists = std::make_shared<
-      Glib::Dispatcher>();
-  disp_file_nexists->connect([mwl]
-  {
-    AuxWindows aw(mwl);
-    aw.errorWin(7, mwl);
-  });
-  rc->collection_not_exists = [disp_file_nexists]
-  {
-    disp_file_nexists->emit();
-  };
 
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
   Gtk::ScrolledWindow *sres_scrl =
@@ -254,26 +258,126 @@ BookOpWindows::bookRemoveVar1()
 	  size_t id;
 	  iter->get_value(0, id);
 	  std::string filename = std::get<5>(mwl->search_result_v[id - 1]);
-	  Glib::RefPtr<Gtk::ListStore> liststore = std::dynamic_pointer_cast<
-	      Gtk::ListStore>(sres->get_model());
-	  liststore->erase(iter);
-	  mwl->search_result_v.erase(mwl->search_result_v.begin() + id - 1);
-	  Gtk::DrawingArea *drar =
-	      dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
-	  drar->set_opacity(0.0);
-	  Gtk::ScrolledWindow *annot_scrl =
-	      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 2));
-	  Gtk::TextView *annot =
-	      dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
-	  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
-	  tb->set_text("");
-	  std::thread *thr = new std::thread([rc, disp_finished, filename]
-	  {
-	    rc->removeBook(filename);
-	    disp_finished->emit();
-	  });
-	  thr->detach();
-	  delete thr;
+	  std::string lsfnm = filename;
+	  lsfnm.erase(
+	      0, lsfnm.find("<archpath>") + std::string("<archpath>").size());
+	  lsfnm = lsfnm.substr(0, lsfnm.find("</archpath>"));
+	  std::filesystem::path ch_p = std::filesystem::u8path(lsfnm);
+	  if(ch_p.extension().u8string() == ".rar")
+	    {
+	      disp_finished->emit();
+	      disp_file_nexists = new Glib::Dispatcher();
+	      disp_file_nexists->connect([mwl]
+	      {
+		AuxWindows aw(mwl);
+		aw.errorWin(7, mwl);
+	      });
+	      rc->collection_not_exists = [disp_file_nexists]
+	      {
+		disp_file_nexists->emit();
+	      };
+	      msg = new Gtk::MessageDialog(
+		  *mwl,
+		  gettext(
+		      "Book is in rar archive and cannot be remove separately."
+		      " Remove whole archive?"),
+		  false, Gtk::MessageType::QUESTION, Gtk::ButtonsType::YES_NO,
+		  true);
+	      msg->signal_response().connect(
+		  [ch_p, msg, rc, mwl, sres, iter, disp_file_nexists, cncl]
+		  (int resp)
+		    {
+		      if(resp == Gtk::ResponseType::YES)
+			{
+			  mwl->search_result_v.erase(std::remove_if(mwl->search_result_v.begin(), mwl->search_result_v.end(), [ch_p](auto &el)
+				    {
+				      std::string::size_type n;
+				      std::string ptb = std::get<5>(el);
+				      n = ptb.find(ch_p.u8string());
+				      if(n != std::string::npos)
+					{
+					  return true;
+					}
+				      else
+					{
+					  return false;
+					}
+				    }), mwl->search_result_v.end());
+
+			  rc->removeRar(ch_p.u8string());
+			  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+			  while(mc->pending())
+			    {
+			      mc->iteration(true);
+			    }
+			  delete disp_file_nexists;
+
+			  mwl->prev_search_nm.clear();
+			  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+			  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+			  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+			  Gtk::DrawingArea *drar =
+			  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+			  drar->set_opacity(0.0);
+			  Gtk::ScrolledWindow *annot_scrl =
+			  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
+				  2));
+			  Gtk::TextView *annot =
+			  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+			  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
+			  tb->set_text("");
+			  Gtk::ScrolledWindow *sres_scrl =
+			  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+			  Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
+			  double pos = adj->get_value();
+			  CreateRightGrid crgr(mwl);
+			  crgr.searchResultShow(1);
+			  while(mc->pending())
+			    {
+			      mc->iteration(true);
+			    }
+			  adj->set_value(pos);
+			  msg->close();
+			}
+		      else if(resp == Gtk::ResponseType::NO)
+			{
+			  delete disp_file_nexists;
+			  msg->close();
+			}
+		      delete cncl;
+		    });
+	      msg->signal_close_request().connect([msg, rc]
+	      {
+		msg->hide();
+		delete rc;
+		delete msg;
+		return true;
+	      },
+						  false);
+	      msg->present();
+	    }
+	  else
+	    {
+	      mwl->search_result_v.erase(mwl->search_result_v.begin() + id - 1);
+	      Gtk::DrawingArea *drar =
+		  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+	      drar->set_opacity(0.0);
+	      Gtk::ScrolledWindow *annot_scrl =
+		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
+									      2));
+	      Gtk::TextView *annot =
+		  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+	      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
+	      tb->set_text("");
+	      std::thread *thr = new std::thread([rc, disp_finished, filename]
+	      {
+		rc->removeBook(filename);
+		disp_finished->emit();
+		delete rc;
+	      });
+	      thr->detach();
+	      delete thr;
+	    }
 	}
     }
   else
@@ -281,9 +385,10 @@ BookOpWindows::bookRemoveVar1()
       msg->close();
     }
 
-  msg->signal_close_request().connect([msg, disp_finished, disp_file_nexists]
+  msg->signal_close_request().connect([msg, disp_file_nexists, cncl]
   {
     msg->hide();
+    delete cncl;
     delete msg;
     return true;
   },
@@ -368,6 +473,7 @@ BookOpWindows::fileInfo()
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book file info"));
 	  window->set_transient_for(*mw);
+	  window->set_name("MLwindow");
 
 	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
 	  grid->set_halign(Gtk::Align::FILL);
@@ -611,8 +717,8 @@ BookOpWindows::editBook()
   Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
   Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
 
-  std::shared_ptr<std::vector<std::tuple<std::string, std::string>>> bookv =
-      std::make_shared<std::vector<std::tuple<std::string, std::string>>>();
+  std::vector<std::tuple<std::string, std::string>> *bookv = new std::vector<
+      std::tuple<std::string, std::string>>();
 
   if(selection)
     {
@@ -658,6 +764,7 @@ BookOpWindows::editBook()
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book entry editor"));
 	  window->set_transient_for(*mw);
+	  window->set_name("MLwindow");
 	  window->set_modal(true);
 
 	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
@@ -919,6 +1026,7 @@ BookOpWindows::editBook()
 	  grid->attach(*date_ent, 0, 11, 3, 1);
 
 	  Gtk::Button *save = Gtk::make_managed<Gtk::Button>();
+	  save->set_name("applyBut");
 	  save->set_halign(Gtk::Align::CENTER);
 	  save->set_margin(5);
 	  save->set_label(gettext("Save"));
@@ -928,11 +1036,12 @@ BookOpWindows::editBook()
 	       window]
 	      {
 		BookOpWindows bopw(mwl);
-		bopw.bookSaveRestore(window, bookv.get(), 1);
+		bopw.bookSaveRestore(window, bookv, 1);
 	      });
 	  grid->attach(*save, 0, 12, 1, 1);
 
 	  Gtk::Button *restore = Gtk::make_managed<Gtk::Button>();
+	  restore->set_name("operationBut");
 	  restore->set_halign(Gtk::Align::CENTER);
 	  restore->set_margin(5);
 	  restore->set_label(gettext("Restore"));
@@ -941,21 +1050,23 @@ BookOpWindows::editBook()
 	       window]
 	      {
 		BookOpWindows bopw(mwl);
-		bopw.bookSaveRestore(window, bookv.get(), 2);
+		bopw.bookSaveRestore(window, bookv, 2);
 	      });
 	  grid->attach(*restore, 1, 12, 1, 1);
 
 	  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+	  cancel->set_name("cancelBut");
 	  cancel->set_halign(Gtk::Align::CENTER);
 	  cancel->set_margin(5);
 	  cancel->set_label(gettext("Cancel"));
-	  cancel->signal_clicked().connect(
-	      sigc::mem_fun(*window, &Gtk::Window::close));
+	  cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	      sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
 	  grid->attach(*cancel, 2, 12, 1, 1);
 
 	  window->signal_close_request().connect([window, bookv]
 	  {
 	    bookv->clear();
+	    delete bookv;
 	    window->hide();
 	    delete window;
 	    return true;
@@ -963,6 +1074,14 @@ BookOpWindows::editBook()
 						 false);
 	  window->present();
 	}
+      else
+	{
+	  delete bookv;
+	}
+    }
+  else
+    {
+      delete bookv;
     }
 }
 
@@ -980,8 +1099,8 @@ BookOpWindows::bookSaveRestore(
 
   if(variant == 1)
     {
-      std::shared_ptr<std::vector<std::tuple<std::string, std::string>>> newbase =
-	  std::make_shared<std::vector<std::tuple<std::string, std::string>>>();
+      std::vector<std::tuple<std::string, std::string>> *newbase =
+	  new std::vector<std::tuple<std::string, std::string>>();
       std::tuple<std::string, std::string> ttup;
       std::get<0>(ttup) = "Author";
       std::get<1>(ttup) = std::string(auth_ent->get_text());
@@ -1008,6 +1127,7 @@ BookOpWindows::bookSaveRestore(
       window->set_title(gettext("Confirmation"));
       window->set_transient_for(*win);
       window->set_modal(true);
+      window->set_name("MLwindow");
       window->set_default_size(1, 1);
 
       Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
@@ -1021,12 +1141,11 @@ BookOpWindows::bookSaveRestore(
       lab->set_text(gettext("Are you shure?"));
       grid->attach(*lab, 0, 0, 2, 1);
 
-      std::shared_ptr<int> cncl = std::make_shared<int>(0);
-      std::shared_ptr<RefreshCollection> rc =
-	  std::make_shared<RefreshCollection>(mw->prev_search_nm, 1, cncl);
+      int *cncl = new int(0);
+      RefreshCollection *rc = new RefreshCollection(mw->prev_search_nm, 1,
+						    false, cncl);
       MainWindow *mwl = mw;
-      std::shared_ptr<Glib::Dispatcher> disp_corrected = std::make_shared<
-	  Glib::Dispatcher>();
+      Glib::Dispatcher *disp_corrected = new Glib::Dispatcher();
       disp_corrected->connect([window, win, mwl, bookv, newbase]
       {
 	std::string searchstr;
@@ -1129,6 +1248,7 @@ BookOpWindows::bookSaveRestore(
 	grid->attach(*lab, 0, 0, 1, 1);
 
 	Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+	close->set_name("applyBut");
 	close->set_halign(Gtk::Align::CENTER);
 	close->set_margin(5);
 	close->set_label(gettext("Close"));
@@ -1146,6 +1266,7 @@ BookOpWindows::bookSaveRestore(
       };
 
       Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
+      yes->set_name("applyBut");
       yes->set_halign(Gtk::Align::CENTER);
       yes->set_margin(5);
       yes->set_label(gettext("Yes"));
@@ -1165,7 +1286,7 @@ BookOpWindows::bookSaveRestore(
 	grid->attach(*lab, 0, 0, 1, 1);
 	std::thread *thr = new std::thread([rc, bookv, newbase]
 	{
-	  rc->editBook(newbase.get(), bookv);
+	  rc->editBook(newbase, bookv);
 	});
 	thr->detach();
 	delete thr;
@@ -1173,20 +1294,26 @@ BookOpWindows::bookSaveRestore(
       grid->attach(*yes, 0, 1, 1, 1);
 
       Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
+      no->set_name("cancelBut");
       no->set_halign(Gtk::Align::CENTER);
       no->set_margin(5);
       no->set_label(gettext("No"));
-      no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+      no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
       grid->attach(*no, 1, 1, 1, 1);
 
-      window->signal_close_request().connect([window, newbase, disp_corrected]
-      {
-	newbase->clear();
-	window->hide();
-	delete window;
-	return true;
-      },
-					     false);
+      window->signal_close_request().connect(
+	  [window, newbase, disp_corrected, cncl, rc]
+	  {
+	    newbase->clear();
+	    delete newbase;
+	    delete cncl;
+	    delete rc;
+	    delete disp_corrected;
+	    window->hide();
+	    delete window;
+	    return true;
+	  },
+	  false);
       window->present();
     }
 
@@ -1318,7 +1445,15 @@ BookOpWindows::openBook(int variant)
 		{
 		  std::filesystem::remove_all(ffr);
 		}
-	      af.unpackByIndex(archpath, outfolder, index);
+	      std::filesystem::path chext = std::filesystem::u8path(archpath);
+	      if(chext.extension().u8string() == ".zip")
+		{
+		  af.unpackByIndex(archpath, outfolder, index);
+		}
+	      else
+		{
+		  af.unpackByIndexNonZip(archpath, outfolder, index);
+		}
 	      if(std::filesystem::exists(ffr))
 		{
 		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
@@ -1416,7 +1551,15 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 		{
 		  std::filesystem::remove_all(ffr);
 		}
-	      af.unpackByIndex(archpath, outfolder, index);
+	      std::filesystem::path ch_zip = std::filesystem::u8path(archpath);
+	      if(ch_zip.extension().u8string() == ".zip")
+		{
+		  af.unpackByIndex(archpath, outfolder, index);
+		}
+	      else
+		{
+		  af.unpackByIndexNonZip(archpath, outfolder, index);
+		}
 	      if(std::filesystem::exists(ffr))
 		{
 		  for(auto &dirit : std::filesystem::directory_iterator(ffr))
@@ -1453,6 +1596,7 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
       *win, gettext("Save as..."), Gtk::FileChooser::Action::SAVE, false);
   fchd->set_application(mw->get_application());
   fchd->set_modal(true);
+  fchd->set_name("MLwindow");
 
   Gtk::Box *cont = fchd->get_content_area();
   cont->set_margin(5);
@@ -1467,6 +1611,7 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 
   Gtk::Button *cancel = fchd->add_button(gettext("Cancel"),
 					 Gtk::ResponseType::CANCEL);
+  cancel->set_name("cancelBut");
   cancel->set_margin(5);
 
   Gtk::Requisition min, nat;
@@ -1479,8 +1624,6 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
   save->set_margin_top(5);
   save->set_margin_start(nat.get_width() - 15);
   save->set_name("applyBut");
-  save->get_style_context()->add_provider(mw->css_provider,
-  GTK_STYLE_PROVIDER_PRIORITY_USER);
 
   MainWindow *mwl = mw;
   fchd->signal_response().connect([fchd, filepath, mwl, win]

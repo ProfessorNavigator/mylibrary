@@ -29,6 +29,8 @@
 #include <unicode/ucnv.h>
 #include <unicode/unistr.h>
 #include <zip.h>
+#include <archive.h>
+#include <archive_entry.h>
 #include <gcrypt.h>
 
 #ifdef _WIN32
@@ -52,22 +54,32 @@ public:
   int
   fileNames(std::string address,
 	    std::vector<std::tuple<int, int, std::string>> &filenames);
+  int
+  fileNamesNonZip(std::string address,
+		  std::vector<std::tuple<int, int, std::string>> &filenames);
   std::string
   randomFileName();
   void
   unpackByIndex(std::string archaddress, std::string outfolder, int index);
   std::string
   unpackByIndex(std::string archaddress, int index, size_t filesz);
+  void
+  unpackByIndexNonZip(std::string archaddress, std::string outfolder,
+		      int index);
+  std::string
+  unpackByIndexNonZipStr(std::string archaddress, int index);
   int
   packing(std::string source, std::string out);
+  int
+  packingNonZip(std::string source, std::string out, std::string extension);
   void
   stringToLower(std::string &line);
   std::vector<char>
-  filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel);
+  filehash(std::filesystem::path filepath, int *cancel);
   std::vector<char>
   filehash(std::filesystem::path filepath, std::function<void
   (uint64_t)> progress,
-	   std::shared_ptr<int> cancel);
+	   int *cancel);
   std::string
   to_hex(std::vector<char> *source);
   std::string

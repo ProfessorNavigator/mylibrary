@@ -32,7 +32,7 @@ SearchBook::SearchBook(
     std::vector<
 	std::tuple<std::string, std::string, std::string, std::string,
 	    std::string, std::string>> *search_result_v,
-    std::shared_ptr<int> cancel)
+    int *cancel)
 {
   this->collnm = collnm;
   this->surnm = surnm;

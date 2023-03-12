@@ -39,7 +39,7 @@ public:
       std::filesystem::path book_p,
       unsigned int nm_thr,
       std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-      std::shared_ptr<int> cancel);
+      int *cancel);
   virtual
   ~CreateCollection();
   std::function<void
@@ -86,6 +86,12 @@ private:
       std::tuple<std::filesystem::path,
 	  std::vector<std::tuple<int, int, std::string>>> arch_tup,
       std::filesystem::path filepath, std::filesystem::path zip_hashp);
+  std::vector<std::tuple<std::string, std::string>>
+  zipFB2(archive *a, std::filesystem::path fp_loc, int index, size_t inpsz,
+	 std::string nm_in_arch);
+  std::vector<std::tuple<std::string, std::string>>
+  zipOther(archive *a, std::filesystem::path fp_loc, int index,
+	   std::string nm_in_arch);
   void
   epubThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
 		 std::filesystem::path epub_hashp);
@@ -108,7 +114,7 @@ private:
   std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed =
       nullptr;
   unsigned int threadnum = 1;
-  std::shared_ptr<int> cancel;
+  int *cancel = nullptr;
   std::mutex fb2basemtx;
   std::mutex fb2hashmtx;
   std::mutex zipbasemtx;

@@ -45,7 +45,7 @@ public:
       std::vector<
 	  std::tuple<std::string, std::string, std::string, std::string,
 	      std::string, std::string>> *search_result_v,
-      std::shared_ptr<int> cancel);
+      int *cancel);
   virtual
   ~SearchBook();
   void
@@ -77,7 +77,7 @@ private:
   std::vector<
       std::tuple<std::string, std::string, std::string, std::string,
 	  std::string, std::string>> *search_result_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
-  std::shared_ptr<int> cancel;
+  int *cancel = nullptr;
 };
 
 #endif /* INCLUDE_SEARCHBOOK_H_ */

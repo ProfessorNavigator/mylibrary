@@ -18,9 +18,10 @@
 #include "RefreshCollection.h"
 
 RefreshCollection::RefreshCollection(std::string collname, unsigned int thr_num,
-				     std::shared_ptr<int> cancel)
+				     bool fast_refresh, int *cancel)
 {
   this->collname = collname;
+  this->fast_refresh = fast_refresh;
   this->cancel = cancel;
   this->thr_num = thr_num;
 
@@ -273,13 +274,49 @@ RefreshCollection::readColl()
 		      filenames.end());
 		  if(filenames.size() > 0)
 		    {
-		      zip.push_back(std::make_tuple(p, filenames));
+		      zip.push_back(std::make_tuple(p, filenames)); // @suppress("Invalid arguments")
+		    }
+		}
+	      else if(ext_p == ".rar" || ext_p == ".7z" || ext_p == ".jar"
+		  || ext_p == ".cpio" || ext_p == ".iso" || ext_p == ".a"
+		  || ext_p == ".ar" || ext_p == ".tar" || ext_p == ".tgz"
+		  || ext_p == ".gz" || ext_p == ".bz2" || ext_p == ".xz")
+		{
+		  std::vector<std::tuple<int, int, std::string>> archlist;
+		  af.fileNamesNonZip(p.u8string(), archlist);
+		  archlist.erase(
+		      std::remove_if(archlist.begin(), archlist.end(), []
+		      (auto &el)
+			{
+			  std::filesystem::path p = std::filesystem::u8path(
+			      std::get<2>(el));
+			  std::string ext = p.extension().u8string();
+			  if (ext != ".fb2" &&
+			      ext != ".epub" &&
+			      ext != ".pdf" &&
+			      ext != ".djvu")
+			    {
+			      return true;
+			    }
+			  else
+			    {
+			      return false;
+			    }
+			}),
+		      archlist.end());
+		  if(archlist.size() > 0)
+		    {
+		      std::tuple<std::filesystem::path,
+			  std::vector<std::tuple<int, int, std::string>>> ttup;
+		      std::get<0>(ttup) = p;
+		      std::get<1>(ttup) = archlist;
+		      zip.push_back(ttup);
 		    }
 		}
 	    }
 	}
     }
-  if(total_hash)
+  if(total_hash && !fast_refresh)
     {
       long unsigned int sz = 0;
       for(size_t i = 0; i < fb2.size(); i++)
@@ -449,7 +486,10 @@ RefreshCollection::readColl()
 	      epubremove.push_back(p);
 	    }
 	}
-      else if(ext_p == ".zip")
+      else if(ext_p == ".rar" || ext_p == ".7z" || ext_p == ".jar"
+	  || ext_p == ".cpio" || ext_p == ".iso" || ext_p == ".a"
+	  || ext_p == ".ar" || ext_p == ".tar" || ext_p == ".tgz"
+	  || ext_p == ".gz" || ext_p == ".bz2" || ext_p == ".xz")
 	{
 	  auto itzip = std::find_if(zip.begin(), zip.end(), [p]
 	  (auto &el)
@@ -493,29 +533,46 @@ RefreshCollection::fb2ThrFunc(std::filesystem::path p)
 {
   AuxFunc af;
   std::vector<char> hash;
-  if(byte_hashed)
+  if(!fast_refresh)
     {
-      hash = af.filehash(p, byte_hashed, cancel);
+      if(byte_hashed)
+	{
+	  hash = af.filehash(p, byte_hashed, cancel);
+	}
+      else
+	{
+	  hash = af.filehash(p, cancel);
+	}
+      already_hashedmtx.lock();
+      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashedmtx.unlock();
     }
-  else
-    {
-      hash = af.filehash(p, cancel);
-    }
-  already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(p, hash));
-  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
       (auto &el)
 	{
-	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	  if(!this->fast_refresh)
 	    {
-	      return true;
+	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	  else
 	    {
-	      return false;
+	      if(p == std::get<0>(el))
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	});
   if(itsh == saved_hashes.end())
@@ -539,29 +596,46 @@ RefreshCollection::epubThrFunc(std::filesystem::path p)
 {
   AuxFunc af;
   std::vector<char> hash;
-  if(byte_hashed)
+  if(!fast_refresh)
     {
-      hash = af.filehash(p, byte_hashed, cancel);
+      if(byte_hashed)
+	{
+	  hash = af.filehash(p, byte_hashed, cancel);
+	}
+      else
+	{
+	  hash = af.filehash(p, cancel);
+	}
+      already_hashedmtx.lock();
+      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashedmtx.unlock();
     }
-  else
-    {
-      hash = af.filehash(p, cancel);
-    }
-  already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(p, hash));
-  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
       (auto &el)
 	{
-	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	  if(!this->fast_refresh)
 	    {
-	      return true;
+	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	  else
 	    {
-	      return false;
+	      if(p == std::get<0>(el))
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	});
   if(itsh == saved_hashes.end())
@@ -585,29 +659,46 @@ RefreshCollection::pdfThrFunc(std::filesystem::path p)
 {
   AuxFunc af;
   std::vector<char> hash;
-  if(byte_hashed)
+  if(!fast_refresh)
     {
-      hash = af.filehash(p, byte_hashed, cancel);
+      if(byte_hashed)
+	{
+	  hash = af.filehash(p, byte_hashed, cancel);
+	}
+      else
+	{
+	  hash = af.filehash(p, cancel);
+	}
+      already_hashedmtx.lock();
+      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashedmtx.unlock();
     }
-  else
-    {
-      hash = af.filehash(p, cancel);
-    }
-  already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(p, hash));
-  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
       (auto &el)
 	{
-	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	  if(!this->fast_refresh)
 	    {
-	      return true;
+	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	  else
 	    {
-	      return false;
+	      if(p == std::get<0>(el))
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	});
   if(itsh == saved_hashes.end())
@@ -631,29 +722,46 @@ RefreshCollection::djvuThrFunc(std::filesystem::path p)
 {
   AuxFunc af;
   std::vector<char> hash;
-  if(byte_hashed)
+  if(!fast_refresh)
     {
-      hash = af.filehash(p, byte_hashed, cancel);
+      if(byte_hashed)
+	{
+	  hash = af.filehash(p, byte_hashed, cancel);
+	}
+      else
+	{
+	  hash = af.filehash(p, cancel);
+	}
+      already_hashedmtx.lock();
+      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashedmtx.unlock();
     }
-  else
-    {
-      hash = af.filehash(p, cancel);
-    }
-  already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(p, hash));
-  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
       (auto &el)
 	{
-	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	  if(!this->fast_refresh)
 	    {
-	      return true;
+	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	  else
 	    {
-	      return false;
+	      if(p == std::get<0>(el))
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	});
   if(itsh == saved_hashes.end())
@@ -680,35 +788,52 @@ RefreshCollection::zipThrFunc(
   AuxFunc af;
   std::vector<char> hash;
   std::filesystem::path p = std::get<0>(ziptup);
-  if(byte_hashed)
+  if(!fast_refresh)
     {
-      hash = af.filehash(p, byte_hashed, cancel);
+      if(byte_hashed)
+	{
+	  hash = af.filehash(p, byte_hashed, cancel);
+	}
+      else
+	{
+	  hash = af.filehash(p, cancel);
+	}
+      already_hashedmtx.lock();
+      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashedmtx.unlock();
     }
-  else
-    {
-      hash = af.filehash(p, cancel);
-    }
-  already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(p, hash));
-  already_hashedmtx.unlock();
   std::string hex_hash = af.to_hex(&hash);
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash]
+      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
       (auto &el)
 	{
-	  if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	  if(!this->fast_refresh)
 	    {
-	      return true;
+	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	  else
 	    {
-	      return false;
+	      if(p == std::get<0>(el))
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
 	    }
 	});
   if(itsh == saved_hashes.end())
     {
       zipparsemtx.lock();
-      zipparse.push_back(std::make_tuple(p, std::get<1>(ziptup)));
+      zipparse.push_back(std::make_tuple(p, std::get<1>(ziptup))); // @suppress("Invalid arguments")
       zipparsemtx.unlock();
     }
   run_thrmtx.lock();
@@ -724,6 +849,62 @@ RefreshCollection::zipThrFunc(
 void
 RefreshCollection::removeBook(std::string book_str)
 {
+  if(bookpath.empty())
+    {
+      std::string filename;
+      AuxFunc af;
+      af.homePath(&filename);
+      filename = filename + "/.MyLibrary/Collections/" + collname;
+      std::filesystem::path filepath = std::filesystem::u8path(filename);
+      bookpath.clear();
+      if(std::filesystem::exists(filepath))
+	{
+	  for(auto &dirit : std::filesystem::directory_iterator(filepath))
+	    {
+	      std::filesystem::path p = dirit.path();
+	      std::string ext_p = p.filename().u8string();
+	      if(!std::filesystem::is_directory(p))
+		{
+		  if(ext_p.find("base") != std::string::npos)
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in | std::ios_base::binary);
+		      if(f.is_open())
+			{
+			  if(bookpath.empty())
+			    {
+			      bookpath.resize(std::filesystem::file_size(p));
+			      f.read(&bookpath[0], bookpath.size());
+			      std::string::size_type n;
+			      n = bookpath.find("<bp>");
+			      if(n != std::string::npos)
+				{
+				  bookpath.erase(n, std::string("<bp>").size());
+				  bookpath = bookpath.substr(
+				      0, bookpath.find("</bp>"));
+				}
+			    }
+			  f.close();
+			}
+		    }
+		  else if(ext_p.find("hash") != std::string::npos)
+		    {
+		      std::fstream f;
+		      f.open(p, std::ios_base::in);
+		      if(f.is_open())
+			{
+			  getline(f, bookpath);
+			  f.close();
+			}
+		    }
+		}
+	      if(bookpath.size() > 0)
+		{
+		  break;
+		}
+	    }
+	}
+    }
   std::string loc_p = book_str;
   std::string::size_type n;
   n = loc_p.find("<zip>");
@@ -793,7 +974,14 @@ RefreshCollection::removeBook(std::string book_str)
       if(std::filesystem::exists(filepath))
 	{
 	  std::vector<std::tuple<int, int, std::string>> tv;
-	  af.fileNames(archpath, tv);
+	  if(filepath.extension().u8string() == ".zip")
+	    {
+	      af.fileNames(archpath, tv);
+	    }
+	  else
+	    {
+	      af.fileNamesNonZip(archpath, tv);
+	    }
 	  auto ittv =
 	      std::find_if(
 		  tv.begin(),
@@ -841,7 +1029,7 @@ RefreshCollection::removeBook(std::string book_str)
 	      tv.end());
 	  if(std::filesystem::exists(filepath))
 	    {
-	      zipparse.push_back(std::make_tuple(filepath, tv));
+	      zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
 	    }
 	  else
 	    {
@@ -858,7 +1046,7 @@ RefreshCollection::removeBook(std::string book_str)
 
 void
 RefreshCollection::addBook(std::string book_path, std::string book_name,
-			   bool pack)
+			   std::string arch_ext)
 {
   std::string filename;
   AuxFunc af;
@@ -894,7 +1082,6 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			    }
 			}
 		      f.close();
-		      std::cout << "Bpth " << bookpath << std::endl;
 		    }
 		}
 	      else if(ext_p.find("hash") != std::string::npos)
@@ -939,12 +1126,17 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      + copy_fm.extension().u8string();
 	  filepath = std::filesystem::u8path(filename);
 	}
-      if(pack)
+      if(!arch_ext.empty())
 	{
-	  if(filepath.extension().u8string() != ".zip")
+	  std::string ch_ext = filepath.extension().u8string();
+	  if(ch_ext != ".zip" && ch_ext != ".rar" && ch_ext != ".7z"
+	      && ch_ext != ".jar" && ch_ext != ".cpio" && ch_ext != ".iso"
+	      && ch_ext != ".a" && ch_ext != ".ar" && ch_ext != ".tar"
+	      && ch_ext != ".tgz" && ch_ext != ".gz" && ch_ext != ".bz2"
+	      && ch_ext != ".xz")
 	    {
 	      filename = filename = bookpath + "/" + filepath.stem().u8string()
-		  + ".zip";
+		  + arch_ext;
 	      filepath = std::filesystem::u8path(filename);
 	      if(std::filesystem::exists(filepath))
 		{
@@ -969,7 +1161,15 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 		    }
 		  std::filesystem::remove(filepath);
 		}
-	      af.packing(copy_fm.u8string(), filepath.u8string());
+	      if(filepath.extension().u8string() == ".zip")
+		{
+		  af.packing(copy_fm.u8string(), filepath.u8string());
+		}
+	      else
+		{
+		  af.packingNonZip(copy_fm.u8string(), filepath.u8string(),
+				   arch_ext);
+		}
 	      stopper = 0;
 	    }
 	}
@@ -1056,7 +1256,41 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			}
 		    }),
 	      tv.end());
-	  zipparse.push_back(std::make_tuple(filepath, tv));
+	  zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
+	}
+      else if(ext_filepath == ".rar" || ext_filepath == ".7z"
+	  || ext_filepath == ".jar" || ext_filepath == ".cpio"
+	  || ext_filepath == ".iso" || ext_filepath == ".a"
+	  || ext_filepath == ".ar" || ext_filepath == ".tar"
+	  || ext_filepath == ".tgz" || ext_filepath == ".gz"
+	  || ext_filepath == ".bz2" || ext_filepath == ".xz")
+	{
+	  std::vector<std::tuple<int, int, std::string>> tv;
+	  AuxFunc af;
+	  af.fileNamesNonZip(filepath.u8string(), tv);
+	  tv.erase(
+	      std::remove_if(
+		  tv.begin(),
+		  tv.end(),
+		  []
+		  (auto &el)
+		    {
+		      std::filesystem::path p = std::filesystem::u8path(std::get<2>(el));
+		      std::string ext_p = p.extension().u8string();
+		      if(ext_p == ".fb2" ||
+			  ext_p == ".epub" ||
+			  ext_p == ".pdf" ||
+			  ext_p == ".djvu")
+			{
+			  return false;
+			}
+		      else
+			{
+			  return true;
+			}
+		    }),
+	      tv.end());
+	  zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
 	}
     }
   addbmtx.try_lock();
@@ -2911,6 +3145,97 @@ RefreshCollection::editBook(
 		  f.close();
 		}
 	    }
+	}
+    }
+}
+
+void
+RefreshCollection::removeRar(std::string archaddr)
+{
+  AuxFunc af;
+  std::string filename;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collname + "/zipbase";
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::fstream f;
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      std::string fl;
+      fl.resize(std::filesystem::file_size(filepath));
+      f.read(&fl[0], fl.size());
+      f.close();
+      bookpath = fl.substr(0, fl.find("</bp>"));
+      bookpath.erase(0, std::string("<bp>").size());
+      std::string archline = archaddr.erase(0, bookpath.size());
+      std::string to_rem = "<?a>" + archline;
+      std::string result = fl;
+      result.erase(0, result.rfind(to_rem));
+      result = result.substr(0,
+			     result.find("<?a>", std::string("<?a>").size()));
+      fl.erase(fl.find(result), result.size());
+      std::filesystem::remove_all(filepath);
+      f.open(filepath, std::ios_base::out | std::ios_base::binary);
+      if(f.is_open())
+	{
+	  f.write(fl.c_str(), fl.size());
+	  f.close();
+	}
+      filename = filepath.parent_path().u8string() + "/ziphash";
+      filepath = std::filesystem::u8path(filename);
+      std::vector<std::string> lv;
+      f.open(filepath, std::ios_base::in);
+      if(f.is_open())
+	{
+	  while(!f.eof())
+	    {
+	      std::string line;
+	      getline(f, line);
+	      if(!line.empty())
+		{
+		  lv.push_back(line);
+		}
+	    }
+	  f.close();
+	  lv.erase(std::remove_if(lv.begin(), lv.end(), [&archline]
+	  (auto &el)
+	    {
+	      std::string::size_type n;
+	      n = el.find(archline);
+	      if(n != std::string::npos)
+		{
+		  return true;
+		}
+	      else
+		{
+		  return false;
+		}
+	    }),
+		   lv.end());
+	  std::filesystem::remove_all(filepath);
+	  f.open(filepath, std::ios_base::out | std::ios_base::binary);
+	  if(f.is_open())
+	    {
+	      for(size_t i = 0; i < lv.size(); i++)
+		{
+		  std::string line;
+		  line = lv[i] + "\n";
+		  f.write(line.c_str(), line.size());
+		}
+	      f.close();
+	    }
+	}
+    }
+  filepath = std::filesystem::u8path(bookpath + archaddr);
+  if(std::filesystem::exists(filepath))
+    {
+      std::filesystem::remove_all(filepath);
+    }
+  else
+    {
+      if(collection_not_exists)
+	{
+	  collection_not_exists();
 	}
     }
 }

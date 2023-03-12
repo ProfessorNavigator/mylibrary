@@ -22,7 +22,7 @@ CreateCollection::CreateCollection(
     std::filesystem::path book_p,
     unsigned int nm_thr,
     std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-    std::shared_ptr<int> cancel)
+    int *cancel)
 {
   this->coll_nm = coll_nm;
   this->book_p = book_p;
@@ -102,6 +102,42 @@ CreateCollection::createFileList()
 		{
 		  std::vector<std::tuple<int, int, std::string>> archlist;
 		  af.fileNames(p.u8string(), archlist);
+		  archlist.erase(
+		      std::remove_if(archlist.begin(), archlist.end(), []
+		      (auto &el)
+			{
+			  std::filesystem::path p = std::filesystem::u8path(
+			      std::get<2>(el));
+			  std::string ext = p.extension().u8string();
+			  if (ext != ".fb2" &&
+			      ext != ".epub" &&
+			      ext != ".pdf" &&
+			      ext != ".djvu")
+			    {
+			      return true;
+			    }
+			  else
+			    {
+			      return false;
+			    }
+			}),
+		      archlist.end());
+		  if(archlist.size() > 0)
+		    {
+		      std::tuple<std::filesystem::path,
+			  std::vector<std::tuple<int, int, std::string>>> ttup;
+		      std::get<0>(ttup) = p;
+		      std::get<1>(ttup) = archlist;
+		      zipvect.push_back(ttup);
+		    }
+		}
+	      else if(ext == ".rar" || ext == ".7z" || ext == ".jar"
+		  || ext == ".cpio" || ext == ".iso" || ext == ".a"
+		  || ext == ".ar" || ext == ".tar" || ext == ".tgz"
+		  || ext == ".gz" || ext == ".bz2" || ext == ".xz")
+		{
+		  std::vector<std::tuple<int, int, std::string>> archlist;
+		  af.fileNamesNonZip(p.u8string(), archlist);
 		  archlist.erase(
 		      std::remove_if(archlist.begin(), archlist.end(), []
 		      (auto &el)
@@ -633,6 +669,57 @@ CreateCollection::zipThreadFunc(
   std::copy(line.begin(), line.end(), std::back_inserter(write_v));
   std::vector<std::tuple<int, int, std::string>> locv;
   locv = std::get<1>(arch_tup);
+  std::sort(locv.begin(), locv.end(), []
+  (auto &el1, auto &el2)
+    {
+      return std::get<0>(el1) < std::get<0>(el2);
+    });
+  struct archive *a = nullptr;
+  if(fp_loc.extension().u8string() != ".zip")
+    {
+      int er;
+      a = archive_read_new();
+      er = archive_read_support_filter_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "zipThreadFunc: "
+		  << std::string(archive_error_string(a)) << std::endl;
+	    }
+	  return void();
+	}
+      er = archive_read_support_format_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "zipThreadFunc: "
+		  << std::string(archive_error_string(a)) << std::endl;
+	    }
+	  return void();
+	}
+
+      er = archive_read_open_filename(a, fp_loc.string().c_str(), 1);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "zipThreadFunc: "
+		  << std::string(archive_error_string(a)) << std::endl;
+	    }
+	  return void();
+	}
+    }
   for(size_t j = 0; j < locv.size(); j++)
     {
       if(*cancel == 1)
@@ -654,133 +741,18 @@ CreateCollection::zipThreadFunc(
       std::string extch_p = ch_p.extension().u8string();
       if(extch_p == ".fb2")
 	{
-	  std::string input = af.unpackByIndex(archadress, index, inpsz);
-	  basevect = fb2parser(input);
+	  basevect = zipFB2(a, fp_loc, index, inpsz, ch_p.u8string());
+	  if(basevect.size() == 0)
+	    {
+	      break;
+	    }
 	}
       else if(extch_p == ".epub" || extch_p == ".pdf" || extch_p == ".djvu")
 	{
-	  std::string outfolder;
-#ifdef __linux
-	  outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	  outfolder =
-	      std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-	  outfolder = outfolder + "/" + af.randomFileName();
-	  ch_p = std::filesystem::u8path(outfolder);
-	  if(std::filesystem::exists(ch_p))
+	  basevect = zipOther(a, fp_loc, index, ch_p.u8string());
+	  if(basevect.size() == 0)
 	    {
-	      std::filesystem::remove_all(ch_p);
-	    }
-	  af.unpackByIndex(archadress, outfolder, index);
-	  if(std::filesystem::exists(ch_p))
-	    {
-	      for(auto &dirit : std::filesystem::directory_iterator(ch_p))
-		{
-		  std::filesystem::path p = dirit.path();
-		  if(!std::filesystem::is_directory(p))
-		    {
-		      std::string ext_p = p.extension().u8string();
-		      if(ext_p == ".epub")
-			{
-			  std::vector<std::tuple<int, int, std::string>> tlv;
-			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-			  (auto &el)
-			    {
-			      std::filesystem::path lp =
-			      std::filesystem::u8path(std::get<2>(el));
-			      if(lp.stem() == p.stem() &&
-				  lp.extension().u8string() == ".fbd")
-				{
-				  return true;
-				}
-			      else
-				{
-				  return false;
-				}
-			    });
-			  if(ittlv != tlv.end())
-			    {
-			      std::string fbdf = af.unpackByIndex(
-				  archadress, std::get<0>(*ittlv),
-				  std::get<1>(*ittlv));
-			      basevect = fb2parser(fbdf);
-			    }
-			  else
-			    {
-			      basevect = epubparser(p);
-			    }
-			  break;
-			}
-		      else if(ext_p == ".pdf")
-			{
-			  std::vector<std::tuple<int, int, std::string>> tlv;
-			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-			  (auto &el)
-			    {
-			      std::filesystem::path lp =
-			      std::filesystem::u8path(std::get<2>(el));
-			      if(lp.stem() == p.stem() &&
-				  lp.extension().u8string() == ".fbd")
-				{
-				  return true;
-				}
-			      else
-				{
-				  return false;
-				}
-			    });
-			  if(ittlv != tlv.end())
-			    {
-			      std::string fbdf = af.unpackByIndex(
-				  archadress, std::get<0>(*ittlv),
-				  std::get<1>(*ittlv));
-			      basevect = fb2parser(fbdf);
-			    }
-			  else
-			    {
-			      basevect = pdfparser(p);
-			    }
-			  break;
-			}
-		      else if(ext_p == ".djvu")
-			{
-			  std::vector<std::tuple<int, int, std::string>> tlv;
-			  af.fileNames(std::get<0>(arch_tup).u8string(), tlv);
-			  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
-			  (auto &el)
-			    {
-			      std::filesystem::path lp =
-			      std::filesystem::u8path(std::get<2>(el));
-			      if(lp.stem() == p.stem() &&
-				  lp.extension().u8string() == ".fbd")
-				{
-				  return true;
-				}
-			      else
-				{
-				  return false;
-				}
-			    });
-			  if(ittlv != tlv.end())
-			    {
-			      std::string fbdf = af.unpackByIndex(
-				  archadress, std::get<0>(*ittlv),
-				  std::get<1>(*ittlv));
-			      basevect = fb2parser(fbdf);
-			    }
-			  else
-			    {
-			      basevect = djvuparser(p);
-			    }
-			  break;
-			}
-		    }
-		}
-	      std::filesystem::remove_all(ch_p);
+	      break;
 	    }
 	}
       auto bvit = std::find_if(basevect.begin(), basevect.end(), []
@@ -856,6 +828,10 @@ CreateCollection::zipThreadFunc(
 	}
       file_countmtx.unlock();
     }
+  if(fp_loc.extension().u8string() != ".zip")
+    {
+      archive_free(a);
+    }
 
   std::fstream zip_base_f;
   zipbasemtx.lock();
@@ -874,6 +850,357 @@ CreateCollection::zipThreadFunc(
       cmtx.unlock();
     }
   num_thr_runmtx.unlock();
+}
+
+std::vector<std::tuple<std::string, std::string>>
+CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
+			   std::string nm_in_arch)
+{
+  std::vector<std::tuple<std::string, std::string>> basevect;
+
+  AuxFunc af;
+  std::filesystem::path ch_p;
+  if(fp_loc.extension().u8string() == ".zip")
+    {
+      std::string outfolder;
+#ifdef __linux
+      outfolder = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+  	      outfolder =
+  		  std::filesystem::temp_directory_path().parent_path().u8string();
+  #endif
+      outfolder = outfolder + "/" + af.randomFileName();
+      ch_p = std::filesystem::u8path(outfolder);
+      if(std::filesystem::exists(ch_p))
+	{
+	  std::filesystem::remove_all(ch_p);
+	}
+      af.unpackByIndex(fp_loc.u8string(), outfolder, index);
+    }
+  else
+    {
+      int er;
+      for(;;)
+	{
+	  archive_entry *entry = archive_entry_new();
+	  er = archive_read_next_header2(a, entry);
+	  if(er != ARCHIVE_OK)
+	    {
+	      if(er == ARCHIVE_EOF)
+		{
+		  archive_entry_free(entry);
+		  break;
+		}
+	      else
+		{
+		  std::cout << "zipThreadFunc: "
+		      << std::string(archive_error_string(a)) << std::endl;
+		  archive_entry_free(entry);
+		  break;
+		}
+	    }
+	  std::string arnm(archive_entry_pathname_utf8(entry));
+	  if(arnm == nm_in_arch)
+	    {
+	      ch_p = std::filesystem::u8path(arnm);
+	      std::string filename;
+#ifdef __linux
+	      filename = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+	      filename =
+		  std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+	      filename = filename + "/" + af.randomFileName() + "/"
+		  + ch_p.filename().u8string();
+	      ch_p = std::filesystem::u8path(filename);
+	      if(std::filesystem::exists(ch_p.parent_path()))
+		{
+		  std::filesystem::remove_all(ch_p.parent_path());
+		}
+	      std::filesystem::create_directories(ch_p.parent_path());
+	      std::fstream f;
+	      f.open(
+		  ch_p,
+		  std::ios_base::out | std::ios_base::app
+		      | std::ios_base::binary);
+	      if(f.is_open())
+		{
+		  for(;;)
+		    {
+		      std::vector<char> buf;
+		      buf.resize(50);
+		      size_t rb = archive_read_data(a, &buf[0], buf.size());
+		      if(rb > 0)
+			{
+			  buf.resize(rb);
+			  f.write(buf.data(), buf.size());
+			}
+		      else
+			{
+			  break;
+			}
+		    }
+		  f.close();
+		}
+	      archive_entry_free(entry);
+	      break;
+	    }
+	  archive_entry_free(entry);
+	}
+      ch_p = ch_p.parent_path();
+    }
+  if(std::filesystem::exists(ch_p))
+    {
+      for(auto &dirit : std::filesystem::directory_iterator(ch_p))
+	{
+	  std::filesystem::path p = dirit.path();
+	  if(!std::filesystem::is_directory(p))
+	    {
+	      std::string ext_p = p.extension().u8string();
+	      if(ext_p == ".epub")
+		{
+		  std::vector<std::tuple<int, int, std::string>> tlv;
+		  if(fp_loc.extension().u8string() == ".zip")
+		    {
+		      af.fileNames(fp_loc.u8string(), tlv);
+		    }
+		  else
+		    {
+		      af.fileNamesNonZip(fp_loc.u8string(), tlv);
+		    }
+		  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		  (auto &el)
+		    {
+		      std::filesystem::path lp =
+		      std::filesystem::u8path(std::get<2>(el));
+		      if(lp.stem() == p.stem() &&
+			  lp.extension().u8string() == ".fbd")
+			{
+			  return true;
+			}
+		      else
+			{
+			  return false;
+			}
+		    });
+		  if(ittlv != tlv.end())
+		    {
+		      std::string fbdf;
+		      if(fp_loc.extension().u8string() == ".zip")
+			{
+			  fbdf = af.unpackByIndex(fp_loc.u8string(),
+						  std::get<0>(*ittlv),
+						  std::get<1>(*ittlv));
+			}
+		      else
+			{
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+							   std::get<0>(*ittlv));
+			}
+		      basevect = fb2parser(fbdf);
+		    }
+		  else
+		    {
+		      basevect = epubparser(p);
+		    }
+		  break;
+		}
+	      else if(ext_p == ".pdf")
+		{
+		  std::vector<std::tuple<int, int, std::string>> tlv;
+		  if(fp_loc.extension().u8string() == ".zip")
+		    {
+		      af.fileNames(fp_loc.u8string(), tlv);
+		    }
+		  else
+		    {
+		      af.fileNamesNonZip(fp_loc.u8string(), tlv);
+		    }
+		  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		  (auto &el)
+		    {
+		      std::filesystem::path lp =
+		      std::filesystem::u8path(std::get<2>(el));
+		      if(lp.stem() == p.stem() &&
+			  lp.extension().u8string() == ".fbd")
+			{
+			  return true;
+			}
+		      else
+			{
+			  return false;
+			}
+		    });
+		  if(ittlv != tlv.end())
+		    {
+		      std::string fbdf;
+		      if(fp_loc.extension().u8string() == ".zip")
+			{
+			  fbdf = af.unpackByIndex(fp_loc.u8string(),
+						  std::get<0>(*ittlv),
+						  std::get<1>(*ittlv));
+			}
+		      else
+			{
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+							   std::get<0>(*ittlv));
+			}
+		      basevect = fb2parser(fbdf);
+		    }
+		  else
+		    {
+		      basevect = pdfparser(p);
+		    }
+		  break;
+		}
+	      else if(ext_p == ".djvu")
+		{
+		  std::vector<std::tuple<int, int, std::string>> tlv;
+		  if(fp_loc.extension().u8string() == ".zip")
+		    {
+		      af.fileNames(fp_loc.u8string(), tlv);
+		    }
+		  else
+		    {
+		      af.fileNamesNonZip(fp_loc.u8string(), tlv);
+		    }
+		  auto ittlv = std::find_if(tlv.begin(), tlv.end(), [p]
+		  (auto &el)
+		    {
+		      std::filesystem::path lp =
+		      std::filesystem::u8path(std::get<2>(el));
+		      if(lp.stem() == p.stem() &&
+			  lp.extension().u8string() == ".fbd")
+			{
+			  return true;
+			}
+		      else
+			{
+			  return false;
+			}
+		    });
+		  if(ittlv != tlv.end())
+		    {
+		      std::string fbdf;
+		      if(fp_loc.extension().u8string() == ".zip")
+			{
+			  fbdf = af.unpackByIndex(fp_loc.u8string(),
+						  std::get<0>(*ittlv),
+						  std::get<1>(*ittlv));
+			}
+		      else
+			{
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+							   std::get<0>(*ittlv));
+			}
+		      basevect = fb2parser(fbdf);
+		    }
+		  else
+		    {
+		      basevect = djvuparser(p);
+		    }
+		  break;
+		}
+	    }
+	}
+      std::filesystem::remove_all(ch_p);
+    }
+
+  return basevect;
+}
+
+std::vector<std::tuple<std::string, std::string>>
+CreateCollection::zipFB2(archive *a, std::filesystem::path fp_loc, int index,
+			 size_t inpsz, std::string nm_in_arch)
+{
+  std::vector<std::tuple<std::string, std::string>> basevect;
+  AuxFunc af;
+  if(fp_loc.extension().u8string() == ".zip")
+    {
+      std::string input = af.unpackByIndex(fp_loc.u8string(), index, inpsz);
+      basevect = fb2parser(input);
+    }
+  else
+    {
+      int er;
+      for(;;)
+	{
+	  archive_entry *entry = archive_entry_new();
+	  er = archive_read_next_header2(a, entry);
+	  if(er != ARCHIVE_OK)
+	    {
+	      if(er == ARCHIVE_EOF)
+		{
+		  archive_entry_free(entry);
+		  break;
+		}
+	      else
+		{
+		  std::cout << "zipFB2: "
+		      << std::string(archive_error_string(a)) << std::endl;
+		  archive_entry_free(entry);
+		  break;
+		}
+	    }
+	  std::string arnm(archive_entry_pathname_utf8(entry));
+	  if(arnm == nm_in_arch)
+	    {
+	      std::filesystem::path ch_p;
+	      ch_p = std::filesystem::u8path(arnm);
+	      std::string filename;
+#ifdef __linux
+	      filename = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+  		      filename =
+  			  std::filesystem::temp_directory_path().parent_path().u8string();
+  #endif
+	      filename = filename + "/" + af.randomFileName() + "/"
+		  + ch_p.filename().u8string();
+	      ch_p = std::filesystem::u8path(filename);
+	      if(std::filesystem::exists(ch_p.parent_path()))
+		{
+		  std::filesystem::remove_all(ch_p.parent_path());
+		}
+	      std::filesystem::create_directories(ch_p.parent_path());
+	      std::fstream f;
+	      f.open(
+		  ch_p,
+		  std::ios_base::out | std::ios_base::app
+		      | std::ios_base::binary);
+	      if(f.is_open())
+		{
+		  for(;;)
+		    {
+		      std::vector<char> buf;
+		      buf.resize(50);
+		      size_t rb = archive_read_data(a, &buf[0], buf.size());
+		      if(rb > 0)
+			{
+			  buf.resize(rb);
+			  f.write(buf.data(), buf.size());
+			}
+		      else
+			{
+			  break;
+			}
+		    }
+		  f.close();
+		}
+	      if(std::filesystem::exists(ch_p))
+		{
+		  basevect = fb2parser(ch_p);
+		}
+	      std::filesystem::remove_all(ch_p.parent_path());
+	      archive_entry_free(entry);
+	      break;
+	    }
+	  archive_entry_free(entry);
+	}
+    }
+  return basevect;
 }
 
 void
@@ -2153,12 +2480,16 @@ CreateCollection::epubparser(std::filesystem::path input)
 			}
 		      std::tuple<std::string, std::string> restup;
 		      std::string::size_type space_n;
-		      while(space_n != std::string::npos)
+		      for(;;)
 			{
 			  space_n = auth_str.find("  ");
 			  if(space_n != std::string::npos)
 			    {
 			      auth_str.erase(space_n, std::string(" ").size());
+			    }
+			  else
+			    {
+			      break;
 			    }
 			}
 		      std::get<0>(restup) = "Author";

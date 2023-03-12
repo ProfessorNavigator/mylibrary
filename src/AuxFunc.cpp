@@ -155,7 +155,7 @@ AuxFunc::fileNames(std::string address,
 	  zip_stat_index(z, i, ZIP_FL_ENC_GUESS, &st);
 	  int sz = st.size;
 	  std::tuple<int, int, std::string> tuple;
-	  tuple = std::make_tuple(i, sz, flname);
+	  tuple = std::make_tuple(i, sz, flname); // @suppress("Invalid arguments")
 	  filenames.push_back(tuple);
 	}
       zip_close(z);
@@ -163,60 +163,238 @@ AuxFunc::fileNames(std::string address,
   else
     {
       std::cerr << "Error on getting file names from archive: " << strerror(er)
-	  << std::endl;
+	  << " " << address << std::endl;
     }
 
+  return er;
+}
+
+int
+AuxFunc::fileNamesNonZip(
+    std::string address,
+    std::vector<std::tuple<int, int, std::string>> &filenames)
+{
+  struct archive *a;
+  struct archive_entry *entry;
+  std::filesystem::path p = std::filesystem::u8path(address);
+  int er = 0;
+  a = archive_read_new();
+  er = archive_read_support_filter_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "fileNamesNonZip: " << std::string(archive_error_string(a))
+	  << " " << address << std::endl;
+      archive_read_free(a);
+      return er;
+    }
+  er = archive_read_support_format_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "fileNamesNonZip: " << std::string(archive_error_string(a))
+	  << " " << address << std::endl;
+      archive_read_free(a);
+      return er;
+    }
+
+  er = archive_read_open_filename(a, p.string().c_str(), 1);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "fileNamesNonZip: " << std::string(archive_error_string(a))
+	  << " " << address << std::endl;
+      archive_read_free(a);
+      return er;
+    }
+  else
+    {
+      int count = 0;
+      for(;;)
+	{
+	  er = archive_read_next_header(a, &entry);
+	  if(er == ARCHIVE_EOF)
+	    {
+	      break;
+	    }
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "fileNamesNonZip: "
+		  << std::string(archive_error_string(a)) << " " << address
+		  << std::endl;
+	    }
+	  else
+	    {
+	      if(archive_entry_size(entry) > 0)
+		{
+		  std::tuple<int, int, std::string> restup;
+		  std::get<0>(restup) = count;
+		  std::get<1>(restup) = static_cast<int>(archive_entry_size(
+		      entry));
+		  std::get<2>(restup) = std::string(
+		      archive_entry_pathname_utf8(entry));
+		  filenames.push_back(restup);
+		}
+	    }
+	  if(er == ARCHIVE_FATAL)
+	    {
+	      break;
+	    }
+	  count++;
+	}
+    }
+  archive_read_free(a);
+  er = 0;
   return er;
 }
 
 std::vector<std::tuple<std::string, std::string>>
 AuxFunc::fileinfo(std::string address, int index)
 {
+  std::filesystem::path p = std::filesystem::u8path(address);
   std::vector<std::tuple<std::string, std::string>> result;
-
-  zip_t *z;
-
-  std::string flname;
-  int er = 0;
-
-  z = zip_open(address.c_str(), ZIP_RDONLY, &er);
-  if(er < 1)
+  if(p.extension().u8string() == ".zip")
     {
-      struct zip_stat st;
-      zip_stat_index(z, index, ZIP_FL_ENC_GUESS, &st);
-      std::string key = "filename";
-      std::string value(st.name);
-      std::tuple<std::string, std::string> ttup;
-      std::get<0>(ttup) = key;
-      std::get<1>(ttup) = value;
-      result.push_back(ttup);
+      zip_t *z;
 
-      std::stringstream strm;
-      std::locale loc("C");
-      strm.imbue(loc);
-      strm << st.size;
-      key = "filesizeunc";
-      value = strm.str();
-      std::get<0>(ttup) = key;
-      std::get<1>(ttup) = value;
-      result.push_back(ttup);
+      std::string flname;
+      int er = 0;
 
-      strm.clear();
-      strm.str("");
-      strm.imbue(loc);
-      strm << st.comp_size;
-      key = "filesizec";
-      value = strm.str();
-      std::get<0>(ttup) = key;
-      std::get<1>(ttup) = value;
-      result.push_back(ttup);
+      z = zip_open(address.c_str(), ZIP_RDONLY, &er);
+      if(er < 1)
+	{
+	  struct zip_stat st;
+	  zip_stat_index(z, index, ZIP_FL_ENC_GUESS, &st);
+	  std::string key = "filename";
+	  std::string value(st.name);
+	  std::tuple<std::string, std::string> ttup;
+	  std::get<0>(ttup) = key;
+	  std::get<1>(ttup) = value;
+	  result.push_back(ttup);
 
-      zip_close(z);
+	  std::stringstream strm;
+	  std::locale loc("C");
+	  strm.imbue(loc);
+	  strm << st.size;
+	  key = "filesizeunc";
+	  value = strm.str();
+	  std::get<0>(ttup) = key;
+	  std::get<1>(ttup) = value;
+	  result.push_back(ttup);
+
+	  strm.clear();
+	  strm.str("");
+	  strm.imbue(loc);
+	  strm << st.comp_size;
+	  key = "filesizec";
+	  value = strm.str();
+	  std::get<0>(ttup) = key;
+	  std::get<1>(ttup) = value;
+	  result.push_back(ttup);
+
+	  zip_close(z);
+	}
+      else
+	{
+	  std::cerr << "Error on getting file info from archive: "
+	      << strerror(er) << std::endl;
+	}
     }
   else
     {
-      std::cerr << "Error on getting file info from archive: " << strerror(er)
-	  << std::endl;
+      struct archive *a;
+      struct archive_entry *entry;
+      int er;
+      a = archive_read_new();
+      er = archive_read_support_filter_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
+		  << std::endl;
+	    }
+	  return result;
+	}
+      er = archive_read_support_format_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
+		  << std::endl;
+	    }
+	  return result;
+	}
+
+      er = archive_read_open_filename(a, p.string().c_str(), 1);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  er = archive_read_free(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
+		  << std::endl;
+	    }
+	  return result;
+	}
+      else
+	{
+	  int count = 0;
+	  for(;;)
+	    {
+	      er = archive_read_next_header(a, &entry);
+	      if(er == ARCHIVE_EOF)
+		{
+		  break;
+		}
+	      if(er != ARCHIVE_OK)
+		{
+		  std::cout << "fileinfo: "
+		      << std::string(archive_error_string(a)) << std::endl;
+		}
+	      else
+		{
+		  if(count == index)
+		    {
+		      std::string key = "filename";
+		      std::string value(archive_entry_pathname_utf8(entry));
+		      std::tuple<std::string, std::string> ttup;
+		      std::get<0>(ttup) = key;
+		      std::get<1>(ttup) = value;
+		      result.push_back(ttup);
+
+		      std::stringstream strm;
+		      std::locale loc("C");
+		      strm.imbue(loc);
+		      strm << archive_entry_size(entry);
+		      key = "filesizeunc";
+		      value = strm.str();
+		      std::get<0>(ttup) = key;
+		      std::get<1>(ttup) = value;
+		      result.push_back(ttup);
+		      break;
+		    }
+		}
+	      if(er == ARCHIVE_FATAL)
+		{
+		  break;
+		}
+	      count++;
+	    }
+	}
+      er = archive_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  return result;
+	}
     }
 
   return result;
@@ -225,19 +403,201 @@ AuxFunc::fileinfo(std::string address, int index)
 int
 AuxFunc::removeFmArch(std::string archpath, uint64_t index)
 {
+  std::filesystem::path p = std::filesystem::u8path(archpath);
   int result = -1;
-  zip_t *z;
-  int er = 0;
-  z = zip_open(archpath.c_str(), 0, &er);
-  if(er < 1)
+  if(p.extension().u8string() == ".zip")
     {
-      result = zip_delete(z, index);
-      zip_close(z);
+      zip_t *z;
+      int er = 0;
+      z = zip_open(archpath.c_str(), 0, &er);
+      if(er < 1)
+	{
+	  result = zip_delete(z, index);
+	  zip_close(z);
+	}
+      else
+	{
+	  std::cerr << "Error on getting file names from archive: "
+	      << strerror(er) << std::endl;
+	}
     }
   else
     {
-      std::cerr << "Error on getting file names from archive: " << strerror(er)
-	  << std::endl;
+      std::string ext = p.u8string();
+      std::string::size_type n;
+      n = ext.find(".tar.gz");
+      if(n != std::string::npos)
+	{
+	  ext = ".tar.gz";
+	}
+      else
+	{
+	  n = ext.find(".tar.bz2");
+	  if(n != std::string::npos)
+	    {
+	      ext = ".tar.bz2";
+	    }
+	  else
+	    {
+	      n = ext.find(".tar.xz");
+	      if(n != std::string::npos)
+		{
+		  ext = ".tar.xz";
+		}
+	      else
+		{
+		  ext = p.extension().u8string();
+		}
+	    }
+	}
+      archive *a_r = archive_read_new();
+      archive *a_w = archive_write_new();
+      archive_entry *entry;
+      int er = archive_read_support_filter_all(a_r);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "removeFmArch: "
+	      << std::string(archive_error_string(a_r)) << std::endl;
+	  archive_read_free(a_r);
+	  archive_write_free(a_w);
+	  return result;
+	}
+      er = archive_write_set_format_filter_by_ext(a_w, ext.c_str());
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "removeFmArch: "
+	      << std::string(archive_error_string(a_w)) << std::endl;
+	  archive_read_free(a_r);
+	  archive_write_free(a_w);
+	  return result;
+	}
+      er = archive_read_support_format_all(a_r);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "removeFmArch: "
+	      << std::string(archive_error_string(a_r)) << std::endl;
+	  archive_read_free(a_r);
+	  archive_write_free(a_w);
+	  return result;
+	}
+
+      er = archive_read_open_filename(a_r, p.string().c_str(), 1);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "removeFmArch: "
+	      << std::string(archive_error_string(a_r)) << std::endl;
+	  archive_read_free(a_r);
+	  archive_write_free(a_w);
+	  return result;
+	}
+      else
+	{
+	  std::string fnm = p.parent_path().u8string();
+	  fnm = fnm + "/" + randomFileName();
+	  std::filesystem::path tmp_arch = std::filesystem::u8path(fnm);
+	  bool writed = false;
+	  er = archive_write_open_filename(a_w, tmp_arch.string().c_str());
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "removeFmArch: "
+		  << std::string(archive_error_string(a_w)) << std::endl;
+	      archive_read_free(a_r);
+	      archive_write_free(a_w);
+	      return result;
+	    }
+	  else
+	    {
+	      uint64_t count = 0;
+	      for(;;)
+		{
+		  er = archive_read_next_header(a_r, &entry);
+		  if(er == ARCHIVE_EOF)
+		    {
+		      break;
+		    }
+		  if(er != ARCHIVE_OK)
+		    {
+		      std::cout << "removeFmArch: "
+			  << std::string(archive_error_string(a_r))
+			  << std::endl;
+		    }
+		  else
+		    {
+		      if(er == ARCHIVE_FATAL)
+			{
+			  break;
+			}
+		    }
+		  if(count != index)
+		    {
+		      er = archive_write_header(a_w, entry);
+		      if(er != ARCHIVE_OK)
+			{
+			  if(er == ARCHIVE_RETRY)
+			    {
+			      er = archive_write_header(a_w, entry);
+			    }
+			  if(er == ARCHIVE_FATAL)
+			    {
+			      break;
+			    }
+			  if(er == ARCHIVE_WARN)
+			    {
+			      std::cout << "removeFmArch: "
+				  << std::string(archive_error_string(a_w))
+				  << std::endl;
+			    }
+			}
+		      for(;;)
+			{
+			  std::vector<char> buf;
+			  buf.resize(50);
+			  size_t rb = archive_read_data(a_r, &buf[0],
+							buf.size());
+			  if(rb > 0)
+			    {
+			      buf.resize(rb);
+			      ssize_t wb = archive_write_data(a_w, &buf[0],
+							      buf.size());
+			      if(wb > 0)
+				{
+				  writed = true;
+				}
+			      else if(wb < 0)
+				{
+				  archive_read_free(a_r);
+				  archive_write_free(a_w);
+				  return result;
+				}
+			      while(wb != static_cast<ssize_t>(buf.size()))
+				{
+				  buf.erase(buf.begin(), buf.begin() + wb);
+				  wb = archive_write_data(a_w, &buf[0],
+							  buf.size());
+				}
+			    }
+			  else
+			    {
+			      break;
+			    }
+			}
+		    }
+		  count++;
+		}
+	    }
+	  archive_read_free(a_r);
+	  archive_write_free(a_w);
+	  std::filesystem::remove_all(p);
+	  if(writed)
+	    {
+	      std::filesystem::rename(tmp_arch, p);
+	    }
+	  else
+	    {
+	      std::filesystem::remove_all(tmp_arch);
+	    }
+	}
+      result = 0;
     }
 
   return result;
@@ -349,6 +709,230 @@ AuxFunc::unpackByIndex(std::string archaddress, int index, size_t filesz)
   else
     {
       std::cout << "Unpack by index error: " << strerror(er) << std::endl;
+    }
+  return result;
+}
+
+void
+AuxFunc::unpackByIndexNonZip(std::string archaddress, std::string outfolder,
+			     int index)
+{
+  struct archive *a;
+  struct archive_entry *entry;
+  std::filesystem::path p = std::filesystem::u8path(archaddress);
+  int er;
+  a = archive_read_new();
+  er = archive_read_support_filter_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZip(void): "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return void();
+    }
+  er = archive_read_support_format_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZip(void): "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return void();
+    }
+
+  er = archive_read_open_filename(a, p.string().c_str(), 1);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZip(void): "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return void();
+    }
+  else
+    {
+      int count = 0;
+      for(;;)
+	{
+	  er = archive_read_next_header(a, &entry);
+	  if(er == ARCHIVE_EOF)
+	    {
+	      break;
+	    }
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "unpackByIndexNonZip(void): "
+		  << std::string(archive_error_string(a)) << std::endl;
+	    }
+	  else
+	    {
+	      if(count == index)
+		{
+		  std::filesystem::path finarch = std::filesystem::u8path(
+		      std::string(archive_entry_pathname_utf8(entry)));
+		  std::filesystem::path outpath = std::filesystem::u8path(
+		      outfolder + "/" + finarch.filename().u8string());
+		  if(!std::filesystem::exists(outpath.parent_path()))
+		    {
+		      std::filesystem::create_directories(
+			  outpath.parent_path());
+		    }
+		  std::fstream f;
+		  f.open(
+		      outpath,
+		      std::ios_base::out | std::ios_base::app
+			  | std::ios_base::binary);
+		  if(f.is_open())
+		    {
+		      for(;;)
+			{
+			  std::vector<char> buf;
+			  buf.resize(50);
+			  size_t rb = archive_read_data(a, &buf[0], buf.size());
+			  if(rb > 0)
+			    {
+			      buf.resize(rb);
+			      f.write(buf.data(), buf.size());
+			    }
+			  else
+			    {
+			      break;
+			    }
+			}
+		      f.close();
+		    }
+		  break;
+		}
+	    }
+	  if(er == ARCHIVE_FATAL)
+	    {
+	      break;
+	    }
+	  count++;
+	}
+    }
+  er = archive_read_free(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cerr << "unpackByIndexNonZip(void): "
+	  << std::string(archive_error_string(a)) << std::endl;
+      return void();
+    }
+}
+
+std::string
+AuxFunc::unpackByIndexNonZipStr(std::string archaddress, int index)
+{
+  std::string result;
+  struct archive *a;
+  struct archive_entry *entry;
+  std::filesystem::path p = std::filesystem::u8path(archaddress);
+  int er;
+  a = archive_read_new();
+  er = archive_read_support_filter_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZipStr: "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return result;
+    }
+  er = archive_read_support_format_all(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZipStr: "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return result;
+    }
+
+  er = archive_read_open_filename(a, p.string().c_str(), 1);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZipStr: "
+	  << std::string(archive_error_string(a)) << std::endl;
+      er = archive_read_free(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	}
+      return result;
+    }
+  else
+    {
+      int count = 0;
+      for(;;)
+	{
+	  er = archive_read_next_header(a, &entry);
+	  if(er == ARCHIVE_EOF)
+	    {
+	      break;
+	    }
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "unpackByIndexNonZipStr: "
+		  << std::string(archive_error_string(a)) << std::endl;
+	    }
+	  else
+	    {
+	      if(count == index)
+		{
+		  for(;;)
+		    {
+		      std::vector<char> buf;
+		      buf.resize(50);
+		      size_t rb = archive_read_data(a, &buf[0], buf.size());
+		      if(rb > 0)
+			{
+			  buf.resize(rb);
+			  std::copy(buf.begin(), buf.end(),
+				    std::back_inserter(result));
+			}
+		      else
+			{
+			  break;
+			}
+		    }
+		  break;
+		}
+	    }
+	  if(er == ARCHIVE_FATAL)
+	    {
+	      break;
+	    }
+	  count++;
+	}
+    }
+  er = archive_read_free(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cerr << "unpackByIndexNonZipStr: "
+	  << std::string(archive_error_string(a)) << std::endl;
+      return result;
     }
   return result;
 }
@@ -472,6 +1056,115 @@ AuxFunc::packing(std::string source, std::string out)
   return result;
 }
 
+int
+AuxFunc::packingNonZip(std::string source, std::string out,
+		       std::string extension)
+{
+  std::filesystem::path source_p = std::filesystem::u8path(source);
+  std::filesystem::path tmp_arch = std::filesystem::u8path(out);
+  archive *a = archive_write_new();
+  archive_entry *entry;
+  std::string ext = utf8to(extension);
+  int er;
+  er = archive_write_set_format_filter_by_ext(a, ext.c_str());
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "packingNonZip: " << std::string(archive_error_string(a))
+	  << std::endl;
+      archive_write_free(a);
+      return er;
+    }
+
+  er = archive_write_open_filename(a, tmp_arch.string().c_str());
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "packingNonZip: " << std::string(archive_error_string(a))
+	  << std::endl;
+      archive_write_free(a);
+      return er;
+    }
+  else
+    {
+      entry = archive_entry_new();
+      archive_entry_set_pathname_utf8(entry,
+				      source_p.filename().u8string().c_str());
+      int64_t sz = static_cast<int64_t>(std::filesystem::file_size(source_p));
+      archive_entry_set_size(entry, sz);
+      archive_entry_set_filetype(entry, AE_IFREG);
+      er = archive_write_header(a, entry);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "packingNonZip: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  archive_entry_free(entry);
+	  archive_write_free(a);
+	  return er;
+	}
+      std::vector<char> buf;
+      size_t byteread = 0;
+      size_t fsz = static_cast<size_t>(sz);
+      std::fstream f;
+      f.open(source_p, std::ios_base::in | std::ios_base::binary);
+      if(f.is_open())
+	{
+	  while(byteread < fsz)
+	    {
+	      size_t ch = fsz - byteread;
+	      buf.clear();
+	      if(ch > 1048576)
+		{
+		  buf.resize(1048576);
+		}
+	      else
+		{
+		  buf.resize(ch);
+		}
+	      ch = buf.size();
+	      f.read(&buf[0], buf.size());
+	      ssize_t wb = archive_write_data(a, &buf[0], buf.size());
+	      if(wb < 0)
+		{
+		  f.close();
+		  archive_entry_free(entry);
+		  archive_write_free(a);
+		  return -1;
+		}
+	      else
+		{
+		  while(wb != static_cast<ssize_t>(buf.size()))
+		    {
+		      buf.erase(buf.begin(), buf.begin() + wb);
+		      wb = archive_write_data(a, &buf[0], buf.size());
+		      if(wb < 0)
+			{
+			  f.close();
+			  archive_entry_free(entry);
+			  archive_write_free(a);
+			  return -1;
+			}
+		    }
+		}
+	      byteread = byteread + ch;
+	    }
+	  f.close();
+	}
+      else
+	{
+	  std::cout << "packingNonZip: " << "source file not opened"
+	      << std::endl;
+	}
+      archive_entry_free(entry);
+    }
+  er = archive_write_close(a);
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "packingNonZip: " << std::string(archive_error_string(a))
+	  << std::endl;
+    }
+  archive_write_free(a);
+  return er;
+}
+
 void
 AuxFunc::stringToLower(std::string &line)
 {
@@ -483,14 +1176,9 @@ AuxFunc::stringToLower(std::string &line)
 }
 
 std::vector<char>
-AuxFunc::filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel)
+AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
 {
   std::vector<char> result;
-  if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
-    {
-      gcry_check_version(NULL);
-      gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-    }
   if(std::filesystem::exists(filepath))
     {
       uintmax_t fsz = std::filesystem::file_size(filepath);
@@ -502,8 +1190,42 @@ AuxFunc::filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel)
       err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
       if(err != 0)
 	{
-	  std::cerr << "Hash error1: " << gcry_strerror(err) << " on "
-	      << filepath.u8string() << std::endl;
+	  if(gcry_md_is_enabled(hd, GCRY_MD_BLAKE2B_256))
+	    {
+	      std::cout << "Enabled" << std::endl;
+	    }
+	  else
+	    {
+	      std::cout << "Not enabled" << std::endl;
+	    }
+	  std::string errstr;
+	  errstr.resize(1024);
+	  gpg_strerror_r(err, errstr.data(), errstr.size());
+	  errstr.erase(std::remove_if(errstr.begin(), errstr.end(), []
+	  (auto &el)
+	    {
+	      if(el)
+		{
+		  return false;
+		}
+	      else
+		{
+		  return true;
+		}
+	    }),
+		       errstr.end());
+	  if(!errstr.empty())
+	    {
+	      std::cerr << "Hash error1: " << err << "(" << errstr << ") on "
+		  << filepath.u8string() << std::endl;
+	    }
+	  else
+	    {
+
+	      std::cerr << "Hash error1: " << err << " on "
+		  << filepath.u8string() << std::endl;
+	    }
+
 	}
       else
 	{
@@ -557,14 +1279,9 @@ AuxFunc::filehash(std::filesystem::path filepath, std::shared_ptr<int> cancel)
 std::vector<char>
 AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 (uint64_t)> progress,
-		  std::shared_ptr<int> cancel)
+		  int *cancel)
 {
   std::vector<char> result;
-  if(!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
-    {
-      gcry_check_version(NULL);
-      gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-    }
   if(std::filesystem::exists(filepath))
     {
       uintmax_t fsz = std::filesystem::file_size(filepath);
@@ -576,8 +1293,32 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
       err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
       if(err != 0)
 	{
-	  std::cerr << "Hash error2: " << gcry_strerror(err) << " on "
-	      << filepath.u8string() << std::endl;
+	  std::string errstr;
+	  errstr.resize(1024);
+	  gpg_strerror_r(err, errstr.data(), errstr.size());
+	  errstr.erase(std::remove_if(errstr.begin(), errstr.end(), []
+	  (auto &el)
+	    {
+	      if(el)
+		{
+		  return false;
+		}
+	      else
+		{
+		  return true;
+		}
+	    }),
+		       errstr.end());
+	  if(!errstr.empty())
+	    {
+	      std::cerr << "Hash error2: " << errstr << " on "
+		  << filepath.u8string() << std::endl;
+	    }
+	  else
+	    {
+	      std::cerr << "Hash error2: " << err << " on "
+		  << filepath.u8string() << std::endl;
+	    }
 	  if(progress)
 	    {
 	      progress(static_cast<uint64_t>(fsz));

@@ -23,7 +23,8 @@
 #include "AuxFunc.h"
 #include "MyLibraryApplication.h"
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   AuxFunc af;
   std::string Sharepath;
@@ -32,6 +33,8 @@ int main(int argc, char *argv[])
   bindtextdomain("MyLibrary", Sharepath.c_str());
   bind_textdomain_codeset("MyLibrary", "UTF-8");
   textdomain("MyLibrary");
+  gcry_check_version(NULL);
+  gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
   auto app = MyLibraryApplication::create();
   return app->run(argc, argv);
 }

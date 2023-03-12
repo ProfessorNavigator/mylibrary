@@ -37,7 +37,7 @@ class RefreshCollection
 {
 public:
   RefreshCollection(std::string collname, unsigned int thr_num,
-		    std::shared_ptr<int> cancel);
+		    bool fast_refresh, int *cancel);
   virtual
   ~RefreshCollection();
   std::function<void
@@ -61,7 +61,9 @@ public:
   void
   removeBook(std::string book_str);
   void
-  addBook(std::string book_path, std::string book_name, bool pack);
+  removeRar(std::string archaddr);
+  void
+  addBook(std::string book_path, std::string book_name, std::string arch_ext);
   void
   removeEmptyDirs();
   void
@@ -107,7 +109,8 @@ private:
 	      std::vector<std::tuple<std::string, std::string>> *oldbasev);
 
   std::string collname;
-  std::shared_ptr<int> cancel;
+  bool fast_refresh = false;
+  int *cancel = nullptr;
   std::vector<std::tuple<std::filesystem::path, std::string>> saved_hashes;
   std::vector<std::filesystem::path> fb2parse;
   std::mutex fb2parsemtx;
