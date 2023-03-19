@@ -37,6 +37,9 @@
 #include "CollectionOpWindows.h"
 #include "BookOpWindows.h"
 #include "AuxWindows.h"
+#ifndef ML_GTK_OLD
+#include "ModelColumns.h"
+#endif
 
 class MainWindow : public Gtk::ApplicationWindow
 {
@@ -56,8 +59,10 @@ private:
   creationPulseWin(Gtk::Window *window, int *cncl);
   void
   formCollCombo(Gtk::ComboBoxText *combo);
+#ifdef ML_GTK_OLD
   void
   rowActivated(const Gtk::TreeModel::Path &path, Gtk::TreeViewColumn *column);
+#endif
   void
   drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
   void
@@ -65,8 +70,10 @@ private:
 	     Gtk::Entry *book_nm_ent);
   void
   bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext);
+#ifdef ML_GTK_OLD
   void
   createBookmark();
+#endif
   bool
   closeFunc();
   Gdk::Rectangle
@@ -75,10 +82,6 @@ private:
   readCollection(Gtk::ComboBoxText *collect_box);
 
   Gtk::ProgressBar *coll_cr_prog = nullptr;
-  std::vector<
-      std::tuple<std::string, std::string, std::string, std::string,
-	  std::string, std::string>> bookmark_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
-
   std::string cover_image = "";
   std::string cover_image_path = "";
   std::vector<
@@ -93,8 +96,23 @@ private:
 	  std::string, std::string>> base_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
   std::string active_genre = "nill";
   std::vector<Gtk::Expander*> expv;
+#ifdef ML_GTK_OLD
   Gtk::TreeView *bm_tv = nullptr;
+  std::vector<
+        std::tuple<std::string, std::string, std::string, std::string,
+  	  std::string, std::string>> bookmark_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
+#endif
   std::mutex *searchmtx = nullptr;
+#ifndef ML_GTK_OLD
+  std::vector<Glib::RefPtr<Gtk::ColumnViewColumn>> search_res_col;
+  guint *ms_sel_book = nullptr;
+  Glib::RefPtr<ModelColumns> ms_sel_item;
+  guint *bm_sel_book = nullptr;
+  Glib::RefPtr<Gio::ListStore<ModelColumns>> list_sr;
+  std::vector<
+      std::tuple<Glib::RefPtr<ModelColumns>, Gtk::Label*, Gtk::Label*,
+	  Gtk::Label*, Gtk::Label*, Gtk::Label*>> ms_style_v;
+#endif
 };
 
 #endif /* INCLUDE_MAINWINDOW_H_ */

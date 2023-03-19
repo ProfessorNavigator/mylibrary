@@ -19,6 +19,9 @@
 #define INCLUDE_CREATERIGHTGRID_H_
 
 #include "MainWindow.h"
+#ifndef ML_GTK_OLD
+#include "ModelColumns.h"
+#endif
 
 class MainWindow;
 
@@ -31,11 +34,27 @@ public:
   Gtk::Grid*
   formRightGrid();
   void
+  searchResultShow();
+#ifndef ML_GTK_OLD
+  std::string
+  genre_str(std::string src);
+#endif
+#ifdef ML_GTK_OLD
+  void
   searchResultShow(int variant);
+#endif
 private:
+#ifdef ML_GTK_OLD
   Gtk::Grid*
   formPopoverGrid(Gtk::TreeView *sres, Gtk::Popover *book_popover);
-  MainWindow *mw;
+#endif
+#ifndef ML_GTK_OLD
+  Gtk::Grid*
+  formPopoverGrid(Gtk::ColumnView *sres, Gtk::Popover *book_popover);
+  void
+  rowActivated(guint rownum, Gtk::ColumnView *sres);
+#endif
+  MainWindow *mw = nullptr;
 };
 
 #endif /* INCLUDE_CREATERIGHTGRID_H_ */

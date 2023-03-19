@@ -320,6 +320,64 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 				      Gtk::CheckButton *fast_refresh,
 				      int variant)
 {
+#ifndef ML_GTK_OLD
+  Glib::RefPtr<Gtk::AlertDialog> msg = Gtk::AlertDialog::create();
+  msg->set_modal(true);
+  msg->set_message(gettext("Are you sure?"));
+  std::vector<Glib::ustring> labels;
+  labels.push_back(gettext("No"));
+  labels.push_back(gettext("Yes"));
+  msg->set_buttons(labels);
+  msg->set_cancel_button(0);
+  msg->set_default_button(0);
+  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
+  MainWindow *mwl = mw;
+  msg->choose(
+      *win,
+      [cmb, win, msg, mwl, rem_empty_ch, fast_refresh, variant]
+      (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+	{
+	  int resp = msg->choose_finish(result);
+	  if(resp == 1)
+	    {
+	      if(variant == 1)
+		{
+		  std::string filename;
+		  AuxFunc af;
+		  af.homePath(&filename);
+		  filename = filename + "/.MyLibrary/Collections/" +
+		  std::string(cmb->get_active_text());
+		  std::filesystem::path filepath = std::filesystem::u8path(filename);
+		  std::filesystem::remove_all(filepath);
+
+		  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mwl->get_child());
+		  Gtk::Paned *pn =
+		  dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+		  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+		  Gtk::ComboBoxText *collect_box =
+		  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
+
+		  collect_box->remove_all();
+		  CreateLeftGrid clgr(mwl);
+		  clgr.formCollCombo(collect_box);
+		  msg.reset();
+		  win->close();
+		}
+	      else if(variant == 2)
+		{
+		  CollectionOpWindows copw(mwl);
+		  copw.collectionRefresh(cmb, rem_empty_ch, fast_refresh, win);
+		  msg.reset();
+		}
+	    }
+	  else
+	    {
+	      msg.reset();
+	    }
+	},
+      cncl);
+#endif
+#ifdef ML_GTK_OLD
   Gtk::MessageDialog *msg = new Gtk::MessageDialog(*win,
 						   gettext("Are you sure?"),
 						   false,
@@ -381,6 +439,7 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
   },
 				      false);
   msg->present();
+#endif
 }
 
 void
@@ -715,7 +774,10 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
 		}
 	      catch(Glib::Error &e)
 		{
-		  std::cout << "openDialogCC" << variant << ": " << e.what() << std::endl;
+		  if(e.code() != Gtk::DialogError::DISMISSED)
+		    {
+		      std::cout << "openDialogCC" << variant << ": " << e.what() << std::endl;
+		    }
 		}
 	      if(fl)
 		{
@@ -743,7 +805,10 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
 		}
 	      catch(Glib::Error &e)
 		{
-		  std::cout << "openDialogCC" << variant << ": " << e.what() << std::endl;
+		  if(e.code() != Gtk::DialogError::DISMISSED)
+		    {
+		      std::cout << "openDialogCC" << variant << ": " << e.what() << std::endl;
+		    }
 		}
 	      if(fl)
 		{

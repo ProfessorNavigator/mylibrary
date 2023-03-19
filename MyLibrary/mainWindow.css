@@ -8,6 +8,21 @@
 	border-width: 1px 1px 1px 1px;
 	border-color: black;
 	color: black;
+	background-color: white;
+}
+
+#searchResBox {
+	border: solid;
+	border-width: 1px 1px 1px 1px;
+	border-radius: 0px;
+	border-color: black;
+	color: black;
+	background-color: white;
+}
+
+#activeRow {
+	background-color: rgb(38, 20, 228);
+	color: white;
 }
 
 #applyBut {
@@ -128,4 +143,14 @@
 #menulab:hover {
   	background-color: rgb(24, 174, 122);
   	color: white;
+}
+
+#unselectedLab {
+	background-color: white;
+	color: black;	
+}
+
+#selectedLab {
+	background-color: green;
+	color: white;
 }

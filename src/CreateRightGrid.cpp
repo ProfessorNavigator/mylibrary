@@ -43,8 +43,10 @@ CreateRightGrid::formRightGrid()
   search_res->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::ALWAYS);
   search_res->set_hexpand(true);
   search_res->set_vexpand(true);
+  search_res->set_overlay_scrolling(true);
   right_grid->attach(*search_res, 0, 0, 2, 1);
 
+#ifdef ML_GTK_OLD
   Gtk::TreeView *sres = Gtk::make_managed<Gtk::TreeView>();
   sres->set_halign(Gtk::Align::FILL);
   sres->set_hexpand(true);
@@ -54,7 +56,23 @@ CreateRightGrid::formRightGrid()
   sres->signal_row_activated().connect( // @suppress("Invalid arguments")
       sigc::mem_fun(*mw, &MainWindow::rowActivated)); // @suppress("Invalid arguments")
   sres->set_hexpand(true);
-
+#endif
+  MainWindow *mwl = mw;
+#ifndef ML_GTK_OLD
+  Gtk::ColumnView *sres = Gtk::make_managed<Gtk::ColumnView>();
+  sres->set_halign(Gtk::Align::FILL);
+  sres->set_hexpand(true);
+  sres->set_single_click_activate(true);
+  sres->set_show_column_separators(true);
+  sres->set_show_row_separators(true);
+  sres->signal_activate().connect([mwl, sres]
+  (guint rownum)
+    {
+      CreateRightGrid crg(mwl);
+      crg.rowActivated(rownum, sres);
+    });
+#endif
+  search_res->set_child(*sres);
   Gtk::Popover *book_men = Gtk::make_managed<Gtk::Popover>();
   book_men->set_parent(*sres);
   book_men->set_name("popoverSt");
@@ -63,15 +81,28 @@ CreateRightGrid::formRightGrid()
 
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(3);
-  clck->signal_pressed().connect([book_men]
+  clck->signal_pressed().connect([book_men, mwl, sres]
   (int n_pressed, double x, double y)
     {
       Gdk::Rectangle rect(x, y, 1, 1);
       book_men->set_pointing_to(rect);
       book_men->popup();
-    });
+#ifndef ML_GTK_OLD
+   delete mwl->ms_sel_book;
+   mwl->ms_sel_book = nullptr;
+   auto ss = sres->get_model();
+   if(ss)
+     {
+       auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(ss);
+       if(selection)
+	 {
+	   CreateRightGrid crg(mwl);
+	   crg.rowActivated(selection->get_selected(), sres);
+	 }
+     }
+#endif
+ });
   sres->add_controller(clck);
-  search_res->set_child(*sres);
 
   Gtk::Popover *book_op_pop = Gtk::make_managed<Gtk::Popover>();
   book_op_pop->set_name("popoverSt");
@@ -114,7 +145,6 @@ CreateRightGrid::formRightGrid()
   drar->set_vexpand(false);
   right_grid->attach(*drar, 1, 2, 1, 1);
 
-  MainWindow *mwl = mw;
   mw->signal_show().connect([mwl]
   {
     Gdk::Rectangle scr_res = mwl->screenRes();
@@ -162,9 +192,16 @@ CreateRightGrid::formRightGrid()
   return right_grid;
 }
 
+#ifdef ML_GTK_OLD
 Gtk::Grid*
 CreateRightGrid::formPopoverGrid(Gtk::TreeView *sres,
 				 Gtk::Popover *book_popover)
+#endif
+#ifndef ML_GTK_OLD
+Gtk::Grid*
+CreateRightGrid::formPopoverGrid(Gtk::ColumnView *sres,
+				 Gtk::Popover *book_popover)
+#endif
 {
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   MainWindow *mwl = mw;
@@ -183,8 +220,13 @@ CreateRightGrid::formPopoverGrid(Gtk::TreeView *sres,
     {
       book_popover->popdown();
       BookOpWindows bopw(mwl);
-      bopw.openBook(1);
-    });
+#ifndef ML_GTK_OLD
+   bopw.openBook();
+#endif
+#ifdef ML_GTK_OLD
+   bopw.openBook(1);
+#endif
+ });
   openbook->add_controller(clck);
   grid->attach(*openbook, 0, 0, 1, 1);
 
@@ -220,8 +262,14 @@ CreateRightGrid::formPopoverGrid(Gtk::TreeView *sres,
   (int num_pressed, double x, double y)
     {
       book_popover->popdown();
-      mwl->createBookmark();
-    });
+#ifndef ML_GTK_OLD
+   BookOpWindows bopw(mwl);
+   bopw.createBookmark();
+#endif
+#ifdef ML_GTK_OLD
+   mwl->createBookmark();
+#endif
+ });
   bookmark->add_controller(clck);
   grid->attach(*bookmark, 0, 2, 1, 1);
 
@@ -277,14 +325,675 @@ CreateRightGrid::formPopoverGrid(Gtk::TreeView *sres,
     {
       book_popover->popdown();
       BookOpWindows bopw(mwl);
-      bopw.bookRemoveWin(1, nullptr, sres);
-    });
+#ifdef ML_GTK_OLD
+   bopw.bookRemoveWin(1, nullptr, sres);
+#endif
+#ifndef ML_GTK_OLD
+   bopw.bookRemoveWin(mwl);
+#endif
+ });
   removebook->add_controller(clck);
   grid->attach(*removebook, 0, 5, 1, 1);
 
   return grid;
 }
 
+#ifndef ML_GTK_OLD
+void
+CreateRightGrid::searchResultShow()
+{
+  delete mw->ms_sel_book;
+  mw->ms_sel_book = nullptr;
+  mw->ms_style_v.clear();
+  MainWindow *mwl = mw;
+  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+  Gtk::ScrolledWindow *sres_scrl =
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(sres_scrl->get_child());
+  Gtk::ScrolledWindow *annot_scrl =
+      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 2));
+  Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
+  tb->set_text("");
+  Gtk::DrawingArea *drar =
+      dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+  drar->set_opacity(0.0);
+  Glib::RefPtr<Gtk::Adjustment> v_adg = sres_scrl->get_vadjustment();
+  v_adg->set_value(v_adg->get_lower());
+  if(sres)
+    {
+      for(size_t i = 0; i < mw->search_res_col.size(); i++)
+	{
+	  sres->remove_column(mw->search_res_col[i]);
+	}
+      mw->search_res_col.clear();
+      mw->list_sr = Gio::ListStore<ModelColumns>::create();
+      for(size_t i = 0; i < mw->search_result_v.size(); i++)
+	{
+	  Glib::RefPtr<ModelColumns> mod_col = ModelColumns::create(
+	      std::get<0>(mw->search_result_v[i]),
+	      std::get<1>(mw->search_result_v[i]),
+	      std::get<2>(mw->search_result_v[i]),
+	      std::get<3>(mw->search_result_v[i]),
+	      std::get<4>(mw->search_result_v[i]),
+	      std::get<5>(mw->search_result_v[i]));
+	  std::tuple<Glib::RefPtr<ModelColumns>, Gtk::Label*, Gtk::Label*,
+	      Gtk::Label*, Gtk::Label*, Gtk::Label*> st_tup;
+	  std::get<0>(st_tup) = mod_col;
+	  std::get<1>(st_tup) = nullptr;
+	  std::get<2>(st_tup) = nullptr;
+	  std::get<3>(st_tup) = nullptr;
+	  std::get<4>(st_tup) = nullptr;
+	  std::get<5>(st_tup) = nullptr;
+	  mw->ms_style_v.push_back(st_tup);
+	  mw->list_sr->append(mod_col);
+	}
+      mw->search_result_v.clear();
+      Glib::RefPtr<Gtk::SingleSelection> ss_mod = Gtk::SingleSelection::create(
+	  mw->list_sr);
+      sres->set_model(ss_mod);
+
+      auto author_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto col = std::dynamic_pointer_cast<ModelColumns>(item);
+	  if(col)
+	    {
+	      return col->author;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+      auto author_sort = Gtk::StringSorter::create(author_expr);
+      auto sort_model = Gtk::SortListModel::create(mw->list_sr, author_sort);
+
+      Glib::RefPtr<Gtk::SignalListItemFactory> factory =
+	  Gtk::SignalListItemFactory::create();
+      factory->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_name("unselectedLab");
+	  lab->set_text("");
+	  lab->set_wrap(true);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_max_width_chars(50);
+	  lab->set_justify(Gtk::Justification::CENTER);
+	  item->set_child(*lab);
+	});
+      factory->signal_bind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	      if(col && lab)
+		{
+		  lab->set_text(col->author);
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<1>(*it) = lab;
+		    }
+		}
+	    });
+      factory->signal_unbind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      if(col)
+		{
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<1>(*it) = nullptr;
+		    }
+		}
+	    });
+      Glib::RefPtr<Gtk::ColumnViewColumn> col_author =
+	  Gtk::ColumnViewColumn::create(gettext("Author"), factory);
+
+      factory = Gtk::SignalListItemFactory::create();
+      factory->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_name("unselectedLab");
+	  lab->set_text("");
+	  lab->set_wrap(true);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_max_width_chars(50);
+	  lab->set_justify(Gtk::Justification::CENTER);
+	  item->set_child(*lab);
+	});
+      factory->signal_bind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	      if(col && lab)
+		{
+		  lab->set_text(col->book);
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<2>(*it) = lab;
+		    }
+		}
+	    });
+      factory->signal_unbind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      if(col)
+		{
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<2>(*it) = nullptr;
+		    }
+		}
+	    });
+      Glib::RefPtr<Gtk::ColumnViewColumn> col_book =
+	  Gtk::ColumnViewColumn::create(gettext("Book"), factory);
+
+      auto book_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto col = std::dynamic_pointer_cast<ModelColumns>(item);
+	  if(col)
+	    {
+	      return col->book;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+      auto book_sort = Gtk::StringSorter::create(book_expr);
+
+      factory = Gtk::SignalListItemFactory::create();
+      factory->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_name("unselectedLab");
+	  lab->set_text("");
+	  lab->set_wrap(true);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_max_width_chars(50);
+	  lab->set_justify(Gtk::Justification::CENTER);
+	  item->set_child(*lab);
+	});
+      factory->signal_bind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	      if(col && lab)
+		{
+		  lab->set_text(col->series);
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<3>(*it) = lab;
+		    }
+		}
+	    });
+      factory->signal_unbind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      if(col)
+		{
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<3>(*it) = nullptr;
+		    }
+		}
+	    });
+      Glib::RefPtr<Gtk::ColumnViewColumn> col_series =
+	  Gtk::ColumnViewColumn::create(gettext("Series"), factory);
+
+      auto series_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto col = std::dynamic_pointer_cast<ModelColumns>(item);
+	  if(col)
+	    {
+	      return col->series;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+      auto series_sort = Gtk::StringSorter::create(series_expr);
+
+      factory = Gtk::SignalListItemFactory::create();
+      factory->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_name("unselectedLab");
+	  lab->set_text("");
+	  lab->set_wrap(true);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_max_width_chars(20);
+	  lab->set_justify(Gtk::Justification::CENTER);
+	  item->set_child(*lab);
+	});
+      MainWindow *mwl = mw;
+      factory->signal_bind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	      if(col && lab)
+		{
+		  std::string src(col->genre);
+		  CreateRightGrid crg(mwl);
+		  lab->set_text(Glib::ustring(crg.genre_str(src)));
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<4>(*it) = lab;
+		    }
+		}
+	    });
+      factory->signal_unbind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      if(col)
+		{
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<4>(*it) = nullptr;
+		    }
+		}
+	    });
+      Glib::RefPtr<Gtk::ColumnViewColumn> col_genre =
+	  Gtk::ColumnViewColumn::create(gettext("Genre"), factory);
+
+      auto genre_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto col = std::dynamic_pointer_cast<ModelColumns>(item);
+	  if(col)
+	    {
+	      return col->genre;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+      auto genre_sort = Gtk::StringSorter::create(genre_expr);
+
+      factory = Gtk::SignalListItemFactory::create();
+      factory->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_name("unselectedLab");
+	  lab->set_text("");
+	  lab->set_justify(Gtk::Justification::CENTER);
+	  item->set_child(*lab);
+	});
+      factory->signal_bind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	      if(col && lab)
+		{
+		  lab->set_text(col->date);
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<5>(*it) = lab;
+		    }
+		}
+	    });
+      factory->signal_unbind().connect(
+	  [mwl]
+	  (const Glib::RefPtr<Gtk::ListItem> &item)
+	    {
+	      Glib::RefPtr<ModelColumns> col =
+	      std::dynamic_pointer_cast<ModelColumns>(item->get_item());
+	      if(col)
+		{
+		  auto it = std::find_if(mwl->ms_style_v.begin(),mwl->ms_style_v.end(), [col](auto &el)
+			{
+			  return col == std::get<0>(el);
+			});
+		  if(it != mwl->ms_style_v.end())
+		    {
+		      std::get<5>(*it) = nullptr;
+		    }
+		}
+	    });
+      Glib::RefPtr<Gtk::ColumnViewColumn> col_date =
+	  Gtk::ColumnViewColumn::create(gettext("Date"), factory);
+
+      auto date_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto col = std::dynamic_pointer_cast<ModelColumns>(item);
+	  if(col)
+	    {
+	      return col->date;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+      auto date_sort = Gtk::StringSorter::create(date_expr);
+
+      sres->append_column(col_author);
+      mw->search_res_col.push_back(col_author);
+      sres->append_column(col_book);
+      mw->search_res_col.push_back(col_book);
+      sres->append_column(col_series);
+      mw->search_res_col.push_back(col_series);
+      sres->append_column(col_genre);
+      mw->search_res_col.push_back(col_genre);
+      sres->append_column(col_date);
+      mw->search_res_col.push_back(col_date);
+
+      sort_model->set_sorter(sres->get_sorter());
+      ss_mod->set_model(sort_model);
+      col_author->set_sorter(author_sort);
+      col_book->set_sorter(book_sort);
+      col_series->set_sorter(series_sort);
+      col_genre->set_sorter(genre_sort);
+      col_date->set_sorter(date_sort);
+    }
+}
+
+std::string
+CreateRightGrid::genre_str(std::string src)
+{
+  std::string *genre_str = new std::string();
+  std::vector<std::string> genre_v;
+  std::string::size_type genre_n = 0;
+  std::string tmp;
+  tmp = src;
+  while(genre_n != std::string::npos)
+    {
+      std::string s_s = tmp;
+      genre_n = s_s.find(", ");
+      if(genre_n != std::string::npos)
+	{
+	  s_s = s_s.substr(0, genre_n);
+	  genre_v.push_back(s_s);
+	  s_s = s_s + ", ";
+	  tmp.erase(0, s_s.size());
+	}
+      else
+	{
+	  if(!tmp.empty())
+	    {
+	      tmp.erase(std::remove_if(tmp.begin(), tmp.end(), []
+	      (char &el)
+		{
+		  return el == ' ';
+		}),
+			tmp.end());
+	      genre_v.push_back(tmp);
+	    }
+	}
+    }
+
+  for(size_t j = 0; j < genre_v.size(); j++)
+    {
+      tmp = genre_v[j];
+      std::for_each(mw->genrev->begin(), mw->genrev->end(), [genre_str, tmp]
+      (auto &el)
+	{
+	  std::vector<std::tuple<std::string, std::string>>tempv;
+	  tempv = std::get<1>(el);
+	  auto itgv = std::find_if(tempv.begin(), tempv.end(), [tmp](auto &el)
+		{
+		  return std::get<0>(el) == tmp;
+		});
+	  if(itgv != tempv.end())
+	    {
+	      if(genre_str->empty())
+		{
+		  *genre_str = std::get<1>(*itgv);
+		}
+	      else
+		{
+		  *genre_str = *genre_str + ", " + std::get<1>(*itgv);
+		}
+	    }
+	});
+    }
+  std::string result = *genre_str;
+  delete genre_str;
+  return result;
+}
+
+void
+CreateRightGrid::rowActivated(guint rownum, Gtk::ColumnView *sres)
+{
+  delete mw->ms_sel_book;
+  mw->ms_sel_book = new guint(rownum);
+  mw->cover_image.clear();
+  Gtk::Widget *widg = mw->get_child();
+  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
+  widg = main_grid->get_child_at(0, 1);
+  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
+  widg = pn->get_end_child();
+  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
+  widg = right_grid->get_child_at(1, 2);
+  Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
+  drar->set_opacity(0.0);
+
+  std::string filename;
+
+  auto sel_mod = sres->get_model();
+  if(sel_mod)
+    {
+      auto ss = std::dynamic_pointer_cast<Gtk::SingleSelection>(sel_mod);
+      if(ss)
+	{
+	  auto model = ss->get_model();
+	  if(model)
+	    {
+	      auto obj = model->get_object(rownum);
+	      if(obj)
+		{
+		  auto lv = mw->ms_style_v;
+		  MainWindow *mwl = mw;
+		  auto itlv = std::find_if(lv.begin(), lv.end(), [mwl]
+		  (auto &el)
+		    {
+		      return mwl->ms_sel_item == std::get<0>(el);
+		    });
+		  if(itlv != lv.end())
+		    {
+		      if(std::get<1>(*itlv))
+			{
+			  std::get<1>(*itlv)->set_name("unselectedLab");
+			}
+		      if(std::get<2>(*itlv))
+			{
+			  std::get<2>(*itlv)->set_name("unselectedLab");
+			}
+		      if(std::get<3>(*itlv))
+			{
+			  std::get<3>(*itlv)->set_name("unselectedLab");
+			}
+		      if(std::get<4>(*itlv))
+			{
+			  std::get<4>(*itlv)->set_name("unselectedLab");
+			}
+		      if(std::get<5>(*itlv))
+			{
+			  std::get<5>(*itlv)->set_name("unselectedLab");
+			}
+		    }
+		  auto mod_list = std::dynamic_pointer_cast<ModelColumns>(obj);
+		  if(mod_list)
+		    {
+		      filename = std::string(mod_list->path);
+		    }
+		  mw->ms_sel_item = mod_list;
+		  itlv = std::find_if(lv.begin(), lv.end(), [mwl]
+		  (auto &el)
+		    {
+		      return mwl->ms_sel_item == std::get<0>(el);
+		    });
+		  if(itlv != lv.end())
+		    {
+		      if(std::get<1>(*itlv))
+			{
+			  std::get<1>(*itlv)->set_name("selectedLab");
+			}
+		      if(std::get<2>(*itlv))
+			{
+			  std::get<2>(*itlv)->set_name("selectedLab");
+			}
+		      if(std::get<3>(*itlv))
+			{
+			  std::get<3>(*itlv)->set_name("selectedLab");
+			}
+		      if(std::get<4>(*itlv))
+			{
+			  std::get<4>(*itlv)->set_name("selectedLab");
+			}
+		      if(std::get<5>(*itlv))
+			{
+			  std::get<5>(*itlv)->set_name("selectedLab");
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+  if(!filename.empty())
+    {
+      AnnotationCover ac(filename);
+      widg = right_grid->get_child_at(0, 2);
+      Gtk::ScrolledWindow *annot_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
+      widg = annot_scrl->get_child();
+      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(widg);
+      Glib::ustring annotation(ac.annotationRet());
+      mw->cover_image = ac.coverRet();
+      std::string::size_type n;
+      n = mw->cover_image.find("<epub>");
+      if(n == std::string::npos)
+	{
+	  n = mw->cover_image.find("<pdf>");
+	  if(!mw->cover_image.empty() && n == std::string::npos)
+	    {
+	      n = mw->cover_image.find("<djvu>");
+	      if(!mw->cover_image.empty() && n == std::string::npos)
+		{
+		  mw->cover_image = Glib::Base64::decode(mw->cover_image);
+		  drar->set_opacity(1.0);
+		  drar->queue_draw();
+		}
+	      else
+		{
+		  if(!mw->cover_image.empty())
+		    {
+		      drar->set_opacity(1.0);
+		      drar->queue_draw();
+		    }
+		}
+	    }
+	  else
+	    {
+	      mw->cover_image.erase(0, std::string("<pdf>").size());
+	      mw->cover_image_path = mw->cover_image;
+	      mw->cover_image.clear();
+	      if(!mw->cover_image_path.empty())
+		{
+		  drar->set_opacity(1.0);
+		  drar->queue_draw();
+		}
+	    }
+	}
+      else
+	{
+	  mw->cover_image.erase(0, std::string("<epub>").size());
+	  mw->cover_image_path = mw->cover_image;
+	  mw->cover_image.clear();
+	  if(!mw->cover_image_path.empty())
+	    {
+	      drar->set_opacity(1.0);
+	      drar->queue_draw();
+	    }
+	}
+      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
+      tb->set_text("");
+      tb->insert_markup(tb->begin(), annotation);
+    }
+}
+#endif
+
+#ifdef ML_GTK_OLD
 void
 CreateRightGrid::searchResultShow(int variant)
 {
@@ -566,3 +1275,4 @@ CreateRightGrid::searchResultShow(int variant)
       });
     }
 }
+#endif

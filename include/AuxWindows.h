@@ -36,6 +36,34 @@ public:
   void
   aboutProg();
 private:
+#ifndef ML_GTK_OLD
+  Glib::RefPtr<Gio::ListStore<ModelColumns>>
+  form_col_view(
+      Gtk::ColumnView *sres,
+      std::vector<
+	  std::tuple<std::string, std::string, std::string, std::string,
+	      std::string, std::string>> &bookmark_v,
+      std::shared_ptr<
+	  std::vector<
+	      std::tuple<Glib::RefPtr<ModelColumns>, Gtk::Label*, Gtk::Label*,
+		  Gtk::Label*, Gtk::Label*, Gtk::Label*>>> style_v);
+  void
+  removeBMDialog(
+      Gtk::Window *par_win,
+      Glib::RefPtr<Gio::ListStore<ModelColumns>> list,
+      Glib::RefPtr<Glib::ObjectBase> rem_item,
+      std::shared_ptr<
+	  std::vector<
+	      std::tuple<Glib::RefPtr<ModelColumns>, Gtk::Label*, Gtk::Label*,
+		  Gtk::Label*, Gtk::Label*, Gtk::Label*>>> style_v);
+  void
+  removeBMFunc(Glib::RefPtr<Gio::ListStore<ModelColumns>> list,
+	       Glib::RefPtr<Glib::ObjectBase> rem_item);
+#endif
+  std::vector<
+      std::tuple<std::string, std::string, std::string, std::string,
+	  std::string, std::string>> //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
+  formBmVector();
   MainWindow *mw;
 };
 

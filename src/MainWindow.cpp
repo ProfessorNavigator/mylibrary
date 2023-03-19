@@ -44,6 +44,9 @@ MainWindow::~MainWindow()
   searchmtx->unlock();
   delete genrev;
   delete searchmtx;
+#ifndef ML_GTK_OLD
+  delete ms_sel_book;
+#endif
 }
 
 void
@@ -207,6 +210,7 @@ MainWindow::creationPulseWin(Gtk::Window *window, int *cncl)
   grid->attach(*cancel, 0, 2, 1, 1);
 }
 
+#ifdef ML_GTK_OLD
 void
 MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
 			 Gtk::TreeViewColumn *column)
@@ -287,6 +291,7 @@ MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
       tb->insert_markup(tb->begin(), annotation);
     }
 }
+#endif
 
 Gdk::Rectangle
 MainWindow::screenRes()
@@ -460,6 +465,7 @@ MainWindow::closeFunc()
   return true;
 }
 
+#ifdef ML_GTK_OLD
 void
 MainWindow::createBookmark()
 {
@@ -512,6 +518,7 @@ MainWindow::createBookmark()
 	}
     }
 }
+#endif
 
 void
 MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
@@ -649,7 +656,10 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	}
       catch(Glib::Error &er)
 	{
-	  std::cout << "bookAddWin: " << er.what() << std::endl;
+	  if(er.code() != Gtk::DialogError::DISMISSED)
+	    {
+	      std::cout << "bookAddWin: " << er.what() << std::endl;
+	    }
 	}
       if(fl)
 	{
@@ -853,131 +863,152 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
   Gtk::Entry *book_nm_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
   std::string book_name(book_nm_ent->get_text());
 
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(this->get_application());
-  window->set_name("MLwindow");
-  window->set_title(gettext("Books adding..."));
-  window->set_transient_for(*win);
-  window->set_modal(true);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::CENTER);
-  window->set_child(*grid);
-  window->set_deletable(false);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  lab->set_text(gettext("Book adding in progress..."));
-  grid->attach(*lab, 0, 0, 1, 1);
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_name("cancelBut");
-  cancel->set_halign(Gtk::Align::CENTER);
-  cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-
-  int *cncl = new int(0);
-  RefreshCollection *rc = new RefreshCollection(coll_name, 1, false, cncl);
-
-  sigc::connection *con = new sigc::connection();
-  *con = cancel->signal_clicked().connect([cncl]
-  {
-    *cncl = 1;
-  });
-  grid->attach(*cancel, 0, 1, 1, 1);
-
-  Glib::Dispatcher *disp_canceled = new Glib::Dispatcher();
-  disp_canceled->connect([window, lab, cancel, con]
-  {
-    con->disconnect();
-    lab->set_text(gettext("Book adding canceled"));
-    cancel->set_name("applyBut");
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect([window]
+  std::filesystem::path ch_p = std::filesystem::u8path(book_path);
+  if(!book_path.empty() && !book_name.empty() && std::filesystem::exists(ch_p))
     {
-      window->close();
-    });
-  });
-  rc->refresh_canceled = [disp_canceled]
-  {
-    disp_canceled->emit();
-  };
+      Gtk::Window *window = new Gtk::Window;
+      window->set_application(this->get_application());
+      window->set_name("MLwindow");
+      window->set_title(gettext("Books adding..."));
+      window->set_transient_for(*win);
+      window->set_modal(true);
 
-  std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
-  Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
-  disp_book_exists->connect([window, this, ttup]
-  {
-    AuxWindows aw(this);
-    aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
-  });
-  rc->file_exists = [ttup, disp_book_exists]
-  (std::mutex *inmtx, int *instopper)
-    {
-      std::get<0>(*ttup) = inmtx;
-      std::get<1>(*ttup) = instopper;
-      disp_book_exists->emit();
-    };
+      Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+      grid->set_halign(Gtk::Align::CENTER);
+      window->set_child(*grid);
+      window->set_deletable(false);
 
-  Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect([window, lab, cancel, con, this, win]
-  {
-    con->disconnect();
-    lab->set_text(gettext("Book adding finished"));
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect([window, win]
-    {
-      window->close();
-      win->close();
-    });
-    this->prev_search_nm.clear();
-  });
-  rc->refresh_finished = [disp_finished]
-  {
-    disp_finished->emit();
-  };
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_margin(5);
+      lab->set_text(gettext("Book adding in progress..."));
+      grid->attach(*lab, 0, 0, 1, 1);
 
-  Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher();
-  disp_col_notfound->connect([con, lab, cancel, window]
-  {
-    con->disconnect();
-    lab->set_text(gettext("Collection book path does not exists!"));
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect([window]
-    {
-      window->close();
-    });
-  });
+      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+      cancel->set_name("cancelBut");
+      cancel->set_halign(Gtk::Align::CENTER);
+      cancel->set_margin(5);
+      cancel->set_label(gettext("Cancel"));
 
-  rc->collection_not_exists = [disp_col_notfound]
-  {
-    disp_col_notfound->emit();
-  };
+      int *cncl = new int(0);
+      RefreshCollection *rc = new RefreshCollection(coll_name, 1, false, cncl);
 
-  window->signal_close_request().connect(
-      [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
-       window, con, ttup]
+      sigc::connection *con = new sigc::connection();
+      *con = cancel->signal_clicked().connect([cncl]
       {
-	window->hide();
-	delete disp_canceled;
-	delete disp_book_exists;
-	delete disp_finished;
-	delete disp_col_notfound;
-	delete con;
-	delete ttup;
-	delete window;
-	return true;
-      },
-      false);
+	*cncl = 1;
+      });
+      grid->attach(*cancel, 0, 1, 1, 1);
 
-  window->present();
+      Glib::Dispatcher *disp_canceled = new Glib::Dispatcher();
+      disp_canceled->connect([window, lab, cancel, con]
+      {
+	con->disconnect();
+	lab->set_text(gettext("Book adding canceled"));
+	cancel->set_name("applyBut");
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect([window]
+	{
+	  window->close();
+	});
+      });
+      rc->refresh_canceled = [disp_canceled]
+      {
+	disp_canceled->emit();
+      };
 
-  std::thread *thr = new std::thread([rc, book_path, book_name, arch_ext, cncl]
-  {
-    rc->addBook(book_path, book_name, arch_ext);
-    delete cncl;
-    delete rc;
-  });
-  thr->detach();
-  delete thr;
+      std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
+      Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
+      disp_book_exists->connect([window, this, ttup]
+      {
+	AuxWindows aw(this);
+	aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
+      });
+      rc->file_exists = [ttup, disp_book_exists]
+      (std::mutex *inmtx, int *instopper)
+	{
+	  std::get<0>(*ttup) = inmtx;
+	  std::get<1>(*ttup) = instopper;
+	  disp_book_exists->emit();
+	};
+
+      Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
+      disp_finished->connect([window, lab, cancel, con, this, win]
+      {
+	con->disconnect();
+	lab->set_text(gettext("Book adding finished"));
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect([window, win]
+	{
+	  window->close();
+	  win->close();
+	});
+	this->prev_search_nm.clear();
+      });
+      rc->refresh_finished = [disp_finished]
+      {
+	disp_finished->emit();
+      };
+
+      Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher();
+      disp_col_notfound->connect([con, lab, cancel, window]
+      {
+	con->disconnect();
+	lab->set_text(gettext("Collection book path does not exists!"));
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect([window]
+	{
+	  window->close();
+	});
+      });
+
+      rc->collection_not_exists = [disp_col_notfound]
+      {
+	disp_col_notfound->emit();
+      };
+
+      window->signal_close_request().connect(
+	  [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
+	   window, con, ttup]
+	  {
+	    window->hide();
+	    delete disp_canceled;
+	    delete disp_book_exists;
+	    delete disp_finished;
+	    delete disp_col_notfound;
+	    delete con;
+	    delete ttup;
+	    delete window;
+	    return true;
+	  },
+	  false);
+
+      window->present();
+
+      std::thread *thr = new std::thread(
+	  [rc, book_path, book_name, arch_ext, cncl]
+	  {
+	    rc->addBook(book_path, book_name, arch_ext);
+	    delete cncl;
+	    delete rc;
+	  });
+      thr->detach();
+      delete thr;
+    }
+  else
+    {
+      AuxWindows aw(this);
+      if(book_path.empty())
+	{
+	  aw.errorWin(10, win);
+	}
+      else if(book_name.empty())
+	{
+	  aw.errorWin(11, win);
+	}
+      else if(!std::filesystem::exists(ch_p))
+	{
+	  aw.errorWin(12, win);
+	}
+    }
 }

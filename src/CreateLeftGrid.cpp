@@ -65,8 +65,8 @@ CreateLeftGrid::formLeftGrid()
     }
 
   mw->readCollection(collect_box);
-  collect_box->signal_changed().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box));
+  collect_box->signal_changed().connect( // @suppress("Invalid arguments")
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box)); // @suppress("Invalid arguments")
   left_gr->attach(*collect_box, 0, 1, 2, 1);
 
   Gtk::Label *authlab = Gtk::make_managed<Gtk::Label>();
@@ -271,18 +271,35 @@ CreateLeftGrid::formLeftGrid()
 	widg = right_grid->get_child_at(0, 0);
 	Gtk::ScrolledWindow *scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
 	widg = scrl->get_child();
+#ifdef ML_GTK_OLD
 	Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
-
-	genre_but->set_label(gettext("<No>"));
-	genre_but->popdown();
-	mwl->active_genre = "nill";
-
 	Glib::RefPtr<Gtk::TreeModel> model = sres->get_model();
 	if(model)
 	  {
 	    sres->remove_all_columns();
 	    sres->unset_model();
 	  }
+#endif
+#ifndef ML_GTK_OLD
+	Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(widg);
+	if(sres)
+	  {
+	    for(size_t i = 0; i < mwl->search_res_col.size(); i++)
+	      {
+		sres->remove_column(mwl->search_res_col[i]);
+	      }
+	  }
+	mwl->search_res_col.clear();
+	Glib::RefPtr<Gtk::SingleSelection> ss;
+	sres->set_model(ss);
+	delete mwl->ms_sel_book;
+	mwl->ms_sel_book = nullptr;
+	mwl->list_sr = nullptr;
+	mwl->ms_style_v.clear();
+#endif
+	genre_but->set_label(gettext("<No>"));
+	genre_but->popdown();
+	mwl->active_genre = "nill";
 	surname_ent->set_text("");
 	name_ent->set_text("");
 	secname_ent->set_text("");

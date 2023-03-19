@@ -3,9 +3,9 @@ subdir ('src')
 subdir ('resources')
 subdir ('include')
 gtkmm = dependency ('gtkmm-4.0', method : 'pkg-config')
-gtk = dependency ('gtk4', method : 'pkg-config')
 icu = dependency ('icu-i18n', method : 'pkg-config', version : '>=69')
 zip = dependency ('libzip', method : 'pkg-config')
+libarchive = dependency ('libarchive', method : 'pkg-config')
 libgcrypt = dependency ('libgcrypt', method : 'pkg-config')
 poppler = dependency ('poppler-cpp', method : 'pkg-config')
 djvulibre = dependency ('ddjvuapi', method : 'pkg-config')
@@ -17,12 +17,18 @@ if poppler.version() < '22.01'
   	add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
 endif
 
-if gtk.version() < '4.10'
+if gtkmm.version() < '4.10'
 	add_project_arguments('-DML_GTK_OLD', language : 'cpp')
 endif
 
 subdir ('po')
-executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+if gtkmm.version() < '4.10'
+executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+endif
+if not gtkmm.version() < '4.10'
+executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+endif
+
 install_subdir ('MyLibrary', install_dir : 'share')
 if host_machine.system() == 'linux'
 	install_data ('mylibrary.png', install_dir : 'share/icons/hicolor/256x256/apps')
