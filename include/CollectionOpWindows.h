@@ -30,10 +30,30 @@ public:
   ~CollectionOpWindows();
   void
   collectionOp(int variant);
+#ifdef ML_GTK_OLD
   void
   collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 		   Gtk::CheckButton *rem_empty_ch,
 		   Gtk::CheckButton *fast_refresh, int variant);
+  void
+  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
+  		    Gtk::CheckButton *fast_refresh, Gtk::Window *win);
+  void
+  exportCollectionFunc(Gtk::ComboBoxText *cmb, Gtk::Entry *exp_path_ent,
+  		       Gtk::Window *win);
+#endif
+#ifndef ML_GTK_OLD
+  void
+  collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
+		   Gtk::CheckButton *rem_empty_ch,
+		   Gtk::CheckButton *fast_refresh, int variant);
+  void
+  collectionRefresh(Gtk::DropDown *cmb, Gtk::CheckButton *rem_empty_ch,
+		    Gtk::CheckButton *fast_refresh, Gtk::Window *win);
+  void
+  exportCollectionFunc(Gtk::DropDown *cmb, Gtk::Entry *exp_path_ent,
+		       Gtk::Window *win);
+#endif
   void
   collectionCreate();
   void
@@ -42,18 +62,12 @@ public:
   void
   openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent, int variant);
   void
-  collectionRefresh(Gtk::ComboBoxText *cmb, Gtk::CheckButton *rem_empty_ch,
-		    Gtk::CheckButton *fast_refresh, Gtk::Window *win);
-  void
   importCollection();
   void
   importCollectionFunc(Gtk::Window *window, Gtk::Entry *coll_nm_ent,
 		       Gtk::Entry *coll_path_ent, Gtk::Entry *book_path_ent);
   void
   exportCollection();
-  void
-  exportCollectionFunc(Gtk::ComboBoxText *cmb, Gtk::Entry *exp_path_ent,
-		       Gtk::Window *win);
 private:
   MainWindow *mw;
 };

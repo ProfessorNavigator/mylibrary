@@ -27,6 +27,136 @@ BookOpWindows::~BookOpWindows()
   // TODO Auto-generated destructor stub
 }
 
+#ifndef ML_GTK_OLD
+void
+BookOpWindows::searchBook(Gtk::DropDown *coll_nm, Gtk::Entry *surname_ent,
+			  Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
+			  Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent)
+{
+  mw->search_result_v.clear();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(
+      coll_nm->get_selected_item());
+  if(!mod_box)
+    {
+      return void();
+    }
+  std::string collnm(mod_box->menu_line);
+  std::string surnm(surname_ent->get_text());
+  std::string name(name_ent->get_text());
+  std::string secname(secname_ent->get_text());
+  std::string book(booknm_ent->get_text());
+  std::string series(ser_ent->get_text());
+  std::string genre(mw->active_genre);
+
+  int *search_cancel = new int(0);
+  SearchBook *sb = new SearchBook(collnm, surnm, name, secname, book, series,
+				  genre, &mw->prev_search_nm, &mw->base_v,
+				  &mw->search_result_v, search_cancel);
+
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(mw->get_application());
+  window->set_name("MLwindow");
+  window->set_title(gettext("Search"));
+  window->set_deletable(false);
+  window->set_transient_for(*mw);
+  window->set_modal(true);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_margin(5);
+  lab->set_text(gettext("Search in progress..."));
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_name("cancelBut");
+  cancel->set_halign(Gtk::Align::CENTER);
+  cancel->set_margin(5);
+  cancel->set_label(gettext("Cancel"));
+  MainWindow *mwl = mw;
+  cancel->signal_clicked().connect([search_cancel]
+  {
+    *search_cancel = 1;
+  });
+  grid->attach(*cancel, 0, 1, 1, 1);
+
+  Glib::Dispatcher *search_compl_disp = new Glib::Dispatcher();
+  search_compl_disp->connect([window, mwl, search_compl_disp]
+  {
+    CreateRightGrid crgr(mwl);
+    crgr.searchResultShow();
+    window->close();
+    delete search_compl_disp;
+  });
+
+  window->signal_close_request().connect([window]
+  {
+
+    window->set_visible(false);
+    delete window;
+    return true;
+  },
+					 false);
+
+  window->present();
+
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+
+  std::thread *thr = new std::thread([sb, mwl, search_compl_disp, search_cancel]
+  {
+    mwl->searchmtx->lock();
+    sb->searchBook();
+    sb->cleanSearchV();
+    mwl->searchmtx->unlock();
+    search_compl_disp->emit();
+    delete sb;
+    delete search_cancel;
+  });
+  thr->detach();
+  delete thr;
+}
+
+void
+BookOpWindows::bookRemoveWin(Gtk::Window *win)
+{
+  Glib::RefPtr<Gtk::AlertDialog> msg = Gtk::AlertDialog::create();
+  msg->set_modal(true);
+  msg->set_message(gettext("This action will remove book from "
+			   "collection and file system. Continue?"));
+  std::vector<Glib::ustring> labels;
+  labels.push_back(gettext("No"));
+  labels.push_back(gettext("Yes"));
+  msg->set_buttons(labels);
+  msg->set_cancel_button(0);
+  msg->set_default_button(0);
+  MainWindow *mwl = mw;
+  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
+  msg->choose(*mwl, [msg, mwl]
+  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+    {
+      int resp = msg->choose_finish(result);
+      if(resp == 1)
+	{
+	  BookOpWindows bopw(mwl);
+	  bopw.bookRemoveVar1(msg);
+	}
+      else if(resp == 0)
+	{
+	  msg.reset();
+	}
+    },
+	      cncl);
+}
+#endif
+
+#ifdef ML_GTK_OLD
 void
 BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
 			  Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
@@ -80,12 +210,8 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   search_compl_disp->connect([window, mwl, search_compl_disp]
   {
     CreateRightGrid crgr(mwl);
-#ifdef ML_GTK_OLD
     crgr.searchResultShow(1);
-#endif
-#ifndef ML_GTK_OLD
-    crgr.searchResultShow();
-#endif
+
     window->close();
     delete search_compl_disp;
   });
@@ -93,6 +219,7 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   window->signal_close_request().connect([window]
   {
     window->hide();
+
     delete window;
     return true;
   },
@@ -114,41 +241,6 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   delete thr;
 }
 
-#ifndef ML_GTK_OLD
-void
-BookOpWindows::bookRemoveWin(Gtk::Window *win)
-{
-  Glib::RefPtr<Gtk::AlertDialog> msg = Gtk::AlertDialog::create();
-  msg->set_modal(true);
-  msg->set_message(gettext("This action will remove book from "
-			   "collection and file system. Continue?"));
-  std::vector<Glib::ustring> labels;
-  labels.push_back(gettext("No"));
-  labels.push_back(gettext("Yes"));
-  msg->set_buttons(labels);
-  msg->set_cancel_button(0);
-  msg->set_default_button(0);
-  MainWindow *mwl = mw;
-  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  msg->choose(*mwl, [msg, mwl]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
-    {
-      int resp = msg->choose_finish(result);
-      if(resp == 1)
-	{
-	  BookOpWindows bopw(mwl);
-	  bopw.bookRemoveVar1(msg);
-	}
-      else if(resp == 0)
-	{
-	  msg.reset();
-	}
-    },
-	      cncl);
-}
-#endif
-
-#ifdef ML_GTK_OLD
 void
 BookOpWindows::bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres)
 {
@@ -489,12 +581,25 @@ BookOpWindows::bookRemoveVar1(Glib::RefPtr<Gtk::AlertDialog> mess)
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
   Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-  Gtk::ComboBoxText *collect_box =
-      dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
-
+  Gtk::DropDown *collect_box =
+      dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+  if(!collect_box)
+    {
+      return void();
+    }
+  auto obj_coll = collect_box->get_selected_item();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj_coll);
+  std::string collname;
+  if(mod_box)
+    {
+      collname = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
   int *cncl = new int(0);
-  RefreshCollection *rc = new RefreshCollection(
-      std::string(collect_box->get_active_text()), 1, false, cncl);
+  RefreshCollection *rc = new RefreshCollection(collname, 1, false, cncl);
 
   Glib::Dispatcher *disp_file_nexists = new Glib::Dispatcher();
   disp_file_nexists->connect([mwl]
@@ -1095,10 +1200,15 @@ BookOpWindows::fileInfo()
 	    }
 	  window->signal_close_request().connect([window]
 	  {
+#ifdef ML_GTK_OLD
 	    window->hide();
-	    delete window;
-	    return true;
-	  },
+#endif
+#ifndef ML_GTK_OLD
+						   window->set_visible(false);
+#endif
+						   delete window;
+						   return true;
+						 },
 						 false);
 	  window->present();
 	}
@@ -1497,10 +1607,15 @@ BookOpWindows::editBook()
 	  {
 	    bookv->clear();
 	    delete bookv;
+#ifdef ML_GTK_OLD
 	    window->hide();
-	    delete window;
-	    return true;
-	  },
+#endif
+#ifndef ML_GTK_OLD
+						   window->set_visible(false);
+#endif
+						   delete window;
+						   return true;
+						 },
 						 false);
 	  window->present();
 	}
@@ -2634,7 +2749,12 @@ BookOpWindows::bookSaveRestore(
 	    delete cncl;
 	    delete rc;
 	    delete disp_corrected;
+#ifdef ML_GTK_OLD
 	    window->hide();
+#endif
+#ifndef ML_GTK_OLD
+	    window->set_visible(false);
+#endif
 	    delete window;
 	    return true;
 	  },

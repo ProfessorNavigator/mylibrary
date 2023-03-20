@@ -421,7 +421,7 @@ CreateRightGrid::searchResultShow()
 	  lab->set_name("unselectedLab");
 	  lab->set_text("");
 	  lab->set_wrap(true);
-	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD);
 	  lab->set_max_width_chars(50);
 	  lab->set_justify(Gtk::Justification::CENTER);
 	  item->set_child(*lab);
@@ -476,7 +476,7 @@ CreateRightGrid::searchResultShow()
 	  lab->set_name("unselectedLab");
 	  lab->set_text("");
 	  lab->set_wrap(true);
-	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD);
 	  lab->set_max_width_chars(50);
 	  lab->set_justify(Gtk::Justification::CENTER);
 	  item->set_child(*lab);
@@ -546,7 +546,7 @@ CreateRightGrid::searchResultShow()
 	  lab->set_name("unselectedLab");
 	  lab->set_text("");
 	  lab->set_wrap(true);
-	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD);
 	  lab->set_max_width_chars(50);
 	  lab->set_justify(Gtk::Justification::CENTER);
 	  item->set_child(*lab);
@@ -616,7 +616,7 @@ CreateRightGrid::searchResultShow()
 	  lab->set_name("unselectedLab");
 	  lab->set_text("");
 	  lab->set_wrap(true);
-	  lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+	  lab->set_wrap_mode(Pango::WrapMode::WORD);
 	  lab->set_max_width_chars(20);
 	  lab->set_justify(Gtk::Justification::CENTER);
 	  item->set_child(*lab);

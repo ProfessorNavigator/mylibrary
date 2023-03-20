@@ -1,16 +1,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2023-03-12 17:23+0400\n"
-"PO-Revision-Date: 2023-03-12 17:23+0400\n"
-"Last-Translator: Юрий Бобылев\n"
+"POT-Creation-Date: 2023-03-20 14:04+0400\n"
+"PO-Revision-Date: 2023-03-20 14:04+0400\n"
+"Last-Translator: Юрий Бобылев <bobilev_yury@mail.ru>\n"
 "Language-Team: Юрий Бобылев\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.2.2\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
@@ -29,7 +29,7 @@ msgstr ""
 "X-Poedit-SearchPath-12: src/SearchBook.cpp\n"
 "X-Poedit-SearchPath-13: resources/mainmenu.xml\n"
 
-#: resources/mainmenu.xml:5 src/CollectionOpWindows.cpp:391
+#: resources/mainmenu.xml:5 src/CollectionOpWindows.cpp:1090
 #: src/CreateLeftGrid.cpp:40
 msgid "Collection"
 msgstr "Коллекция"
@@ -42,11 +42,11 @@ msgstr "Создать коллекцию"
 msgid "Refresh collection"
 msgstr "Обновить коллекцию"
 
-#: resources/mainmenu.xml:16 src/CollectionOpWindows.cpp:1174
+#: resources/mainmenu.xml:16 src/CollectionOpWindows.cpp:1656
 msgid "Import collection"
 msgstr "Импортировать коллекцию"
 
-#: resources/mainmenu.xml:20 src/CollectionOpWindows.cpp:1385
+#: resources/mainmenu.xml:20 src/CollectionOpWindows.cpp:1881
 msgid "Export collection"
 msgstr "Экспортировать коллекцию"
 
@@ -58,7 +58,7 @@ msgstr "Добавить книгу в коллекцию"
 msgid "Remove collection"
 msgstr "Удалить коллекцию"
 
-#: resources/mainmenu.xml:34 src/AuxWindows.cpp:237
+#: resources/mainmenu.xml:34 src/AuxWindows.cpp:206
 msgid "Book-marks"
 msgstr "Закладки"
 
@@ -74,35 +74,35 @@ msgstr "Справка"
 msgid "About program"
 msgstr "О программе"
 
-#: src/AuxWindows.cpp:38 src/AuxWindows.cpp:103
+#: src/AuxWindows.cpp:38 src/AuxWindows.cpp:115
 msgid "Collection name cannot be empty!"
 msgstr "Имя коллекции не может быть пустым!"
 
-#: src/AuxWindows.cpp:42 src/AuxWindows.cpp:107
+#: src/AuxWindows.cpp:42 src/AuxWindows.cpp:119
 msgid "Path to book directory is empty!"
 msgstr "Путь к папке с книгами пуст!"
 
-#: src/AuxWindows.cpp:46 src/AuxWindows.cpp:111
+#: src/AuxWindows.cpp:46 src/AuxWindows.cpp:123
 msgid "Collection has been created"
 msgstr "Коллекция создана"
 
-#: src/AuxWindows.cpp:50 src/AuxWindows.cpp:115
+#: src/AuxWindows.cpp:50 src/AuxWindows.cpp:127
 msgid "Collection already existed!"
 msgstr "Коллекция уже существует!"
 
-#: src/AuxWindows.cpp:54 src/AuxWindows.cpp:119
+#: src/AuxWindows.cpp:54 src/AuxWindows.cpp:131
 msgid "Collection creation canceled"
 msgstr "Создание коллекции прекращено"
 
-#: src/AuxWindows.cpp:58 src/AuxWindows.cpp:123
+#: src/AuxWindows.cpp:58 src/AuxWindows.cpp:135
 msgid "Collection to import path is empty!"
 msgstr "Путь до коллекции пуст!"
 
-#: src/AuxWindows.cpp:62 src/AuxWindows.cpp:127
+#: src/AuxWindows.cpp:62 src/AuxWindows.cpp:139
 msgid "Export path is empty!"
 msgstr "Путь для экспорта пуст!"
 
-#: src/AuxWindows.cpp:68 src/AuxWindows.cpp:133
+#: src/AuxWindows.cpp:68 src/AuxWindows.cpp:145
 msgid ""
 "Book has been removed from collection database, but book file was not found. "
 "Check if collection book directory path exists and/or refresh collection."
@@ -110,193 +110,246 @@ msgstr ""
 "Книга была удалена из базы данных коллекции, но файл книги не найден. "
 "Проверьте, существует ли папка коллекции и/или обновите коллекцию."
 
-#: src/AuxWindows.cpp:74 src/AuxWindows.cpp:140
+#: src/AuxWindows.cpp:74 src/AuxWindows.cpp:152
 msgid "Book-mark has been created!"
 msgstr "Закладка создана!"
 
-#: src/AuxWindows.cpp:78 src/AuxWindows.cpp:144
+#: src/AuxWindows.cpp:78 src/AuxWindows.cpp:156
 msgid "The book has been copied"
 msgstr "Книга скопирована"
 
-#: src/AuxWindows.cpp:81 src/BookOpWindows.cpp:1429
-#: src/CollectionOpWindows.cpp:939 src/CollectionOpWindows.cpp:962
-#: src/CollectionOpWindows.cpp:1042 src/CollectionOpWindows.cpp:1371
-#: src/CollectionOpWindows.cpp:1512 src/MainWindow.cpp:899
-#: src/MainWindow.cpp:930 src/MainWindow.cpp:948
+#: src/AuxWindows.cpp:82 src/AuxWindows.cpp:160
+msgid "Error: book path is empty!"
+msgstr "Ошибка: путь до книги пуст!"
+
+#: src/AuxWindows.cpp:86 src/AuxWindows.cpp:164
+msgid "Error: book name is empty!"
+msgstr "Ошибка: имя книги не назначено!"
+
+#: src/AuxWindows.cpp:90 src/AuxWindows.cpp:168
+msgid "Error: source book file does not exists!"
+msgstr "Ошибка: файл книги не существует!"
+
+#: src/AuxWindows.cpp:93 src/BookOpWindows.cpp:2432 src/BookOpWindows.cpp:2694
+#: src/CollectionOpWindows.cpp:629 src/CollectionOpWindows.cpp:652
+#: src/CollectionOpWindows.cpp:732 src/CollectionOpWindows.cpp:932
+#: src/CollectionOpWindows.cpp:955 src/CollectionOpWindows.cpp:1035
+#: src/CollectionOpWindows.cpp:1867 src/CollectionOpWindows.cpp:2062
+#: src/CollectionOpWindows.cpp:2125 src/MainWindow.cpp:959
+#: src/MainWindow.cpp:990 src/MainWindow.cpp:1008 src/MainWindow.cpp:1130
+#: src/MainWindow.cpp:1161 src/MainWindow.cpp:1179
 msgid "Close"
 msgstr "Закрыть"
 
-#: src/AuxWindows.cpp:279 src/AuxWindows.cpp:343 src/CreateRightGrid.cpp:177
+#: src/AuxWindows.cpp:342 src/AuxWindows.cpp:551 src/CreateRightGrid.cpp:214
 msgid "Open selected book"
 msgstr "Открыть выбранную книгу"
 
-#: src/AuxWindows.cpp:297 src/AuxWindows.cpp:355 src/CreateRightGrid.cpp:252
+#: src/AuxWindows.cpp:384 src/AuxWindows.cpp:586 src/CreateRightGrid.cpp:300
 msgid "Save book as..."
 msgstr "Сохранить книгу как..."
 
-#: src/AuxWindows.cpp:315 src/AuxWindows.cpp:367
+#: src/AuxWindows.cpp:426 src/AuxWindows.cpp:621
 msgid "Remove selected book from book-marks"
 msgstr "Удалить выбранную книгу из закладок"
 
-#: src/AuxWindows.cpp:432
-msgid "MyLibrary is a home librarian"
-msgstr "MyLibrary - домашний библиотекарь"
+#: src/AuxWindows.cpp:780 src/CreateLeftGrid.cpp:162
+#: src/CreateRightGrid.cpp:468 src/CreateRightGrid.cpp:1162
+#: src/CreateRightGrid.cpp:1171
+msgid "Author"
+msgstr "Автор"
 
-#: src/AuxWindows.cpp:433
-msgid "Author Yury Bobylev"
-msgstr "Автор Юрий Бобылев"
+#: src/AuxWindows.cpp:836 src/CreateLeftGrid.cpp:205
+#: src/CreateRightGrid.cpp:523 src/CreateRightGrid.cpp:1163
+#: src/CreateRightGrid.cpp:1172
+msgid "Book"
+msgstr "Книга"
 
-#: src/AuxWindows.cpp:435
-msgid "Program uses next libraries:"
-msgstr "В программе используются следующие библиотеки:"
+#: src/AuxWindows.cpp:907 src/CreateRightGrid.cpp:593
+#: src/CreateRightGrid.cpp:1164 src/CreateRightGrid.cpp:1173
+msgid "Series"
+msgstr "Серия"
 
-#: src/AuxWindows.cpp:463 src/AuxWindows.cpp:491
-msgid "Book file exits. Replace?"
-msgstr "Файл книги уже существует. Заменить?"
+#: src/AuxWindows.cpp:979 src/CreateRightGrid.cpp:666
+#: src/CreateRightGrid.cpp:1165 src/CreateRightGrid.cpp:1174
+msgid "Genre"
+msgstr "Жанр"
 
-#: src/AuxWindows.cpp:465 src/BookOpWindows.cpp:147 src/BookOpWindows.cpp:380
-#: src/BookOpWindows.cpp:1475
-msgid "No"
-msgstr "Нет"
+#: src/AuxWindows.cpp:1047 src/CreateRightGrid.cpp:733
+#: src/CreateRightGrid.cpp:1166 src/CreateRightGrid.cpp:1175
+msgid "Date"
+msgstr "Дата"
 
-#: src/AuxWindows.cpp:466 src/BookOpWindows.cpp:148 src/BookOpWindows.cpp:381
-#: src/BookOpWindows.cpp:1447
-msgid "Yes"
-msgstr "Да"
+#: src/AuxWindows.cpp:1094 src/BookOpWindows.cpp:268
+msgid "This action will remove book from bookmarks. Continue?"
+msgstr "Это действие удалит книгу из закладок. Продолжить?"
 
-#: src/BookOpWindows.cpp:52 src/CreateLeftGrid.cpp:245
-msgid "Search"
-msgstr "Поиск"
-
-#: src/BookOpWindows.cpp:64
-msgid "Search in progress..."
-msgstr "Идёт поиск..."
-
-#: src/BookOpWindows.cpp:71 src/BookOpWindows.cpp:1236
-#: src/BookOpWindows.cpp:1844 src/CollectionOpWindows.cpp:288
-#: src/CollectionOpWindows.cpp:482 src/CollectionOpWindows.cpp:803
-#: src/CollectionOpWindows.cpp:917 src/CollectionOpWindows.cpp:1188
-#: src/CollectionOpWindows.cpp:1452 src/MainWindow.cpp:202
-#: src/MainWindow.cpp:791 src/MainWindow.cpp:881
+#: src/AuxWindows.cpp:1096 src/BookOpWindows.cpp:78 src/BookOpWindows.cpp:201
+#: src/BookOpWindows.cpp:1601 src/BookOpWindows.cpp:2239
+#: src/BookOpWindows.cpp:3361 src/CollectionOpWindows.cpp:430
+#: src/CollectionOpWindows.cpp:607 src/CollectionOpWindows.cpp:910
+#: src/CollectionOpWindows.cpp:1181 src/CollectionOpWindows.cpp:1516
+#: src/CollectionOpWindows.cpp:1670 src/CollectionOpWindows.cpp:1996
+#: src/MainWindow.cpp:210 src/MainWindow.cpp:828 src/MainWindow.cpp:941
+#: src/MainWindow.cpp:1112
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/BookOpWindows.cpp:128
+#: src/AuxWindows.cpp:1097 src/AuxWindows.cpp:1342 src/BookOpWindows.cpp:135
+#: src/BookOpWindows.cpp:740 src/BookOpWindows.cpp:2450
+#: src/BookOpWindows.cpp:2712 src/CollectionOpWindows.cpp:479
+msgid "Yes"
+msgstr "Да"
+
+#: src/AuxWindows.cpp:1301
+msgid "MyLibrary is a home librarian"
+msgstr "MyLibrary - домашний библиотекарь"
+
+#: src/AuxWindows.cpp:1302
+msgid "Author Yury Bobylev"
+msgstr "Автор Юрий Бобылев"
+
+#: src/AuxWindows.cpp:1304
+msgid "Program uses next libraries:"
+msgstr "В программе используются следующие библиотеки:"
+
+#: src/AuxWindows.cpp:1339 src/AuxWindows.cpp:1367
+msgid "Book file exits. Replace?"
+msgstr "Файл книги уже существует. Заменить?"
+
+#: src/AuxWindows.cpp:1341 src/BookOpWindows.cpp:134 src/BookOpWindows.cpp:739
+#: src/BookOpWindows.cpp:2478 src/BookOpWindows.cpp:2740
+#: src/CollectionOpWindows.cpp:478
+msgid "No"
+msgstr "Нет"
+
+#: src/BookOpWindows.cpp:59 src/BookOpWindows.cpp:182
+#: src/CreateLeftGrid.cpp:332
+msgid "Search"
+msgstr "Поиск"
+
+#: src/BookOpWindows.cpp:71 src/BookOpWindows.cpp:194
+msgid "Search in progress..."
+msgstr "Идёт поиск..."
+
+#: src/BookOpWindows.cpp:131 src/BookOpWindows.cpp:260
 msgid "This action will remove book from collection and file system. Continue?"
 msgstr ""
 "Это действие удалит книгу из коллекции и из файловой системы. Продолжить?"
 
-#: src/BookOpWindows.cpp:136
-msgid "This action will remove book from bookmarks. Continue?"
-msgstr "Это действие удалит книгу из закладок. Продолжить?"
-
-#: src/BookOpWindows.cpp:280 src/BookOpWindows.cpp:284
+#: src/BookOpWindows.cpp:335 src/BookOpWindows.cpp:579
 msgid "Removing... It will take some time"
 msgstr "Удаление... Процесс займёт какое-то время"
 
-#: src/BookOpWindows.cpp:377 src/BookOpWindows.cpp:455
+#: src/BookOpWindows.cpp:420 src/BookOpWindows.cpp:736
 msgid ""
 "Book is in rar archive and cannot be remove separately. Remove whole archive?"
 msgstr ""
 "Книга упакована в rar архив и не может быть удалена отдельно. Удалить архив "
 "целиком?"
 
-#: src/BookOpWindows.cpp:649
+#: src/BookOpWindows.cpp:981 src/BookOpWindows.cpp:1652
 msgid "Book file info"
 msgstr "Информация о файле"
 
-#: src/BookOpWindows.cpp:693
+#: src/BookOpWindows.cpp:1022 src/BookOpWindows.cpp:1696
 msgid "Archive: "
 msgstr "Архив: "
 
-#: src/BookOpWindows.cpp:716
+#: src/BookOpWindows.cpp:1045 src/BookOpWindows.cpp:1719
 msgid "File path in archive: "
 msgstr "Расположение файла в архиве: "
 
-#: src/BookOpWindows.cpp:744
+#: src/BookOpWindows.cpp:1073 src/BookOpWindows.cpp:1747
 msgid "File size (uncompressed): "
 msgstr "Размер файла (после распаковки): "
 
-#: src/BookOpWindows.cpp:763 src/BookOpWindows.cpp:792
-#: src/BookOpWindows.cpp:855
+#: src/BookOpWindows.cpp:1092 src/BookOpWindows.cpp:1121
+#: src/BookOpWindows.cpp:1184 src/BookOpWindows.cpp:1766
+#: src/BookOpWindows.cpp:1795 src/BookOpWindows.cpp:1858
 msgid "bytes"
 msgstr "байт"
 
-#: src/BookOpWindows.cpp:773
+#: src/BookOpWindows.cpp:1102 src/BookOpWindows.cpp:1776
 msgid "File size (compressed): "
 msgstr "Размер файла (в архиве): "
 
-#: src/BookOpWindows.cpp:805 src/BookOpWindows.cpp:867
+#: src/BookOpWindows.cpp:1134 src/BookOpWindows.cpp:1196
+#: src/BookOpWindows.cpp:1808 src/BookOpWindows.cpp:1870
 msgid "File does not exists!"
 msgstr "Файл не существует!"
 
-#: src/BookOpWindows.cpp:821
+#: src/BookOpWindows.cpp:1150 src/BookOpWindows.cpp:1824
 msgid "File: "
 msgstr "Файл: "
 
-#: src/BookOpWindows.cpp:840
+#: src/BookOpWindows.cpp:1169 src/BookOpWindows.cpp:1843
 msgid "File size: "
 msgstr "Размер файла: "
 
-#: src/BookOpWindows.cpp:940
+#: src/BookOpWindows.cpp:1291 src/BookOpWindows.cpp:1943
 msgid "Book entry editor"
 msgstr "Редактор записи о книге"
 
-#: src/BookOpWindows.cpp:953
+#: src/BookOpWindows.cpp:1304 src/BookOpWindows.cpp:1956
 msgid "Author:"
 msgstr "Автор:"
 
-#: src/BookOpWindows.cpp:974
+#: src/BookOpWindows.cpp:1325 src/BookOpWindows.cpp:1977
 msgid "Book:"
 msgstr "Книга:"
 
-#: src/BookOpWindows.cpp:995 src/CreateLeftGrid.cpp:136
+#: src/BookOpWindows.cpp:1346 src/BookOpWindows.cpp:1998
+#: src/CreateLeftGrid.cpp:223
 msgid "Series:"
 msgstr "Серия:"
 
-#: src/BookOpWindows.cpp:1016 src/CreateLeftGrid.cpp:148
+#: src/BookOpWindows.cpp:1367 src/BookOpWindows.cpp:2019
+#: src/CreateLeftGrid.cpp:235
 msgid "Genre:"
 msgstr "Жанр:"
 
-#: src/BookOpWindows.cpp:1037
+#: src/BookOpWindows.cpp:1388 src/BookOpWindows.cpp:2040
 msgid "Add genre:"
 msgstr "Добавить жанр:"
 
-#: src/BookOpWindows.cpp:1043 src/CollectionOpWindows.cpp:206
-#: src/CreateLeftGrid.cpp:155 src/CreateLeftGrid.cpp:276
-#: src/CreateLeftGrid.cpp:400 src/MainWindow.cpp:844
+#: src/BookOpWindows.cpp:1394 src/BookOpWindows.cpp:2046
+#: src/CollectionOpWindows.cpp:259 src/CollectionOpWindows.cpp:278
+#: src/CreateLeftGrid.cpp:242 src/CreateLeftGrid.cpp:387
+#: src/CreateLeftGrid.cpp:543 src/MainWindow.cpp:892 src/MainWindow.cpp:1072
 msgid "<No>"
 msgstr "<Нет>"
 
-#: src/BookOpWindows.cpp:1185
+#: src/BookOpWindows.cpp:1536 src/BookOpWindows.cpp:2188
 msgid "Date:"
 msgstr "Дата:"
 
-#: src/BookOpWindows.cpp:1207 src/BookOpWindows.cpp:1852
+#: src/BookOpWindows.cpp:1558 src/BookOpWindows.cpp:2210
+#: src/BookOpWindows.cpp:3369
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/BookOpWindows.cpp:1222
+#: src/BookOpWindows.cpp:1580 src/BookOpWindows.cpp:2225
 msgid "Restore"
 msgstr "Восстановить"
 
-#: src/BookOpWindows.cpp:1302
+#: src/BookOpWindows.cpp:2305 src/BookOpWindows.cpp:2593
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: src/BookOpWindows.cpp:1316
+#: src/BookOpWindows.cpp:2319 src/BookOpWindows.cpp:2607
 msgid "Are you shure?"
 msgstr "Вы уверены?"
 
-#: src/BookOpWindows.cpp:1422
+#: src/BookOpWindows.cpp:2425 src/BookOpWindows.cpp:2687
 msgid "Book entry has been corrected"
 msgstr "Запись о книге отредактирована"
 
-#: src/BookOpWindows.cpp:1460
+#: src/BookOpWindows.cpp:2463 src/BookOpWindows.cpp:2725
 msgid "Correcting base..."
 msgstr "Корректирование базы данных..."
 
-#: src/BookOpWindows.cpp:1772 src/BookOpWindows.cpp:1828
+#: src/BookOpWindows.cpp:3289 src/BookOpWindows.cpp:3345
 msgid "Save as..."
 msgstr "Сохранить как..."
 
@@ -304,7 +357,8 @@ msgstr "Сохранить как..."
 msgid "Collection removing"
 msgstr "Удаление коллекции"
 
-#: src/CollectionOpWindows.cpp:41 src/CollectionOpWindows.cpp:884
+#: src/CollectionOpWindows.cpp:41 src/CollectionOpWindows.cpp:574
+#: src/CollectionOpWindows.cpp:877
 msgid "Collection refreshing"
 msgstr "Обновление коллекции"
 
@@ -324,653 +378,632 @@ msgstr "Коллекция для обновления:"
 msgid "Collection which book should be added to:"
 msgstr "Коллекция, в которую нужно добавить книгу:"
 
-#: src/CollectionOpWindows.cpp:98 src/CollectionOpWindows.cpp:451
+#: src/CollectionOpWindows.cpp:150 src/CollectionOpWindows.cpp:1150
 msgid "Number of threads to use (it is not recommended to exceed "
 msgstr "Количество потоков (не рекомендуется использовать больше, чем "
 
-#: src/CollectionOpWindows.cpp:120
+#: src/CollectionOpWindows.cpp:172
 msgid "Remove empty directories in collection"
 msgstr "Удалить пустые папки из директории с книгами коллекции"
 
-#: src/CollectionOpWindows.cpp:137
+#: src/CollectionOpWindows.cpp:189
 msgid "Fast collection refreshing (without hash checking)"
 msgstr "Быстрое обновление коллекции (без сверки хеш-сумм)"
 
-#: src/CollectionOpWindows.cpp:155
+#: src/CollectionOpWindows.cpp:207
 msgid "Path to source book file:"
 msgstr "Путь до исходного файла книги:"
 
-#: src/CollectionOpWindows.cpp:171 src/CollectionOpWindows.cpp:428
-#: src/CollectionOpWindows.cpp:702 src/CollectionOpWindows.cpp:810
-#: src/CollectionOpWindows.cpp:1135 src/CollectionOpWindows.cpp:1162
-#: src/MainWindow.cpp:639 src/MainWindow.cpp:799
+#: src/CollectionOpWindows.cpp:223 src/CollectionOpWindows.cpp:1127
+#: src/CollectionOpWindows.cpp:1415 src/CollectionOpWindows.cpp:1523
+#: src/CollectionOpWindows.cpp:1617 src/CollectionOpWindows.cpp:1644
+#: src/MainWindow.cpp:676 src/MainWindow.cpp:836
 msgid "Open"
 msgstr "Открыть"
 
-#: src/CollectionOpWindows.cpp:177
+#: src/CollectionOpWindows.cpp:229
 msgid "Book file name in collection:"
 msgstr "Имя файла книги в коллекции:"
 
-#: src/CollectionOpWindows.cpp:195
+#: src/CollectionOpWindows.cpp:247
 msgid "Pack book to archive, if it is not already packed:"
 msgstr "Упаковать книгу в архив, если она ещё не упакована:"
 
-#: src/CollectionOpWindows.cpp:230
+#: src/CollectionOpWindows.cpp:344
 msgid "Remove"
 msgstr "Удалить"
 
-#: src/CollectionOpWindows.cpp:234
+#: src/CollectionOpWindows.cpp:348
 msgid "Refresh"
 msgstr "Обновить"
 
-#: src/CollectionOpWindows.cpp:238
+#: src/CollectionOpWindows.cpp:352
 msgid "Add book"
 msgstr "Добавить книгу"
 
-#: src/CollectionOpWindows.cpp:324
+#: src/CollectionOpWindows.cpp:476 src/CollectionOpWindows.cpp:790
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: src/CollectionOpWindows.cpp:402 src/CollectionOpWindows.cpp:1109
-msgid "Collection name:"
-msgstr "Имя коллекции:"
-
-#: src/CollectionOpWindows.cpp:413
-msgid "Path to directory with books:"
-msgstr "Путь к папке с книгами:"
-
-#: src/CollectionOpWindows.cpp:469
-msgid "Create"
-msgstr "Создать"
-
-#: src/CollectionOpWindows.cpp:683 src/CollectionOpWindows.cpp:771
-msgid "Book directory"
-msgstr "Папка с книгами"
-
-#: src/CollectionOpWindows.cpp:687 src/CollectionOpWindows.cpp:776
-msgid "Path to collection"
-msgstr "Путь до файлов коллекции"
-
-#: src/CollectionOpWindows.cpp:691 src/CollectionOpWindows.cpp:781
-#: src/CollectionOpWindows.cpp:1427
-msgid "Export as..."
-msgstr "Экспортировать как..."
-
-#: src/CollectionOpWindows.cpp:820 src/CollectionOpWindows.cpp:1440
-msgid "Export"
-msgstr "Экспорт"
-
-#: src/CollectionOpWindows.cpp:899
+#: src/CollectionOpWindows.cpp:589 src/CollectionOpWindows.cpp:892
 msgid "Files hashing..."
 msgstr "Хеширование файлов..."
 
-#: src/CollectionOpWindows.cpp:903 src/CollectionOpWindows.cpp:1011
+#: src/CollectionOpWindows.cpp:593 src/CollectionOpWindows.cpp:701
+#: src/CollectionOpWindows.cpp:896 src/CollectionOpWindows.cpp:1004
 msgid "Collection refreshing..."
 msgstr "Обновление коллекции..."
 
-#: src/CollectionOpWindows.cpp:936
+#: src/CollectionOpWindows.cpp:626 src/CollectionOpWindows.cpp:929
 msgid "Collection refreshing canceled"
 msgstr "Обновление коллекции прекращено"
 
-#: src/CollectionOpWindows.cpp:953
+#: src/CollectionOpWindows.cpp:643 src/CollectionOpWindows.cpp:946
 msgid "Collection refreshing finished"
 msgstr "Обновление коллекции выполнено"
 
-#: src/CollectionOpWindows.cpp:1039
+#: src/CollectionOpWindows.cpp:729 src/CollectionOpWindows.cpp:1032
 msgid "Collection book directory not found"
 msgstr "Папка с книгами коллекции не найдена"
 
-#: src/CollectionOpWindows.cpp:1096
+#: src/CollectionOpWindows.cpp:1101 src/CollectionOpWindows.cpp:1591
+msgid "Collection name:"
+msgstr "Имя коллекции:"
+
+#: src/CollectionOpWindows.cpp:1112
+msgid "Path to directory with books:"
+msgstr "Путь к папке с книгами:"
+
+#: src/CollectionOpWindows.cpp:1168
+msgid "Create"
+msgstr "Создать"
+
+#: src/CollectionOpWindows.cpp:1396 src/CollectionOpWindows.cpp:1484
+msgid "Book directory"
+msgstr "Папка с книгами"
+
+#: src/CollectionOpWindows.cpp:1400 src/CollectionOpWindows.cpp:1489
+msgid "Path to collection"
+msgstr "Путь до файлов коллекции"
+
+#: src/CollectionOpWindows.cpp:1404 src/CollectionOpWindows.cpp:1494
+#: src/CollectionOpWindows.cpp:1971
+msgid "Export as..."
+msgstr "Экспортировать как..."
+
+#: src/CollectionOpWindows.cpp:1533 src/CollectionOpWindows.cpp:1984
+msgid "Export"
+msgstr "Экспорт"
+
+#: src/CollectionOpWindows.cpp:1578
 msgid "Collection import"
 msgstr "Импорт коллекции"
 
-#: src/CollectionOpWindows.cpp:1120
+#: src/CollectionOpWindows.cpp:1602
 msgid "Path to collection files:"
 msgstr "Путь до файлов коллекции:"
 
-#: src/CollectionOpWindows.cpp:1147
+#: src/CollectionOpWindows.cpp:1629
 msgid "Path to books:"
 msgstr "Путь к папке с книгами:"
 
-#: src/CollectionOpWindows.cpp:1364
+#: src/CollectionOpWindows.cpp:1860
 msgid "Collection has been imported"
 msgstr "Коллекция импортирована"
 
-#: src/CollectionOpWindows.cpp:1398
+#: src/CollectionOpWindows.cpp:1894
 msgid "Collection for export: "
 msgstr "Коллекция для экспорта: "
 
-#: src/CollectionOpWindows.cpp:1412
+#: src/CollectionOpWindows.cpp:1956
 msgid "Export as: "
 msgstr "Экспортировать как: "
 
-#: src/CollectionOpWindows.cpp:1505
+#: src/CollectionOpWindows.cpp:2055 src/CollectionOpWindows.cpp:2118
 msgid "Collection has been exported"
 msgstr "Коллекция экспортирована"
 
-#: src/CreateLeftGrid.cpp:75 src/CreateRightGrid.cpp:453
-#: src/CreateRightGrid.cpp:462
-msgid "Author"
-msgstr "Автор"
-
-#: src/CreateLeftGrid.cpp:81
+#: src/CreateLeftGrid.cpp:168
 msgid "Surname:"
 msgstr "Фамилия:"
 
-#: src/CreateLeftGrid.cpp:94
+#: src/CreateLeftGrid.cpp:181
 msgid "Name:"
 msgstr "Имя:"
 
-#: src/CreateLeftGrid.cpp:106
+#: src/CreateLeftGrid.cpp:193
 msgid "Second name:"
 msgstr "Отчество:"
 
-#: src/CreateLeftGrid.cpp:118 src/CreateRightGrid.cpp:454
-#: src/CreateRightGrid.cpp:463
-msgid "Book"
-msgstr "Книга"
-
-#: src/CreateLeftGrid.cpp:124
+#: src/CreateLeftGrid.cpp:211
 msgid "Book name:"
 msgstr "Название книги:"
 
-#: src/CreateLeftGrid.cpp:261
+#: src/CreateLeftGrid.cpp:348
 msgid "Clear"
 msgstr "Очистить"
 
-#: src/CreateLeftGrid.cpp:397
+#: src/CreateLeftGrid.cpp:540
 msgid "Science Fiction & Fantasy"
 msgstr "Фантастика (Научная фантастика и Фэнтези)"
 
-#: src/CreateLeftGrid.cpp:404
+#: src/CreateLeftGrid.cpp:547
 msgid "Alternative history"
 msgstr "Альтернативная история"
 
-#: src/CreateLeftGrid.cpp:407 src/CreateLeftGrid.cpp:452
+#: src/CreateLeftGrid.cpp:550 src/CreateLeftGrid.cpp:595
 msgid "Action"
 msgstr "Боевик"
 
-#: src/CreateLeftGrid.cpp:410
+#: src/CreateLeftGrid.cpp:553
 msgid "Epic"
 msgstr "Эпическая фантастика"
 
-#: src/CreateLeftGrid.cpp:413
+#: src/CreateLeftGrid.cpp:556
 msgid "Heroic"
 msgstr "Героическая фантастика"
 
-#: src/CreateLeftGrid.cpp:416
+#: src/CreateLeftGrid.cpp:559
 msgid "Detective"
 msgstr "Детектив"
 
-#: src/CreateLeftGrid.cpp:419
+#: src/CreateLeftGrid.cpp:562
 msgid "Cyberpunk"
 msgstr "Киберпанк"
 
-#: src/CreateLeftGrid.cpp:422
+#: src/CreateLeftGrid.cpp:565
 msgid "Space"
 msgstr "Космическая фантастика"
 
-#: src/CreateLeftGrid.cpp:425
+#: src/CreateLeftGrid.cpp:568
 msgid "Social-philosophical"
 msgstr "Социально-психологическая фантастика"
 
-#: src/CreateLeftGrid.cpp:428
+#: src/CreateLeftGrid.cpp:571
 msgid "Horror & mystic"
 msgstr "Ужасы и мистика"
 
-#: src/CreateLeftGrid.cpp:431 src/CreateLeftGrid.cpp:765
+#: src/CreateLeftGrid.cpp:574 src/CreateLeftGrid.cpp:908
 msgid "Humor"
 msgstr "Юмор"
 
-#: src/CreateLeftGrid.cpp:434
+#: src/CreateLeftGrid.cpp:577
 msgid "Fantasy"
 msgstr "Фэнтези"
 
-#: src/CreateLeftGrid.cpp:437 src/CreateLeftGrid.cpp:569
+#: src/CreateLeftGrid.cpp:580 src/CreateLeftGrid.cpp:712
 msgid "Science Fiction"
 msgstr "Научная фантастика"
 
-#: src/CreateLeftGrid.cpp:444 src/CreateLeftGrid.cpp:572
+#: src/CreateLeftGrid.cpp:587 src/CreateLeftGrid.cpp:715
 msgid "Detectives & Thrillers"
 msgstr "Детективы и триллеры"
 
-#: src/CreateLeftGrid.cpp:446
+#: src/CreateLeftGrid.cpp:589
 msgid "Classical detectives"
 msgstr "Классический детектив"
 
-#: src/CreateLeftGrid.cpp:449
+#: src/CreateLeftGrid.cpp:592
 msgid "Police Stories"
 msgstr "Полицейский детектив"
 
-#: src/CreateLeftGrid.cpp:455
+#: src/CreateLeftGrid.cpp:598
 msgid "Ironical detectives"
 msgstr "Иронический детектив"
 
-#: src/CreateLeftGrid.cpp:458
+#: src/CreateLeftGrid.cpp:601
 msgid "Historical detectives"
 msgstr "Исторический детектив"
 
-#: src/CreateLeftGrid.cpp:461
+#: src/CreateLeftGrid.cpp:604
 msgid "Espionage detectives"
 msgstr "Шпионский детектив"
 
-#: src/CreateLeftGrid.cpp:464
+#: src/CreateLeftGrid.cpp:607
 msgid "Crime detectives"
 msgstr "Криминальный детектив"
 
-#: src/CreateLeftGrid.cpp:467
+#: src/CreateLeftGrid.cpp:610
 msgid "Political detectives"
 msgstr "Политический детектив"
 
-#: src/CreateLeftGrid.cpp:470
+#: src/CreateLeftGrid.cpp:613
 msgid "Maniacs"
 msgstr "Маньяки"
 
-#: src/CreateLeftGrid.cpp:473
+#: src/CreateLeftGrid.cpp:616
 msgid "Hard-boiled"
 msgstr "Крутой детектив"
 
-#: src/CreateLeftGrid.cpp:476
+#: src/CreateLeftGrid.cpp:619
 msgid "Thrillers"
 msgstr "Триллер"
 
-#: src/CreateLeftGrid.cpp:479
+#: src/CreateLeftGrid.cpp:622
 msgid "Detectives"
 msgstr "Детектив (прочее)"
 
-#: src/CreateLeftGrid.cpp:486 src/CreateLeftGrid.cpp:566
-#: src/CreateLeftGrid.cpp:770
+#: src/CreateLeftGrid.cpp:629 src/CreateLeftGrid.cpp:709
+#: src/CreateLeftGrid.cpp:913
 msgid "Prose"
 msgstr "Проза"
 
-#: src/CreateLeftGrid.cpp:488
+#: src/CreateLeftGrid.cpp:631
 msgid "Classics prose"
 msgstr "Классическая проза"
 
-#: src/CreateLeftGrid.cpp:491
+#: src/CreateLeftGrid.cpp:634
 msgid "Historical prose"
 msgstr "Историческая проза"
 
-#: src/CreateLeftGrid.cpp:494
+#: src/CreateLeftGrid.cpp:637
 msgid "Contemporary prose"
 msgstr "Современная проза"
 
-#: src/CreateLeftGrid.cpp:497
+#: src/CreateLeftGrid.cpp:640
 msgid "Counterculture"
 msgstr "Контркультура"
 
-#: src/CreateLeftGrid.cpp:500
+#: src/CreateLeftGrid.cpp:643
 msgid "Russial classics prose"
 msgstr "Русская классическая проза"
 
-#: src/CreateLeftGrid.cpp:503
+#: src/CreateLeftGrid.cpp:646
 msgid "Soviet classics prose"
 msgstr "Советская классическая проза"
 
-#: src/CreateLeftGrid.cpp:510
+#: src/CreateLeftGrid.cpp:653
 msgid "Romance"
 msgstr "Любовные романы"
 
-#: src/CreateLeftGrid.cpp:512
+#: src/CreateLeftGrid.cpp:655
 msgid "Contemporary Romance"
 msgstr "Современные любовные романы"
 
-#: src/CreateLeftGrid.cpp:515
+#: src/CreateLeftGrid.cpp:658
 msgid "Historical Romance"
 msgstr "Исторические любовные романы"
 
-#: src/CreateLeftGrid.cpp:518
+#: src/CreateLeftGrid.cpp:661
 msgid "Detective Romance"
 msgstr "Остросюжетные любовные романы"
 
-#: src/CreateLeftGrid.cpp:521
+#: src/CreateLeftGrid.cpp:664
 msgid "Short Romance"
 msgstr "Короткие любовные романы"
 
-#: src/CreateLeftGrid.cpp:524
+#: src/CreateLeftGrid.cpp:667
 msgid "Erotica"
 msgstr "Эротика"
 
-#: src/CreateLeftGrid.cpp:531
+#: src/CreateLeftGrid.cpp:674
 msgid "Adventure"
 msgstr "Приключения"
 
-#: src/CreateLeftGrid.cpp:533
+#: src/CreateLeftGrid.cpp:676
 msgid "Western"
 msgstr "Вестерн"
 
-#: src/CreateLeftGrid.cpp:536 src/CreateLeftGrid.cpp:626
+#: src/CreateLeftGrid.cpp:679 src/CreateLeftGrid.cpp:769
 msgid "History"
 msgstr "История"
 
-#: src/CreateLeftGrid.cpp:539
+#: src/CreateLeftGrid.cpp:682
 msgid "Indians"
 msgstr "Приключения про индейцев"
 
-#: src/CreateLeftGrid.cpp:542
+#: src/CreateLeftGrid.cpp:685
 msgid "Maritime Fiction"
 msgstr "Морские приключения"
 
-#: src/CreateLeftGrid.cpp:545
+#: src/CreateLeftGrid.cpp:688
 msgid "Travel & geography"
 msgstr "Путешествия и география"
 
-#: src/CreateLeftGrid.cpp:548
+#: src/CreateLeftGrid.cpp:691
 msgid "Nature & animals"
 msgstr "Природа и животные"
 
-#: src/CreateLeftGrid.cpp:551 src/CreateLeftGrid.cpp:581
-#: src/CreateLeftGrid.cpp:617 src/CreateLeftGrid.cpp:671
-#: src/CreateLeftGrid.cpp:698 src/CreateLeftGrid.cpp:719
-#: src/CreateLeftGrid.cpp:740 src/CreateLeftGrid.cpp:758
-#: src/CreateLeftGrid.cpp:776 src/CreateLeftGrid.cpp:812
+#: src/CreateLeftGrid.cpp:694 src/CreateLeftGrid.cpp:724
+#: src/CreateLeftGrid.cpp:760 src/CreateLeftGrid.cpp:814
+#: src/CreateLeftGrid.cpp:841 src/CreateLeftGrid.cpp:862
+#: src/CreateLeftGrid.cpp:883 src/CreateLeftGrid.cpp:901
+#: src/CreateLeftGrid.cpp:919 src/CreateLeftGrid.cpp:955
 msgid "Other"
 msgstr "Другое"
 
-#: src/CreateLeftGrid.cpp:558
+#: src/CreateLeftGrid.cpp:701
 msgid "Children's"
 msgstr "Детская литература"
 
-#: src/CreateLeftGrid.cpp:560
+#: src/CreateLeftGrid.cpp:703
 msgid "Fairy Tales"
 msgstr "Сказки"
 
-#: src/CreateLeftGrid.cpp:563 src/CreateLeftGrid.cpp:773
+#: src/CreateLeftGrid.cpp:706 src/CreateLeftGrid.cpp:916
 msgid "Verses"
 msgstr "Стихи"
 
-#: src/CreateLeftGrid.cpp:575
+#: src/CreateLeftGrid.cpp:718
 msgid "Adventures"
 msgstr "Приключения"
 
-#: src/CreateLeftGrid.cpp:578
+#: src/CreateLeftGrid.cpp:721
 msgid "Educational"
 msgstr "Образовательная литература"
 
-#: src/CreateLeftGrid.cpp:588
+#: src/CreateLeftGrid.cpp:731
 msgid "Poetry & Dramaturgy"
 msgstr "Поэзия и драматургия"
 
-#: src/CreateLeftGrid.cpp:590
+#: src/CreateLeftGrid.cpp:733
 msgid "Poetry"
 msgstr "Поэзия"
 
-#: src/CreateLeftGrid.cpp:593
+#: src/CreateLeftGrid.cpp:736
 msgid "Dramaturgy"
 msgstr "Драматургия"
 
-#: src/CreateLeftGrid.cpp:600
+#: src/CreateLeftGrid.cpp:743
 msgid "Antique literature"
 msgstr "Старинное"
 
-#: src/CreateLeftGrid.cpp:602
+#: src/CreateLeftGrid.cpp:745
 msgid "Antique"
 msgstr "Античная литература"
 
-#: src/CreateLeftGrid.cpp:605
+#: src/CreateLeftGrid.cpp:748
 msgid "European"
 msgstr "Европейская старинная литература"
 
-#: src/CreateLeftGrid.cpp:608
+#: src/CreateLeftGrid.cpp:751
 msgid "Old russian"
 msgstr "Древнерусская литература"
 
-#: src/CreateLeftGrid.cpp:611
+#: src/CreateLeftGrid.cpp:754
 msgid "Old east"
 msgstr "Древневосточная литература"
 
-#: src/CreateLeftGrid.cpp:614
+#: src/CreateLeftGrid.cpp:757
 msgid "Myths. Legends. Epos."
 msgstr "Мифы. Легенды. Эпос."
 
-#: src/CreateLeftGrid.cpp:624
+#: src/CreateLeftGrid.cpp:767
 msgid "Scientific-educational"
 msgstr "Наука и образование"
 
-#: src/CreateLeftGrid.cpp:629
+#: src/CreateLeftGrid.cpp:772
 msgid "Psychology"
 msgstr "Психология"
 
-#: src/CreateLeftGrid.cpp:632
+#: src/CreateLeftGrid.cpp:775
 msgid "Cultural science"
 msgstr "Культурология"
 
-#: src/CreateLeftGrid.cpp:635
+#: src/CreateLeftGrid.cpp:778
 msgid "Religious studies"
 msgstr "Религиоведение"
 
-#: src/CreateLeftGrid.cpp:638
+#: src/CreateLeftGrid.cpp:781
 msgid "Philosophy"
 msgstr "Философия"
 
-#: src/CreateLeftGrid.cpp:641
+#: src/CreateLeftGrid.cpp:784
 msgid "Politics"
 msgstr "Политика"
 
-#: src/CreateLeftGrid.cpp:644
+#: src/CreateLeftGrid.cpp:787
 msgid "Business literature"
 msgstr "Деловая литература"
 
-#: src/CreateLeftGrid.cpp:647
+#: src/CreateLeftGrid.cpp:790
 msgid "Jurisprudence"
 msgstr "Юриспурденция"
 
-#: src/CreateLeftGrid.cpp:650
+#: src/CreateLeftGrid.cpp:793
 msgid "Linguistics"
 msgstr "Языкознание"
 
-#: src/CreateLeftGrid.cpp:653
+#: src/CreateLeftGrid.cpp:796
 msgid "Medicine"
 msgstr "Медицина"
 
-#: src/CreateLeftGrid.cpp:656
+#: src/CreateLeftGrid.cpp:799
 msgid "Physics"
 msgstr "Физика"
 
-#: src/CreateLeftGrid.cpp:659
+#: src/CreateLeftGrid.cpp:802
 msgid "Mathematics"
 msgstr "Математика"
 
-#: src/CreateLeftGrid.cpp:662
+#: src/CreateLeftGrid.cpp:805
 msgid "Chemistry"
 msgstr "Химия"
 
-#: src/CreateLeftGrid.cpp:665
+#: src/CreateLeftGrid.cpp:808
 msgid "Biology"
 msgstr "Биология"
 
-#: src/CreateLeftGrid.cpp:668
+#: src/CreateLeftGrid.cpp:811
 msgid "Technical"
 msgstr "Технические науки"
 
-#: src/CreateLeftGrid.cpp:678
+#: src/CreateLeftGrid.cpp:821
 msgid "Computers & Internet"
 msgstr "Компьютеры и интернет"
 
-#: src/CreateLeftGrid.cpp:680
+#: src/CreateLeftGrid.cpp:823
 msgid "Internet"
 msgstr "Интернет"
 
-#: src/CreateLeftGrid.cpp:683
+#: src/CreateLeftGrid.cpp:826
 msgid "Programming"
 msgstr "Программирование"
 
-#: src/CreateLeftGrid.cpp:686
+#: src/CreateLeftGrid.cpp:829
 msgid "Hardware"
 msgstr "Аппаратное обеспечение"
 
-#: src/CreateLeftGrid.cpp:689
+#: src/CreateLeftGrid.cpp:832
 msgid "Software"
 msgstr "Программное обеспечение"
 
-#: src/CreateLeftGrid.cpp:692
+#: src/CreateLeftGrid.cpp:835
 msgid "Databases"
 msgstr "Базы данных"
 
-#: src/CreateLeftGrid.cpp:695
+#: src/CreateLeftGrid.cpp:838
 msgid "OS & Networking"
 msgstr "ОС и сети"
 
-#: src/CreateLeftGrid.cpp:705 src/CreateLeftGrid.cpp:713
+#: src/CreateLeftGrid.cpp:848 src/CreateLeftGrid.cpp:856
 msgid "Reference"
 msgstr "Справочники"
 
-#: src/CreateLeftGrid.cpp:707
+#: src/CreateLeftGrid.cpp:850
 msgid "Encyclopedias"
 msgstr "Энциклопедии"
 
-#: src/CreateLeftGrid.cpp:710
+#: src/CreateLeftGrid.cpp:853
 msgid "Dictionaries"
 msgstr "Словари"
 
-#: src/CreateLeftGrid.cpp:716
+#: src/CreateLeftGrid.cpp:859
 msgid "Guidebooks"
 msgstr "Руководства"
 
-#: src/CreateLeftGrid.cpp:726
+#: src/CreateLeftGrid.cpp:869
 msgid "Nonfiction"
 msgstr "Документальная литература"
 
-#: src/CreateLeftGrid.cpp:728
+#: src/CreateLeftGrid.cpp:871
 msgid "Biography & Memoirs"
 msgstr "Биографии и мемуары"
 
-#: src/CreateLeftGrid.cpp:731
+#: src/CreateLeftGrid.cpp:874
 msgid "Publicism"
 msgstr "Публицистика"
 
-#: src/CreateLeftGrid.cpp:734
+#: src/CreateLeftGrid.cpp:877
 msgid "Criticism"
 msgstr "Критика"
 
-#: src/CreateLeftGrid.cpp:737
+#: src/CreateLeftGrid.cpp:880
 msgid "Art & design"
 msgstr "Искусство и дизайн"
 
-#: src/CreateLeftGrid.cpp:747
+#: src/CreateLeftGrid.cpp:890
 msgid "Religion & Inspirationn"
 msgstr "Религия и духовность"
 
-#: src/CreateLeftGrid.cpp:749
+#: src/CreateLeftGrid.cpp:892
 msgid "Religion"
 msgstr "Религия"
 
-#: src/CreateLeftGrid.cpp:752
+#: src/CreateLeftGrid.cpp:895
 msgid "Esoterics"
 msgstr "Эзотерика"
 
-#: src/CreateLeftGrid.cpp:755
+#: src/CreateLeftGrid.cpp:898
 msgid "Self-improvement"
 msgstr "Самосовершенствование"
 
-#: src/CreateLeftGrid.cpp:767
+#: src/CreateLeftGrid.cpp:910
 msgid "Anecdote (funny stories)"
 msgstr "Анекдоты"
 
-#: src/CreateLeftGrid.cpp:783
+#: src/CreateLeftGrid.cpp:926
 msgid "Home & Family"
 msgstr "Дом и семья"
 
-#: src/CreateLeftGrid.cpp:785
+#: src/CreateLeftGrid.cpp:928
 msgid "Cooking"
 msgstr "Кулинария"
 
-#: src/CreateLeftGrid.cpp:788
+#: src/CreateLeftGrid.cpp:931
 msgid "Pets"
 msgstr "Домашние животные"
 
-#: src/CreateLeftGrid.cpp:791
+#: src/CreateLeftGrid.cpp:934
 msgid "Hobbies & Crafts"
 msgstr "Хобби и ремёсла"
 
-#: src/CreateLeftGrid.cpp:794
+#: src/CreateLeftGrid.cpp:937
 msgid "Entertaining"
 msgstr "Развлечения"
 
-#: src/CreateLeftGrid.cpp:797
+#: src/CreateLeftGrid.cpp:940
 msgid "Health"
 msgstr "Здоровье"
 
-#: src/CreateLeftGrid.cpp:800
+#: src/CreateLeftGrid.cpp:943
 msgid "Garden"
 msgstr "Сад и огород"
 
-#: src/CreateLeftGrid.cpp:803
+#: src/CreateLeftGrid.cpp:946
 msgid "Do it yourself"
 msgstr "Сделай сам"
 
-#: src/CreateLeftGrid.cpp:806
+#: src/CreateLeftGrid.cpp:949
 msgid "Sports"
 msgstr "Спорт"
 
-#: src/CreateLeftGrid.cpp:809
+#: src/CreateLeftGrid.cpp:952
 msgid "Erotica & sex"
 msgstr "Эротика и секс"
 
-#: src/CreateRightGrid.cpp:90
+#: src/CreateRightGrid.cpp:121
 msgid "Book operations list"
 msgstr "Операции с книгой"
 
-#: src/CreateRightGrid.cpp:196
+#: src/CreateRightGrid.cpp:238
 msgid "File info"
 msgstr "Информация о файле"
 
-#: src/CreateRightGrid.cpp:215
+#: src/CreateRightGrid.cpp:257
 msgid "Create book-mark"
 msgstr "Создать закладку"
 
-#: src/CreateRightGrid.cpp:233
+#: src/CreateRightGrid.cpp:281
 msgid "Edit book entry"
 msgstr "Редактировать запись о книге"
 
-#: src/CreateRightGrid.cpp:271
+#: src/CreateRightGrid.cpp:319
 msgid "Remove book"
 msgstr "Удалить книгу"
 
-#: src/CreateRightGrid.cpp:455 src/CreateRightGrid.cpp:464
-msgid "Series"
-msgstr "Серия"
-
-#: src/CreateRightGrid.cpp:456 src/CreateRightGrid.cpp:465
-msgid "Genre"
-msgstr "Жанр"
-
-#: src/CreateRightGrid.cpp:457 src/CreateRightGrid.cpp:466
-msgid "Date"
-msgstr "Дата"
-
-#: src/MainWindow.cpp:177
+#: src/MainWindow.cpp:185
 msgid "Collection creation progress"
 msgstr "Прогресс создания коллекции"
 
-#: src/MainWindow.cpp:188
+#: src/MainWindow.cpp:196
 msgid "Creation progress"
 msgstr "Прогресс создания"
 
-#: src/MainWindow.cpp:523 src/MainWindow.cpp:670
+#: src/MainWindow.cpp:560 src/MainWindow.cpp:707
 msgid "Choose a book"
 msgstr "Выберите книгу"
 
-#: src/MainWindow.cpp:533 src/MainWindow.cpp:686
+#: src/MainWindow.cpp:570 src/MainWindow.cpp:723
 msgid "All supported"
 msgstr "Все поддерживаемые"
 
-#: src/MainWindow.cpp:862
+#: src/MainWindow.cpp:922 src/MainWindow.cpp:1093
 msgid "Books adding..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:874
+#: src/MainWindow.cpp:934 src/MainWindow.cpp:1105
 msgid "Book adding in progress..."
 msgstr "Добавление книги..."
 
-#: src/MainWindow.cpp:897
+#: src/MainWindow.cpp:957 src/MainWindow.cpp:1128
 msgid "Book adding canceled"
 msgstr "Добавление книги прекращено"
 
-#: src/MainWindow.cpp:929
+#: src/MainWindow.cpp:989 src/MainWindow.cpp:1160
 msgid "Book adding finished"
 msgstr "Книга добавлена"
 
-#: src/MainWindow.cpp:947
+#: src/MainWindow.cpp:1007 src/MainWindow.cpp:1178
 msgid "Collection book path does not exists!"
 msgstr "Папка с книгами коллекции не существует!"

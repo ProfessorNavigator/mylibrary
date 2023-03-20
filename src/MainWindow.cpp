@@ -141,11 +141,15 @@ MainWindow::mainWindow()
 
   grid->attach(*pn, 0, 1, 1, 1);
 
-  this->signal_close_request().connect( // @suppress("Invalid arguments")
-      sigc::mem_fun(*this, &MainWindow::closeFunc), false); // @suppress("Invalid arguments")
+  this->signal_close_request().connect([this]
+  {
+    return this->closeFunc();
+  },
+				       false);
   this->set_child(*grid);
 }
 
+#ifdef ML_GTK_OLD
 void
 MainWindow::readCollection(Gtk::ComboBoxText *collect_box)
 {
@@ -166,6 +170,7 @@ MainWindow::readCollection(Gtk::ComboBoxText *collect_box)
   thr->detach();
   delete thr;
 }
+#endif
 
 void
 MainWindow::creationPulseWin(Gtk::Window *window, int *cncl)
@@ -450,9 +455,24 @@ MainWindow::closeFunc()
 	  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0,
 									     1));
 	  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+#ifdef ML_GTK_OLD
 	  Gtk::ComboBoxText *collect_box =
 	      dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
 	  outfolder = std::string(collect_box->get_active_text());
+#endif
+#ifndef ML_GTK_OLD
+	  Gtk::DropDown *collect_box =
+	      dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+	  if(collect_box)
+	    {
+	      auto obj = collect_box->get_selected_item();
+	      auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+	      if(mod_box)
+		{
+		  outfolder = std::string(mod_box->menu_line);
+		}
+	    }
+#endif
 	  f.write(outfolder.c_str(), outfolder.size());
 	  f.close();
 	}
@@ -461,8 +481,18 @@ MainWindow::closeFunc()
     {
       std::filesystem::create_directories(resp.parent_path());
     }
+#ifdef ML_GTK_OLD
   this->hide();
-  return true;
+#endif
+#ifndef ML_GTK_OLD
+  this->set_visible(false);
+#endif
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+  return false;
 }
 
 #ifdef ML_GTK_OLD
@@ -844,18 +874,38 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 #endif
 }
 
+#ifndef ML_GTK_OLD
 void
-MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
+MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext)
 {
-  std::string arch_ext(ext->get_active_text());
+  auto obj = ext->get_selected_item();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+  std::string arch_ext;
+  if(mod_box)
+    {
+      arch_ext = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
   if(arch_ext == std::string(gettext("<No>")))
     {
       arch_ext.clear();
     }
   Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-  Gtk::ComboBoxText *cmb = dynamic_cast<Gtk::ComboBoxText*>(gr->get_child_at(0,
-									     1));
-  std::string coll_name(cmb->get_active_text());
+  Gtk::DropDown *cmb = dynamic_cast<Gtk::DropDown*>(gr->get_child_at(0, 1));
+  std::string coll_name;
+  obj = cmb->get_selected_item();
+  mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+  if(mod_box)
+    {
+      coll_name = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
 
   Gtk::Entry *book_path_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
   std::string book_path(book_path_ent->get_text());
@@ -971,7 +1021,7 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
 	  [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
 	   window, con, ttup]
 	  {
-	    window->hide();
+	    window->set_visible(false);
 	    delete disp_canceled;
 	    delete disp_book_exists;
 	    delete disp_finished;
@@ -1012,3 +1062,175 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
 	}
     }
 }
+#endif
+
+#ifdef ML_GTK_OLD
+void
+MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
+  {
+    std::string arch_ext(ext->get_active_text());
+    if(arch_ext == std::string(gettext("<No>")))
+      {
+	arch_ext.clear();
+      }
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+    Gtk::ComboBoxText *cmb = dynamic_cast<Gtk::ComboBoxText*>(gr->get_child_at(0,
+	    1));
+    std::string coll_name(cmb->get_active_text());
+
+    Gtk::Entry *book_path_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
+    std::string book_path(book_path_ent->get_text());
+
+    Gtk::Entry *book_nm_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
+    std::string book_name(book_nm_ent->get_text());
+
+    std::filesystem::path ch_p = std::filesystem::u8path(book_path);
+    if(!book_path.empty() && !book_name.empty() && std::filesystem::exists(ch_p))
+      {
+	Gtk::Window *window = new Gtk::Window;
+	window->set_application(this->get_application());
+	window->set_name("MLwindow");
+	window->set_title(gettext("Books adding..."));
+	window->set_transient_for(*win);
+	window->set_modal(true);
+
+	Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+	grid->set_halign(Gtk::Align::CENTER);
+	window->set_child(*grid);
+	window->set_deletable(false);
+
+	Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	lab->set_halign(Gtk::Align::CENTER);
+	lab->set_margin(5);
+	lab->set_text(gettext("Book adding in progress..."));
+	grid->attach(*lab, 0, 0, 1, 1);
+
+	Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+	cancel->set_name("cancelBut");
+	cancel->set_halign(Gtk::Align::CENTER);
+	cancel->set_margin(5);
+	cancel->set_label(gettext("Cancel"));
+
+	int *cncl = new int(0);
+	RefreshCollection *rc = new RefreshCollection(coll_name, 1, false, cncl);
+
+	sigc::connection *con = new sigc::connection();
+	*con = cancel->signal_clicked().connect([cncl]
+	      {
+		*cncl = 1;
+	      });
+	grid->attach(*cancel, 0, 1, 1, 1);
+
+	Glib::Dispatcher *disp_canceled = new Glib::Dispatcher();
+	disp_canceled->connect([window, lab, cancel, con]
+	      {
+		con->disconnect();
+		lab->set_text(gettext("Book adding canceled"));
+		cancel->set_name("applyBut");
+		cancel->set_label(gettext("Close"));
+		cancel->signal_clicked().connect([window]
+		      {
+			window->close();
+		      });
+	      });
+	rc->refresh_canceled = [disp_canceled]
+	  {
+	    disp_canceled->emit();
+	  };
+
+	std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
+	Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
+	disp_book_exists->connect([window, this, ttup]
+	      {
+		AuxWindows aw(this);
+		aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
+	      });
+	rc->file_exists = [ttup, disp_book_exists]
+	(std::mutex *inmtx, int *instopper)
+	  {
+	    std::get<0>(*ttup) = inmtx;
+	    std::get<1>(*ttup) = instopper;
+	    disp_book_exists->emit();
+	  };
+
+	Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
+	disp_finished->connect([window, lab, cancel, con, this, win]
+	      {
+		con->disconnect();
+		lab->set_text(gettext("Book adding finished"));
+		cancel->set_label(gettext("Close"));
+		cancel->signal_clicked().connect([window, win]
+		      {
+			window->close();
+			win->close();
+		      });
+		this->prev_search_nm.clear();
+	      });
+	rc->refresh_finished = [disp_finished]
+	  {
+	    disp_finished->emit();
+	  };
+
+	Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher();
+	disp_col_notfound->connect([con, lab, cancel, window]
+	      {
+		con->disconnect();
+		lab->set_text(gettext("Collection book path does not exists!"));
+		cancel->set_label(gettext("Close"));
+		cancel->signal_clicked().connect([window]
+		      {
+			window->close();
+		      });
+	      });
+
+	rc->collection_not_exists = [disp_col_notfound]
+	  {
+	    disp_col_notfound->emit();
+	  };
+
+	window->signal_close_request().connect(
+	    [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
+	    window, con, ttup]
+	      {
+		window->hide();
+		delete disp_canceled;
+		delete disp_book_exists;
+		delete disp_finished;
+		delete disp_col_notfound;
+		delete con;
+		delete ttup;
+		delete window;
+		return true;
+	      },
+	    false);
+
+	window->present();
+
+	std::thread *thr = new std::thread(
+	    [rc, book_path, book_name, arch_ext, cncl]
+	      {
+		rc->addBook(book_path, book_name, arch_ext);
+		delete cncl;
+		delete rc;
+	      });
+	thr->detach();
+	delete thr;
+      }
+    else
+      {
+	AuxWindows aw(this);
+	if(book_path.empty())
+	  {
+	    aw.errorWin(10, win);
+	  }
+	else if(book_name.empty())
+	  {
+	    aw.errorWin(11, win);
+	  }
+	else if(!std::filesystem::exists(ch_p))
+	  {
+	    aw.errorWin(12, win);
+	  }
+      }
+  }
+#endif

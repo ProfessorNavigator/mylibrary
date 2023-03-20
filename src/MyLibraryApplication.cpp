@@ -49,16 +49,15 @@ MyLibraryApplication::create_appwindow()
 	Gtk::Window *win = wv[i];
 	if(win != mw)
 	  {
+#ifdef ML_GTK_OLD
 	    win->hide();
+#endif
+#ifndef ML_GTK_OLD
+	    win->set_visible(false);
+#endif
 	    delete win;
 	  }
       }
-    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-    while(mc->pending())
-      {
-	mc->iteration(true);
-      }
-    delete mw;
   });
 
   return mw;

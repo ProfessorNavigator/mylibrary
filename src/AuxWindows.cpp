@@ -176,7 +176,6 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win)
 	  info->close();
 	}
     });
-
   info->signal_close_request().connect([info]
   {
     info->hide();
@@ -1264,7 +1263,7 @@ AuxWindows::aboutProg()
 
   aboutd->set_program_name("MyLibrary");
   aboutd->set_version("2.1");
-  aboutd->set_copyright("Copyright 2022 Yury Bobylev <bobilev_yury@mail.ru>");
+  aboutd->set_copyright("Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());
   std::string filename = p.parent_path().u8string()
@@ -1303,23 +1302,30 @@ AuxWindows::aboutProg()
       + Glib::ustring("\n") + Glib::ustring(gettext("Author Yury Bobylev"))
       + Glib::ustring(" <bobilev_yury@mail.ru>.\n")
       + Glib::ustring(gettext("Program uses next libraries:"))
-      + Glib::ustring("\n"
-		      "GTK https://www.gtk.org/\n"
-		      "libzip https://libzip.org/\n"
-		      "libarchive https://libarchive.org\n"
-		      "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-		      "ICU https://icu.unicode.org/\n"
-		      "GMP https://gmplib.org/\n"
-		      "Poppler https://poppler.freedesktop.org/\n"
-		      "DjVuLibre https://djvu.sourceforge.net/");
+      + Glib::ustring(
+	  "\n"
+	  "GTK https://www.gtk.org/\n"
+	  "libzip https://libzip.org/\n"
+	  "libarchive https://libarchive.org\n"
+	  "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+	  "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
+	  "ICU https://icu.unicode.org/\n"
+	  "GMP https://gmplib.org/\n"
+	  "Poppler https://poppler.freedesktop.org/\n"
+	  "DjVuLibre https://djvu.sourceforge.net/");
   aboutd->set_comments(abbuf);
 
   aboutd->signal_close_request().connect([aboutd]
   {
+#ifdef ML_GTK_OLD
     aboutd->hide();
-    delete aboutd;
-    return true;
-  },
+#endif
+#ifndef ML_GTK_OLD
+					   aboutd->set_visible(false);
+#endif
+					   delete aboutd;
+					   return true;
+					 },
 					 false);
   aboutd->present();
 }

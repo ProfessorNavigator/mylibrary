@@ -7,6 +7,7 @@ icu = dependency ('icu-i18n', method : 'pkg-config', version : '>=69')
 zip = dependency ('libzip', method : 'pkg-config')
 libarchive = dependency ('libarchive', method : 'pkg-config')
 libgcrypt = dependency ('libgcrypt', method : 'pkg-config')
+gpg_error = dependency ('gpg-error', method : 'pkg-config')
 poppler = dependency ('poppler-cpp', method : 'pkg-config')
 djvulibre = dependency ('ddjvuapi', method : 'pkg-config')
 gmpxx = dependency ('gmpxx', method : 'pkg-config')
@@ -23,10 +24,10 @@ endif
 
 subdir ('po')
 if gtkmm.version() < '4.10'
-executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
 endif
-if not gtkmm.version() < '4.10'
-executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+if gtkmm.version() >= '4.10'
+executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
 endif
 
 install_subdir ('MyLibrary', install_dir : 'share')

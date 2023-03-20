@@ -70,17 +70,69 @@ CollectionOpWindows::collectionOp(int variant)
       lab->set_text(gettext("Collection which book should be added to:"));
     }
   grid->attach(*lab, 0, 0, 2, 1);
-
+#ifdef ML_GTK_OLD
   Gtk::ComboBoxText *cmb = Gtk::make_managed<Gtk::ComboBoxText>();
   cmb->set_name("comboBox");
   cmb->set_halign(Gtk::Align::CENTER);
   cmb->set_margin(5);
   CreateLeftGrid clgr(mw);
   clgr.formCollCombo(cmb);
+#endif
+#ifndef ML_GTK_OLD
+  CreateLeftGrid clgr(mw);
+  Glib::RefPtr<Gio::ListStore<ModelBoxes>> mod_box;
+  mod_box = clgr.formCollCombo();
+  auto men_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+  (const Glib::RefPtr<Glib::ObjectBase> &item)
+    {
+      const auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(item);
+      if(mod_box)
+	{
+	  return mod_box->menu_line;
+	}
+      else
+	{
+	  return Glib::ustring("");
+	}
+    });
+
+  Gtk::DropDown *cmb = Gtk::make_managed<Gtk::DropDown>(mod_box, men_expr);
+  cmb->set_name("comboBox");
+  cmb->set_halign(Gtk::Align::CENTER);
+  cmb->set_margin(5);
+  cmb->set_enable_search(true);
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
+      Gtk::SignalListItemFactory::create();
+  factory->signal_setup().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_valign(Gtk::Align::CENTER);
+      item->set_child(*lab);
+    });
+  factory->signal_bind().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Glib::RefPtr<ModelBoxes> mod_box =
+      std::dynamic_pointer_cast<ModelBoxes>(item->get_item());
+      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+      if(lab && mod_box)
+	{
+	  lab->set_text(mod_box->menu_line);
+	}
+    });
+  cmb->set_factory(factory);
+#endif
   grid->attach(*cmb, 0, 1, 2, 1);
 
   Gtk::CheckButton *rem_empty_ch = nullptr;
+#ifdef ML_GTK_OLD
   Gtk::ComboBoxText *arch_type = nullptr;
+#endif
+#ifndef ML_GTK_OLD
+  Gtk::DropDown *arch_type = nullptr;
+#endif
   Gtk::CheckButton *fast_refresh = nullptr;
   if(variant == 2)
     {
@@ -199,6 +251,7 @@ CollectionOpWindows::collectionOp(int variant)
       pack_lb->set_max_width_chars(50);
       grid->attach(*pack_lb, 0, 6, 1, 1);
 
+#ifdef ML_GTK_OLD
       arch_type = Gtk::make_managed<Gtk::ComboBoxText>();
       arch_type->set_name("comboBox");
       arch_type->set_halign(Gtk::Align::CENTER);
@@ -217,6 +270,67 @@ CollectionOpWindows::collectionOp(int variant)
       arch_type->append(".tar.bz2");
       arch_type->append(".tar.xz");
       arch_type->set_active(0);
+#endif
+#ifndef ML_GTK_OLD
+      CreateLeftGrid clgr(mw);
+      Glib::RefPtr<Gio::ListStore<ModelBoxes>> mod_box_arch = Gio::ListStore<
+	  ModelBoxes>::create();
+      mod_box_arch->append(ModelBoxes::create(gettext("<No>")));
+      mod_box_arch->append(ModelBoxes::create(".zip"));
+      mod_box_arch->append(ModelBoxes::create(".7z"));
+      mod_box_arch->append(ModelBoxes::create(".jar"));
+      mod_box_arch->append(ModelBoxes::create(".cpio"));
+      mod_box_arch->append(ModelBoxes::create(".iso"));
+      mod_box_arch->append(ModelBoxes::create(".a"));
+      mod_box_arch->append(ModelBoxes::create(".ar"));
+      mod_box_arch->append(ModelBoxes::create(".tar"));
+      mod_box_arch->append(ModelBoxes::create(".tgz"));
+      mod_box_arch->append(ModelBoxes::create(".tar.gz"));
+      mod_box_arch->append(ModelBoxes::create(".tar.bz2"));
+      mod_box_arch->append(ModelBoxes::create(".tar.xz"));
+
+      auto arch_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+      (const Glib::RefPtr<Glib::ObjectBase> &item)
+	{
+	  const auto mod_box_arch = std::dynamic_pointer_cast<ModelBoxes>(item);
+	  if(mod_box_arch)
+	    {
+	      return mod_box_arch->menu_line;
+	    }
+	  else
+	    {
+	      return Glib::ustring("");
+	    }
+	});
+
+      arch_type = Gtk::make_managed<Gtk::DropDown>(mod_box_arch, arch_expr);
+      arch_type->set_name("comboBox");
+      arch_type->set_halign(Gtk::Align::CENTER);
+      arch_type->set_valign(Gtk::Align::CENTER);
+
+      Glib::RefPtr<Gtk::SignalListItemFactory> factory_arch =
+	  Gtk::SignalListItemFactory::create();
+      factory_arch->signal_setup().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+	  lab->set_halign(Gtk::Align::CENTER);
+	  lab->set_valign(Gtk::Align::CENTER);
+	  item->set_child(*lab);
+	});
+      factory_arch->signal_bind().connect([]
+      (const Glib::RefPtr<Gtk::ListItem> &item)
+	{
+	  Glib::RefPtr<ModelBoxes> mod_box_arch =
+	  std::dynamic_pointer_cast<ModelBoxes>(item->get_item());
+	  auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+	  if(lab && mod_box_arch)
+	    {
+	      lab->set_text(mod_box_arch->menu_line);
+	    }
+	});
+      arch_type->set_factory(factory_arch);
+#endif
       grid->attach(*arch_type, 1, 6, 1, 1);
     }
 
@@ -237,7 +351,7 @@ CollectionOpWindows::collectionOp(int variant)
     {
       remove->set_label(gettext("Add book"));
     }
-
+#ifdef ML_GTK_OLD
   if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 1)
     {
       remove->signal_clicked().connect([mwl, cmb, window, variant]
@@ -245,7 +359,6 @@ CollectionOpWindows::collectionOp(int variant)
 	CollectionOpWindows copw(mwl);
 	copw.collectionOpFunc(cmb, window, nullptr, nullptr, variant);
       });
-
     }
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 2)
     {
@@ -264,6 +377,35 @@ CollectionOpWindows::collectionOp(int variant)
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window, // @suppress("Invalid arguments")
 		     arch_type));
     }
+#endif
+
+#ifndef ML_GTK_OLD
+  if(variant == 1)
+    {
+      remove->signal_clicked().connect([mwl, cmb, window, variant]
+      {
+	CollectionOpWindows copw(mwl);
+	copw.collectionOpFunc(cmb, window, nullptr, nullptr, variant);
+      });
+    }
+  else if(variant == 2)
+    {
+      remove->signal_clicked().connect(
+	  [mwl, cmb, window, rem_empty_ch, fast_refresh, variant]
+	  {
+	    CollectionOpWindows copw(mwl);
+	    copw.collectionOpFunc(cmb, window, rem_empty_ch, fast_refresh,
+				  variant);
+	  });
+    }
+  else if(variant == 3 && arch_type)
+    {
+      remove->signal_clicked().connect([mwl, window, arch_type]
+      {
+	mwl->bookAddWinFunc(window, arch_type);
+      });
+    }
+#endif
 
   if(variant == 2)
     {
@@ -286,7 +428,10 @@ CollectionOpWindows::collectionOp(int variant)
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  cancel->signal_clicked().connect([window]
+  {
+    window->close();
+  });
   if(variant == 2)
     {
       grid->attach(*cancel, 1, 5, 1, 1);
@@ -306,21 +451,26 @@ CollectionOpWindows::collectionOp(int variant)
 
   window->signal_close_request().connect([window]
   {
+#ifdef ML_GTK_OLD
     window->hide();
-    delete window;
-    return true;
-  },
+#endif
+#ifndef ML_GTK_OLD
+					   window->set_visible(false);
+#endif
+					   delete window;
+					   return true;
+					 },
 					 false);
   window->present();
 }
 
+#ifndef ML_GTK_OLD
 void
-CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
+CollectionOpWindows::collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
 				      Gtk::CheckButton *rem_empty_ch,
 				      Gtk::CheckButton *fast_refresh,
 				      int variant)
 {
-#ifndef ML_GTK_OLD
   Glib::RefPtr<Gtk::AlertDialog> msg = Gtk::AlertDialog::create();
   msg->set_modal(true);
   msg->set_message(gettext("Are you sure?"));
@@ -345,8 +495,18 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 		  std::string filename;
 		  AuxFunc af;
 		  af.homePath(&filename);
-		  filename = filename + "/.MyLibrary/Collections/" +
-		  std::string(cmb->get_active_text());
+		  std::string collname;
+		  auto obj = cmb->get_selected_item();
+		  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+		  if(mod_box)
+		    {
+		      collname = std::string(mod_box->menu_line);
+		    }
+		  else
+		    {
+		      return void();
+		    }
+		  filename = filename + "/.MyLibrary/Collections/" + collname;
 		  std::filesystem::path filepath = std::filesystem::u8path(filename);
 		  std::filesystem::remove_all(filepath);
 
@@ -354,12 +514,11 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 		  Gtk::Paned *pn =
 		  dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
 		  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-		  Gtk::ComboBoxText *collect_box =
-		  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
-
-		  collect_box->remove_all();
+		  Gtk::DropDown *collect_box =
+		  dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
 		  CreateLeftGrid clgr(mwl);
-		  clgr.formCollCombo(collect_box);
+		  auto model = clgr.formCollCombo();
+		  collect_box->set_model(model);
 		  msg.reset();
 		  win->close();
 		}
@@ -376,8 +535,257 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
 	    }
 	},
       cncl);
+}
+
+void
+CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
+				       Gtk::CheckButton *rem_empty_ch,
+				       Gtk::CheckButton *fast_refresh,
+				       Gtk::Window *win)
+{
+  auto obj = cmb->get_selected_item();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+  std::string coll_nm;
+  if(mod_box)
+    {
+      coll_nm = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+  Gtk::Entry *thr_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(1, 2));
+  std::stringstream strm;
+  std::locale loc("C");
+  strm.imbue(loc);
+  strm << std::string(thr_ent->get_text());
+  unsigned int thr_num;
+  strm >> thr_num;
+  if(thr_num == 0)
+    {
+      thr_num = 1;
+    }
+  bool col_empty_ch = rem_empty_ch->get_active();
+  bool col_fast_refresh = fast_refresh->get_active();
+  win->close();
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(mw->get_application());
+  window->set_title(gettext("Collection refreshing"));
+  window->set_transient_for(*mw);
+  window->set_modal(true);
+  window->set_deletable(false);
+  window->set_name("MLwindow");
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_margin(5);
+  if(!col_fast_refresh)
+    {
+      lab->set_text(gettext("Files hashing..."));
+    }
+  else
+    {
+      lab->set_text(gettext("Collection refreshing..."));
+    }
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::ProgressBar *prgb = Gtk::make_managed<Gtk::ProgressBar>();
+  prgb->set_halign(Gtk::Align::CENTER);
+  prgb->set_margin(5);
+  prgb->set_show_text(true);
+  grid->attach(*prgb, 0, 1, 1, 1);
+
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_name("cancelBut");
+  cancel->set_halign(Gtk::Align::CENTER);
+  cancel->set_margin(5);
+  cancel->set_label(gettext("Cancel"));
+  sigc::connection *con = new sigc::connection();
+  MainWindow *mwl = mw;
+  int *cncl = new int(0);
+  *con = cancel->signal_clicked().connect([cncl]
+  {
+    *cncl = 1;
+  });
+  grid->attach(*cancel, 0, 2, 1, 1);
+
+  RefreshCollection *rc = new RefreshCollection(coll_nm, thr_num,
+						col_fast_refresh, cncl);
+
+  Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
+
+  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing canceled"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->refresh_canceled = [disp_cancel]
+  {
+    disp_cancel->emit();
+  };
+
+  Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
+  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing finished"));
+    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+    window->set_default_size(1, 1);
+    grid->remove(*prgb);
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
+      {
+	mc->iteration(true);
+      }
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->refresh_finished = [disp_finished]
+  {
+    disp_finished->emit();
+  };
+
+  long unsigned int *tothsh = new long unsigned int(0);
+  long unsigned int *hashed = new long unsigned int(0);
+  Glib::Dispatcher *disp_tothash = new Glib::Dispatcher();
+  disp_tothash->connect([prgb]
+  {
+    prgb->set_fraction(0.0);
+  });
+  rc->total_hash = [tothsh]
+  (long unsigned int tot)
+    {
+      *tothsh = tot;
+    };
+
+  Glib::Dispatcher *disp_hashed = new Glib::Dispatcher();
+  disp_hashed->connect([tothsh, hashed, prgb]
+  {
+    mpf_set_default_prec(128);
+    mpz_class tot(*tothsh);
+    mpf_class tot_mpf;
+    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
+
+    mpz_class hsh(*hashed);
+    mpf_class hsh_mpf;
+    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
+
+    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
+  });
+
+  rc->byte_hashed = [hashed, disp_hashed]
+  (long unsigned int hsh)
+    {
+      *hashed = *hashed + hsh;
+      disp_hashed->emit();
+    };
+
+  double *totf = new double(0.0);
+  double *added = new double(0.0);
+  Glib::Dispatcher *disp_totalfiles = new Glib::Dispatcher();
+  disp_totalfiles->connect([prgb, lab]
+  {
+    lab->set_text(gettext("Collection refreshing..."));
+    prgb->set_fraction(0.0);
+  });
+  rc->total_files = [totf, disp_totalfiles]
+  (int total)
+    {
+      *totf = static_cast<double>(total);
+      disp_totalfiles->emit();
+    };
+
+  Glib::Dispatcher *disp_progr = new Glib::Dispatcher();
+  disp_progr->connect([prgb, added]
+  {
+    prgb->set_fraction(*added);
+  });
+
+  rc->files_added = [added, totf, disp_progr]
+  (int add)
+    {
+      *added = static_cast<double>(add) / *totf;
+      disp_progr->emit();
+    };
+
+  Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
+  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection book directory not found"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->collection_not_exists = [disp_coll_nf]
+  {
+    disp_coll_nf->emit();
+  };
+
+  window->signal_close_request().connect(
+      [window, disp_cancel, disp_finished, disp_tothash, disp_totalfiles,
+       disp_hashed, disp_progr, disp_coll_nf, con, tothsh, hashed, totf, added]
+      {
+	window->set_visible(false);
+	delete con;
+	delete disp_cancel;
+	delete disp_finished;
+	delete disp_tothash;
+	delete disp_hashed;
+	delete disp_totalfiles;
+	delete disp_progr;
+	delete disp_coll_nf;
+	delete tothsh;
+	delete hashed;
+	delete totf;
+	delete added;
+	delete window;
+	return true;
+      },
+      false);
+  Gtk::Requisition min, nat;
+  grid->get_preferred_size(min, nat);
+  window->set_default_size(nat.get_width(), nat.get_height());
+  window->present();
+
+  std::thread *thr = new std::thread([rc, col_empty_ch, cncl]
+  {
+    if(col_empty_ch)
+      {
+	rc->removeEmptyDirs();
+      }
+    rc->startRefreshing();
+    delete cncl;
+    delete rc;
+  });
+  thr->detach();
+  delete thr;
+}
 #endif
+
 #ifdef ML_GTK_OLD
+void
+CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
+				      Gtk::CheckButton *rem_empty_ch,
+				      Gtk::CheckButton *fast_refresh,
+				      int variant)
+{
   Gtk::MessageDialog *msg = new Gtk::MessageDialog(*win,
 						   gettext("Are you sure?"),
 						   false,
@@ -439,8 +847,240 @@ CollectionOpWindows::collectionOpFunc(Gtk::ComboBoxText *cmb, Gtk::Window *win,
   },
 				      false);
   msg->present();
-#endif
+
 }
+
+void
+CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
+				       Gtk::CheckButton *rem_empty_ch,
+				       Gtk::CheckButton *fast_refresh,
+				       Gtk::Window *win)
+{
+  std::string coll_nm(cmb->get_active_text());
+  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
+  Gtk::Entry *thr_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(1, 2));
+  std::stringstream strm;
+  std::locale loc("C");
+  strm.imbue(loc);
+  strm << std::string(thr_ent->get_text());
+  unsigned int thr_num;
+  strm >> thr_num;
+  if(thr_num == 0)
+    {
+      thr_num = 1;
+    }
+  bool col_empty_ch = rem_empty_ch->get_active();
+  bool col_fast_refresh = fast_refresh->get_active();
+  win->close();
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(mw->get_application());
+  window->set_title(gettext("Collection refreshing"));
+  window->set_transient_for(*mw);
+  window->set_modal(true);
+  window->set_deletable(false);
+  window->set_name("MLwindow");
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_margin(5);
+  if(!col_fast_refresh)
+    {
+      lab->set_text(gettext("Files hashing..."));
+    }
+  else
+    {
+      lab->set_text(gettext("Collection refreshing..."));
+    }
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::ProgressBar *prgb = Gtk::make_managed<Gtk::ProgressBar>();
+  prgb->set_halign(Gtk::Align::CENTER);
+  prgb->set_margin(5);
+  prgb->set_show_text(true);
+  grid->attach(*prgb, 0, 1, 1, 1);
+
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_name("cancelBut");
+  cancel->set_halign(Gtk::Align::CENTER);
+  cancel->set_margin(5);
+  cancel->set_label(gettext("Cancel"));
+  sigc::connection *con = new sigc::connection();
+  MainWindow *mwl = mw;
+  int *cncl = new int(0);
+  *con = cancel->signal_clicked().connect([cncl]
+  {
+    *cncl = 1;
+  });
+  grid->attach(*cancel, 0, 2, 1, 1);
+
+  RefreshCollection *rc = new RefreshCollection(coll_nm, thr_num,
+						col_fast_refresh, cncl);
+
+  Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
+
+  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing canceled"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->refresh_canceled = [disp_cancel]
+  {
+    disp_cancel->emit();
+  };
+
+  Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
+  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing finished"));
+    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+    window->set_default_size(1, 1);
+    grid->remove(*prgb);
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
+      {
+	mc->iteration(true);
+      }
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->refresh_finished = [disp_finished]
+  {
+    disp_finished->emit();
+  };
+
+  long unsigned int *tothsh = new long unsigned int(0);
+  long unsigned int *hashed = new long unsigned int(0);
+  Glib::Dispatcher *disp_tothash = new Glib::Dispatcher();
+  disp_tothash->connect([prgb]
+  {
+    prgb->set_fraction(0.0);
+  });
+  rc->total_hash = [tothsh]
+  (long unsigned int tot)
+    {
+      *tothsh = tot;
+    };
+
+  Glib::Dispatcher *disp_hashed = new Glib::Dispatcher();
+  disp_hashed->connect([tothsh, hashed, prgb]
+  {
+    mpf_set_default_prec(128);
+    mpz_class tot(*tothsh);
+    mpf_class tot_mpf;
+    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
+
+    mpz_class hsh(*hashed);
+    mpf_class hsh_mpf;
+    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
+
+    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
+  });
+
+  rc->byte_hashed = [hashed, disp_hashed]
+  (long unsigned int hsh)
+    {
+      *hashed = *hashed + hsh;
+      disp_hashed->emit();
+    };
+
+  double *totf = new double(0.0);
+  double *added = new double(0.0);
+  Glib::Dispatcher *disp_totalfiles = new Glib::Dispatcher();
+  disp_totalfiles->connect([prgb, lab]
+  {
+    lab->set_text(gettext("Collection refreshing..."));
+    prgb->set_fraction(0.0);
+  });
+  rc->total_files = [totf, disp_totalfiles]
+  (int total)
+    {
+      *totf = static_cast<double>(total);
+      disp_totalfiles->emit();
+    };
+
+  Glib::Dispatcher *disp_progr = new Glib::Dispatcher();
+  disp_progr->connect([prgb, added]
+  {
+    prgb->set_fraction(*added);
+  });
+
+  rc->files_added = [added, totf, disp_progr]
+  (int add)
+    {
+      *added = static_cast<double>(add) / *totf;
+      disp_progr->emit();
+    };
+
+  Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
+  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection book directory not found"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
+	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  });
+  rc->collection_not_exists = [disp_coll_nf]
+  {
+    disp_coll_nf->emit();
+  };
+
+  window->signal_close_request().connect(
+      [window, disp_cancel, disp_finished, disp_tothash, disp_totalfiles,
+       disp_hashed, disp_progr, disp_coll_nf, con, tothsh, hashed, totf, added]
+      {
+	window->hide();
+	delete con;
+	delete disp_cancel;
+	delete disp_finished;
+	delete disp_tothash;
+	delete disp_hashed;
+	delete disp_totalfiles;
+	delete disp_progr;
+	delete disp_coll_nf;
+	delete tothsh;
+	delete hashed;
+	delete totf;
+	delete added;
+	delete window;
+	return true;
+      },
+      false);
+  Gtk::Requisition min, nat;
+  grid->get_preferred_size(min, nat);
+  window->set_default_size(nat.get_width(), nat.get_height());
+  window->present();
+
+  std::thread *thr = new std::thread([rc, col_empty_ch, cncl]
+  {
+    if(col_empty_ch)
+      {
+	rc->removeEmptyDirs();
+      }
+    rc->startRefreshing();
+    delete cncl;
+    delete rc;
+  });
+  thr->detach();
+  delete thr;
+}
+#endif
 
 void
 CollectionOpWindows::collectionCreate()
@@ -544,10 +1184,15 @@ CollectionOpWindows::collectionCreate()
 
   window->signal_close_request().connect([window]
   {
+#ifdef ML_GTK_OLD
     window->hide();
-    delete window;
-    return true;
-  },
+#endif
+#ifndef ML_GTK_OLD
+					   window->set_visible(false);
+#endif
+					   delete window;
+					   return true;
+					 },
 					 false);
 
   window->present();
@@ -638,6 +1283,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	Gtk::Paned *pn =
 	    dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
 	Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+#ifdef ML_GTK_OLD
 	Gtk::ComboBoxText *collect_box =
 	    dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
 
@@ -645,6 +1291,14 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	CreateLeftGrid clgr(mwl);
 	clgr.formCollCombo(collect_box);
 	collect_box->set_active_text(Glib::ustring(coll_nm));
+#endif
+#ifndef ML_GTK_OLD
+	Gtk::DropDown *collect_box =
+	    dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+	CreateLeftGrid clgr(mwl);
+	auto model = clgr.formCollCombo();
+	collect_box->set_model(model);
+#endif
 	AuxWindows aw(mwl);
 	aw.errorWin(2, mwl);
 	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
@@ -917,237 +1571,6 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
 }
 
 void
-CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
-				       Gtk::CheckButton *rem_empty_ch,
-				       Gtk::CheckButton *fast_refresh,
-				       Gtk::Window *win)
-{
-  std::string coll_nm(cmb->get_active_text());
-  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-  Gtk::Entry *thr_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(1, 2));
-  std::stringstream strm;
-  std::locale loc("C");
-  strm.imbue(loc);
-  strm << std::string(thr_ent->get_text());
-  unsigned int thr_num;
-  strm >> thr_num;
-  if(thr_num == 0)
-    {
-      thr_num = 1;
-    }
-  bool col_empty_ch = rem_empty_ch->get_active();
-  bool col_fast_refresh = fast_refresh->get_active();
-  win->close();
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(mw->get_application());
-  window->set_title(gettext("Collection refreshing"));
-  window->set_transient_for(*mw);
-  window->set_modal(true);
-  window->set_deletable(false);
-  window->set_name("MLwindow");
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::FILL);
-  window->set_child(*grid);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  if(!col_fast_refresh)
-    {
-      lab->set_text(gettext("Files hashing..."));
-    }
-  else
-    {
-      lab->set_text(gettext("Collection refreshing..."));
-    }
-  grid->attach(*lab, 0, 0, 1, 1);
-
-  Gtk::ProgressBar *prgb = Gtk::make_managed<Gtk::ProgressBar>();
-  prgb->set_halign(Gtk::Align::CENTER);
-  prgb->set_margin(5);
-  prgb->set_show_text(true);
-  grid->attach(*prgb, 0, 1, 1, 1);
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_name("cancelBut");
-  cancel->set_halign(Gtk::Align::CENTER);
-  cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  sigc::connection *con = new sigc::connection();
-  MainWindow *mwl = mw;
-  int *cncl = new int(0);
-  *con = cancel->signal_clicked().connect([cncl]
-  {
-    *cncl = 1;
-  });
-  grid->attach(*cancel, 0, 2, 1, 1);
-
-  RefreshCollection *rc = new RefreshCollection(coll_nm, thr_num,
-						col_fast_refresh, cncl);
-
-  Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
-
-  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing canceled"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
-  rc->refresh_canceled = [disp_cancel]
-  {
-    disp_cancel->emit();
-  };
-
-  Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing finished"));
-    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
-    window->set_default_size(1, 1);
-    grid->remove(*prgb);
-    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-    while(mc->pending())
-      {
-	mc->iteration(true);
-      }
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
-  rc->refresh_finished = [disp_finished]
-  {
-    disp_finished->emit();
-  };
-
-  long unsigned int *tothsh = new long unsigned int(0);
-  long unsigned int *hashed = new long unsigned int(0);
-  Glib::Dispatcher *disp_tothash = new Glib::Dispatcher();
-  disp_tothash->connect([prgb]
-  {
-    prgb->set_fraction(0.0);
-  });
-  rc->total_hash = [tothsh]
-  (long unsigned int tot)
-    {
-      *tothsh = tot;
-    };
-
-  Glib::Dispatcher *disp_hashed = new Glib::Dispatcher();
-  disp_hashed->connect([tothsh, hashed, prgb]
-  {
-    mpf_set_default_prec(128);
-    mpz_class tot(*tothsh);
-    mpf_class tot_mpf;
-    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
-
-    mpz_class hsh(*hashed);
-    mpf_class hsh_mpf;
-    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
-
-    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
-  });
-
-  rc->byte_hashed = [hashed, disp_hashed]
-  (long unsigned int hsh)
-    {
-      *hashed = *hashed + hsh;
-      disp_hashed->emit();
-    };
-
-  double *totf = new double(0.0);
-  double *added = new double(0.0);
-  Glib::Dispatcher *disp_totalfiles = new Glib::Dispatcher();
-  disp_totalfiles->connect([prgb, lab]
-  {
-    lab->set_text(gettext("Collection refreshing..."));
-    prgb->set_fraction(0.0);
-  });
-  rc->total_files = [totf, disp_totalfiles]
-  (int total)
-    {
-      *totf = static_cast<double>(total);
-      disp_totalfiles->emit();
-    };
-
-  Glib::Dispatcher *disp_progr = new Glib::Dispatcher();
-  disp_progr->connect([prgb, added]
-  {
-    prgb->set_fraction(*added);
-  });
-
-  rc->files_added = [added, totf, disp_progr]
-  (int add)
-    {
-      *added = static_cast<double>(add) / *totf;
-      disp_progr->emit();
-    };
-
-  Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
-  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection book directory not found"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
-  rc->collection_not_exists = [disp_coll_nf]
-  {
-    disp_coll_nf->emit();
-  };
-
-  window->signal_close_request().connect(
-      [window, disp_cancel, disp_finished, disp_tothash, disp_totalfiles,
-       disp_hashed, disp_progr, disp_coll_nf, con, tothsh, hashed, totf, added]
-      {
-	window->hide();
-	delete con;
-	delete disp_cancel;
-	delete disp_finished;
-	delete disp_tothash;
-	delete disp_hashed;
-	delete disp_totalfiles;
-	delete disp_progr;
-	delete disp_coll_nf;
-	delete tothsh;
-	delete hashed;
-	delete totf;
-	delete added;
-	delete window;
-	return true;
-      },
-      false);
-  Gtk::Requisition min, nat;
-  grid->get_preferred_size(min, nat);
-  window->set_default_size(nat.get_width(), nat.get_height());
-  window->present();
-
-  std::thread *thr = new std::thread([rc, col_empty_ch, cncl]
-  {
-    if(col_empty_ch)
-      {
-	rc->removeEmptyDirs();
-      }
-    rc->startRefreshing();
-    delete cncl;
-    delete rc;
-  });
-  thr->detach();
-  delete thr;
-}
-
-void
 CollectionOpWindows::importCollection()
 {
   Gtk::Window *window = new Gtk::Window;
@@ -1250,10 +1673,15 @@ CollectionOpWindows::importCollection()
 
   window->signal_close_request().connect([window]
   {
+#ifdef ML_GTK_OLD
     window->hide();
-    delete window;
-    return true;
-  },
+#endif
+#ifndef ML_GTK_OLD
+					   window->set_visible(false);
+#endif
+					   delete window;
+					   return true;
+					 },
 					 false);
   window->present();
 }
@@ -1405,11 +1833,20 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
       Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
       Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
       Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
+#ifdef ML_GTK_OLD
       Gtk::ComboBoxText *collect_box =
 	  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
       collect_box->remove_all();
       CreateLeftGrid clgr(mw);
       clgr.formCollCombo(collect_box);
+#endif
+#ifndef ML_GTK_OLD
+      Gtk::DropDown *collect_box =
+	  dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+      CreateLeftGrid clgr(mw);
+      auto model = clgr.formCollCombo();
+      collect_box->set_model(model);
+#endif
     }
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
@@ -1457,12 +1894,60 @@ CollectionOpWindows::exportCollection()
   coll_nm_lab->set_text(gettext("Collection for export: "));
   grid->attach(*coll_nm_lab, 0, 0, 2, 1);
 
+#ifdef ML_GTK_OLD
   Gtk::ComboBoxText *cmb = Gtk::make_managed<Gtk::ComboBoxText>();
   cmb->set_name("comboBox");
   cmb->set_halign(Gtk::Align::CENTER);
   cmb->set_margin(5);
   CreateLeftGrid clgr(mw);
   clgr.formCollCombo(cmb);
+#endif
+#ifndef ML_GTK_OLD
+  CreateLeftGrid clgr(mw);
+  Glib::RefPtr<Gio::ListStore<ModelBoxes>> mod_box;
+  mod_box = clgr.formCollCombo();
+  auto men_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+  (const Glib::RefPtr<Glib::ObjectBase> &item)
+    {
+      const auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(item);
+      if(mod_box)
+	{
+	  return mod_box->menu_line;
+	}
+      else
+	{
+	  return Glib::ustring("");
+	}
+    });
+
+  Gtk::DropDown *cmb = Gtk::make_managed<Gtk::DropDown>(mod_box, men_expr);
+  cmb->set_name("comboBox");
+  cmb->set_halign(Gtk::Align::CENTER);
+  cmb->set_margin(5);
+  cmb->set_enable_search(true);
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
+      Gtk::SignalListItemFactory::create();
+  factory->signal_setup().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_valign(Gtk::Align::CENTER);
+      item->set_child(*lab);
+    });
+  factory->signal_bind().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Glib::RefPtr<ModelBoxes> mod_box =
+      std::dynamic_pointer_cast<ModelBoxes>(item->get_item());
+      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+      if(lab && mod_box)
+	{
+	  lab->set_text(mod_box->menu_line);
+	}
+    });
+  cmb->set_factory(factory);
+#endif
   grid->attach(*cmb, 0, 1, 2, 1);
 
   Gtk::Label *ep_path_lab = Gtk::make_managed<Gtk::Label>();
@@ -1514,14 +1999,20 @@ CollectionOpWindows::exportCollection()
 
   window->signal_close_request().connect([window]
   {
+#ifdef ML_GTK_OLD
     window->hide();
-    delete window;
-    return true;
-  },
+#endif
+#ifndef ML_GTK_OLD
+					   window->set_visible(false);
+#endif
+					   delete window;
+					   return true;
+					 },
 					 false);
   window->present();
 }
 
+#ifdef ML_GTK_OLD
 void
 CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
 					  Gtk::Entry *exp_path_ent,
@@ -1572,3 +2063,70 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close)); // @suppress("Invalid arguments")
   grid->attach(*close, 0, 1, 1, 1);
 }
+#endif
+
+#ifndef ML_GTK_OLD
+void
+CollectionOpWindows::exportCollectionFunc(Gtk::DropDown *cmb,
+					  Gtk::Entry *exp_path_ent,
+					  Gtk::Window *win)
+{
+  std::string filename(exp_path_ent->get_text());
+  if(filename.empty())
+    {
+      AuxWindows aw(mw);
+      aw.errorWin(6, win);
+      return void();
+    }
+  std::string coll_nm;
+  auto obj = cmb->get_selected_item();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+  if(mod_box)
+    {
+      coll_nm = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
+  win->unset_child();
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+  std::filesystem::path outfolder = std::filesystem::u8path(filename);
+  AuxFunc af;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + coll_nm;
+  std::filesystem::path src_path = std::filesystem::u8path(filename);
+  if(std::filesystem::exists(outfolder))
+    {
+      std::filesystem::remove_all(outfolder);
+    }
+  std::filesystem::copy(src_path, outfolder);
+
+  win->set_default_size(1, 1);
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  win->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_margin(5);
+  lab->set_text(gettext("Collection has been exported"));
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+  close->set_name("applyBut");
+  close->set_halign(Gtk::Align::CENTER);
+  close->set_margin(5);
+  close->set_label(gettext("Close"));
+  close->signal_clicked().connect([win]
+  {
+    win->close();
+  });
+  grid->attach(*close, 0, 1, 1, 1);
+}
+#endif

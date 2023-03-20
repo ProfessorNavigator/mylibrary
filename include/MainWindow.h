@@ -68,18 +68,22 @@ private:
   void
   bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	     Gtk::Entry *book_nm_ent);
+#ifndef ML_GTK_OLD
   void
-  bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext);
+  bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext);
+#endif
 #ifdef ML_GTK_OLD
   void
   createBookmark();
+  void
+  bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext);
+  void
+  readCollection(Gtk::ComboBoxText *collect_box);
 #endif
   bool
   closeFunc();
   Gdk::Rectangle
   screenRes();
-  void
-  readCollection(Gtk::ComboBoxText *collect_box);
 
   Gtk::ProgressBar *coll_cr_prog = nullptr;
   std::string cover_image = "";

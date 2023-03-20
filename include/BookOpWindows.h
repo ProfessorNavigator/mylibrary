@@ -21,6 +21,7 @@
 #include "MainWindow.h"
 #ifndef ML_GTK_OLD
 #include "ModelColumns.h"
+#include "ModelBoxes.h"
 #endif
 
 class MainWindow;
@@ -31,12 +32,11 @@ public:
   BookOpWindows(MainWindow *mw);
   virtual
   ~BookOpWindows();
+#ifdef ML_GTK_OLD
   void
   searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
 	     Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
-	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
-
-#ifdef ML_GTK_OLD
+  	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
   void
   bookRemoveWin(int variant, Gtk::Window *win, Gtk::TreeView *sres);
   void
@@ -53,6 +53,10 @@ public:
   openBook(int variant);
 #endif
 #ifndef ML_GTK_OLD
+  void
+  searchBook(Gtk::DropDown *coll_nm, Gtk::Entry *surname_ent,
+	     Gtk::Entry *name_ent, Gtk::Entry *secname_ent,
+	     Gtk::Entry *booknm_ent, Gtk::Entry *ser_ent);
   void
   bookRemoveWin(Gtk::Window *win);
   void

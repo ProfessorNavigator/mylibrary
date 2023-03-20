@@ -40,6 +40,7 @@ CreateLeftGrid::formLeftGrid()
   collectlab->set_text(gettext("Collection"));
   left_gr->attach(*collectlab, 0, 0, 2, 1);
 
+#ifdef ML_GTK_OLD
   Gtk::ComboBoxText *collect_box = Gtk::make_managed<Gtk::ComboBoxText>();
   collect_box->set_name("comboBox");
   collect_box->set_halign(Gtk::Align::START);
@@ -67,6 +68,92 @@ CreateLeftGrid::formLeftGrid()
   mw->readCollection(collect_box);
   collect_box->signal_changed().connect( // @suppress("Invalid arguments")
       sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box)); // @suppress("Invalid arguments")
+#endif
+#ifndef ML_GTK_OLD
+  Glib::RefPtr<Gio::ListStore<ModelBoxes>> men_mod;
+  men_mod = formCollCombo();
+  auto men_expr = Gtk::ClosureExpression<Glib::ustring>::create([]
+  (const Glib::RefPtr<Glib::ObjectBase> &item)
+    {
+      const auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(item);
+      if(mod_box)
+	{
+	  return mod_box->menu_line;
+	}
+      else
+	{
+	  return Glib::ustring("");
+	}
+    });
+  Gtk::DropDown *collect_box = Gtk::make_managed<Gtk::DropDown>(men_mod,
+								men_expr);
+  collect_box->set_name("comboBox");
+  collect_box->set_halign(Gtk::Align::CENTER);
+  collect_box->set_margin(5);
+  collect_box->set_enable_search(true);
+
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
+      Gtk::SignalListItemFactory::create();
+  factory->signal_setup().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_valign(Gtk::Align::CENTER);
+      item->set_child(*lab);
+    });
+  factory->signal_bind().connect([]
+  (const Glib::RefPtr<Gtk::ListItem> &item)
+    {
+      Glib::RefPtr<ModelBoxes> mod_box =
+      std::dynamic_pointer_cast<ModelBoxes>(item->get_item());
+      auto lab = dynamic_cast<Gtk::Label*>(item->get_child());
+      if(lab && mod_box)
+	{
+	  lab->set_text(mod_box->menu_line);
+	}
+    });
+  collect_box->set_factory(factory);
+  std::string filename;
+  AuxFunc af;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/CurrentCollection";
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::fstream f;
+  f.open(filepath, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      filename.clear();
+      filename.resize(std::filesystem::file_size(filepath));
+      if(filename.size() > 0)
+	{
+	  f.read(&filename[0], filename.size());
+	}
+      f.close();
+    }
+  auto s_mod_box = ModelBoxes::create(filename);
+  auto sp = men_mod->find(
+      s_mod_box,
+      []
+      (const Glib::RefPtr<const Glib::ObjectBase> &item1,
+       const Glib::RefPtr<const Glib::ObjectBase> &item2)
+	 {
+	   auto el1 = std::dynamic_pointer_cast<const ModelBoxes>(item1);
+	   auto el2 = std::dynamic_pointer_cast<const ModelBoxes>(item2);
+	   if(el1 && el2)
+	     {
+	       return el1->menu_line == el2->menu_line;
+	     }
+	   else
+	     {
+	       return false;
+	     }
+	 });
+  if(std::get<0>(sp))
+    {
+      collect_box->set_selected(std::get<1>(sp));
+    }
+#endif
   left_gr->attach(*collect_box, 0, 1, 2, 1);
 
   Gtk::Label *authlab = Gtk::make_managed<Gtk::Label>();
@@ -249,7 +336,7 @@ CreateLeftGrid::formLeftGrid()
       {
 	BookOpWindows bopw(mwl);
 	bopw.searchBook(collect_box, surname_ent, name_ent, secname_ent,
-			booknm_ent, ser_ent);
+	 booknm_ent, ser_ent);
       });
   left_gr->attach(*searchbut, 0, 16, 1, 1);
   mw->set_default_widget(*searchbut);
@@ -369,6 +456,7 @@ CreateLeftGrid::formLeftGrid()
   return left_gr;
 }
 
+#ifdef ML_GTK_OLD
 void
 CreateLeftGrid::formCollCombo(Gtk::ComboBoxText *combo)
 {
@@ -403,6 +491,44 @@ CreateLeftGrid::formCollCombo(Gtk::ComboBoxText *combo)
       combo->set_active(0);
     }
 }
+#endif
+
+#ifndef ML_GTK_OLD
+Glib::RefPtr<Gio::ListStore<ModelBoxes>>
+CreateLeftGrid::formCollCombo()
+{
+  Glib::RefPtr<Gio::ListStore<ModelBoxes>> res_mod =
+      Gio::ListStore<ModelBoxes>::create();
+  std::vector<std::filesystem::path> coll_vect;
+  AuxFunc af;
+  std::string filename;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections";
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  if(std::filesystem::exists(filepath))
+    {
+      for(auto &dirit : std::filesystem::directory_iterator(filepath))
+	{
+	  std::filesystem::path p = dirit.path();
+	  coll_vect.push_back(p);
+	}
+    }
+  std::sort(coll_vect.begin(), coll_vect.end(), []
+  (auto &el1, auto &el2)
+    {
+      std::string one = el1.filename().u8string();
+      std::string two = el2.filename().u8string();
+      return one < two;
+    });
+  for(size_t i = 0; i < coll_vect.size(); i++)
+    {
+      std::string item = coll_vect[i].filename().u8string();
+      res_mod->append(ModelBoxes::create(item));
+    }
+
+  return res_mod;
+}
+#endif
 
 void
 CreateLeftGrid::formGenreVect(
