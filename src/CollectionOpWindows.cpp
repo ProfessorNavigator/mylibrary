@@ -471,6 +471,7 @@ CollectionOpWindows::collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
 				      Gtk::CheckButton *fast_refresh,
 				      int variant)
 {
+  win->set_visible(false);
   Glib::RefPtr<Gtk::AlertDialog> msg = Gtk::AlertDialog::create();
   msg->set_modal(true);
   msg->set_message(gettext("Are you sure?"));
@@ -483,10 +484,20 @@ CollectionOpWindows::collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
   MainWindow *mwl = mw;
   msg->choose(
-      *win,
-      [cmb, win, msg, mwl, rem_empty_ch, fast_refresh, variant]
-      (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+      *mwl,
+      [cmb, win, mwl, rem_empty_ch, fast_refresh, variant]
+      (Glib::RefPtr<Gio::AsyncResult> &result)
 	{
+	  auto obj = result->get_source_object_base();
+	  auto msg = std::dynamic_pointer_cast<Gtk::AlertDialog>(obj);
+	  if(!msg)
+	    {
+	      win->set_application(mwl->get_application());
+	      win->set_visible(true);
+	      win->set_transient_for(*mwl);
+	      win->set_modal(true);
+	      return void();
+	    }
 	  int resp = msg->choose_finish(result);
 	  if(resp == 1)
 	    {
@@ -504,6 +515,10 @@ CollectionOpWindows::collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
 		    }
 		  else
 		    {
+		      win->set_application(mwl->get_application());
+		      win->set_visible(true);
+		      win->set_transient_for(*mwl);
+		      win->set_modal(true);
 		      return void();
 		    }
 		  filename = filename + "/.MyLibrary/Collections/" + collname;
@@ -519,19 +534,20 @@ CollectionOpWindows::collectionOpFunc(Gtk::DropDown *cmb, Gtk::Window *win,
 		  CreateLeftGrid clgr(mwl);
 		  auto model = clgr.formCollCombo();
 		  collect_box->set_model(model);
-		  msg.reset();
-		  win->close();
+		  delete win;
 		}
 	      else if(variant == 2)
 		{
 		  CollectionOpWindows copw(mwl);
 		  copw.collectionRefresh(cmb, rem_empty_ch, fast_refresh, win);
-		  msg.reset();
 		}
 	    }
 	  else
 	    {
-	      msg.reset();
+	      win->set_application(mwl->get_application());
+	      win->set_visible(true);
+	      win->set_transient_for(*mwl);
+	      win->set_modal(true);
 	    }
 	},
       cncl);
@@ -568,7 +584,7 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
     }
   bool col_empty_ch = rem_empty_ch->get_active();
   bool col_fast_refresh = fast_refresh->get_active();
-  win->close();
+  delete win;
   Gtk::Window *window = new Gtk::Window;
   window->set_application(mw->get_application());
   window->set_title(gettext("Collection refreshing"));
@@ -763,6 +779,12 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
   grid->get_preferred_size(min, nat);
   window->set_default_size(nat.get_width(), nat.get_height());
   window->present();
+
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
 
   std::thread *thr = new std::thread([rc, col_empty_ch, cncl]
   {
@@ -1418,10 +1440,16 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
     {
       fchd->select_folder(
 	  *win,
-	  [fchd, path_ent, variant]
-	  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+	  [path_ent, variant]
+	  (Glib::RefPtr<Gio::AsyncResult> &result)
 	    {
 	      Glib::RefPtr<Gio::File> fl;
+	      auto obj = result->get_source_object_base();
+	      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
+	      if(!fchd)
+		{
+		  return void();
+		}
 	      try
 		{
 		  fl = fchd->select_folder_finish(result);
@@ -1440,7 +1468,6 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
 		  p.make_preferred();
 		  path_ent->set_text(Glib::ustring(p.u8string()));
 		}
-	      fchd.reset();
 	    }
 	  ,
 	  cncl);
@@ -1449,10 +1476,16 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
     {
       fchd->save(
 	  *win,
-	  [fchd, path_ent, variant]
-	  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+	  [path_ent, variant]
+	  (Glib::RefPtr<Gio::AsyncResult> &result)
 	    {
 	      Glib::RefPtr<Gio::File> fl;
+	      auto obj = result->get_source_object_base();
+	      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
+	      if(!fchd)
+		{
+		  return void();
+		}
 	      try
 		{
 		  fl = fchd->save_finish(result);
@@ -1471,7 +1504,6 @@ CollectionOpWindows::openDialogCC(Gtk::Window *win, Gtk::Entry *path_ent,
 		  p.make_preferred();
 		  path_ent->set_text(Glib::ustring(p.u8string()));
 		}
-	      fchd.reset();
 	    },
 	  cncl);
     }

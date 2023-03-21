@@ -14,19 +14,26 @@ gmpxx = dependency ('gmpxx', method : 'pkg-config')
 cpp = meson.get_compiler ('cpp')
 thread_dep = dependency ('threads')
 
-if poppler.version() < '22.01'
+poppler_version = poppler.version()
+poppler_new = poppler_version.version_compare ('>=22.01')
+
+if not poppler_new
   	add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
 endif
 
-if gtkmm.version() < '4.10'
+gtkmm_version = gtkmm.version()
+
+gtkmm_new = gtkmm_version.version_compare ('>=4.10')
+
+if not gtkmm_new
 	add_project_arguments('-DML_GTK_OLD', language : 'cpp')
 endif
 
 subdir ('po')
-if gtkmm.version() < '4.10'
+if not gtkmm_new
 executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
 endif
-if gtkmm.version() >= '4.10'
+if gtkmm_new
 executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
 endif
 
@@ -38,3 +45,4 @@ endif
 if host_machine.system() == 'windows'
 	install_data ('mylibrary.ico', install_dir : 'share/icons/hicolor/256x256/apps')
 endif	
+

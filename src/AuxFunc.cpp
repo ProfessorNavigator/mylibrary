@@ -199,6 +199,32 @@ AuxFunc::fileNamesNonZip(
   er = archive_read_open_filename(a, p.string().c_str(), 1);
   if(er != ARCHIVE_OK)
     {
+      archive_read_free(a);
+      a = archive_read_new();
+      er = archive_read_support_filter_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << " " << address
+	      << std::endl;
+	  archive_read_free(a);
+	  return er;
+	}
+      er = archive_read_support_format_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileNamesNonZip: "
+	      << std::string(archive_error_string(a)) << " " << address
+	      << std::endl;
+	  archive_read_free(a);
+	  return er;
+	}
+
+      er = archive_read_open_filename_w(a, p.wstring().c_str(), 1);
+    }
+
+  if(er != ARCHIVE_OK)
+    {
       std::cout << "fileNamesNonZip: " << std::string(archive_error_string(a))
 	  << " " << address << std::endl;
       archive_read_free(a);
@@ -308,12 +334,7 @@ AuxFunc::fileinfo(std::string address, int index)
 	{
 	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
 	      << std::endl;
-	  er = archive_read_free(a);
-	  if(er != ARCHIVE_OK)
-	    {
-	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
-		  << std::endl;
-	    }
+	  archive_read_free(a);
 	  return result;
 	}
       er = archive_read_support_format_all(a);
@@ -321,26 +342,39 @@ AuxFunc::fileinfo(std::string address, int index)
 	{
 	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
 	      << std::endl;
-	  er = archive_read_free(a);
-	  if(er != ARCHIVE_OK)
-	    {
-	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
-		  << std::endl;
-	    }
+	  archive_read_free(a);
 	  return result;
 	}
 
       er = archive_read_open_filename(a, p.string().c_str(), 1);
       if(er != ARCHIVE_OK)
 	{
-	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
-	      << std::endl;
-	  er = archive_read_free(a);
+	  archive_read_free(a);
+	  a = archive_read_new();
+	  er = archive_read_support_filter_all(a);
 	  if(er != ARCHIVE_OK)
 	    {
 	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
 		  << std::endl;
+	      archive_read_free(a);
+	      return result;
 	    }
+	  er = archive_read_support_format_all(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "fileinfo: " << std::string(archive_error_string(a))
+		  << std::endl;
+	      archive_read_free(a);
+	      return result;
+	    }
+
+	  er = archive_read_open_filename_w(a, p.wstring().c_str(), 1);
+	}
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "fileinfo: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  archive_read_free(a);
 	  return result;
 	}
       else
@@ -403,6 +437,7 @@ AuxFunc::fileinfo(std::string address, int index)
 int
 AuxFunc::removeFmArch(std::string archpath, uint64_t index)
 {
+  bool w_char = false;
   std::filesystem::path p = std::filesystem::u8path(archpath);
   int result = -1;
   if(p.extension().u8string() == ".zip")
@@ -484,6 +519,32 @@ AuxFunc::removeFmArch(std::string archpath, uint64_t index)
       er = archive_read_open_filename(a_r, p.string().c_str(), 1);
       if(er != ARCHIVE_OK)
 	{
+	  archive_read_free(a_r);
+	  a_r = archive_read_new();
+	  er = archive_read_support_filter_all(a_r);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "removeFmArch: "
+		  << std::string(archive_error_string(a_r)) << std::endl;
+	      archive_read_free(a_r);
+	      archive_write_free(a_w);
+	      return result;
+	    }
+	  er = archive_read_support_format_all(a_r);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "removeFmArch: "
+		  << std::string(archive_error_string(a_r)) << std::endl;
+	      archive_read_free(a_r);
+	      archive_write_free(a_w);
+	      return result;
+	    }
+
+	  er = archive_read_open_filename_w(a_r, p.wstring().c_str(), 1);
+	  w_char = true;
+	}
+      if(er != ARCHIVE_OK)
+	{
 	  std::cout << "removeFmArch: "
 	      << std::string(archive_error_string(a_r)) << std::endl;
 	  archive_read_free(a_r);
@@ -496,7 +557,15 @@ AuxFunc::removeFmArch(std::string archpath, uint64_t index)
 	  fnm = fnm + "/" + randomFileName();
 	  std::filesystem::path tmp_arch = std::filesystem::u8path(fnm);
 	  bool writed = false;
-	  er = archive_write_open_filename(a_w, tmp_arch.string().c_str());
+	  if(w_char)
+	    {
+	      er = archive_write_open_filename_w(a_w,
+						 tmp_arch.wstring().c_str());
+	    }
+	  else
+	    {
+	      er = archive_write_open_filename(a_w, tmp_arch.string().c_str());
+	    }
 	  if(er != ARCHIVE_OK)
 	    {
 	      std::cout << "removeFmArch: "
@@ -727,12 +796,7 @@ AuxFunc::unpackByIndexNonZip(std::string archaddress, std::string outfolder,
     {
       std::cout << "unpackByIndexNonZip(void): "
 	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
-      if(er != ARCHIVE_OK)
-	{
-	  std::cout << "fileNamesNonZip: "
-	      << std::string(archive_error_string(a)) << std::endl;
-	}
+      archive_read_free(a);
       return void();
     }
   er = archive_read_support_format_all(a);
@@ -740,26 +804,39 @@ AuxFunc::unpackByIndexNonZip(std::string archaddress, std::string outfolder,
     {
       std::cout << "unpackByIndexNonZip(void): "
 	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
-      if(er != ARCHIVE_OK)
-	{
-	  std::cout << "fileNamesNonZip: "
-	      << std::string(archive_error_string(a)) << std::endl;
-	}
+      archive_read_free(a);
       return void();
     }
 
   er = archive_read_open_filename(a, p.string().c_str(), 1);
   if(er != ARCHIVE_OK)
     {
-      std::cout << "unpackByIndexNonZip(void): "
-	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
+      archive_read_free(a);
+      a = archive_read_new();
+      er = archive_read_support_filter_all(a);
       if(er != ARCHIVE_OK)
 	{
-	  std::cout << "fileNamesNonZip: "
+	  std::cout << "unpackByIndexNonZip(void): "
 	      << std::string(archive_error_string(a)) << std::endl;
+	  archive_read_free(a);
+	  return void();
 	}
+      er = archive_read_support_format_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "unpackByIndexNonZip(void): "
+	      << std::string(archive_error_string(a)) << std::endl;
+	  archive_read_free(a);
+	  return void();
+	}
+
+      er = archive_read_open_filename_w(a, p.wstring().c_str(), 1);
+    }
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZip(void): "
+	  << std::string(archive_error_string(a)) << std::endl;
+      archive_read_free(a);
       return void();
     }
   else
@@ -824,13 +901,7 @@ AuxFunc::unpackByIndexNonZip(std::string archaddress, std::string outfolder,
 	  count++;
 	}
     }
-  er = archive_read_free(a);
-  if(er != ARCHIVE_OK)
-    {
-      std::cerr << "unpackByIndexNonZip(void): "
-	  << std::string(archive_error_string(a)) << std::endl;
-      return void();
-    }
+  archive_read_free(a);
 }
 
 std::string
@@ -847,12 +918,7 @@ AuxFunc::unpackByIndexNonZipStr(std::string archaddress, int index)
     {
       std::cout << "unpackByIndexNonZipStr: "
 	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
-      if(er != ARCHIVE_OK)
-	{
-	  std::cout << "fileNamesNonZip: "
-	      << std::string(archive_error_string(a)) << std::endl;
-	}
+      archive_read_free(a);
       return result;
     }
   er = archive_read_support_format_all(a);
@@ -860,26 +926,39 @@ AuxFunc::unpackByIndexNonZipStr(std::string archaddress, int index)
     {
       std::cout << "unpackByIndexNonZipStr: "
 	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
-      if(er != ARCHIVE_OK)
-	{
-	  std::cout << "fileNamesNonZip: "
-	      << std::string(archive_error_string(a)) << std::endl;
-	}
+      archive_read_free(a);
       return result;
     }
 
   er = archive_read_open_filename(a, p.string().c_str(), 1);
   if(er != ARCHIVE_OK)
     {
-      std::cout << "unpackByIndexNonZipStr: "
-	  << std::string(archive_error_string(a)) << std::endl;
-      er = archive_read_free(a);
+      archive_read_free(a);
+      a = archive_read_new();
+      er = archive_read_support_filter_all(a);
       if(er != ARCHIVE_OK)
 	{
-	  std::cout << "fileNamesNonZip: "
+	  std::cout << "unpackByIndexNonZipStr: "
 	      << std::string(archive_error_string(a)) << std::endl;
+	  archive_read_free(a);
+	  return result;
 	}
+      er = archive_read_support_format_all(a);
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "unpackByIndexNonZipStr: "
+	      << std::string(archive_error_string(a)) << std::endl;
+	  archive_read_free(a);
+	  return result;
+	}
+
+      er = archive_read_open_filename_w(a, p.wstring().c_str(), 1);
+    }
+  if(er != ARCHIVE_OK)
+    {
+      std::cout << "unpackByIndexNonZipStr: "
+	  << std::string(archive_error_string(a)) << std::endl;
+      archive_read_free(a);
       return result;
     }
   else
@@ -927,13 +1006,7 @@ AuxFunc::unpackByIndexNonZipStr(std::string archaddress, int index)
 	  count++;
 	}
     }
-  er = archive_read_free(a);
-  if(er != ARCHIVE_OK)
-    {
-      std::cerr << "unpackByIndexNonZipStr: "
-	  << std::string(archive_error_string(a)) << std::endl;
-      return result;
-    }
+  archive_read_free(a);
   return result;
 }
 
@@ -1076,6 +1149,20 @@ AuxFunc::packingNonZip(std::string source, std::string out,
     }
 
   er = archive_write_open_filename(a, tmp_arch.string().c_str());
+  if(er != ARCHIVE_OK)
+    {
+      archive_write_free(a);
+      a = archive_write_new();
+      er = archive_write_set_format_filter_by_ext(a, ext.c_str());
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "packingNonZip: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  archive_write_free(a);
+	  return er;
+	}
+      er = archive_write_open_filename_w(a, tmp_arch.wstring().c_str());
+    }
   if(er != ARCHIVE_OK)
     {
       std::cout << "packingNonZip: " << std::string(archive_error_string(a))

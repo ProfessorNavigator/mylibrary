@@ -56,6 +56,8 @@ public:
   ()> collection_not_exists;
   std::function<void
   (std::mutex*, int*)> file_exists;
+  std::function<void
+  ()> book_add_error;
   void
   startRefreshing();
   void

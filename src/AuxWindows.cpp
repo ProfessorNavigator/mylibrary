@@ -89,19 +89,7 @@ AuxWindows::errorWin(int type, Gtk::Window *par_win)
     {
       info->set_message(gettext("Error: source book file does not exists!"));
     }
-  std::vector<Glib::ustring> buttons;
-  buttons.push_back(gettext("Close"));
-  info->set_buttons(buttons);
-  info->set_cancel_button(0);
-  info->set_default_button(0);
-  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  info->choose(*par_win, [info]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
-    {
-      info->choose_finish(result);
-      info.reset();
-    },
-	       cncl);
+  info->show(*par_win);
 #endif
 #ifdef ML_GTK_OLD
   Gtk::MessageDialog *info = new Gtk::MessageDialog(*par_win, "", false,
@@ -366,7 +354,7 @@ AuxWindows::bookmarkWindow()
 #endif
 #ifdef ML_GTK_OLD
   clck->signal_pressed().connect([mwl, bm_pop]
-  (int num_pressed, double x, double y) mutable
+  (int num_pressed, double x, double y)
     {
       BookOpWindows bopw(mwl);
       bopw.openBook(2);
@@ -1093,7 +1081,7 @@ AuxWindows::removeBMDialog(
   msg->set_message(
       gettext("This action will remove book from bookmarks. Continue?"));
   std::vector<Glib::ustring> buttons;
-  buttons.push_back(gettext("Cancel"));
+  buttons.push_back(gettext("No"));
   buttons.push_back(gettext("Yes"));
   msg->set_buttons(buttons);
   msg->set_cancel_button(0);
@@ -1102,10 +1090,20 @@ AuxWindows::removeBMDialog(
   MainWindow *mwl = mw;
   msg->choose(
       *par_win,
-      [msg, list, rem_item, mwl, style_v]
-      (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+      [list, rem_item, mwl, style_v]
+      (Glib::RefPtr<Gio::AsyncResult> &result)
 	{
-	  int resp = msg->choose_finish(result);
+	  int resp;
+	  auto obj = result->get_source_object_base();
+	  auto msg = std::dynamic_pointer_cast<Gtk::AlertDialog>(obj);
+	  if(msg)
+	    {
+	      resp = msg->choose_finish(result);
+	    }
+	  else
+	    {
+	      return void();
+	    }
 	  if(resp == 1)
 	    {
 	      style_v->erase(std::remove_if(style_v->begin(), style_v->end(), [rem_item]
@@ -1117,7 +1115,6 @@ AuxWindows::removeBMDialog(
 	      AuxWindows aw(mwl);
 	      aw.removeBMFunc(list, rem_item);
 	    }
-	  msg.reset();
 	},
       cncl);
 }
@@ -1263,7 +1260,8 @@ AuxWindows::aboutProg()
 
   aboutd->set_program_name("MyLibrary");
   aboutd->set_version("2.1");
-  aboutd->set_copyright("Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>");
+  aboutd->set_copyright(
+      "Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
   std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());
   std::string filename = p.parent_path().u8string()
@@ -1344,10 +1342,20 @@ AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
   msg->set_cancel_button(0);
   msg->set_default_button(0);
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  msg->choose(*win, [msg, stopper, addbmtx]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+  msg->choose(*win, [stopper, addbmtx]
+  (Glib::RefPtr<Gio::AsyncResult> &result)
     {
-      int resp = msg->choose_finish(result);
+      int resp;
+      auto obj = result->get_source_object_base();
+      auto msg = std::dynamic_pointer_cast<Gtk::AlertDialog>(obj);
+      if(msg)
+	{
+	  resp = msg->choose_finish(result);
+	}
+      else
+	{
+	  return void();
+	}
       if(resp == 1)
 	{
 	  *stopper = 0;
@@ -1358,7 +1366,6 @@ AuxWindows::bookCopyConfirm(Gtk::Window *win, std::mutex *addbmtx, int *stopper)
 	  *stopper = 1;
 	  addbmtx->unlock();
 	}
-      msg.reset();
     },
 	      cncl);
 #endif

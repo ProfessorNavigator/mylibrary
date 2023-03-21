@@ -684,12 +684,7 @@ CreateCollection::zipThreadFunc(
 	{
 	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
 	      << std::endl;
-	  er = archive_read_free(a);
-	  if(er != ARCHIVE_OK)
-	    {
-	      std::cout << "zipThreadFunc: "
-		  << std::string(archive_error_string(a)) << std::endl;
-	    }
+	  archive_read_free(a);
 	  return void();
 	}
       er = archive_read_support_format_all(a);
@@ -697,26 +692,39 @@ CreateCollection::zipThreadFunc(
 	{
 	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
 	      << std::endl;
-	  er = archive_read_free(a);
-	  if(er != ARCHIVE_OK)
-	    {
-	      std::cout << "zipThreadFunc: "
-		  << std::string(archive_error_string(a)) << std::endl;
-	    }
+	  archive_read_free(a);
 	  return void();
 	}
 
       er = archive_read_open_filename(a, fp_loc.string().c_str(), 1);
       if(er != ARCHIVE_OK)
 	{
-	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
-	      << std::endl;
-	  er = archive_read_free(a);
+	  archive_read_free(a);
+	  a = archive_read_new();
+	  er = archive_read_support_filter_all(a);
 	  if(er != ARCHIVE_OK)
 	    {
 	      std::cout << "zipThreadFunc: "
 		  << std::string(archive_error_string(a)) << std::endl;
+	      archive_read_free(a);
+	      return void();
 	    }
+	  er = archive_read_support_format_all(a);
+	  if(er != ARCHIVE_OK)
+	    {
+	      std::cout << "zipThreadFunc: "
+		  << std::string(archive_error_string(a)) << std::endl;
+	      archive_read_free(a);
+	      return void();
+	    }
+
+	  er = archive_read_open_filename_w(a, fp_loc.wstring().c_str(), 1);
+	}
+      if(er != ARCHIVE_OK)
+	{
+	  std::cout << "zipThreadFunc: " << std::string(archive_error_string(a))
+	      << std::endl;
+	  archive_read_free(a);
 	  return void();
 	}
     }
@@ -996,7 +1004,7 @@ CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
 			}
 		      else
 			{
-			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc.u8string(),
 							   std::get<0>(*ittlv));
 			}
 		      basevect = fb2parser(fbdf);
@@ -1044,7 +1052,7 @@ CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
 			}
 		      else
 			{
-			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc.u8string(),
 							   std::get<0>(*ittlv));
 			}
 		      basevect = fb2parser(fbdf);
@@ -1092,7 +1100,7 @@ CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
 			}
 		      else
 			{
-			  fbdf = af.unpackByIndexNonZipStr(fp_loc,
+			  fbdf = af.unpackByIndexNonZipStr(fp_loc.u8string(),
 							   std::get<0>(*ittlv));
 			}
 		      basevect = fb2parser(fbdf);

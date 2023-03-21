@@ -138,18 +138,24 @@ BookOpWindows::bookRemoveWin(Gtk::Window *win)
   msg->set_default_button(0);
   MainWindow *mwl = mw;
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  msg->choose(*mwl, [msg, mwl]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+  msg->choose(*mwl, [mwl]
+  (Glib::RefPtr<Gio::AsyncResult> &result)
     {
-      int resp = msg->choose_finish(result);
+      int resp;
+      auto obj = result->get_source_object_base();
+      auto msg = std::dynamic_pointer_cast<Gtk::AlertDialog>(obj);
+      if(msg)
+	{
+	  resp = msg->choose_finish(result);
+	}
+      else
+	{
+	  return void();
+	}
       if(resp == 1)
 	{
 	  BookOpWindows bopw(mwl);
-	  bopw.bookRemoveVar1(msg);
-	}
-      else if(resp == 0)
-	{
-	  msg.reset();
+	  bopw.bookRemoveVar1();
 	}
     },
 	      cncl);
@@ -552,12 +558,8 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 
 #ifndef ML_GTK_OLD
 void
-BookOpWindows::bookRemoveVar1(Glib::RefPtr<Gtk::AlertDialog> mess)
+BookOpWindows::bookRemoveVar1()
 {
-  if(mess)
-    {
-      mess.reset();
-    }
   MainWindow *mwl = mw;
   std::thread *thr = nullptr;
 
@@ -745,10 +747,20 @@ BookOpWindows::bookRemoveVar1(Glib::RefPtr<Gtk::AlertDialog> mess)
 		  Gio::Cancellable::create();
 	      msg_rar->choose(
 		  *mwl,
-		  [msg_rar, ch_p, rc, mwl, sres, disp_file_nexists, cncl]
-		  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+		  [ch_p, rc, mwl, sres, disp_file_nexists, cncl]
+		  (Glib::RefPtr<Gio::AsyncResult> &result)
 		    {
-		      int resp = msg_rar->choose_finish(result);
+		      int resp;
+		      auto obj = result->get_source_object_base();
+		      auto msg_rar = std::dynamic_pointer_cast<Gtk::AlertDialog>(obj);
+		      if(msg_rar)
+			{
+			  resp = msg_rar->choose_finish(result);
+			}
+		      else
+			{
+			  return void();
+			}
 		      if(resp == 1)
 			{
 			  rc->removeRar(ch_p.u8string());
@@ -815,7 +827,6 @@ BookOpWindows::bookRemoveVar1(Glib::RefPtr<Gtk::AlertDialog> mess)
 			}
 		      delete rc;
 		      delete cncl;
-		      msg_rar.reset();
 		    },
 		  cancel);
 	      return void();
@@ -3297,10 +3308,16 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
   fchd->set_initial_file(fl);
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
   MainWindow *mwl = mw;
-  fchd->save(*win, [fchd, mwl, archive, filepath, win]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+  fchd->save(*win, [mwl, archive, filepath, win]
+  (Glib::RefPtr<Gio::AsyncResult> &result)
     {
       Glib::RefPtr<Gio::File> fl;
+      auto obj = result->get_source_object_base();
+      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
+      if(!fchd)
+	{
+	  return void();
+	}
       try
 	{
 	  fl = fchd->save_finish(result);
@@ -3336,7 +3353,6 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
 	      std::filesystem::remove_all(filepath.parent_path());
 	    }
 	}
-      fchd.reset();
     },
 	     cncl);
 #endif

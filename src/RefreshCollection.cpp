@@ -1163,12 +1163,37 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 		}
 	      if(filepath.extension().u8string() == ".zip")
 		{
-		  af.packing(copy_fm.u8string(), filepath.u8string());
+		  int pack_er = af.packing(copy_fm.u8string(),
+					   filepath.u8string());
+		  if(pack_er <= 0)
+		    {
+		      if(std::filesystem::exists(filepath))
+			{
+			  std::filesystem::remove_all(filepath);
+			}
+		      if(book_add_error)
+			{
+			  book_add_error();
+			}
+		      return void();
+		    }
 		}
 	      else
 		{
-		  af.packingNonZip(copy_fm.u8string(), filepath.u8string(),
-				   arch_ext);
+		  int pack_er = af.packingNonZip(copy_fm.u8string(),
+						 filepath.u8string(), arch_ext);
+		  if(pack_er != ARCHIVE_OK)
+		    {
+		      if(std::filesystem::exists(filepath))
+			{
+			  std::filesystem::remove_all(filepath);
+			}
+		      if(book_add_error)
+			{
+			  book_add_error();
+			}
+		      return void();
+		    }
 		}
 	      stopper = 0;
 	    }

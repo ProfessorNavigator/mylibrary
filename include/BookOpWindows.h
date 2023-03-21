@@ -60,7 +60,7 @@ public:
   void
   bookRemoveWin(Gtk::Window *win);
   void
-  bookRemoveVar1(Glib::RefPtr<Gtk::AlertDialog> mess);
+  bookRemoveVar1();
   void
   createBookmark();
   void

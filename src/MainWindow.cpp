@@ -676,10 +676,16 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
   fchd->set_accept_label(gettext("Open"));
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fchd->open(*win, [fchd, book_path_ent, book_nm_ent]
-  (Glib::RefPtr<Gio::AsyncResult> &result) mutable
+  fchd->open(*win, [book_path_ent, book_nm_ent]
+  (Glib::RefPtr<Gio::AsyncResult> &result)
     {
       Glib::RefPtr<Gio::File> fl;
+      auto obj = result->get_source_object_base();
+      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
+      if(!fchd)
+	{
+	  return void();
+	}
       try
 	{
 	  fl = fchd->open_finish(result);
@@ -698,7 +704,6 @@ MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
 	  book_path_ent->set_text(Glib::ustring(p.make_preferred().u8string()));
 	  book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
 	}
-      fchd.reset();
     },
 	     cncl);
 #endif
@@ -967,6 +972,23 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext)
 	disp_canceled->emit();
       };
 
+      Glib::Dispatcher *disp_book_add_error = new Glib::Dispatcher();
+      disp_book_add_error->connect([window, lab, cancel, con]
+      {
+	con->disconnect();
+	lab->set_text(gettext("Book adding error!"));
+	cancel->set_name("applyBut");
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect([window]
+	{
+	  window->close();
+	});
+      });
+      rc->book_add_error = [disp_book_add_error]
+      {
+	disp_book_add_error->emit();
+      };
+
       std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
       Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
       disp_book_exists->connect([window, this, ttup]
@@ -1019,13 +1041,14 @@ MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext)
 
       window->signal_close_request().connect(
 	  [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
-	   window, con, ttup]
+	   disp_book_add_error, window, con, ttup]
 	  {
 	    window->set_visible(false);
 	    delete disp_canceled;
 	    delete disp_book_exists;
 	    delete disp_finished;
 	    delete disp_col_notfound;
+	    delete disp_book_add_error;
 	    delete con;
 	    delete ttup;
 	    delete window;
