@@ -53,8 +53,8 @@ CreateRightGrid::formRightGrid()
   sres->set_headers_clickable(true);
   sres->set_activate_on_single_click(true);
   sres->set_name("searchRes");
-  sres->signal_row_activated().connect( // @suppress("Invalid arguments")
-      sigc::mem_fun(*mw, &MainWindow::rowActivated)); // @suppress("Invalid arguments")
+  sres->signal_row_activated().connect(
+      sigc::mem_fun(*mw, &MainWindow::rowActivated));
   sres->set_hexpand(true);
 #endif
   MainWindow *mwl = mw;
@@ -140,7 +140,7 @@ CreateRightGrid::formRightGrid()
   drar->set_halign(Gtk::Align::FILL);
   drar->set_valign(Gtk::Align::FILL);
   drar->set_margin(5);
-  drar->set_draw_func(sigc::mem_fun(*mw, &MainWindow::drawCover)); // @suppress("Invalid arguments")
+  drar->set_draw_func(sigc::mem_fun(*mw, &MainWindow::drawCover));
   drar->set_hexpand(false);
   drar->set_vexpand(false);
   right_grid->attach(*drar, 1, 2, 1, 1);

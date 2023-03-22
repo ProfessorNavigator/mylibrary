@@ -7,8 +7,6 @@
 	border: solid;
 	border-width: 1px 1px 1px 1px;
 	border-color: black;
-	color: black;
-	background-color: white;
 }
 
 #searchResBox {
@@ -130,13 +128,7 @@
   	color: white;
 }
 
-#popoverSt grid {
-	background-color: rgb(45, 146, 238);
-	color: black;
-}
-
 #menulab {
-  	background-color: rgb(45, 146, 238);
   	color: black;
 }
 

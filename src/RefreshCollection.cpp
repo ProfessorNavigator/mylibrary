@@ -274,7 +274,7 @@ RefreshCollection::readColl()
 		      filenames.end());
 		  if(filenames.size() > 0)
 		    {
-		      zip.push_back(std::make_tuple(p, filenames)); // @suppress("Invalid arguments")
+		      zip.push_back(std::make_tuple(p, filenames));
 		    }
 		}
 	      else if(ext_p == ".rar" || ext_p == ".7z" || ext_p == ".jar"
@@ -544,7 +544,7 @@ RefreshCollection::fb2ThrFunc(std::filesystem::path p)
 	  hash = af.filehash(p, cancel);
 	}
       already_hashedmtx.lock();
-      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
   std::string hex_hash = af.to_hex(&hash);
@@ -607,7 +607,7 @@ RefreshCollection::epubThrFunc(std::filesystem::path p)
 	  hash = af.filehash(p, cancel);
 	}
       already_hashedmtx.lock();
-      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
   std::string hex_hash = af.to_hex(&hash);
@@ -670,7 +670,7 @@ RefreshCollection::pdfThrFunc(std::filesystem::path p)
 	  hash = af.filehash(p, cancel);
 	}
       already_hashedmtx.lock();
-      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
   std::string hex_hash = af.to_hex(&hash);
@@ -733,7 +733,7 @@ RefreshCollection::djvuThrFunc(std::filesystem::path p)
 	  hash = af.filehash(p, cancel);
 	}
       already_hashedmtx.lock();
-      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
   std::string hex_hash = af.to_hex(&hash);
@@ -799,7 +799,7 @@ RefreshCollection::zipThrFunc(
 	  hash = af.filehash(p, cancel);
 	}
       already_hashedmtx.lock();
-      already_hashed.push_back(std::make_tuple(p, hash)); // @suppress("Invalid arguments")
+      already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
   std::string hex_hash = af.to_hex(&hash);
@@ -833,7 +833,7 @@ RefreshCollection::zipThrFunc(
   if(itsh == saved_hashes.end())
     {
       zipparsemtx.lock();
-      zipparse.push_back(std::make_tuple(p, std::get<1>(ziptup))); // @suppress("Invalid arguments")
+      zipparse.push_back(std::make_tuple(p, std::get<1>(ziptup)));
       zipparsemtx.unlock();
     }
   run_thrmtx.lock();
@@ -1029,7 +1029,7 @@ RefreshCollection::removeBook(std::string book_str)
 	      tv.end());
 	  if(std::filesystem::exists(filepath))
 	    {
-	      zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
+	      zipparse.push_back(std::make_tuple(filepath, tv));
 	    }
 	  else
 	    {
@@ -1281,7 +1281,7 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			}
 		    }),
 	      tv.end());
-	  zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
+	  zipparse.push_back(std::make_tuple(filepath, tv));
 	}
       else if(ext_filepath == ".rar" || ext_filepath == ".7z"
 	  || ext_filepath == ".jar" || ext_filepath == ".cpio"
@@ -1315,7 +1315,7 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 			}
 		    }),
 	      tv.end());
-	  zipparse.push_back(std::make_tuple(filepath, tv)); // @suppress("Invalid arguments")
+	  zipparse.push_back(std::make_tuple(filepath, tv));
 	}
     }
   addbmtx.try_lock();

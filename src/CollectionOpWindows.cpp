@@ -236,8 +236,8 @@ CollectionOpWindows::collectionOp(int variant)
       book_nm_ent->set_width_chars(50);
       grid->attach(*book_nm_ent, 0, 5, 1, 1);
 
-      open->signal_clicked().connect( // @suppress("Invalid arguments")
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window, // @suppress("Invalid arguments")
+      open->signal_clicked().connect(
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window,
 		     book_path_ent, book_nm_ent));
 
       Gtk::Label *pack_lb = Gtk::make_managed<Gtk::Label>();
@@ -373,8 +373,8 @@ CollectionOpWindows::collectionOp(int variant)
   else if(!Glib::ustring(cmb->get_active_text()).empty() && variant == 3
       && arch_type)
     {
-      remove->signal_clicked().connect( // @suppress("Invalid arguments")
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window, // @suppress("Invalid arguments")
+      remove->signal_clicked().connect(
+	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window,
 		     arch_type));
     }
 #endif
@@ -635,40 +635,42 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
 
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
 
-  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing canceled"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
+  disp_cancel->connect(
+      [lab, con, cancel, window, mwl, prgb]
+      {
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection refreshing canceled"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->refresh_canceled = [disp_cancel]
   {
     disp_cancel->emit();
   };
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing finished"));
-    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
-    window->set_default_size(1, 1);
-    grid->remove(*prgb);
-    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-    while(mc->pending())
+  disp_finished->connect(
+      [lab, con, cancel, window, mwl, prgb]
       {
-	mc->iteration(true);
-      }
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection refreshing finished"));
+	Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+	window->set_default_size(1, 1);
+	grid->remove(*prgb);
+	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+	while(mc->pending())
+	  {
+	    mc->iteration(true);
+	  }
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->refresh_finished = [disp_finished]
   {
     disp_finished->emit();
@@ -738,17 +740,18 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
     };
 
   Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
-  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection book directory not found"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
-  });
+  disp_coll_nf->connect(
+      [lab, con, cancel, window, mwl, prgb]
+      {
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection book directory not found"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->collection_not_exists = [disp_coll_nf]
   {
     disp_coll_nf->emit();
@@ -952,8 +955,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
     gr->remove(*prgb);
     cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+    cancel->signal_clicked().connect(
+	sigc::mem_fun(*window, &Gtk::Window::close));
   });
   rc->refresh_canceled = [disp_cancel]
   {
@@ -975,8 +978,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 	mc->iteration(true);
       }
     cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+    cancel->signal_clicked().connect(
+	sigc::mem_fun(*window, &Gtk::Window::close));
   });
   rc->refresh_finished = [disp_finished]
   {
@@ -1055,8 +1058,8 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
     gr->remove(*prgb);
     cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+    cancel->signal_clicked().connect(
+	sigc::mem_fun(*window, &Gtk::Window::close));
   });
   rc->collection_not_exists = [disp_coll_nf]
   {
@@ -1201,7 +1204,7 @@ CollectionOpWindows::collectionCreate()
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
   grid->attach(*cancel, 1, 5, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -1354,8 +1357,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	delete disp_canceled;
       });
 
-  disp_totfiles->connect( // @suppress("Invalid arguments")
-      sigc::bind(sigc::mem_fun(*mwl, &MainWindow::creationPulseWin), par_win, // @suppress("Invalid arguments")
+  disp_totfiles->connect(
+      sigc::bind(sigc::mem_fun(*mwl, &MainWindow::creationPulseWin), par_win,
 		 cncl));
 
   disp_progress->connect(
@@ -1700,7 +1703,7 @@ CollectionOpWindows::importCollection()
   cancel->set_halign(Gtk::Align::END);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
   grid->attach(*cancel, 1, 6, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -1897,7 +1900,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
   close->set_halign(Gtk::Align::CENTER);
   close->set_margin(5);
   close->set_label(gettext("Close"));
-  close->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  close->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
   grid->attach(*close, 0, 1, 1, 1);
 
   Gtk::Requisition min, nat;
@@ -2026,7 +2029,7 @@ CollectionOpWindows::exportCollection()
   cancel->set_halign(Gtk::Align::END);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
   grid->attach(*cancel, 1, 4, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -2092,7 +2095,7 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   close->set_halign(Gtk::Align::CENTER);
   close->set_margin(5);
   close->set_label(gettext("Close"));
-  close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close)); // @suppress("Invalid arguments")
+  close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close));
   grid->attach(*close, 0, 1, 1, 1);
 }
 #endif

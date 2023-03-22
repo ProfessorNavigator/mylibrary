@@ -66,8 +66,8 @@ CreateLeftGrid::formLeftGrid()
     }
 
   mw->readCollection(collect_box);
-  collect_box->signal_changed().connect( // @suppress("Invalid arguments")
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box)); // @suppress("Invalid arguments")
+  collect_box->signal_changed().connect(
+      sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box));
 #endif
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gio::ListStore<ModelBoxes>> men_mod;

@@ -155,7 +155,9 @@ AuxFunc::fileNames(std::string address,
 	  zip_stat_index(z, i, ZIP_FL_ENC_GUESS, &st);
 	  int sz = st.size;
 	  std::tuple<int, int, std::string> tuple;
-	  tuple = std::make_tuple(i, sz, flname); // @suppress("Invalid arguments")
+	  std::get<0>(tuple) = i;
+	  std::get<1>(tuple) = sz;
+	  std::get<2>(tuple) = flname;
 	  filenames.push_back(tuple);
 	}
       zip_close(z);

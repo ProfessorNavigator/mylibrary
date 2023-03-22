@@ -1610,8 +1610,10 @@ BookOpWindows::editBook()
 	  cancel->set_halign(Gtk::Align::CENTER);
 	  cancel->set_margin(5);
 	  cancel->set_label(gettext("Cancel"));
-	  cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	      sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+	  cancel->signal_clicked().connect([window]
+	  {
+	    window->close();
+	  });
 	  grid->attach(*cancel, 2, 12, 1, 1);
 
 	  window->signal_close_request().connect([window, bookv]
@@ -2248,8 +2250,10 @@ BookOpWindows::editBook()
 	  cancel->set_halign(Gtk::Align::CENTER);
 	  cancel->set_margin(5);
 	  cancel->set_label(gettext("Cancel"));
-	  cancel->signal_clicked().connect( // @suppress("Invalid arguments")
-	      sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+	  cancel->signal_clicked().connect([window]
+	  {
+	    window->close();
+	  });
 	  grid->attach(*cancel, 2, 12, 1, 1);
 
 	  window->signal_close_request().connect([window, bookv]
@@ -2487,7 +2491,10 @@ BookOpWindows::bookSaveRestore(
       no->set_halign(Gtk::Align::CENTER);
       no->set_margin(5);
       no->set_label(gettext("No"));
-      no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+      no->signal_clicked().connect([window]
+      {
+	window->close();
+      });
       grid->attach(*no, 1, 1, 1, 1);
 
       window->signal_close_request().connect(
@@ -2749,7 +2756,10 @@ BookOpWindows::bookSaveRestore(
       no->set_halign(Gtk::Align::CENTER);
       no->set_margin(5);
       no->set_label(gettext("No"));
-      no->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close)); // @suppress("Invalid arguments")
+      no->signal_clicked().connect([window]
+      {
+	window->close();
+      });
       grid->attach(*no, 1, 1, 1, 1);
 
       window->signal_close_request().connect(
