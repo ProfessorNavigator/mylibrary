@@ -486,10 +486,11 @@ RefreshCollection::readColl()
 	      epubremove.push_back(p);
 	    }
 	}
-      else if(ext_p == ".rar" || ext_p == ".7z" || ext_p == ".jar"
-	  || ext_p == ".cpio" || ext_p == ".iso" || ext_p == ".a"
-	  || ext_p == ".ar" || ext_p == ".tar" || ext_p == ".tgz"
-	  || ext_p == ".gz" || ext_p == ".bz2" || ext_p == ".xz")
+      else if(ext_p == ".zip" || ext_p == ".rar" || ext_p == ".7z"
+	  || ext_p == ".jar" || ext_p == ".cpio" || ext_p == ".iso"
+	  || ext_p == ".a" || ext_p == ".ar" || ext_p == ".tar"
+	  || ext_p == ".tgz" || ext_p == ".gz" || ext_p == ".bz2"
+	  || ext_p == ".xz")
 	{
 	  auto itzip = std::find_if(zip.begin(), zip.end(), [p]
 	  (auto &el)
