@@ -74,14 +74,16 @@ public:
   void
   openBookFunc(Glib::ustring input_path);
   void
-  copyToFunc(Glib::ustring input_path, Gtk::Window *win);
+  copyToFunc(Glib::ustring input_path, Glib::ustring author,
+	     Glib::ustring booknm, Gtk::Window *win);
 #endif
   void
   fileInfo();
   void
   editBook();
   void
-  saveDialog(std::filesystem::path filepath, bool archive, Gtk::Window *win);
+  saveDialog(std::filesystem::path filepath, std::string author,
+	     std::string booknm, bool archive, Gtk::Window *win);
 private:
   MainWindow *mw;
 };

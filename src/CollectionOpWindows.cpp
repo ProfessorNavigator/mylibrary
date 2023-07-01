@@ -226,7 +226,7 @@ CollectionOpWindows::collectionOp(int variant)
       Gtk::Label *book_nm_lb = Gtk::make_managed<Gtk::Label>();
       book_nm_lb->set_halign(Gtk::Align::START);
       book_nm_lb->set_margin(5);
-      book_nm_lb->set_text(gettext("Book file name in collection:"));
+      book_nm_lb->set_text(gettext("Book file path in collection directory:"));
       grid->attach(*book_nm_lb, 0, 4, 2, 1);
 
       Gtk::Entry *book_nm_ent = Gtk::make_managed<Gtk::Entry>();
@@ -234,11 +234,32 @@ CollectionOpWindows::collectionOp(int variant)
       book_nm_ent->set_valign(Gtk::Align::CENTER);
       book_nm_ent->set_margin(5);
       book_nm_ent->set_width_chars(50);
+      book_nm_ent->set_editable(false);
+      book_nm_ent->set_can_focus(false);
       grid->attach(*book_nm_ent, 0, 5, 1, 1);
+
+      Gtk::Button *open_col = Gtk::make_managed<Gtk::Button>();
+      open_col->set_name("operationBut");
+      open_col->set_halign(Gtk::Align::CENTER);
+      open_col->set_margin(5);
+      open_col->set_label(gettext("Save as..."));
+      grid->attach(*open_col, 1, 5, 1, 1);
 
       open->signal_clicked().connect(
 	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window,
 		     book_path_ent, book_nm_ent));
+      MainWindow *mwl = mw;
+      open_col->signal_clicked().connect([mwl, cmb, window, book_nm_ent]
+      {
+	CollectionOpWindows cow(mwl);
+
+#ifndef ML_GTK_OLD
+	cow.bookPathSelInCol(cmb, book_nm_ent, window);
+#endif
+#ifdef ML_GTK_OLD
+	cow.bookPathSelInCol(cmb, book_nm_ent, window);
+#endif
+      });
 
       Gtk::Label *pack_lb = Gtk::make_managed<Gtk::Label>();
       pack_lb->set_halign(Gtk::Align::END);
@@ -452,7 +473,7 @@ CollectionOpWindows::collectionOp(int variant)
   window->signal_close_request().connect([window]
   {
 #ifdef ML_GTK_OLD
-    window->hide();
+					   window->hide();
 #endif
 #ifndef ML_GTK_OLD
 					   window->set_visible(false);
@@ -947,40 +968,42 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
 
-  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing canceled"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect(
-	sigc::mem_fun(*window, &Gtk::Window::close));
-  });
+  disp_cancel->connect(
+      [lab, con, cancel, window, mwl, prgb]
+      {
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection refreshing canceled"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->refresh_canceled = [disp_cancel]
   {
     disp_cancel->emit();
   };
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection refreshing finished"));
-    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
-    window->set_default_size(1, 1);
-    grid->remove(*prgb);
-    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-    while(mc->pending())
+  disp_finished->connect(
+      [lab, con, cancel, window, mwl, prgb]
       {
-	mc->iteration(true);
-      }
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect(
-	sigc::mem_fun(*window, &Gtk::Window::close));
-  });
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection refreshing finished"));
+	Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+	window->set_default_size(1, 1);
+	grid->remove(*prgb);
+	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+	while(mc->pending())
+	  {
+	    mc->iteration(true);
+	  }
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->refresh_finished = [disp_finished]
   {
     disp_finished->emit();
@@ -1050,17 +1073,18 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     };
 
   Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
-  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
-  {
-    mwl->prev_search_nm.clear();
-    con->disconnect();
-    lab->set_label(gettext("Collection book directory not found"));
-    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-    gr->remove(*prgb);
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect(
-	sigc::mem_fun(*window, &Gtk::Window::close));
-  });
+  disp_coll_nf->connect(
+      [lab, con, cancel, window, mwl, prgb]
+      {
+	mwl->prev_search_nm.clear();
+	con->disconnect();
+	lab->set_label(gettext("Collection book directory not found"));
+	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+	gr->remove(*prgb);
+	cancel->set_label(gettext("Close"));
+	cancel->signal_clicked().connect(
+	    sigc::mem_fun(*window, &Gtk::Window::close));
+      });
   rc->collection_not_exists = [disp_coll_nf]
   {
     disp_coll_nf->emit();
@@ -1210,7 +1234,7 @@ CollectionOpWindows::collectionCreate()
   window->signal_close_request().connect([window]
   {
 #ifdef ML_GTK_OLD
-    window->hide();
+					   window->hide();
 #endif
 #ifndef ML_GTK_OLD
 					   window->set_visible(false);
@@ -1709,7 +1733,7 @@ CollectionOpWindows::importCollection()
   window->signal_close_request().connect([window]
   {
 #ifdef ML_GTK_OLD
-    window->hide();
+					   window->hide();
 #endif
 #ifndef ML_GTK_OLD
 					   window->set_visible(false);
@@ -1832,7 +1856,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 		      f.open(p, std::ios_base::in);
 		      if(f.is_open())
 			{
-			  std::vector<std::string> lv;
+			  std::vector < std::string > lv;
 			  while(!f.eof())
 			    {
 			      std::string line;
@@ -2035,7 +2059,7 @@ CollectionOpWindows::exportCollection()
   window->signal_close_request().connect([window]
   {
 #ifdef ML_GTK_OLD
-    window->hide();
+					   window->hide();
 #endif
 #ifndef ML_GTK_OLD
 					   window->set_visible(false);
@@ -2097,6 +2121,102 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   close->set_label(gettext("Close"));
   close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close));
   grid->attach(*close, 0, 1, 1, 1);
+}
+
+void
+CollectionOpWindows::bookPathSelInCol(Gtk::ComboBoxText *cmb,
+				      Gtk::Entry *book_nm_ent, Gtk::Window *win)
+{
+  Gtk::FileChooserDialog *fchd = new Gtk::FileChooserDialog(
+      *win, gettext("Save as..."), Gtk::FileChooser::Action::SAVE, false);
+  fchd->set_application(mw->get_application());
+  fchd->set_modal(true);
+  fchd->set_name("MLwindow");
+  Gtk::Box *cont = fchd->get_content_area();
+  cont->set_margin(5);
+
+  Gtk::Button *but = fchd->add_button(gettext("Cancel"),
+				      Gtk::ResponseType::CANCEL);
+  Gtk::Requisition min, nat;
+  fchd->get_preferred_size(min, nat);
+  but->set_name("cancelBut");
+  but->set_margin(5);
+
+  but = fchd->add_button(gettext("Save"), Gtk::ResponseType::ACCEPT);
+  but->set_margin_end(5);
+  but->set_margin_top(5);
+  but->set_margin_start(nat.get_width() - 15);
+  but->set_name("applyBut");
+
+  std::string collnm(cmb->get_active_text());
+
+  AuxFunc af;
+  std::string filename;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collnm;
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::string collpath;
+  for(auto &dirit : std::filesystem::directory_iterator(filepath))
+    {
+      std::filesystem::path p = dirit.path();
+      filename = p.filename().u8string();
+      std::string::size_type n = filename.find("base");
+      if(n != std::string::npos)
+	{
+	  std::fstream f;
+	  f.open(p, std::ios_base::in | std::ios_base::binary);
+	  if(f.is_open())
+	    {
+	      collpath.resize(std::filesystem::file_size(p));
+	      f.read(&collpath[0], collpath.size());
+	      f.close();
+	      collpath = collpath.substr(0, collpath.find("</bp>"));
+	      collpath = collpath.erase(0, std::string("<bp>").size());
+	      break;
+	    }
+	}
+    }
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(collpath);
+  fchd->set_current_folder(fl);
+
+  std::string booknm(book_nm_ent->get_text());
+  if(!booknm.empty())
+    {
+      fchd->set_current_name(booknm);
+    }
+  fchd->signal_response().connect([fchd, book_nm_ent, collpath]
+  (int resp_id)
+    {
+      if(resp_id == Gtk::ResponseType::CANCEL)
+	{
+	  fchd->close();
+	}
+      else if(resp_id == Gtk::ResponseType::ACCEPT)
+	{
+	  Glib::RefPtr<Gio::File> fl;
+	  fl = fchd->get_file();
+	  if(fl)
+	    {
+	      std::string loc = fl->get_path();
+	      std::filesystem::path b = std::filesystem::u8path(collpath);
+	      std::filesystem::path p = std::filesystem::u8path(loc);
+	      b.make_preferred();
+	      p.make_preferred();
+	      loc = std::filesystem::relative(p, b).u8string();
+	      book_nm_ent->set_text(Glib::ustring(loc));
+	    }
+	  fchd->close();
+	}
+    });
+
+  fchd->signal_close_request().connect([fchd]
+  {
+    fchd->hide();
+    delete fchd;
+    return true;
+  },
+				       false);
+  fchd->show();
 }
 #endif
 
@@ -2163,5 +2283,92 @@ CollectionOpWindows::exportCollectionFunc(Gtk::DropDown *cmb,
     win->close();
   });
   grid->attach(*close, 0, 1, 1, 1);
+}
+
+void
+CollectionOpWindows::bookPathSelInCol(Gtk::DropDown *cmb,
+				      Gtk::Entry *book_nm_ent, Gtk::Window *win)
+{
+  auto obj = cmb->get_selected_item();
+  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
+  std::string collnm;
+  if(mod_box)
+    {
+      collnm = std::string(mod_box->menu_line);
+    }
+  else
+    {
+      return void();
+    }
+  AuxFunc af;
+  std::string filename;
+  af.homePath(&filename);
+  filename = filename + "/.MyLibrary/Collections/" + collnm;
+  std::filesystem::path filepath = std::filesystem::u8path(filename);
+  std::string collpath;
+  for(auto &dirit : std::filesystem::directory_iterator(filepath))
+    {
+      std::filesystem::path p = dirit.path();
+      filename = p.filename().u8string();
+      std::string::size_type n = filename.find("base");
+      if(n != std::string::npos)
+	{
+	  std::fstream f;
+	  f.open(p, std::ios_base::in | std::ios_base::binary);
+	  if(f.is_open())
+	    {
+	      collpath.resize(std::filesystem::file_size(p));
+	      f.read(&collpath[0], collpath.size());
+	      f.close();
+	      collpath = collpath.substr(0, collpath.find("</bp>"));
+	      collpath = collpath.erase(0, std::string("<bp>").size());
+	      break;
+	    }
+	}
+    }
+  std::string booknm(book_nm_ent->get_text());
+  Glib::RefPtr<Gtk::FileDialog> fchd = Gtk::FileDialog::create();
+  fchd->set_title(gettext("Save as..."));
+  fchd->set_modal(true);
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(collpath);
+  fchd->set_initial_folder(fl);
+  if(!booknm.empty())
+    {
+      fchd->set_initial_name(booknm);
+    }
+  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
+  fchd->save(*win, [collpath, book_nm_ent]
+  (Glib::RefPtr<Gio::AsyncResult> &result)
+    {
+      Glib::RefPtr<Gio::File> fl;
+      auto obj = result->get_source_object_base();
+      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
+      if(!fchd)
+	{
+	  return void();
+	}
+      try
+	{
+	  fl = fchd->save_finish(result);
+	}
+      catch(Glib::Error &e)
+	{
+	  if(e.code() != Gtk::DialogError::DISMISSED)
+	    {
+	      std::cout << "bookPathSelInColDialog: " << e.what() << std::endl;
+	    }
+	}
+      if(fl)
+	{
+	  std::string loc = fl->get_path();
+	  std::filesystem::path b = std::filesystem::u8path(collpath);
+	  std::filesystem::path p = std::filesystem::u8path(loc);
+	  b.make_preferred();
+	  p.make_preferred();
+	  loc = std::filesystem::relative(p, b).u8string();
+	  book_nm_ent->set_text(Glib::ustring(loc));
+	}
+    },
+	     cncl);
 }
 #endif

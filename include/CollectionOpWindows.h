@@ -41,6 +41,9 @@ public:
   void
   exportCollectionFunc(Gtk::ComboBoxText *cmb, Gtk::Entry *exp_path_ent,
   		       Gtk::Window *win);
+  void
+  bookPathSelInCol(Gtk::ComboBoxText *cmb, Gtk::Entry *book_nm_ent,
+  		   Gtk::Window *win);
 #endif
 #ifndef ML_GTK_OLD
   void
@@ -53,6 +56,9 @@ public:
   void
   exportCollectionFunc(Gtk::DropDown *cmb, Gtk::Entry *exp_path_ent,
 		       Gtk::Window *win);
+  void
+  bookPathSelInCol(Gtk::DropDown *cmb, Gtk::Entry *book_nm_ent,
+		   Gtk::Window *win);
 #endif
   void
   collectionCreate();

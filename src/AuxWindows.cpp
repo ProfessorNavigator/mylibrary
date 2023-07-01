@@ -382,26 +382,29 @@ AuxWindows::bookmarkWindow()
     });
 #endif
 #ifndef ML_GTK_OLD
-  clck->signal_pressed().connect([mwl, window, bm_pop, sres]
-  (int num_pressed, double x, double y)
-    {
-      bm_pop->popdown();
-      auto sm = sres->get_model();
-      auto ss = std::dynamic_pointer_cast<Gtk::SingleSelection>(sm);
-      if(ss)
-	{
-	  auto obj = ss->get_selected_item();
-	  if(obj)
-	    {
-	      auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
-	      if(mod_col)
-		{
-		  BookOpWindows bopw(mwl);
-		  bopw.copyToFunc(mod_col->path, window);
-		}
-	    }
-	}
-    });
+  clck->signal_pressed().connect(
+      [mwl, window, bm_pop, sres]
+      (int num_pressed,
+       double x,
+       double y)
+	 {
+	   bm_pop->popdown();
+	   auto sm = sres->get_model();
+	   auto ss = std::dynamic_pointer_cast<Gtk::SingleSelection>(sm);
+	   if(ss)
+	     {
+	       auto obj = ss->get_selected_item();
+	       if(obj)
+		 {
+		   auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
+		   if(mod_col)
+		     {
+		       BookOpWindows bopw(mwl);
+		       bopw.copyToFunc(mod_col->path, mod_col->author, mod_col->book, window);
+		     }
+		 }
+	     }
+	 });
 #endif
   copy_book_men->add_controller(clck);
   bm_pop_grid->attach(*copy_book_men, 0, 1, 1, 1);
@@ -580,25 +583,27 @@ AuxWindows::bookmarkWindow()
   });
 #endif
 #ifndef ML_GTK_OLD
-  copy_book->signal_clicked().connect([mwl, list, window]
-  {
-    if(mwl->bm_sel_book)
+  copy_book->signal_clicked().connect(
+      [mwl, list, window]
       {
-	if(*mwl->bm_sel_book < list->get_n_items())
+	if(mwl->bm_sel_book)
 	  {
-	    auto obj = list->get_object(*mwl->bm_sel_book);
-	    if(obj)
+	    if(*mwl->bm_sel_book < list->get_n_items())
 	      {
-		auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
-		if(mod_col)
+		auto obj = list->get_object(*mwl->bm_sel_book);
+		if(obj)
 		  {
-		    BookOpWindows bopw(mwl);
-		    bopw.copyToFunc(mod_col->path, window);
+		    auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
+		    if(mod_col)
+		      {
+			BookOpWindows bopw(mwl);
+			bopw.copyToFunc(mod_col->path, mod_col->author,
+					mod_col->book, window);
+		      }
 		  }
 	      }
 	  }
-      }
-  });
+      });
 #endif
   grid->attach(*copy_book, 1, 1, 1, 1);
 
@@ -1259,7 +1264,7 @@ AuxWindows::aboutProg()
   aboutd->set_name("MLwindow");
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("2.1.1");
+  aboutd->set_version("2.2");
   aboutd->set_copyright(
       "Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;

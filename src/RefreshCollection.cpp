@@ -358,8 +358,14 @@ RefreshCollection::readColl()
       delete thr;
       if(run_thr < thr_num)
 	{
-	  cmtx.try_lock();
-	  cmtx.unlock();
+	  if(cmtx.try_lock())
+	    {
+	      cmtx.unlock();
+	    }
+	  else
+	    {
+	      cmtx.unlock();
+	    }
 	}
       run_thrmtx.unlock();
     }
@@ -380,8 +386,14 @@ RefreshCollection::readColl()
       delete thr;
       if(run_thr < thr_num)
 	{
-	  cmtx.try_lock();
-	  cmtx.unlock();
+	  if(cmtx.try_lock())
+	    {
+	      cmtx.unlock();
+	    }
+	  else
+	    {
+	      cmtx.unlock();
+	    }
 	}
       run_thrmtx.unlock();
     }
@@ -404,8 +416,14 @@ RefreshCollection::readColl()
       delete thr;
       if(run_thr < thr_num)
 	{
-	  cmtx.try_lock();
-	  cmtx.unlock();
+	  if(cmtx.try_lock())
+	    {
+	      cmtx.unlock();
+	    }
+	  else
+	    {
+	      cmtx.unlock();
+	    }
 	}
       run_thrmtx.unlock();
     }
@@ -426,8 +444,14 @@ RefreshCollection::readColl()
       delete thr;
       if(run_thr < thr_num)
 	{
-	  cmtx.try_lock();
-	  cmtx.unlock();
+	  if(cmtx.try_lock())
+	    {
+	      cmtx.unlock();
+	    }
+	  else
+	    {
+	      cmtx.unlock();
+	    }
 	}
       run_thrmtx.unlock();
     }
@@ -448,8 +472,14 @@ RefreshCollection::readColl()
       delete thr;
       if(run_thr < thr_num)
 	{
-	  cmtx.try_lock();
-	  cmtx.unlock();
+	  if(cmtx.try_lock())
+	    {
+	      cmtx.unlock();
+	    }
+	  else
+	    {
+	      cmtx.unlock();
+	    }
 	}
       run_thrmtx.unlock();
     }
@@ -586,8 +616,14 @@ RefreshCollection::fb2ThrFunc(std::filesystem::path p)
   run_thr = run_thr - 1;
   if(run_thr < thr_num)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   run_thrmtx.unlock();
 }
@@ -649,8 +685,14 @@ RefreshCollection::epubThrFunc(std::filesystem::path p)
   run_thr = run_thr - 1;
   if(run_thr < thr_num)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   run_thrmtx.unlock();
 }
@@ -712,8 +754,14 @@ RefreshCollection::pdfThrFunc(std::filesystem::path p)
   run_thr = run_thr - 1;
   if(run_thr < thr_num)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   run_thrmtx.unlock();
 }
@@ -775,8 +823,14 @@ RefreshCollection::djvuThrFunc(std::filesystem::path p)
   run_thr = run_thr - 1;
   if(run_thr < thr_num)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   run_thrmtx.unlock();
 }
@@ -841,8 +895,14 @@ RefreshCollection::zipThrFunc(
   run_thr = run_thr - 1;
   if(run_thr < thr_num)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   run_thrmtx.unlock();
 }
@@ -1147,8 +1207,14 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 		      addbmtx.lock();
 		      if(stopper == 1)
 			{
-			  addbmtx.try_lock();
-			  addbmtx.unlock();
+			  if(addbmtx.try_lock())
+			    {
+			      addbmtx.unlock();
+			    }
+			  else
+			    {
+			      addbmtx.unlock();
+			    }
 			  if(refresh_canceled)
 			    {
 			      refresh_canceled();
@@ -1199,6 +1265,10 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      stopper = 0;
 	    }
 	}
+      if(!std::filesystem::exists(filepath.parent_path()))
+	{
+	  std::filesystem::create_directories(filepath.parent_path());
+	}
       if(!std::filesystem::exists(filepath)
 	  && std::filesystem::exists(filepath.parent_path()))
 	{
@@ -1222,8 +1292,14 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      addbmtx.lock();
 	      if(stopper == 1)
 		{
-		  addbmtx.try_lock();
-		  addbmtx.unlock();
+		  if(addbmtx.try_lock())
+		    {
+		      addbmtx.unlock();
+		    }
+		  else
+		    {
+		      addbmtx.unlock();
+		    }
 		  if(refresh_canceled)
 		    {
 		      refresh_canceled();
@@ -1319,8 +1395,14 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	  zipparse.push_back(std::make_tuple(filepath, tv));
 	}
     }
-  addbmtx.try_lock();
-  addbmtx.unlock();
+  if(addbmtx.try_lock())
+    {
+      addbmtx.unlock();
+    }
+  else
+    {
+      addbmtx.unlock();
+    }
   collRefresh();
 }
 

@@ -146,7 +146,7 @@ AuxFunc::fileNames(std::string address,
   z = zip_open(address.c_str(), ZIP_RDONLY, &er);
   if(er < 1)
     {
-      num = zip_get_num_files(z);
+      num = zip_get_num_entries(z, ZIP_FL_UNCHANGED);
 
       for(int i = 0; i < num; i++)
 	{
@@ -1279,14 +1279,6 @@ AuxFunc::filehash(std::filesystem::path filepath, int *cancel)
       err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
       if(err != 0)
 	{
-	  if(gcry_md_is_enabled(hd, GCRY_MD_BLAKE2B_256))
-	    {
-	      std::cout << "Enabled" << std::endl;
-	    }
-	  else
-	    {
-	      std::cout << "Not enabled" << std::endl;
-	    }
 	  std::string errstr;
 	  errstr.resize(1024);
 	  gpg_strerror_r(err, errstr.data(), errstr.size());

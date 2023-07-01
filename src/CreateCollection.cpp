@@ -263,8 +263,14 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
-	      cmtx.try_lock();
-	      cmtx.unlock();
+	      if(cmtx.try_lock())
+		{
+		  cmtx.unlock();
+		}
+	      else
+		{
+		  cmtx.unlock();
+		}
 	    }
 	  num_thr_runmtx.unlock();
 	}
@@ -311,8 +317,14 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
-	      cmtx.try_lock();
-	      cmtx.unlock();
+	      if(cmtx.try_lock())
+		{
+		  cmtx.unlock();
+		}
+	      else
+		{
+		  cmtx.unlock();
+		}
 	    }
 	  num_thr_runmtx.unlock();
 	}
@@ -357,8 +369,14 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
-	      cmtx.try_lock();
-	      cmtx.unlock();
+	      if(cmtx.try_lock())
+		{
+		  cmtx.unlock();
+		}
+	      else
+		{
+		  cmtx.unlock();
+		}
 	    }
 	  num_thr_runmtx.unlock();
 	}
@@ -403,8 +421,14 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
-	      cmtx.try_lock();
-	      cmtx.unlock();
+	      if(cmtx.try_lock())
+		{
+		  cmtx.unlock();
+		}
+	      else
+		{
+		  cmtx.unlock();
+		}
 	    }
 	  num_thr_runmtx.unlock();
 	}
@@ -449,8 +473,14 @@ CreateCollection::createDatabase()
 	  delete thr;
 	  if(num_thr_run < threadnum)
 	    {
-	      cmtx.try_lock();
-	      cmtx.unlock();
+	      if(cmtx.try_lock())
+		{
+		  cmtx.unlock();
+		}
+	      else
+		{
+		  cmtx.unlock();
+		}
 	    }
 	  num_thr_runmtx.unlock();
 	}
@@ -610,8 +640,14 @@ CreateCollection::fb2ThreadFunc(std::filesystem::path fp,
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   num_thr_runmtx.unlock();
 }
@@ -854,8 +890,14 @@ CreateCollection::zipThreadFunc(
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   num_thr_runmtx.unlock();
 }
@@ -1346,8 +1388,14 @@ CreateCollection::epubThreadFunc(std::filesystem::path fp,
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   num_thr_runmtx.unlock();
 }
@@ -1486,8 +1534,14 @@ CreateCollection::pdfThreadFunc(std::filesystem::path fp,
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   num_thr_runmtx.unlock();
 }
@@ -1626,8 +1680,14 @@ CreateCollection::djvuThreadFunc(std::filesystem::path fp,
   num_thr_run = num_thr_run - 1;
   if(num_thr_run < threadnum)
     {
-      cmtx.try_lock();
-      cmtx.unlock();
+      if(cmtx.try_lock())
+	{
+	  cmtx.unlock();
+	}
+      else
+	{
+	  cmtx.unlock();
+	}
     }
   num_thr_runmtx.unlock();
 }

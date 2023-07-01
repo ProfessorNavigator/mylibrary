@@ -3003,13 +3003,14 @@ BookOpWindows::copyTo(Gtk::ColumnView *sres, int variant, Gtk::Window *win)
       auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
       if(mod_col)
 	{
-	  copyToFunc(mod_col->path, win);
+	  copyToFunc(mod_col->path, mod_col->author, mod_col->book, win);
 	}
     }
 }
 
 void
-BookOpWindows::copyToFunc(Glib::ustring input_path, Gtk::Window *win)
+BookOpWindows::copyToFunc(Glib::ustring input_path, Glib::ustring author,
+			  Glib::ustring booknm, Gtk::Window *win)
 {
   AuxFunc af;
   std::filesystem::path filepath;
@@ -3077,7 +3078,7 @@ BookOpWindows::copyToFunc(Glib::ustring input_path, Gtk::Window *win)
   if(std::filesystem::exists(filepath))
     {
       BookOpWindows bopw(mw);
-      bopw.saveDialog(filepath, archive, win);
+      bopw.saveDialog(filepath, author, booknm, archive, win);
     }
 }
 #endif
@@ -3220,14 +3221,18 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 	  std::filesystem::path filepath;
 	  bool archive = false;
 	  iter->get_value(0, id);
-	  std::string filename;
+	  std::string filename, author, book;
 	  if(variant == 1)
 	    {
 	      filename = std::get<5>(mw->search_result_v[id - 1]);
+	      author = std::get<0>(mw->search_result_v[id - 1]);
+	      book = std::get<1>(mw->search_result_v[id - 1]);
 	    }
 	  else if(variant == 2)
 	    {
 	      filename = std::get<5>(mw->bookmark_v[id - 1]);
+	      author = std::get<0>(mw->bookmark_v[id - 1]);
+	      book = std::get<1>(mw->bookmark_v[id - 1]);
 	    }
 	  std::string::size_type n;
 	  n = filename.find("<zip>");
@@ -3294,7 +3299,7 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 	  if(std::filesystem::exists(filepath))
 	    {
 	      BookOpWindows bopw(mw);
-	      bopw.saveDialog(filepath, archive, win);
+	      bopw.saveDialog(filepath, author, book, archive, win);
 	    }
 	}
     }
@@ -3302,8 +3307,8 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 #endif
 
 void
-BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
-			  Gtk::Window *win)
+BookOpWindows::saveDialog(std::filesystem::path filepath, std::string author,
+			  std::string booknm, bool archive, Gtk::Window *win)
 {
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gtk::FileDialog> fchd = Gtk::FileDialog::create();
@@ -3314,7 +3319,16 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
   af.homePath(&filename);
   Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
   fchd->set_initial_folder(fl);
-  fl = Gio::File::create_for_path(filepath.u8string());
+  if(!author.empty() && !booknm.empty())
+    {
+      std::string bp = author + " - " + booknm;
+      bp = filename + "/" + bp + filepath.extension().u8string();
+      fl = Gio::File::create_for_path(bp);
+    }
+  else
+    {
+      fl = Gio::File::create_for_path(filepath.u8string());
+    }
   fchd->set_initial_file(fl);
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
   MainWindow *mwl = mw;
@@ -3376,7 +3390,16 @@ BookOpWindows::saveDialog(std::filesystem::path filepath, bool archive,
   Gtk::Box *cont = fchd->get_content_area();
   cont->set_margin(5);
 
-  fchd->set_current_name(Glib::ustring(filepath.filename().u8string()));
+  if(!author.empty() && !booknm.empty())
+    {
+      std::string bp = author + " - " + booknm
+	  + filepath.extension().u8string();
+      fchd->set_current_name(Glib::ustring(bp));
+    }
+  else
+    {
+      fchd->set_current_name(Glib::ustring(filepath.filename().u8string()));
+    }
 
   std::string filename;
   AuxFunc af;
