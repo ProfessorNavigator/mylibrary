@@ -1196,8 +1196,18 @@ RefreshCollection::addBook(std::string book_path, std::string book_name,
 	      && ch_ext != ".tgz" && ch_ext != ".gz" && ch_ext != ".bz2"
 	      && ch_ext != ".xz")
 	    {
-	      filename = filename = bookpath + "/" + filepath.stem().u8string()
-		  + arch_ext;
+	      std::filesystem::path dirp = std::filesystem::u8path(book_name);
+	      std::string dirp_str = dirp.parent_path().u8string();
+	      if(dirp_str.empty())
+		{
+		  filename = filename = bookpath + "/"
+		      + filepath.stem().u8string() + arch_ext;
+		}
+	      else
+		{
+		  filename = filename = bookpath + "/" + dirp_str + "/"
+		      + filepath.stem().u8string() + arch_ext;
+		}
 	      filepath = std::filesystem::u8path(filename);
 	      if(std::filesystem::exists(filepath))
 		{
