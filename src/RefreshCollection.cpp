@@ -1,18 +1,18 @@
 /*
- Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
-
- This file is part of MyLibrary.
- MyLibrary is free software: you can redistribute it and/or
- modify it under the terms of the GNU General Public License as
- published by the Free Software Foundation, either version 3 of
- the License, or (at your option) any later version.
- MyLibrary is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- You should have received a copy of the GNU General Public License
- along with MyLibrary. If not,
- see <https://www.gnu.org/licenses/>.
+ * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "RefreshCollection.h"
@@ -29,7 +29,7 @@ RefreshCollection::RefreshCollection(std::string collname, unsigned int thr_num,
 
 RefreshCollection::~RefreshCollection()
 {
-  // TODO Auto-generated destructor stub
+
 }
 
 void
@@ -98,6 +98,7 @@ RefreshCollection::startRefreshing()
 	  run_thrmtx.lock();
 	  if(run_thr == 0)
 	    {
+	      run_thrmtx.unlock();
 	      break;
 	    }
 	  run_thrmtx.unlock();
@@ -163,6 +164,7 @@ RefreshCollection::readList()
 void
 RefreshCollection::readHash(std::filesystem::path filepath)
 {
+  AuxFunc af;
   std::fstream f;
   f.open(filepath, std::ios_base::in);
   if(!f.is_open())
@@ -189,15 +191,20 @@ RefreshCollection::readHash(std::filesystem::path filepath)
 		}
 	      else
 		{
-		  std::tuple<std::filesystem::path, std::string> ttup;
+		  std::tuple<std::filesystem::path, std::vector<char>> ttup;
 		  std::string p_str = line;
 		  p_str = p_str.substr(0, p_str.find("<?>"));
 		  p_str = bookpath + p_str;
 		  std::get<0>(ttup) = std::filesystem::u8path(p_str);
 		  p_str = line;
 		  p_str.erase(0, p_str.find("<?>") + std::string("<?>").size());
-		  std::get<1>(ttup) = p_str;
-		  saved_hashes.push_back(ttup);
+		  std::vector<char> readhsh;
+		  readhsh.resize(p_str.size() / 2);
+		  if(af.from_hex(p_str, readhsh))
+		    {
+		      std::get<1>(ttup) = readhsh;
+		      saved_hashes.push_back(ttup);
+		    }
 		}
 	    }
 	  count++;
@@ -578,14 +585,14 @@ RefreshCollection::fb2ThrFunc(std::filesystem::path p)
       already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
-  std::string hex_hash = af.to_hex(&hash);
+
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
+      saved_hashes.begin(), saved_hashes.end(), [p, hash, this]
       (auto &el)
 	{
 	  if(!this->fast_refresh)
 	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	      if(p == std::get<0>(el) && std::get<1>(el) == hash)
 		{
 		  return true;
 		}
@@ -647,14 +654,14 @@ RefreshCollection::epubThrFunc(std::filesystem::path p)
       already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
-  std::string hex_hash = af.to_hex(&hash);
+
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
+      saved_hashes.begin(), saved_hashes.end(), [p, hash, this]
       (auto &el)
 	{
 	  if(!this->fast_refresh)
 	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	      if(p == std::get<0>(el) && std::get<1>(el) == hash)
 		{
 		  return true;
 		}
@@ -716,14 +723,14 @@ RefreshCollection::pdfThrFunc(std::filesystem::path p)
       already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
-  std::string hex_hash = af.to_hex(&hash);
+
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
+      saved_hashes.begin(), saved_hashes.end(), [p, hash, this]
       (auto &el)
 	{
 	  if(!this->fast_refresh)
 	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	      if(p == std::get<0>(el) && std::get<1>(el) == hash)
 		{
 		  return true;
 		}
@@ -785,14 +792,14 @@ RefreshCollection::djvuThrFunc(std::filesystem::path p)
       already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
-  std::string hex_hash = af.to_hex(&hash);
+
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
+      saved_hashes.begin(), saved_hashes.end(), [p, hash, this]
       (auto &el)
 	{
 	  if(!this->fast_refresh)
 	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	      if(p == std::get<0>(el) && std::get<1>(el) == hash)
 		{
 		  return true;
 		}
@@ -857,14 +864,14 @@ RefreshCollection::zipThrFunc(
       already_hashed.push_back(std::make_tuple(p, hash));
       already_hashedmtx.unlock();
     }
-  std::string hex_hash = af.to_hex(&hash);
+
   auto itsh = std::find_if(
-      saved_hashes.begin(), saved_hashes.end(), [p, hex_hash, this]
+      saved_hashes.begin(), saved_hashes.end(), [p, hash, this]
       (auto &el)
 	{
 	  if(!this->fast_refresh)
 	    {
-	      if(p == std::get<0>(el) && std::get<1>(el) == hex_hash)
+	      if(p == std::get<0>(el) && std::get<1>(el) == hash)
 		{
 		  return true;
 		}

@@ -1,30 +1,30 @@
 /*
- Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
-
- This file is part of MyLibrary.
- MyLibrary is free software: you can redistribute it and/or
- modify it under the terms of the GNU General Public License as
- published by the Free Software Foundation, either version 3 of
- the License, or (at your option) any later version.
- MyLibrary is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- GNU General Public License for more details.
- You should have received a copy of the GNU General Public License
- along with MyLibrary. If not,
- see <https://www.gnu.org/licenses/>.
+ * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "AuxFunc.h"
 
 AuxFunc::AuxFunc()
 {
-  // TODO Auto-generated constructor stub
+
 }
 
 AuxFunc::~AuxFunc()
 {
-  // TODO Auto-generated destructor stub
+
 }
 
 void
@@ -1457,34 +1457,30 @@ AuxFunc::filehash(std::filesystem::path filepath, std::function<void
 std::string
 AuxFunc::to_hex(std::vector<char> *source)
 {
-  std::vector<char> locsource = *source;
   std::string result;
+  result.resize(source->size() * 2);
   size_t count = 0;
-  std::stringstream strm;
   std::locale loc("C");
-  strm.imbue(loc);
-  while(count < locsource.size())
+  std::for_each(source->begin(), source->end(), [&result, &count, loc]
+  (auto &el)
     {
-      uint64_t a;
-      if(count + sizeof(a) <= locsource.size())
+      uint8_t val8;
+      std::memcpy(&val8, &el, sizeof(el));
+      std::stringstream strm;
+      strm.imbue(loc);
+      strm << std::hex << static_cast<int>(val8);
+      if(val8 <= 15)
 	{
-	  std::memcpy(&a, &locsource[count], sizeof(a));
+	  result[count] = '0';
+	  result[count + 1] = strm.str()[0];
 	}
       else
 	{
-	  std::vector<char> tmp;
-	  tmp.resize(locsource.size() - count);
-	  std::memcpy(&tmp[0], &locsource[count], locsource.size() - count);
-	  while(tmp.size() < sizeof(a))
-	    {
-	      tmp.push_back('0');
-	    }
-	  std::memcpy(&a, &tmp[0], sizeof(a));
+	  result[count] = strm.str()[0];
+	  result[count + 1] = strm.str()[1];
 	}
-      strm << std::hex << a;
-      count = count + sizeof(a);
-    }
-  result = strm.str();
+      count += 2;
+    });
   return result;
 }
 
@@ -1533,4 +1529,43 @@ AuxFunc::utf8to(std::string line)
   ucnv_close(c);
 
   return line;
+}
+
+bool
+AuxFunc::from_hex(std::string &hex, std::vector<char> &result)
+{
+  if(hex.size() % 2 != 0)
+    {
+      std::cerr << "AuxFunc::from_hex: incompatible size of hex value"
+	  << std::endl;
+      return false;
+    }
+  else
+    {
+      if(hex.size() != result.size() * 2)
+	{
+	  std::cerr
+	      << "AuxFunc::from_hex: incompatible size of result array"
+	      << std::endl;
+	  return false;
+	}
+      else
+	{
+	  std::locale loc("C");
+	  size_t count = 0;
+	  for(size_t i = 0; i < hex.size(); i += 2)
+	    {
+	      std::string tmp(hex.begin() + i, hex.begin() + i + 2);
+	      std::stringstream strm;
+	      strm.imbue(loc);
+	      strm.str(tmp);
+	      int val;
+	      strm >> std::hex >> val;
+	      uint8_t val8 = static_cast<uint8_t>(val);
+	      std::memcpy(&result[count], &val8, sizeof(val8));
+	      count++;
+	    }
+	  return true;
+	}
+    }
 }

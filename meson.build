@@ -15,7 +15,7 @@ cpp = meson.get_compiler ('cpp')
 thread_dep = dependency ('threads')
 
 poppler_version = poppler.version()
-poppler_new = poppler_version.version_compare ('>=22.01')
+poppler_new = poppler_version.version_compare ('>=22.05')
 
 if not poppler_new
   	add_project_arguments('-D_OLDPOPPLER', language : 'cpp')
