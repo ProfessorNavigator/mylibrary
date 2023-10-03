@@ -930,7 +930,6 @@ CreateRightGrid::rowActivated(guint rownum, Gtk::ColumnView *sres)
 	    }
 	}
     }
-
   if(!filename.empty())
     {
       AnnotationCover ac(filename);

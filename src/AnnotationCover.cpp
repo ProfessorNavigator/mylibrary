@@ -310,13 +310,13 @@ AnnotationCover::annotationRet()
 		{
 		  std::string tmp = line.substr(0,
 						n + std::string("</p>").size());
-		  tmp = tmp.substr(tmp.rfind("<p>"), std::string::npos);
+		  tmp.erase(0, tmp.rfind("<p"));
 		  line.erase(line.find(tmp), tmp.size());
 		  std::string::size_type n_tmp;
-		  n_tmp = tmp.find("<p>");
+		  n_tmp = tmp.find("<p");
 		  if(n_tmp != std::string::npos)
 		    {
-		      tmp.erase(0, n_tmp + std::string("<p>").size());
+		      tmp.erase(0, tmp.find(">") + std::string(">").size());
 		      tmp = tmp.substr(0, tmp.find("</p>"));
 		      if(!tmp.empty())
 			{
@@ -329,6 +329,138 @@ AnnotationCover::annotationRet()
 			  + "\n\n";
 		    }
 		}
+	    }
+	}
+      for(;;)
+	{
+	  n = result.find("<strong>");
+	  if(n == std::string::npos)
+	    {
+	      break;
+	    }
+	  else
+	    {
+	      result.erase(n, std::string("<strong>").size());
+	      result.insert(n, "<b>");
+	      std::string::size_type n_tmp = result.find("</strong>");
+	      if(n_tmp != std::string::npos)
+		{
+		  result.erase(n_tmp, std::string("</strong>").size());
+		  result.insert(n_tmp, "</b>");
+		}
+	      else
+		{
+		  n_tmp = result.find("<strong/>");
+		  if(n_tmp != std::string::npos)
+		    {
+		      result.erase(n_tmp, std::string("<strong/>").size());
+		      result.insert(n_tmp, "</b>");
+		    }
+		}
+	    }
+	}
+
+      for(;;)
+	{
+	  n = result.find("<emphasis>");
+	  if(n == std::string::npos)
+	    {
+	      break;
+	    }
+	  else
+	    {
+	      result.erase(n, std::string("<emphasis>").size());
+	      result.insert(n, "<i>");
+	      std::string::size_type n_tmp = result.find("</emphasis>");
+	      if(n_tmp != std::string::npos)
+		{
+		  result.erase(n_tmp, std::string("</emphasis>").size());
+		  result.insert(n_tmp, "</i>");
+		}
+	      else
+		{
+		  n_tmp = result.find("<emphasis/>");
+		  if(n_tmp != std::string::npos)
+		    {
+		      result.erase(n_tmp, std::string("<emphasis/>").size());
+		      result.insert(n_tmp, "</i>");
+		    }
+		}
+	    }
+	}
+
+      for(;;)
+	{
+	  n = result.find("<strikethrough>");
+	  if(n == std::string::npos)
+	    {
+	      break;
+	    }
+	  else
+	    {
+	      result.erase(n, std::string("<strikethrough>").size());
+	      result.insert(n, "<s>");
+	      std::string::size_type n_tmp = result.find("</strikethrough>");
+	      if(n_tmp != std::string::npos)
+		{
+		  result.erase(n_tmp, std::string("</strikethrough>").size());
+		  result.insert(n_tmp, "</s>");
+		}
+	      else
+		{
+		  n_tmp = result.find("<strikethrough/>");
+		  if(n_tmp != std::string::npos)
+		    {
+		      result.erase(n_tmp, std::string("<strikethrough/>").size());
+		      result.insert(n_tmp, "</s>");
+		    }
+		}
+	    }
+	}
+      for(;;)
+	{
+	  n = result.find("<image");
+	  if(n == std::string::npos)
+	    {
+	      break;
+	    }
+	  else
+	    {
+	      std::string::size_type n_tmp;
+	      n_tmp = result.find(">");
+	      if(n_tmp != std::string::npos)
+		{
+		  std::string tmp(
+		      result.begin() + n,
+		      result.begin() + n_tmp + std::string(">").size());
+		  result.erase(n, tmp.size());
+		}
+	    }
+	}
+
+      for(;;)
+	{
+	  n = result.find("\n");
+	  if(n == 0)
+	    {
+	      result.erase(0, std::string("\n").size());
+	    }
+	  else
+	    {
+	      break;
+	    }
+	}
+
+      for(;;)
+	{
+	  n = result.find("\n\n\n");
+	  if(n != std::string::npos)
+	    {
+	      result.erase(n, std::string("\n").size());
+	    }
+	  else
+	    {
+	      break;
 	    }
 	}
     }

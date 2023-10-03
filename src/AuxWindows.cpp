@@ -1264,7 +1264,7 @@ AuxWindows::aboutProg()
   aboutd->set_name("MLwindow");
 
   aboutd->set_program_name("MyLibrary");
-  aboutd->set_version("2.2.1");
+  aboutd->set_version("2.2.2");
   aboutd->set_copyright(
       "Copyright 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>");
   AuxFunc af;
