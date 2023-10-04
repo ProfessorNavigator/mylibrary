@@ -1286,7 +1286,7 @@ AuxWindows::aboutProg()
     }
   else
     {
-      std::cerr << "Licence file not found" << std::endl;
+      std::cerr << "License file not found" << std::endl;
     }
 
   if(abbuf.size() == 0)
