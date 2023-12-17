@@ -17,22 +17,13 @@
 
 #include "SearchBook.h"
 
-SearchBook::SearchBook(
-    std::string collnm,
-    std::string surnm,
-    std::string name,
-    std::string secname,
-    std::string book,
-    std::string series,
-    std::string genre,
-    std::string *prev_search_nm,
-    std::vector<
-	std::tuple<std::string, std::string, std::string, std::string,
-	    std::string, std::string>> *base_v,
-    std::vector<
-	std::tuple<std::string, std::string, std::string, std::string,
-	    std::string, std::string>> *search_result_v,
-    int *cancel)
+SearchBook::SearchBook(const std::string &collnm, const std::string &surnm,
+		       const std::string &name, const std::string &secname,
+		       const std::string &book, const std::string &series,
+		       const std::string &genre, std::string *prev_search_nm,
+		       std::vector<book_item> *base_v,
+		       std::vector<book_item> *search_result_v,
+		       int *cancel)
 {
   this->collnm = collnm;
   this->surnm = surnm;
@@ -118,6 +109,7 @@ SearchBook::searchBook()
 	{
 	  std::cerr << "Search error: collection not found" << std::endl;
 	}
+      base_v->shrink_to_fit();
     }
 }
 
@@ -138,7 +130,7 @@ SearchBook::cleanSearchV()
 			     [searchstr]
 			     (auto &el)
 			       {
-				 std::string line = std::get<0>(el);
+				 std::string line = el.authors;
 				 AuxFunc af;
 				 af.stringToLower(line);
 				 std::string::size_type n;
@@ -164,7 +156,7 @@ SearchBook::cleanSearchV()
 			     [searchstr]
 			     (auto &el)
 			       {
-				 std::string line = std::get<0>(el);
+				 std::string line = el.authors;
 				 AuxFunc af;
 				 af.stringToLower(line);
 				 std::string::size_type n;
@@ -190,7 +182,7 @@ SearchBook::cleanSearchV()
 			     [searchstr]
 			     (auto &el)
 			       {
-				 std::string line = std::get<0>(el);
+				 std::string line = el.authors;
 				 AuxFunc af;
 				 af.stringToLower(line);
 				 std::string::size_type n;
@@ -216,7 +208,7 @@ SearchBook::cleanSearchV()
 			     [searchstr]
 			     (auto &el)
 			       {
-				 std::string line = std::get<1>(el);
+				 std::string line = el.book;
 				 AuxFunc af;
 				 af.stringToLower(line);
 				 std::string::size_type n;
@@ -242,7 +234,7 @@ SearchBook::cleanSearchV()
 			     [searchstr]
 			     (auto &el)
 			       {
-				 std::string line = std::get<2>(el);
+				 std::string line = el.series;
 				 AuxFunc af;
 				 af.stringToLower(line);
 				 std::string::size_type n;
@@ -267,7 +259,7 @@ SearchBook::cleanSearchV()
 		  search_result_v->begin(), search_result_v->end(), [searchstr]
 		  (auto &el)
 		    {
-		      std::string genrestr = std::get<3>(el);
+		      std::string genrestr = el.genre;
 		      std::vector<std::string> genre_v;
 		      std::string::size_type n = 0;
 		      while (n != std::string::npos)
@@ -308,8 +300,8 @@ SearchBook::cleanSearchV()
       (auto &el1, auto &el2)
 	{
 	  std::string line1, line2;
-	  line1 = std::get<0>(el1);
-	  line2 = std::get<0>(el2);
+	  line1 = el1.authors;
+	  line2 = el2.authors;
 	  af.stringToLower(line1);
 	  af.stringToLower(line2);
 	  if(line1 < line2)
@@ -324,7 +316,7 @@ SearchBook::cleanSearchV()
       std::for_each(search_result_v->begin(), search_result_v->end(), []
       (auto &el)
 	{
-	  std::string genrestr = std::get<3>(el);
+	  std::string genrestr = el.genre;
 	  std::vector<std::string> genre_v;
 	  std::string::size_type n = 0;
 	  while (n != std::string::npos)
@@ -359,9 +351,10 @@ SearchBook::cleanSearchV()
 		  genrestr = genrestr + ", " + genre_v[i];
 		}
 	    }
-	  std::get<3>(el) = genrestr;
+	  el.genre = genrestr;
 	});
     }
+  search_result_v->shrink_to_fit();
 }
 
 void
@@ -371,8 +364,9 @@ SearchBook::readBase(std::filesystem::path filepath)
   f.open(filepath, std::ios_base::in | std::ios_base::binary);
   if(!f.is_open())
     {
-      std::cerr << "Search: " + filepath.stem().u8string() + " file not opened"
-	  << std::endl;
+      std::cerr
+	  << "SearchBook::readBase: " + filepath.stem().u8string()
+	      + " file not opened" << std::endl;
     }
   else
     {
@@ -436,18 +430,17 @@ SearchBook::readBase(std::filesystem::path filepath)
 	      datestr.erase(0, datestr.find("<?>") + std::string("<?>").size());
 	      datestr.erase(0, datestr.find("<?>") + std::string("<?>").size());
 
-	      std::tuple<std::string, std::string, std::string, std::string,
-		  std::string, std::string> ttup;
 	      std::string p_in_col = line;
 	      p_in_col = p_in_col.substr(0, p_in_col.find("<?>"));
 	      p_in_col = bookpath + p_in_col;
-	      std::get<0>(ttup) = author;
-	      std::get<1>(ttup) = bookstr;
-	      std::get<2>(ttup) = seriesstr;
-	      std::get<3>(ttup) = genrestr;
-	      std::get<4>(ttup) = datestr;
-	      std::get<5>(ttup) = p_in_col;
-	      base_v->push_back(ttup);
+	      book_item bi;
+	      bi.authors = author;
+	      bi.book = bookstr;
+	      bi.series = seriesstr;
+	      bi.genre = genrestr;
+	      bi.date = datestr;
+	      bi.path_to_book = p_in_col;
+	      base_v->push_back(bi);
 	    }
 	}
     }
@@ -460,8 +453,9 @@ SearchBook::readZipBase(std::filesystem::path filepath)
   f.open(filepath, std::ios_base::in | std::ios_base::binary);
   if(!f.is_open())
     {
-      std::cerr << "Search: " + filepath.stem().u8string() + " file not opened"
-	  << std::endl;
+      std::cerr
+	  << "SearchBook::readZipBase: " + filepath.stem().u8string()
+	      + " file not opened" << std::endl;
     }
   else
     {
@@ -553,16 +547,14 @@ SearchBook::readZipBase(std::filesystem::path filepath)
 		  datestr.erase(
 		      0, datestr.find("<?>") + std::string("<?>").size());
 
-		  std::tuple<std::string, std::string, std::string, std::string,
-		      std::string, std::string> ttup;
-
-		  std::get<0>(ttup) = author;
-		  std::get<1>(ttup) = bookstr;
-		  std::get<2>(ttup) = seriesstr;
-		  std::get<3>(ttup) = genrestr;
-		  std::get<4>(ttup) = datestr;
-		  std::get<5>(ttup) = f_path;
-		  base_v->push_back(ttup);
+		  book_item bi;
+		  bi.authors = author;
+		  bi.book = bookstr;
+		  bi.series = seriesstr;
+		  bi.genre = genrestr;
+		  bi.date = datestr;
+		  bi.path_to_book = f_path;
+		  base_v->push_back(bi);
 		}
 	    }
 	}

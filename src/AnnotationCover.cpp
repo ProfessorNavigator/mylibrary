@@ -76,14 +76,8 @@ AnnotationCover::fileRead()
       archaddr.erase(
 	  0, archaddr.find("<archpath>") + std::string("<archpath>").size());
       archaddr = archaddr.substr(0, archaddr.find("</archpath>"));
-      std::string outfolder;
-#ifdef __linux
-      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-      outfolder = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
       AuxFunc af;
+      std::string outfolder = af.temp_path();
       outfolder = outfolder + "/" + af.randomFileName();
       std::filesystem::path filepath = std::filesystem::u8path(outfolder);
       if(std::filesystem::exists(filepath))
@@ -411,7 +405,8 @@ AnnotationCover::annotationRet()
 		  n_tmp = result.find("<strikethrough/>");
 		  if(n_tmp != std::string::npos)
 		    {
-		      result.erase(n_tmp, std::string("<strikethrough/>").size());
+		      result.erase(n_tmp,
+				   std::string("<strikethrough/>").size());
 		      result.insert(n_tmp, "</s>");
 		    }
 		}
@@ -502,16 +497,96 @@ AnnotationCover::annotationRet()
 	  result.insert(n, "\n\n");
 	}
     }
+  n = result.find("<a");
+  if(n != std::string::npos)
+    {
+      std::string::size_type n_end;
+      n_end = result.find(">", n);
+      std::string http_addr;
+      if(n_end != std::string::npos)
+	{
+	  std::string::size_type n_http;
+	  n_http = result.find("http", n_end);
+	  if(n_http != std::string::npos)
+	    {
+	      n_end = result.find("<", n_http);
+	      if(n_end != std::string::npos)
+		{
+		  http_addr = result.substr(n_http, n_end - n_http);
+		}
+	      else
+		{
+		  http_addr = result;
+		  http_addr.erase(0, n_http);
+		}
+	    }
+	}
+      n_end = result.find("</a>", n);
+      if(n_end != std::string::npos)
+	{
+	  result.erase(n, n_end - n + std::string("</a>").size());
+	}
+      else
+	{
+	  n_end = result.find("<a/>", n);
+	  if(n_end != std::string::npos)
+	    {
+	      result.erase(n, n_end - n + std::string("<a/>").size());
+	    }
+	  else
+	    {
+	      result = result.substr(0, n);
+	    }
+	}
+
+      while(result.begin() != result.end())
+	{
+	  if(*result.rbegin() == '\n')
+	    {
+	      result.pop_back();
+	    }
+	  else
+	    {
+	      break;
+	    }
+	}
+      if(!http_addr.empty())
+	{
+	  result = result + " " + http_addr;
+	}
+    }
+  result.shrink_to_fit();
   return result;
 }
 
-std::string
+cover_image
 AnnotationCover::coverRet()
 {
-  std::string result;
+  cover_image result;
   if(epub_ch_f)
     {
-      result = "<epub>" + coverEpub();
+      std::filesystem::path p = std::filesystem::u8path(coverEpub());
+      std::fstream f;
+      f.open(p, std::ios_base::in | std::ios_base::binary);
+      if(f.is_open())
+	{
+	  result.image.resize(std::filesystem::file_size(p));
+	  f.read(result.image.data(), result.image.size());
+	  f.close();
+	  result.format = p.extension().u8string();
+	  for(auto it = result.format.begin(); it != result.format.end();)
+	    {
+	      if((*it) == '.')
+		{
+		  result.format.erase(it);
+		}
+	      else
+		{
+		  it++;
+		}
+	    }
+	}
+      std::filesystem::remove_all(p);
     }
   else if(fb2_ch_f || zip_ch_f)
     {
@@ -555,7 +630,9 @@ AnnotationCover::coverRet()
 			  return el == '\n';
 			}),
 				  image.end());
-		      result = image;
+		      result.format = "base64";
+		      std::copy(image.begin(), image.end(),
+				std::back_inserter(result.image));
 		      break;
 		    }
 		  else
@@ -579,13 +656,13 @@ AnnotationCover::coverRet()
     }
   else if(pdf_ch_f)
     {
-      result = "<pdf>" + pdf_cover_path.u8string();
+      result = pdf_result;
     }
   else if(djvu_ch_f)
     {
-      result = djvu_cover_bufer;
+      result = djvu_result;
     }
-
+  result.image.shrink_to_fit();
   return result;
 }
 std::string
@@ -802,13 +879,7 @@ AnnotationCover::coverEpub()
 	});
       if(itl != list.end())
 	{
-	  std::string p_str;
-#ifdef __linux
-	  p_str = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	  p_str = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
+	  std::string p_str = af.temp_path();
 	  p_str = p_str + "/" + af.randomFileName();
 	  std::filesystem::path filepath = std::filesystem::u8path(p_str);
 	  if(std::filesystem::exists(filepath))
@@ -862,13 +933,7 @@ AnnotationCover::epubParse(std::filesystem::path filepath)
   std::vector<std::tuple<int, int, std::string>> list;
   AuxFunc af;
   af.fileNames(filepath.u8string(), list);
-  std::string filename;
-#ifdef __linux
-  filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
+  std::string filename = af.temp_path();
   filename = filename + "/" + af.randomFileName();
   std::filesystem::path outfolder = std::filesystem::u8path(filename);
   if(std::filesystem::exists(outfolder))
@@ -922,26 +987,16 @@ AnnotationCover::pdfParse(std::filesystem::path filepath)
       poppler::ustring subj = doc->get_subject();
       std::vector<char> buf = subj.to_utf8();
       std::copy(buf.begin(), buf.end(), std::back_inserter(file));
-      std::string filename;
-#ifdef __linux
-      filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-      filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-      filename = filename + "/" + af.randomFileName() + "/cover.jpg";
-      pdf_cover_path = std::filesystem::u8path(filename);
-      if(std::filesystem::exists(pdf_cover_path.parent_path()))
-	{
-	  std::filesystem::remove_all(pdf_cover_path.parent_path());
-	}
-      std::filesystem::create_directories(pdf_cover_path.parent_path());
-
       poppler::page *pg = doc->create_page(0);
       poppler::page_renderer pr;
-      poppler::image img = pr.render_page(pg, 72.0, 72.0, -1, -1, -1, -1,
+      pr.set_image_format(poppler::image::format_rgb24);
+      poppler::image img = pr.render_page(pg, 100.0, 100.0, -1, -1, -1, -1,
 					  poppler::rotate_0);
-      img.save(pdf_cover_path.string(), "jpg", -1);
+      pdf_result.image.resize(img.bytes_per_row() * img.height());
+      std::memcpy(pdf_result.image.data(), img.const_data(),
+		  pdf_result.image.size());
+      pdf_result.format = "rgb";
+      pdf_result.rowsize = img.bytes_per_row();
       delete pg;
       delete doc;
     }
@@ -960,20 +1015,6 @@ AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
       poppler::ustring subj = doc->get_subject();
       std::vector<char> buf = subj.to_utf8();
       std::copy(buf.begin(), buf.end(), std::back_inserter(file));
-      std::string filename;
-#ifdef __linux
-      filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-      filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
-      filename = filename + "/" + af.randomFileName() + "/cover.jpg";
-      pdf_cover_path = std::filesystem::u8path(filename);
-      if(std::filesystem::exists(pdf_cover_path.parent_path()))
-	{
-	  std::filesystem::remove_all(pdf_cover_path.parent_path());
-	}
-      std::filesystem::create_directories(pdf_cover_path.parent_path());
       std::vector<std::tuple<int, int, std::string>> listv;
       std::filesystem::path ch_zip = std::filesystem::u8path(archaddr);
       if(ch_zip.extension().u8string() == ".zip")
@@ -1004,18 +1045,19 @@ AnnotationCover::pdfZipParse(std::filesystem::path temp_path,
 				  std::get<1>(*itlv));
 	  pdf_ch_f = false;
 	  fb2_ch_f = true;
-	  if(std::filesystem::exists(pdf_cover_path.parent_path()))
-	    {
-	      std::filesystem::remove_all(pdf_cover_path.parent_path());
-	    }
 	}
       else
 	{
 	  poppler::page *pg = doc->create_page(0);
 	  poppler::page_renderer pr;
-	  poppler::image img = pr.render_page(pg, 72.0, 72.0, -1, -1, -1, -1,
+	  pr.set_image_format(poppler::image::format_rgb24);
+	  poppler::image img = pr.render_page(pg, 100.0, 100.0, -1, -1, -1, -1,
 					      poppler::rotate_0);
-	  img.save(pdf_cover_path.string(), "jpg", -1);
+	  pdf_result.image.resize(img.bytes_per_row() * img.height());
+	  std::memcpy(pdf_result.image.data(), img.const_data(),
+		      pdf_result.image.size());
+	  pdf_result.format = "rgb";
+	  pdf_result.rowsize = img.bytes_per_row();
 	  delete pg;
 	}
     }
@@ -1055,49 +1097,48 @@ AnnotationCover::djvuParse(std::filesystem::path filepath)
 	      prect.h = ih;
 	      rrect = prect;
 
-	      ddjvu_format_style_t style = DDJVU_FORMAT_RGB24;
 	      ddjvu_format_t *fmt = nullptr;
-	      fmt = ddjvu_format_create(style, 0, nullptr);
+	      unsigned int bitmask[4];
+	      bitmask[0] = 255;
+	      bitmask[1] = 65280;
+	      bitmask[2] = 16711680;
+	      bitmask[3] = 4278190080;
+	      fmt = ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 4, bitmask);
 	      if(fmt)
 		{
 		  ddjvu_format_set_row_order(fmt, 1);
 		  int rowsize = rrect.w * 4;
+		  std::vector<char> djvu_cover_bufer;
 		  djvu_cover_bufer.resize(rowsize * rrect.h);
 		  if(!ddjvu_page_render(page, DDJVU_RENDER_COLOR, &prect,
 					&rrect, fmt, rowsize,
 					&djvu_cover_bufer[0]))
 		    {
-		      std::cerr << "DJVU render error" << std::endl;
+		      std::cerr
+			  << "AnnotationCover::djvuParse: DJVU render error"
+			  << std::endl;
 		      djvu_cover_bufer.clear();
 		    }
 		  else
 		    {
-		      std::string param = "<djvu>";
-		      std::string cpy;
-
-		      cpy.resize(sizeof(rowsize));
-		      std::memcpy(&cpy[0], &rowsize, sizeof(rowsize));
-		      std::copy(cpy.begin(), cpy.end(),
-				std::back_inserter(param));
-
-		      cpy.clear();
-		      cpy.resize(sizeof(iw));
-		      std::memcpy(&cpy[0], &iw, sizeof(iw));
-		      std::copy(cpy.begin(), cpy.end(),
-				std::back_inserter(param));
-
-		      cpy.clear();
-		      cpy.resize(sizeof(ih));
-		      std::memcpy(&cpy[0], &ih, sizeof(ih));
-		      std::copy(cpy.begin(), cpy.end(),
-				std::back_inserter(param));
-		      param = param + "</djvu>";
-		      djvu_cover_bufer = param + djvu_cover_bufer;
+		      djvu_result.image = djvu_cover_bufer;
+		      djvu_result.format = "rgba";
+		      djvu_result.rowsize = rowsize;
 		    }
 		  ddjvu_format_release(fmt);
 		}
+	      else
+		{
+		  std::cerr << "AnnotationCover::djvuParse: incorrect format"
+		      << std::endl;
+		}
 
 	      ddjvu_page_release(page);
+	    }
+	  else
+	    {
+	      std::cerr << "AnnotationCover::djvuParse: cover page not created"
+		  << std::endl;
 	    }
 	  ddjvu_document_release(doc);
 	}

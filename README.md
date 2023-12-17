@@ -2,7 +2,7 @@
 
 ## Description
 
-MyLibrary is a simple program for managing `.fb2`, `.epub`, `.pdf` and `djvu` e-book file  collections. It can also works with same formats packed in zip, 7z, jar, cpio, iso, a, ar, tar, tgz, tar.gz, tar.bz2, tar.xz, rar (see notes) archives itself or packed in same types of  archives with `.fbd` files (epub, djvu and pdf books) . MyLibrary creates own database and does not change files content, names or location.
+MyLibrary is a simple program for managing `.fb2`, `.epub`, `.pdf` and `djvu` e-book file collections. It can also works with same formats packed in zip, 7z, jar, cpio, iso, a, ar, tar, tgz, tar.gz, tar.bz2, tar.xz, rar (see notes) archives itself or packed in same types of  archives with `.fbd` files (epub, djvu and pdf books). MyLibrary creates own database and does not change files content, names or location.
 
 ## Installation
 
@@ -38,7 +38,7 @@ It is simple. Just create collection (see proper menu item), search book and ope
 
 ## Notes about archives usage
 1. rar archives are supported partially. This means, that you can carry out all operations, except book removing. In case of rar archive you can remove whole archive, but not separate book from it.
-2. Archives, packed in another archives are not supported. This means, that MyLibrary does not parse for example  zip archive packed in another zip archive. Only exception is epub format (epub books are zip archives itself).
+2. Archives, packed in another archives, are not supported. This means, that MyLibrary does not parse for example zip archive packed in another zip archive. Only exception is epub format (epub books are zip archives itself).
 
 ## License
 

@@ -30,9 +30,12 @@ CreateLeftGrid::~CreateLeftGrid()
 Gtk::Grid*
 CreateLeftGrid::formLeftGrid()
 {
+  MainWindow *mwl = mw;
+
   Gtk::Grid *left_gr = Gtk::make_managed<Gtk::Grid>();
   left_gr->set_halign(Gtk::Align::FILL);
   left_gr->set_valign(Gtk::Align::FILL);
+  left_gr->set_expand(true);
 
   Gtk::Label *collectlab = Gtk::make_managed<Gtk::Label>();
   collectlab->set_halign(Gtk::Align::CENTER);
@@ -43,7 +46,7 @@ CreateLeftGrid::formLeftGrid()
 #ifdef ML_GTK_OLD
   Gtk::ComboBoxText *collect_box = Gtk::make_managed<Gtk::ComboBoxText>();
   collect_box->set_name("comboBox");
-  collect_box->set_halign(Gtk::Align::START);
+  collect_box->set_halign(Gtk::Align::CENTER);
   collect_box->set_margin(5);
   formCollCombo(collect_box);
   std::string filename;
@@ -67,7 +70,7 @@ CreateLeftGrid::formLeftGrid()
 
   mw->readCollection(collect_box);
   collect_box->signal_changed().connect(
-      sigc::bind(sigc::mem_fun(*mw, &MainWindow::readCollection), collect_box));
+      std::bind(&MainWindow::readCollection, mw, collect_box));
 #endif
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gio::ListStore<ModelBoxes>> men_mod;
@@ -152,7 +155,13 @@ CreateLeftGrid::formLeftGrid()
   if(std::get<0>(sp))
     {
       collect_box->set_selected(std::get<1>(sp));
+      mw->readCollection(collect_box);
     }
+  Glib::PropertyProxy<guint> prop_sel = collect_box->property_selected();
+  prop_sel.signal_changed().connect([mwl, collect_box]
+  {
+    mwl->readCollection(collect_box);
+  });
 #endif
   left_gr->attach(*collect_box, 0, 1, 2, 1);
 
@@ -171,7 +180,7 @@ CreateLeftGrid::formLeftGrid()
   Gtk::Entry *surname_ent = Gtk::make_managed<Gtk::Entry>();
   surname_ent->set_halign(Gtk::Align::FILL);
   surname_ent->set_margin(5);
-  surname_ent->set_max_length(50);
+  surname_ent->set_width_chars(30);
   surname_ent->set_activates_default(true);
   left_gr->attach(*surname_ent, 0, 4, 2, 1);
 
@@ -237,26 +246,27 @@ CreateLeftGrid::formLeftGrid()
 
   Gtk::MenuButton *genre_but = Gtk::make_managed<Gtk::MenuButton>();
   genre_but->set_name("menBut");
-  genre_but->set_halign(Gtk::Align::START);
+  genre_but->set_halign(Gtk::Align::FILL);
   genre_but->set_margin(5);
   genre_but->set_label(gettext("<No>"));
 
-  Gtk::ScrolledWindow *scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
-  scrl->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
-  Gtk::Grid *scrl_gr = Gtk::make_managed<Gtk::Grid>();
-  scrl_gr->set_halign(Gtk::Align::START);
-
   Gtk::Popover *popover = Gtk::make_managed<Gtk::Popover>();
   popover->set_name("popoverSt");
-  popover->set_child(*scrl);
   genre_but->set_popover(*popover);
 
-  int maxl = 0;
-  Gtk::Expander *maxexp = nullptr;
-  MainWindow *mwl = mw;
+  Gtk::ScrolledWindow *scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
+  scrl->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
+  popover->set_child(*scrl);
+
+  Gtk::Grid *scrl_gr = Gtk::make_managed<Gtk::Grid>();
+  scrl_gr->set_halign(Gtk::Align::FILL);
+  scrl_gr->set_valign(Gtk::Align::FILL);
+  scrl_gr->set_expand(true);
+  scrl->set_child(*scrl_gr);
+
   for(size_t i = 0; i < mw->genrev->size(); i++)
     {
-      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
+      Glib::ustring g_group(mw->genrev->at(i).header);
 
       if(i == 0)
 	{
@@ -280,8 +290,7 @@ CreateLeftGrid::formLeftGrid()
 	{
 	  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
 	  mw->expv.push_back(chexp);
-	  std::vector<std::tuple<std::string, std::string>> tmpv = std::get<1>(
-	      mw->genrev->at(i));
+	  std::vector<genre_item> tmpv = mw->genrev->at(i).items;
 	  chexp->set_halign(Gtk::Align::START);
 	  chexp->set_margin(2);
 	  chexp->set_expanded(false);
@@ -290,19 +299,13 @@ CreateLeftGrid::formLeftGrid()
 	  chexp_gr->set_halign(Gtk::Align::CENTER);
 	  chexp->set_child(*chexp_gr);
 
-	  if(int(g_group.size()) > maxl)
-	    {
-	      maxl = g_group.size();
-	      maxexp = chexp;
-	    }
-
 	  for(size_t j = 0; j < tmpv.size(); j++)
 	    {
 	      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
 	      txtl->set_margin(2);
 	      txtl->set_halign(Gtk::Align::END);
-	      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
-	      std::string code = std::get<0>(tmpv[j]);
+	      txtl->set_text(Glib::ustring(tmpv[j].name));
+	      std::string code = tmpv[j].code;
 	      Glib::RefPtr<Gtk::GestureClick> clck =
 		  Gtk::GestureClick::create();
 	      clck->set_button(1);
@@ -319,10 +322,11 @@ CreateLeftGrid::formLeftGrid()
 	  scrl_gr->attach(*chexp, 0, i, 1, 1);
 	}
     }
-  scrl->set_child(*scrl_gr);
+
   Gtk::Requisition minreq, natreq;
-  maxexp->get_preferred_size(minreq, natreq);
-  genre_but->set_size_request(natreq.get_width(), -1);
+  scrl_gr->get_preferred_size(minreq, natreq);
+  scrl->set_min_content_width(natreq.get_width());
+  scrl->set_min_content_height(natreq.get_height());
   left_gr->attach(*genre_but, 0, 15, 2, 1);
 
   Gtk::Button *searchbut = Gtk::make_managed<Gtk::Button>();
@@ -336,7 +340,7 @@ CreateLeftGrid::formLeftGrid()
       {
 	BookOpWindows bopw(mwl);
 	bopw.searchBook(collect_box, surname_ent, name_ent, secname_ent,
-	 booknm_ent, ser_ent);
+			booknm_ent, ser_ent);
       });
   left_gr->attach(*searchbut, 0, 16, 1, 1);
   mw->set_default_widget(*searchbut);
@@ -393,7 +397,7 @@ CreateLeftGrid::formLeftGrid()
 	booknm_ent->set_text("");
 	ser_ent->set_text("");
 
-	widg = right_grid->get_child_at(0, 2);
+	widg = right_grid->get_child_at(0, 7);
 	Gtk::ScrolledWindow *annot_scrl =
 	    dynamic_cast<Gtk::ScrolledWindow*>(widg);
 	widg = annot_scrl->get_child();
@@ -402,56 +406,15 @@ CreateLeftGrid::formLeftGrid()
 	Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
 	tb->set_text("");
 
-	widg = right_grid->get_child_at(1, 2);
+	widg = right_grid->get_child_at(5, 7);
 	Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
 
 	drar->set_opacity(0.0);
 
 	mwl->search_result_v.clear();
+	mwl->cover_struct = cover_image();
       });
   left_gr->attach(*clearbut, 1, 16, 1, 1);
-
-  int gvsz = mw->genrev->size();
-
-  mw->signal_show().connect([mwl, maxexp, scrl, gvsz]
-  {
-    if(maxexp != nullptr)
-      {
-	Gtk::Requisition minreq, natreq;
-	maxexp->get_preferred_size(minreq, natreq);
-	Gdk::Rectangle req = mwl->screenRes();
-	if(natreq.get_width() < req.get_width())
-	  {
-	    scrl->set_min_content_width(natreq.get_width());
-	  }
-	else
-	  {
-	    int width = natreq.get_width();
-	    while(width > req.get_width())
-	      {
-		width--;
-	      }
-	    scrl->set_min_content_width(width);
-	  }
-
-	if(gvsz > 0)
-	  {
-	    if(natreq.get_height() * gvsz < req.get_height())
-	      {
-		scrl->set_min_content_height(natreq.get_height() * gvsz);
-	      }
-	    else
-	      {
-		int height = natreq.get_height() * gvsz;
-		while(height > req.get_height())
-		  {
-		    height = height - natreq.get_height();
-		  }
-		scrl->set_min_content_height(height);
-	      }
-	  }
-      }
-  });
 
   return left_gr;
 }
@@ -531,431 +494,433 @@ CreateLeftGrid::formCollCombo()
 #endif
 
 void
-CreateLeftGrid::formGenreVect(
-    std::vector<
-	std::tuple<std::string,
-	    std::vector<std::tuple<std::string, std::string>>>> *genrev)
+CreateLeftGrid::formGenreVect(std::vector<genres> *genrev)
 {
-  std::tuple<std::string, std::vector<std::tuple<std::string, std::string>>> genrevtup;
-  std::string genstr(gettext("Science Fiction & Fantasy"));
-  std::vector<std::tuple<std::string, std::string>> genre;
-  std::tuple<std::string, std::string> ttup;
-  std::get<0>(genrevtup) = std::string(gettext("<No>"));
-  std::get<1>(genrevtup) = genre;
-  genrev->push_back(genrevtup);
-  std::get<0>(ttup) = "sf_history";
-  std::get<1>(ttup) = std::string(gettext("Alternative history"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_action";
-  std::get<1>(ttup) = std::string(gettext("Action"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_epic";
-  std::get<1>(ttup) = std::string(gettext("Epic"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_heroic";
-  std::get<1>(ttup) = std::string(gettext("Heroic"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_detective";
-  std::get<1>(ttup) = std::string(gettext("Detective"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_cyberpunk";
-  std::get<1>(ttup) = std::string(gettext("Cyberpunk"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_space";
-  std::get<1>(ttup) = std::string(gettext("Space"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_social";
-  std::get<1>(ttup) = std::string(gettext("Social-philosophical"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_horror";
-  std::get<1>(ttup) = std::string(gettext("Horror & mystic"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_humor";
-  std::get<1>(ttup) = std::string(gettext("Humor"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf_fantasy";
-  std::get<1>(ttup) = std::string(gettext("Fantasy"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sf";
-  std::get<1>(ttup) = std::string(gettext("Science Fiction"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  genres gs;
+  gs.header = std::string(gettext("<No>"));
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Detectives & Thrillers"));
-  std::get<0>(ttup) = "det_classic";
-  std::get<1>(ttup) = std::string(gettext("Classical detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_police";
-  std::get<1>(ttup) = std::string(gettext("Police Stories"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_action";
-  std::get<1>(ttup) = std::string(gettext("Action"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_irony";
-  std::get<1>(ttup) = std::string(gettext("Ironical detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_history";
-  std::get<1>(ttup) = std::string(gettext("Historical detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_espionage";
-  std::get<1>(ttup) = std::string(gettext("Espionage detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_crime";
-  std::get<1>(ttup) = std::string(gettext("Crime detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_political";
-  std::get<1>(ttup) = std::string(gettext("Political detectives"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_maniac";
-  std::get<1>(ttup) = std::string(gettext("Maniacs"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "det_hard";
-  std::get<1>(ttup) = std::string(gettext("Hard-boiled"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "thriller";
-  std::get<1>(ttup) = std::string(gettext("Thrillers"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "detective";
-  std::get<1>(ttup) = std::string(gettext("Detectives"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  std::vector<genre_item> item_v;
+  gs.header = std::string(gettext("Science Fiction & Fantasy"));
+  genre_item item;
+  item.code = "sf_history";
+  item.name = std::string(gettext("Alternative history"));
+  item_v.push_back(item);
 
-  genstr = std::string(gettext("Prose"));
-  std::get<0>(ttup) = "prose_classic";
-  std::get<1>(ttup) = std::string(gettext("Classics prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "prose_history";
-  std::get<1>(ttup) = std::string(gettext("Historical prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "prose_contemporary";
-  std::get<1>(ttup) = std::string(gettext("Contemporary prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "prose_counter";
-  std::get<1>(ttup) = std::string(gettext("Counterculture"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "prose_rus_classic";
-  std::get<1>(ttup) = std::string(gettext("Russial classics prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "prose_su_classics";
-  std::get<1>(ttup) = std::string(gettext("Soviet classics prose"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  item.code = "sf_history";
+  item.name = std::string(gettext("Alternative history"));
+  item_v.push_back(item);
+  item.code = "sf_action";
+  item.name = std::string(gettext("Action"));
+  item_v.push_back(item);
+  item.code = "sf_epic";
+  item.name = std::string(gettext("Epic"));
+  item_v.push_back(item);
+  item.code = "sf_heroic";
+  item.name = std::string(gettext("Heroic"));
+  item_v.push_back(item);
+  item.code = "sf_detective";
+  item.name = std::string(gettext("Detective"));
+  item_v.push_back(item);
+  item.code = "sf_cyberpunk";
+  item.name = std::string(gettext("Cyberpunk"));
+  item_v.push_back(item);
+  item.code = "sf_space";
+  item.name = std::string(gettext("Space"));
+  item_v.push_back(item);
+  item.code = "sf_social";
+  item.name = std::string(gettext("Social-philosophical"));
+  item_v.push_back(item);
+  item.code = "sf_horror";
+  item.name = std::string(gettext("Horror & mystic"));
+  item_v.push_back(item);
+  item.code = "sf_humor";
+  item.name = std::string(gettext("Humor"));
+  item_v.push_back(item);
+  item.code = "sf_fantasy";
+  item.name = std::string(gettext("Fantasy"));
+  item_v.push_back(item);
+  item.code = "sf";
+  item.name = std::string(gettext("Science Fiction"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Romance"));
-  std::get<0>(ttup) = "love_contemporary";
-  std::get<1>(ttup) = std::string(gettext("Contemporary Romance"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "love_history";
-  std::get<1>(ttup) = std::string(gettext("Historical Romance"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "love_detective";
-  std::get<1>(ttup) = std::string(gettext("Detective Romance"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "love_short";
-  std::get<1>(ttup) = std::string(gettext("Short Romance"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "love_erotica";
-  std::get<1>(ttup) = std::string(gettext("Erotica"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Detectives & Thrillers"));
+  item.code = "det_classic";
+  item.name = std::string(gettext("Classical detectives"));
+  item_v.push_back(item);
+  item.code = "det_police";
+  item.name = std::string(gettext("Police Stories"));
+  item_v.push_back(item);
+  item.code = "det_action";
+  item.name = std::string(gettext("Action"));
+  item_v.push_back(item);
+  item.code = "det_irony";
+  item.name = std::string(gettext("Ironical detectives"));
+  item_v.push_back(item);
+  item.code = "det_history";
+  item.name = std::string(gettext("Historical detectives"));
+  item_v.push_back(item);
+  item.code = "det_espionage";
+  item.name = std::string(gettext("Espionage detectives"));
+  item_v.push_back(item);
+  item.code = "det_crime";
+  item.name = std::string(gettext("Crime detectives"));
+  item_v.push_back(item);
+  item.code = "det_political";
+  item.name = std::string(gettext("Political detectives"));
+  item_v.push_back(item);
+  item.code = "det_maniac";
+  item.name = std::string(gettext("Maniacs"));
+  item_v.push_back(item);
+  item.code = "det_hard";
+  item.name = std::string(gettext("Hard-boiled"));
+  item_v.push_back(item);
+  item.code = "thriller";
+  item.name = std::string(gettext("Thrillers"));
+  item_v.push_back(item);
+  item.code = "detective";
+  item.name = std::string(gettext("Detectives"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Adventure"));
-  std::get<0>(ttup) = "adv_western";
-  std::get<1>(ttup) = std::string(gettext("Western"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adv_history";
-  std::get<1>(ttup) = std::string(gettext("History"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adv_indian";
-  std::get<1>(ttup) = std::string(gettext("Indians"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adv_maritime";
-  std::get<1>(ttup) = std::string(gettext("Maritime Fiction"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adv_geo";
-  std::get<1>(ttup) = std::string(gettext("Travel & geography"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adv_animal";
-  std::get<1>(ttup) = std::string(gettext("Nature & animals"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "adventure";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Prose"));
+  item.code = "prose_classic";
+  item.name = std::string(gettext("Classics prose"));
+  item_v.push_back(item);
+  item.code = "prose_history";
+  item.name = std::string(gettext("Historical prose"));
+  item_v.push_back(item);
+  item.code = "prose_contemporary";
+  item.name = std::string(gettext("Contemporary prose"));
+  item_v.push_back(item);
+  item.code = "prose_counter";
+  item.name = std::string(gettext("Counterculture"));
+  item_v.push_back(item);
+  item.code = "prose_rus_classic";
+  item.name = std::string(gettext("Russial classics prose"));
+  item_v.push_back(item);
+  item.code = "prose_su_classics";
+  item.name = std::string(gettext("Soviet classics prose"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Children's"));
-  std::get<0>(ttup) = "child_tale";
-  std::get<1>(ttup) = std::string(gettext("Fairy Tales"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_verse";
-  std::get<1>(ttup) = std::string(gettext("Verses"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_prose";
-  std::get<1>(ttup) = std::string(gettext("Prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_sf";
-  std::get<1>(ttup) = std::string(gettext("Science Fiction"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_det";
-  std::get<1>(ttup) = std::string(gettext("Detectives & Thrillers"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_adv";
-  std::get<1>(ttup) = std::string(gettext("Adventures"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "child_education";
-  std::get<1>(ttup) = std::string(gettext("Educational"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "children";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Romance"));
+  item.code = "love_contemporary";
+  item.name = std::string(gettext("Contemporary Romance"));
+  item_v.push_back(item);
+  item.code = "love_history";
+  item.name = std::string(gettext("Historical Romance"));
+  item_v.push_back(item);
+  item.code = "love_detective";
+  item.name = std::string(gettext("Detective Romance"));
+  item_v.push_back(item);
+  item.code = "love_short";
+  item.name = std::string(gettext("Short Romance"));
+  item_v.push_back(item);
+  item.code = "love_erotica";
+  item.name = std::string(gettext("Erotica"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Poetry & Dramaturgy"));
-  std::get<0>(ttup) = "poetry";
-  std::get<1>(ttup) = std::string(gettext("Poetry"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "dramaturgy";
-  std::get<1>(ttup) = std::string(gettext("Dramaturgy"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Adventure"));
+  item.code = "adv_western";
+  item.name = std::string(gettext("Western"));
+  item_v.push_back(item);
+  item.code = "adv_history";
+  item.name = std::string(gettext("History"));
+  item_v.push_back(item);
+  item.code = "adv_indian";
+  item.name = std::string(gettext("Indians"));
+  item_v.push_back(item);
+  item.code = "adv_maritime";
+  item.name = std::string(gettext("Maritime Fiction"));
+  item_v.push_back(item);
+  item.code = "adv_geo";
+  item.name = std::string(gettext("Travel & geography"));
+  item_v.push_back(item);
+  item.code = "adv_animal";
+  item.name = std::string(gettext("Nature & animals"));
+  item_v.push_back(item);
+  item.code = "adventure";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Antique literature"));
-  std::get<0>(ttup) = "antique_ant";
-  std::get<1>(ttup) = std::string(gettext("Antique"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "antique_european";
-  std::get<1>(ttup) = std::string(gettext("European"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "antique_russian";
-  std::get<1>(ttup) = std::string(gettext("Old russian"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "antique_east";
-  std::get<1>(ttup) = std::string(gettext("Old east"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "antique_myths";
-  std::get<1>(ttup) = std::string(gettext("Myths. Legends. Epos."));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "antique";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Children's"));
+  item.code = "child_tale";
+  item.name = std::string(gettext("Fairy Tales"));
+  item_v.push_back(item);
+  item.code = "child_verse";
+  item.name = std::string(gettext("Verses"));
+  item_v.push_back(item);
+  item.code = "child_prose";
+  item.name = std::string(gettext("Prose"));
+  item_v.push_back(item);
+  item.code = "child_sf";
+  item.name = std::string(gettext("Science Fiction"));
+  item_v.push_back(item);
+  item.code = "child_det";
+  item.name = std::string(gettext("Detectives & Thrillers"));
+  item_v.push_back(item);
+  item.code = "child_adv";
+  item.name = std::string(gettext("Adventures"));
+  item_v.push_back(item);
+  item.code = "child_education";
+  item.name = std::string(gettext("Educational"));
+  item_v.push_back(item);
+  item.code = "children";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Scientific-educational"));
-  std::get<0>(ttup) = "sci_history";
-  std::get<1>(ttup) = std::string(gettext("History"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_psychology";
-  std::get<1>(ttup) = std::string(gettext("Psychology"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_culture";
-  std::get<1>(ttup) = std::string(gettext("Cultural science"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_religion";
-  std::get<1>(ttup) = std::string(gettext("Religious studies"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_philosophy";
-  std::get<1>(ttup) = std::string(gettext("Philosophy"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_politics";
-  std::get<1>(ttup) = std::string(gettext("Politics"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_business";
-  std::get<1>(ttup) = std::string(gettext("Business literature"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_juris";
-  std::get<1>(ttup) = std::string(gettext("Jurisprudence"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_linguistic";
-  std::get<1>(ttup) = std::string(gettext("Linguistics"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_medicine";
-  std::get<1>(ttup) = std::string(gettext("Medicine"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_phys";
-  std::get<1>(ttup) = std::string(gettext("Physics"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_math";
-  std::get<1>(ttup) = std::string(gettext("Mathematics"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_chem";
-  std::get<1>(ttup) = std::string(gettext("Chemistry"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_biology";
-  std::get<1>(ttup) = std::string(gettext("Biology"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "sci_tech";
-  std::get<1>(ttup) = std::string(gettext("Technical"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "science";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Poetry & Dramaturgy"));
+  item.code = "poetry";
+  item.name = std::string(gettext("Poetry"));
+  item_v.push_back(item);
+  item.code = "dramaturgy";
+  item.name = std::string(gettext("Dramaturgy"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Computers & Internet"));
-  std::get<0>(ttup) = "comp_www";
-  std::get<1>(ttup) = std::string(gettext("Internet"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "comp_programming";
-  std::get<1>(ttup) = std::string(gettext("Programming"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "comp_hard";
-  std::get<1>(ttup) = std::string(gettext("Hardware"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "comp_soft";
-  std::get<1>(ttup) = std::string(gettext("Software"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "comp_db";
-  std::get<1>(ttup) = std::string(gettext("Databases"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "comp_osnet";
-  std::get<1>(ttup) = std::string(gettext("OS & Networking"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "computers";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Antique literature"));
+  item.code = "antique_ant";
+  item.name = std::string(gettext("Antique"));
+  item_v.push_back(item);
+  item.code = "antique_european";
+  item.name = std::string(gettext("European"));
+  item_v.push_back(item);
+  item.code = "antique_russian";
+  item.name = std::string(gettext("Old russian"));
+  item_v.push_back(item);
+  item.code = "antique_east";
+  item.name = std::string(gettext("Old east"));
+  item_v.push_back(item);
+  item.code = "antique_myths";
+  item.name = std::string(gettext("Myths. Legends. Epos."));
+  item_v.push_back(item);
+  item.code = "antique";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Reference"));
-  std::get<0>(ttup) = "ref_encyc";
-  std::get<1>(ttup) = std::string(gettext("Encyclopedias"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "ref_dict";
-  std::get<1>(ttup) = std::string(gettext("Dictionaries"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "ref_ref";
-  std::get<1>(ttup) = std::string(gettext("Reference"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "ref_guide";
-  std::get<1>(ttup) = std::string(gettext("Guidebooks"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "reference";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Scientific-educational"));
+  item.code = "sci_history";
+  item.name = std::string(gettext("History"));
+  item_v.push_back(item);
+  item.code = "sci_psychology";
+  item.name = std::string(gettext("Psychology"));
+  item_v.push_back(item);
+  item.code = "sci_culture";
+  item.name = std::string(gettext("Cultural science"));
+  item_v.push_back(item);
+  item.code = "sci_religion";
+  item.name = std::string(gettext("Religious studies"));
+  item_v.push_back(item);
+  item.code = "sci_philosophy";
+  item.name = std::string(gettext("Philosophy"));
+  item_v.push_back(item);
+  item.code = "sci_politics";
+  item.name = std::string(gettext("Politics"));
+  item_v.push_back(item);
+  item.code = "sci_business";
+  item.name = std::string(gettext("Business literature"));
+  item_v.push_back(item);
+  item.code = "sci_juris";
+  item.name = std::string(gettext("Jurisprudence"));
+  item_v.push_back(item);
+  item.code = "sci_linguistic";
+  item.name = std::string(gettext("Linguistics"));
+  item_v.push_back(item);
+  item.code = "sci_medicine";
+  item.name = std::string(gettext("Medicine"));
+  item_v.push_back(item);
+  item.code = "sci_phys";
+  item.name = std::string(gettext("Physics"));
+  item_v.push_back(item);
+  item.code = "sci_math";
+  item.name = std::string(gettext("Mathematics"));
+  item_v.push_back(item);
+  item.code = "sci_chem";
+  item.name = std::string(gettext("Chemistry"));
+  item_v.push_back(item);
+  item.code = "sci_biology";
+  item.name = std::string(gettext("Biology"));
+  item_v.push_back(item);
+  item.code = "sci_tech";
+  item.name = std::string(gettext("Technical"));
+  item_v.push_back(item);
+  item.code = "science";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Nonfiction"));
-  std::get<0>(ttup) = "nonf_biography";
-  std::get<1>(ttup) = std::string(gettext("Biography & Memoirs"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "nonf_publicism";
-  std::get<1>(ttup) = std::string(gettext("Publicism"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "nonf_criticism";
-  std::get<1>(ttup) = std::string(gettext("Criticism"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "design";
-  std::get<1>(ttup) = std::string(gettext("Art & design"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "nonfiction";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Computers & Internet"));
+  item.code = "comp_www";
+  item.name = std::string(gettext("Internet"));
+  item_v.push_back(item);
+  item.code = "comp_programming";
+  item.name = std::string(gettext("Programming"));
+  item_v.push_back(item);
+  item.code = "comp_hard";
+  item.name = std::string(gettext("Hardware"));
+  item_v.push_back(item);
+  item.code = "comp_soft";
+  item.name = std::string(gettext("Software"));
+  item_v.push_back(item);
+  item.code = "comp_db";
+  item.name = std::string(gettext("Databases"));
+  item_v.push_back(item);
+  item.code = "comp_osnet";
+  item.name = std::string(gettext("OS & Networking"));
+  item_v.push_back(item);
+  item.code = "computers";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Religion & Inspirationn"));
-  std::get<0>(ttup) = "religion_rel";
-  std::get<1>(ttup) = std::string(gettext("Religion"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "religion_esoterics";
-  std::get<1>(ttup) = std::string(gettext("Esoterics"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "religion_self";
-  std::get<1>(ttup) = std::string(gettext("Self-improvement"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "religion";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Reference"));
+  item.code = "ref_encyc";
+  item.name = std::string(gettext("Encyclopedias"));
+  item_v.push_back(item);
+  item.code = "ref_dict";
+  item.name = std::string(gettext("Dictionaries"));
+  item_v.push_back(item);
+  item.code = "ref_ref";
+  item.name = std::string(gettext("Reference"));
+  item_v.push_back(item);
+  item.code = "ref_guide";
+  item.name = std::string(gettext("Guidebooks"));
+  item_v.push_back(item);
+  item.code = "reference";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Humor"));
-  std::get<0>(ttup) = "humor_anecdote";
-  std::get<1>(ttup) = std::string(gettext("Anecdote (funny stories)"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "humor_prose";
-  std::get<1>(ttup) = std::string(gettext("Prose"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "humor_verse";
-  std::get<1>(ttup) = std::string(gettext("Verses"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "humor";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Nonfiction"));
+  item.code = "nonf_biography";
+  item.name = std::string(gettext("Biography & Memoirs"));
+  item_v.push_back(item);
+  item.code = "nonf_publicism";
+  item.name = std::string(gettext("Publicism"));
+  item_v.push_back(item);
+  item.code = "nonf_criticism";
+  item.name = std::string(gettext("Criticism"));
+  item_v.push_back(item);
+  item.code = "design";
+  item.name = std::string(gettext("Art & design"));
+  item_v.push_back(item);
+  item.code = "nonfiction";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
 
-  genstr = std::string(gettext("Home & Family"));
-  std::get<0>(ttup) = "home_cooking";
-  std::get<1>(ttup) = std::string(gettext("Cooking"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_pets";
-  std::get<1>(ttup) = std::string(gettext("Pets"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_crafts";
-  std::get<1>(ttup) = std::string(gettext("Hobbies & Crafts"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_entertain";
-  std::get<1>(ttup) = std::string(gettext("Entertaining"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_health";
-  std::get<1>(ttup) = std::string(gettext("Health"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_garden";
-  std::get<1>(ttup) = std::string(gettext("Garden"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_diy";
-  std::get<1>(ttup) = std::string(gettext("Do it yourself"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_sport";
-  std::get<1>(ttup) = std::string(gettext("Sports"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home_sex";
-  std::get<1>(ttup) = std::string(gettext("Erotica & sex"));
-  genre.push_back(ttup);
-  std::get<0>(ttup) = "home";
-  std::get<1>(ttup) = std::string(gettext("Other"));
-  genre.push_back(ttup);
-  std::get<0>(genrevtup) = genstr;
-  std::get<1>(genrevtup) = genre;
-  genre.clear();
-  genrev->push_back(genrevtup);
+  gs.header = std::string(gettext("Religion & Inspirationn"));
+  item.code = "religion_rel";
+  item.name = std::string(gettext("Religion"));
+  item_v.push_back(item);
+  item.code = "religion_esoterics";
+  item.name = std::string(gettext("Esoterics"));
+  item_v.push_back(item);
+  item.code = "religion_self";
+  item.name = std::string(gettext("Self-improvement"));
+  item_v.push_back(item);
+  item.code = "religion";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
+
+  gs.header = std::string(gettext("Humor"));
+  item.code = "humor_anecdote";
+  item.name = std::string(gettext("Anecdote (funny stories)"));
+  item_v.push_back(item);
+  item.code = "humor_prose";
+  item.name = std::string(gettext("Prose"));
+  item_v.push_back(item);
+  item.code = "humor_verse";
+  item.name = std::string(gettext("Verses"));
+  item_v.push_back(item);
+  item.code = "humor";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
+
+  gs.header = std::string(gettext("Home & Family"));
+  item.code = "home_cooking";
+  item.name = std::string(gettext("Cooking"));
+  item_v.push_back(item);
+  item.code = "home_pets";
+  item.name = std::string(gettext("Pets"));
+  item_v.push_back(item);
+  item.code = "home_crafts";
+  item.name = std::string(gettext("Hobbies & Crafts"));
+  item_v.push_back(item);
+  item.code = "home_entertain";
+  item.name = std::string(gettext("Entertaining"));
+  item_v.push_back(item);
+  item.code = "home_health";
+  item.name = std::string(gettext("Health"));
+  item_v.push_back(item);
+  item.code = "home_garden";
+  item.name = std::string(gettext("Garden"));
+  item_v.push_back(item);
+  item.code = "home_diy";
+  item.name = std::string(gettext("Do it yourself"));
+  item_v.push_back(item);
+  item.code = "home_sport";
+  item.name = std::string(gettext("Sports"));
+  item_v.push_back(item);
+  item.code = "home_sex";
+  item.name = std::string(gettext("Erotica & sex"));
+  item_v.push_back(item);
+  item.code = "home";
+  item.name = std::string(gettext("Other"));
+  item_v.push_back(item);
+  item_v.shrink_to_fit();
+  gs.items = item_v;
+  item_v.clear();
+  genrev->push_back(gs);
+  genrev->shrink_to_fit();
 }

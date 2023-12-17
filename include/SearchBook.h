@@ -27,25 +27,25 @@
 #include <filesystem>
 #include "AuxFunc.h"
 
+struct book_item
+{
+  std::string authors;
+  std::string book;
+  std::string series;
+  std::string genre;
+  std::string date;
+  std::string path_to_book;
+};
+
 class SearchBook
 {
 public:
-  SearchBook(
-      std::string collnm,
-      std::string surnm,
-      std::string name,
-      std::string secname,
-      std::string book,
-      std::string series,
-      std::string genre,
-      std::string *prev_search_nm,
-      std::vector<
-	  std::tuple<std::string, std::string, std::string, std::string,
-	      std::string, std::string>> *base_v,
-      std::vector<
-	  std::tuple<std::string, std::string, std::string, std::string,
-	      std::string, std::string>> *search_result_v,
-      int *cancel);
+  SearchBook(const std::string &collnm, const std::string &surnm,
+	     const std::string &name, const std::string &secname,
+	     const std::string &book, const std::string &series,
+	     const std::string &genre, std::string *prev_search_nm,
+	     std::vector<book_item> *base_v,
+	     std::vector<book_item> *search_result_v, int *cancel);
   virtual
   ~SearchBook();
   void
@@ -71,13 +71,8 @@ private:
   std::string series;
   std::string genre;
   std::string *prev_search_nm;
-  std::vector<
-      std::tuple<std::string, std::string, std::string, std::string,
-	  std::string, std::string>> *base_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
-  std::vector<
-      std::tuple<std::string, std::string, std::string, std::string,
-	  std::string, std::string>> *search_result_v; //0-authors, 1-book, 2-series, 3-genre, 4-date, 5-path to book
+  std::vector<book_item> *base_v;
+  std::vector<book_item> *search_result_v;
   int *cancel = nullptr;
 };
-
 #endif /* INCLUDE_SEARCHBOOK_H_ */

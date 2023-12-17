@@ -246,8 +246,8 @@ CollectionOpWindows::collectionOp(int variant)
       grid->attach(*open_col, 1, 5, 1, 1);
 
       open->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWin), window,
-		     book_path_ent, book_nm_ent));
+	  std::bind(&MainWindow::bookAddWin, mw, window, book_path_ent,
+		    book_nm_ent));
       MainWindow *mwl = mw;
       open_col->signal_clicked().connect([mwl, cmb, window, book_nm_ent]
       {
@@ -395,8 +395,7 @@ CollectionOpWindows::collectionOp(int variant)
       && arch_type)
     {
       remove->signal_clicked().connect(
-	  sigc::bind(sigc::mem_fun(*mw, &MainWindow::bookAddWinFunc), window,
-		     arch_type));
+	  std::bind(&MainWindow::bookAddWinFunc, mw, window, arch_type));
     }
 #endif
 
@@ -656,42 +655,44 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
 
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
 
-  disp_cancel->connect(
-      [lab, con, cancel, window, mwl, prgb]
-      {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection refreshing canceled"));
-	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-	gr->remove(*prgb);
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing canceled"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->refresh_canceled = [disp_cancel]
   {
     disp_cancel->emit();
   };
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect(
-      [lab, con, cancel, window, mwl, prgb]
+  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing finished"));
+    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+    window->set_default_size(1, 1);
+    grid->remove(*prgb);
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
       {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection refreshing finished"));
-	Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
-	window->set_default_size(1, 1);
-	grid->remove(*prgb);
-	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-	while(mc->pending())
-	  {
-	    mc->iteration(true);
-	  }
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+	mc->iteration(true);
+      }
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->refresh_finished = [disp_finished]
   {
     disp_finished->emit();
@@ -711,19 +712,12 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
     };
 
   Glib::Dispatcher *disp_hashed = new Glib::Dispatcher();
-  disp_hashed->connect([tothsh, hashed, prgb]
-  {
-    mpf_set_default_prec(128);
-    mpz_class tot(*tothsh);
-    mpf_class tot_mpf;
-    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
-
-    mpz_class hsh(*hashed);
-    mpf_class hsh_mpf;
-    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
-
-    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
-  });
+  disp_hashed->connect(
+      [tothsh, hashed, prgb]
+      {
+	prgb->set_fraction(
+	    static_cast<double>(*hashed) / static_cast<double>(*tothsh));
+      });
 
   rc->byte_hashed = [hashed, disp_hashed]
   (long unsigned int hsh)
@@ -761,18 +755,19 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
     };
 
   Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
-  disp_coll_nf->connect(
-      [lab, con, cancel, window, mwl, prgb]
-      {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection book directory not found"));
-	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-	gr->remove(*prgb);
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection book directory not found"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->collection_not_exists = [disp_coll_nf]
   {
     disp_coll_nf->emit();
@@ -968,42 +963,44 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
 
   Glib::Dispatcher *disp_cancel = new Glib::Dispatcher();
 
-  disp_cancel->connect(
-      [lab, con, cancel, window, mwl, prgb]
-      {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection refreshing canceled"));
-	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-	gr->remove(*prgb);
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+  disp_cancel->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing canceled"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->refresh_canceled = [disp_cancel]
   {
     disp_cancel->emit();
   };
 
   Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-  disp_finished->connect(
-      [lab, con, cancel, window, mwl, prgb]
+  disp_finished->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection refreshing finished"));
+    Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
+    window->set_default_size(1, 1);
+    grid->remove(*prgb);
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
       {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection refreshing finished"));
-	Gtk::Grid *grid = dynamic_cast<Gtk::Grid*>(window->get_child());
-	window->set_default_size(1, 1);
-	grid->remove(*prgb);
-	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-	while(mc->pending())
-	  {
-	    mc->iteration(true);
-	  }
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+	mc->iteration(true);
+      }
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->refresh_finished = [disp_finished]
   {
     disp_finished->emit();
@@ -1023,19 +1020,12 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     };
 
   Glib::Dispatcher *disp_hashed = new Glib::Dispatcher();
-  disp_hashed->connect([tothsh, hashed, prgb]
-  {
-    mpf_set_default_prec(128);
-    mpz_class tot(*tothsh);
-    mpf_class tot_mpf;
-    mpf_set_z(tot_mpf.get_mpf_t(), tot.get_mpz_t());
-
-    mpz_class hsh(*hashed);
-    mpf_class hsh_mpf;
-    mpf_set_z(hsh_mpf.get_mpf_t(), hsh.get_mpz_t());
-
-    prgb->set_fraction(mpf_class(hsh_mpf / tot_mpf).get_d());
-  });
+  disp_hashed->connect(
+      [tothsh, hashed, prgb]
+      {
+	prgb->set_fraction(
+	    static_cast<double>(*hashed) / static_cast<double>(*tothsh));
+      });
 
   rc->byte_hashed = [hashed, disp_hashed]
   (long unsigned int hsh)
@@ -1073,18 +1063,19 @@ CollectionOpWindows::collectionRefresh(Gtk::ComboBoxText *cmb,
     };
 
   Glib::Dispatcher *disp_coll_nf = new Glib::Dispatcher();
-  disp_coll_nf->connect(
-      [lab, con, cancel, window, mwl, prgb]
-      {
-	mwl->prev_search_nm.clear();
-	con->disconnect();
-	lab->set_label(gettext("Collection book directory not found"));
-	Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
-	gr->remove(*prgb);
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect(
-	    sigc::mem_fun(*window, &Gtk::Window::close));
-      });
+  disp_coll_nf->connect([lab, con, cancel, window, mwl, prgb]
+  {
+    mwl->prev_search_nm.clear();
+    con->disconnect();
+    lab->set_label(gettext("Collection book directory not found"));
+    Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(window->get_child());
+    gr->remove(*prgb);
+    cancel->set_label(gettext("Close"));
+    cancel->signal_clicked().connect([window]
+    {
+      window->close();
+    });
+  });
   rc->collection_not_exists = [disp_coll_nf]
   {
     disp_coll_nf->emit();
@@ -1228,7 +1219,10 @@ CollectionOpWindows::collectionCreate()
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  cancel->signal_clicked().connect([window]
+  {
+    window->close();
+  });
   grid->attach(*cancel, 1, 5, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -1342,8 +1336,8 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
 	collect_box->set_active_text(Glib::ustring(coll_nm));
 #endif
 #ifndef ML_GTK_OLD
-	Gtk::DropDown *collect_box =
-	    dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+	Gtk::DropDown *collect_box = dynamic_cast<Gtk::DropDown*>(left_gr
+	    ->get_child_at(0, 1));
 	CreateLeftGrid clgr(mwl);
 	auto model = clgr.formCollCombo();
 	collect_box->set_model(model);
@@ -1382,8 +1376,7 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
       });
 
   disp_totfiles->connect(
-      sigc::bind(sigc::mem_fun(*mwl, &MainWindow::creationPulseWin), par_win,
-		 cncl));
+      std::bind(&MainWindow::creationPulseWin, mwl, par_win, cncl));
 
   disp_progress->connect(
       [progr, totfiles, mwl]
@@ -1727,7 +1720,10 @@ CollectionOpWindows::importCollection()
   cancel->set_halign(Gtk::Align::END);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  cancel->signal_clicked().connect([window]
+  {
+    window->close();
+  });
   grid->attach(*cancel, 1, 6, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -1856,7 +1852,7 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
 		      f.open(p, std::ios_base::in);
 		      if(f.is_open())
 			{
-			  std::vector < std::string > lv;
+			  std::vector<std::string> lv;
 			  while(!f.eof())
 			    {
 			      std::string line;
@@ -1893,15 +1889,15 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
       Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
       Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
 #ifdef ML_GTK_OLD
-      Gtk::ComboBoxText *collect_box =
-	  dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
+      Gtk::ComboBoxText *collect_box = dynamic_cast<Gtk::ComboBoxText*>(left_gr
+	  ->get_child_at(0, 1));
       collect_box->remove_all();
       CreateLeftGrid clgr(mw);
       clgr.formCollCombo(collect_box);
 #endif
 #ifndef ML_GTK_OLD
-      Gtk::DropDown *collect_box =
-	  dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+      Gtk::DropDown *collect_box = dynamic_cast<Gtk::DropDown*>(left_gr
+	  ->get_child_at(0, 1));
       CreateLeftGrid clgr(mw);
       auto model = clgr.formCollCombo();
       collect_box->set_model(model);
@@ -1924,7 +1920,10 @@ CollectionOpWindows::importCollectionFunc(Gtk::Window *window,
   close->set_halign(Gtk::Align::CENTER);
   close->set_margin(5);
   close->set_label(gettext("Close"));
-  close->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  close->signal_clicked().connect([window]
+  {
+    window->close();
+  });
   grid->attach(*close, 0, 1, 1, 1);
 
   Gtk::Requisition min, nat;
@@ -2053,7 +2052,10 @@ CollectionOpWindows::exportCollection()
   cancel->set_halign(Gtk::Align::END);
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(sigc::mem_fun(*window, &Gtk::Window::close));
+  cancel->signal_clicked().connect([window]
+  {
+    window->close();
+  });
   grid->attach(*cancel, 1, 4, 1, 1);
 
   window->signal_close_request().connect([window]
@@ -2119,7 +2121,10 @@ CollectionOpWindows::exportCollectionFunc(Gtk::ComboBoxText *cmb,
   close->set_halign(Gtk::Align::CENTER);
   close->set_margin(5);
   close->set_label(gettext("Close"));
-  close->signal_clicked().connect(sigc::mem_fun(*win, &Gtk::Window::close));
+  close->signal_clicked().connect([win]
+  {
+    win->close();
+  });
   grid->attach(*close, 0, 1, 1, 1);
 }
 

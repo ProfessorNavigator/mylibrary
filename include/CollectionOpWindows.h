@@ -18,7 +18,6 @@
 #ifndef INCLUDE_COLLECTIONOPWINDOWS_H_
 #define INCLUDE_COLLECTIONOPWINDOWS_H_
 
-#include <gmpxx.h>
 #include "MainWindow.h"
 class MainWindow;
 

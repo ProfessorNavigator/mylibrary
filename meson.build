@@ -10,7 +10,6 @@ libgcrypt = dependency ('libgcrypt', method : 'pkg-config')
 gpg_error = dependency ('gpg-error', method : 'pkg-config')
 poppler = dependency ('poppler-cpp', method : 'pkg-config')
 djvulibre = dependency ('ddjvuapi', method : 'pkg-config')
-gmpxx = dependency ('gmpxx', method : 'pkg-config')
 cpp = meson.get_compiler ('cpp')
 thread_dep = dependency ('threads')
 
@@ -31,10 +30,10 @@ endif
 
 subdir ('po')
 if not gtkmm_new
-	executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+	executable ('mylibrary', sources : [srcgui, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, thread_dep], install : true, win_subsystem : 'windows')
 endif
 if gtkmm_new
-	executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, gmpxx, thread_dep], install : true, win_subsystem : 'windows')
+	executable ('mylibrary', sources : [srcgui_new, srcresources], include_directories : [inc], dependencies : [gtkmm, icu, zip, libarchive, libgcrypt, gpg_error, poppler, djvulibre, thread_dep], install : true, win_subsystem : 'windows')
 endif
 
 install_subdir ('MyLibrary', install_dir : 'share')

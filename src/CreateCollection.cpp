@@ -912,14 +912,7 @@ CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
   std::filesystem::path ch_p;
   if(fp_loc.extension().u8string() == ".zip")
     {
-      std::string outfolder;
-#ifdef __linux
-      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  	      outfolder =
-  		  std::filesystem::temp_directory_path().parent_path().u8string();
-  #endif
+      std::string outfolder = af.temp_path();
       outfolder = outfolder + "/" + af.randomFileName();
       ch_p = std::filesystem::u8path(outfolder);
       if(std::filesystem::exists(ch_p))
@@ -954,14 +947,7 @@ CreateCollection::zipOther(archive *a, std::filesystem::path fp_loc, int index,
 	  if(arnm == nm_in_arch)
 	    {
 	      ch_p = std::filesystem::u8path(arnm);
-	      std::string filename;
-#ifdef __linux
-	      filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      filename =
-		  std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
+	      std::string filename = af.temp_path();
 	      filename = filename + "/" + af.randomFileName() + "/"
 		  + ch_p.filename().u8string();
 	      ch_p = std::filesystem::u8path(filename);
@@ -1199,14 +1185,7 @@ CreateCollection::zipFB2(archive *a, std::filesystem::path fp_loc, int index,
 	    {
 	      std::filesystem::path ch_p;
 	      ch_p = std::filesystem::u8path(arnm);
-	      std::string filename;
-#ifdef __linux
-	      filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  		      filename =
-  			  std::filesystem::temp_directory_path().parent_path().u8string();
-  #endif
+	      std::string filename = af.temp_path();
 	      filename = filename + "/" + af.randomFileName() + "/"
 		  + ch_p.filename().u8string();
 	      ch_p = std::filesystem::u8path(filename);
@@ -2348,15 +2327,8 @@ std::vector<std::tuple<std::string, std::string>>
 CreateCollection::epubparser(std::filesystem::path input)
 {
   std::vector<std::tuple<std::string, std::string>> result;
-
-  std::string filename;
-#ifdef __linux
-  filename = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  filename = std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
   AuxFunc af;
+  std::string filename = af.temp_path();
   filename = filename + "/" + af.randomFileName();
   std::filesystem::path filepath = std::filesystem::u8path(filename);
   if(std::filesystem::exists(filepath))

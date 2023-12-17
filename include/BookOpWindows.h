@@ -78,7 +78,7 @@ public:
 	     Glib::ustring booknm, Gtk::Window *win);
 #endif
   void
-  fileInfo();
+  fileInfo(int variant);
   void
   editBook();
   void

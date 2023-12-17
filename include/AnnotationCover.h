@@ -31,6 +31,13 @@
 #include <libdjvu/miniexp.h>
 #include "AuxFunc.h"
 
+struct cover_image
+{
+  std::vector<char> image;
+  int rowsize = 0;
+  std::string format;
+};
+
 class AnnotationCover
 {
 public:
@@ -39,7 +46,7 @@ public:
   ~AnnotationCover();
   std::string
   annotationRet();
-  std::string
+  cover_image
   coverRet();
 private:
   std::string
@@ -64,9 +71,9 @@ private:
   handle_ddjvu_messages(ddjvu_context_t *ctx, bool wait);
   std::string rcvd_filename = "";
   std::filesystem::path epub_path;
-  std::filesystem::path pdf_cover_path;
+  cover_image pdf_result;
+  cover_image djvu_result;
   std::string file;
-  std::string djvu_cover_bufer;
   bool fb2_ch_f = false;
   bool zip_ch_f = false;
   bool epub_ch_f = false;

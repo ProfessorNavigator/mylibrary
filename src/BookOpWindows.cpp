@@ -216,7 +216,7 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   search_compl_disp->connect([window, mwl, search_compl_disp]
   {
     CreateRightGrid crgr(mwl);
-    crgr.searchResultShow(1);
+    crgr.searchResultShow(1, nullptr);
 
     window->close();
     delete search_compl_disp;
@@ -344,8 +344,8 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
   Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-  Gtk::ComboBoxText *collect_box =
-      dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
+  Gtk::ComboBoxText *collect_box = dynamic_cast<Gtk::ComboBoxText*>(left_gr
+      ->get_child_at(0, 1));
 
   int *cncl = new int(0);
   RefreshCollection *rc = new RefreshCollection(
@@ -374,7 +374,7 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
     Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
     double pos = adj->get_value();
     CreateRightGrid crgr(mwl);
-    crgr.searchResultShow(1);
+    crgr.searchResultShow(1, nullptr);
     msg->close();
     Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
     while(mc->pending())
@@ -387,8 +387,8 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
   });
 
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(right_grid
+      ->get_child_at(0, 0));
   Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
   Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
   std::thread *thr = nullptr;
@@ -399,7 +399,7 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 	{
 	  size_t id;
 	  iter->get_value(0, id);
-	  std::string filename = std::get<5>(mwl->search_result_v[id - 1]);
+	  std::string filename = (mwl->search_result_v[id - 1]).path_to_book;
 	  std::string lsfnm = filename;
 	  lsfnm.erase(
 	      0, lsfnm.find("<archpath>") + std::string("<archpath>").size());
@@ -436,7 +436,7 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 			  mwl->search_result_v.erase(std::remove_if(mwl->search_result_v.begin(), mwl->search_result_v.end(), [ch_p](auto &el)
 				    {
 				      std::string::size_type n;
-				      std::string ptb = std::get<5>(el);
+				      std::string ptb = el.path_to_book;
 				      n = ptb.find(ch_p.u8string());
 				      if(n != std::string::npos)
 					{
@@ -475,7 +475,7 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 			  Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
 			  double pos = adj->get_value();
 			  CreateRightGrid crgr(mwl);
-			  crgr.searchResultShow(1);
+			  crgr.searchResultShow(1, nullptr);
 			  while(mc->pending())
 			    {
 			      mc->iteration(true);
@@ -511,8 +511,8 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 	      Gtk::ScrolledWindow *annot_scrl =
 		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
 									      2));
-	      Gtk::TextView *annot =
-		  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+	      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl
+		  ->get_child());
 	      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
 	      tb->set_text("");
 	      thr = new std::thread([rc, disp_finished, filename]
@@ -583,8 +583,8 @@ BookOpWindows::bookRemoveVar1()
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
   Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-  Gtk::DropDown *collect_box =
-      dynamic_cast<Gtk::DropDown*>(left_gr->get_child_at(0, 1));
+  Gtk::DropDown *collect_box = dynamic_cast<Gtk::DropDown*>(left_gr
+      ->get_child_at(0, 1));
   if(!collect_box)
     {
       return void();
@@ -666,7 +666,7 @@ BookOpWindows::bookRemoveVar1()
 		v.erase(std::remove_if(v.begin(), v.end(), [mod_col]
 		(auto &el)
 		  {
-		    return std::get<0>(el) == mod_col;
+		    return el.item == mod_col;
 		  }),
 			v.end());
 	      }
@@ -678,8 +678,8 @@ BookOpWindows::bookRemoveVar1()
   });
 
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(right_grid
+      ->get_child_at(0, 0));
   Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(sres_scrl->get_child());
   auto sm = sres->get_model();
   Glib::RefPtr<Gtk::SingleSelection> selection = std::dynamic_pointer_cast<
@@ -811,7 +811,7 @@ BookOpWindows::bookRemoveVar1()
 				  v.erase(std::remove_if(v.begin(), v.end(), [mod_col]
 					  (auto &el)
 					    {
-					      return std::get<0>(el) == mod_col;
+					      return el.item == mod_col;
 					    }),
 				      v.end());
 				}
@@ -839,8 +839,8 @@ BookOpWindows::bookRemoveVar1()
 	      Gtk::ScrolledWindow *annot_scrl =
 		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
 									      2));
-	      Gtk::TextView *annot =
-		  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
+	      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl
+		  ->get_child());
 	      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
 	      tb->set_text("");
 	      thr = new std::thread([rc, disp_finished, filename]
@@ -902,8 +902,8 @@ BookOpWindows::bookRemoveVar2(Gtk::Window *win)
 	      Gtk::ListStore>(mw->bm_tv->get_model());
 	  liststore->erase(iter);
 	  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-	  Gtk::ScrolledWindow *scrl =
-	      dynamic_cast<Gtk::ScrolledWindow*>(gr->get_child_at(0, 0));
+	  Gtk::ScrolledWindow *scrl = dynamic_cast<Gtk::ScrolledWindow*>(gr
+	      ->get_child_at(0, 0));
 	  Glib::RefPtr<Gtk::Adjustment> adj = scrl->get_vadjustment();
 	  double pos = adj->get_value();
 	  std::string filename;
@@ -921,18 +921,18 @@ BookOpWindows::bookRemoveVar2(Gtk::Window *win)
 	    {
 	      for(size_t i = 0; i < mw->bookmark_v.size(); i++)
 		{
-		  std::string line = std::get<0>(mw->bookmark_v[i]) + "<?>";
-		  line = line + std::get<1>(mw->bookmark_v[i]) + "<?>";
-		  line = line + std::get<2>(mw->bookmark_v[i]) + "<?>";
-		  line = line + std::get<3>(mw->bookmark_v[i]) + "<?>";
-		  line = line + std::get<4>(mw->bookmark_v[i]) + "<?>";
-		  line = line + std::get<5>(mw->bookmark_v[i]) + "<?L>";
+		  std::string line = (mw->bookmark_v[i]).authors + "<?>";
+		  line = line + (mw->bookmark_v[i]).book + "<?>";
+		  line = line + (mw->bookmark_v[i]).series + "<?>";
+		  line = line + (mw->bookmark_v[i]).genre + "<?>";
+		  line = line + (mw->bookmark_v[i]).date + "<?>";
+		  line = line + (mw->bookmark_v[i]).path_to_book + "<?L>";
 		  f.write(line.c_str(), line.size());
 		}
 	      f.close();
 	    }
 	  CreateRightGrid crgr(mw);
-	  crgr.searchResultShow(2);
+	  crgr.searchResultShow(2, win);
 	  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
 	  while(mc->pending())
 	    {
@@ -946,42 +946,84 @@ BookOpWindows::bookRemoveVar2(Gtk::Window *win)
 
 #ifndef ML_GTK_OLD
 void
-BookOpWindows::fileInfo()
+BookOpWindows::fileInfo(int variant)
 {
-  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
-  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
-  Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(sres_scrl->get_child());
-  Glib::RefPtr<Gtk::SingleSelection> selection;
-  if(sres)
-    {
-      if(sres)
-	{
-	  auto sm = sres->get_model();
-	  selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(sm);
-	}
-    }
   Glib::RefPtr<Glib::ObjectBase> obj;
-  if(selection)
+  Gtk::Window *parent_window = nullptr;
+  switch(variant)
     {
-      if(mw->ms_sel_book)
-	{
-	  auto lm = selection->get_model();
-	  if(lm)
-	    {
-	      if(lm->get_n_items() > *(mw->ms_sel_book))
-		{
-		  obj = lm->get_object(*(mw->ms_sel_book));
-		}
-	    }
-	}
-      else
-	{
-	  obj = selection->get_selected_item();
-	}
+    case 1:
+      {
+	Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+	Gtk::Paned *pn =
+	    dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+	Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+	Gtk::ScrolledWindow *sres_scrl =
+	    dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+	Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(sres_scrl
+	    ->get_child());
+	Glib::RefPtr<Gtk::SingleSelection> selection;
+	if(sres)
+	  {
+	    auto sm = sres->get_model();
+	    selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(sm);
+	  }
+	if(selection)
+	  {
+	    if(mw->ms_sel_book)
+	      {
+		auto lm = selection->get_model();
+		if(lm)
+		  {
+		    if(lm->get_n_items() > *(mw->ms_sel_book))
+		      {
+			obj = lm->get_object(*(mw->ms_sel_book));
+		      }
+		  }
+	      }
+	  }
+	parent_window = mw;
+	break;
+      }
+    case 2:
+      {
+	if(mw->bm_col_view)
+	  {
+	    Glib::RefPtr<Gtk::SelectionModel> model =
+		mw->bm_col_view->get_model();
+	    Glib::RefPtr<Gtk::SingleSelection> ss = std::dynamic_pointer_cast<
+		Gtk::SingleSelection>(model);
+	    if(ss)
+	      {
+		if(mw->bm_sel_book)
+		  {
+		    auto lm = ss->get_model();
+		    if(lm)
+		      {
+			if(lm->get_n_items() > *(mw->bm_sel_book))
+			  {
+			    obj = lm->get_object(*(mw->bm_sel_book));
+			  }
+		      }
+		  }
+	      }
+	    Gtk::Widget *widg = mw->bm_col_view->get_parent();
+	    if(widg)
+	      {
+		widg = widg->get_parent();
+		if(widg)
+		  {
+		    parent_window =
+			dynamic_cast<Gtk::Window*>(widg->get_parent());
+		  }
+	      }
+	  }
+	break;
+      }
+    default:
+      break;
     }
+
   if(obj)
     {
       auto mod_col = std::dynamic_pointer_cast<ModelColumns>(obj);
@@ -990,7 +1032,10 @@ BookOpWindows::fileInfo()
 	  Gtk::Window *window = new Gtk::Window;
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book file info"));
-	  window->set_transient_for(*mw);
+	  if(parent_window)
+	    {
+	      window->set_transient_for(*parent_window);
+	    }
 	  window->set_name("MLwindow");
 
 	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
@@ -1232,8 +1277,8 @@ BookOpWindows::editBook()
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(right_grid
+      ->get_child_at(0, 0));
   Gtk::ColumnView *sres = dynamic_cast<Gtk::ColumnView*>(sres_scrl->get_child());
   Glib::RefPtr<Gtk::SingleSelection> selection;
   if(sres)
@@ -1418,7 +1463,7 @@ BookOpWindows::editBook()
 	  Gtk::Expander *maxexp = nullptr;
 	  for(size_t i = 0; i < mw->genrev->size(); i++)
 	    {
-	      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
+	      Glib::ustring g_group(mw->genrev->at(i).header);
 
 	      if(i == 0)
 		{
@@ -1441,8 +1486,7 @@ BookOpWindows::editBook()
 	      else
 		{
 		  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
-		  std::vector<std::tuple<std::string, std::string>> tmpv =
-		      std::get<1>(mw->genrev->at(i));
+		  std::vector<genre_item> tmpv = mw->genrev->at(i).items;
 		  chexp->set_halign(Gtk::Align::START);
 		  chexp->set_margin(2);
 		  chexp->set_expanded(false);
@@ -1462,8 +1506,8 @@ BookOpWindows::editBook()
 		      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
 		      txtl->set_margin(2);
 		      txtl->set_halign(Gtk::Align::END);
-		      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
-		      std::string code = std::get<0>(tmpv[j]);
+		      txtl->set_text(Glib::ustring(tmpv[j].name));
+		      std::string code = tmpv[j].code;
 		      Glib::RefPtr<Gtk::GestureClick> clck =
 			  Gtk::GestureClick::create();
 		      clck->set_button(1);
@@ -1646,15 +1690,44 @@ BookOpWindows::editBook()
 
 #ifdef ML_GTK_OLD
 void
-BookOpWindows::fileInfo()
+BookOpWindows::fileInfo(int variant)
 {
-  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
-  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
-  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
-  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
-  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
+  Glib::RefPtr<Gtk::TreeSelection> selection;
+  Gtk::Window *parent_window = nullptr;
+  switch(variant)
+    {
+    case 1:
+      {
+	Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
+	Gtk::Paned *pn =
+	    dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
+	Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
+	Gtk::ScrolledWindow *sres_scrl =
+	    dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+	Gtk::TreeView *sres =
+	    dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
+	selection = sres->get_selection();
+	parent_window = mw;
+	break;
+      }
+    case 2:
+      {
+	selection = mw->bm_tv->get_selection();
+	Gtk::Widget *widg = mw->bm_tv->get_parent();
+	if(widg)
+	  {
+	    widg = widg->get_parent();
+	    if(widg)
+	      {
+		parent_window = dynamic_cast<Gtk::Window*>(widg->get_parent());
+	      }
+	  }
+	break;
+      }
+    default:
+      break;
+    }
+
   if(selection)
     {
       Gtk::TreeModel::iterator iter = selection->get_selected();
@@ -1663,7 +1736,10 @@ BookOpWindows::fileInfo()
 	  Gtk::Window *window = new Gtk::Window;
 	  window->set_application(mw->get_application());
 	  window->set_title(gettext("Book file info"));
-	  window->set_transient_for(*mw);
+	  if(parent_window)
+	    {
+	      window->set_transient_for(*parent_window);
+	    }
 	  window->set_name("MLwindow");
 
 	  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
@@ -1676,7 +1752,21 @@ BookOpWindows::fileInfo()
 	  std::filesystem::path filepath;
 	  iter->get_value(0, id);
 	  std::string filename;
-	  filename = std::get<5>(mw->search_result_v[id - 1]);
+	  switch(variant)
+	    {
+	    case 1:
+	      {
+		filename = (mw->search_result_v[id - 1]).path_to_book;
+		break;
+	      }
+	    case 2:
+	      {
+		filename = mw->bookmark_v[id - 1].path_to_book;
+		break;
+	      }
+	    default:
+	      break;
+	    }
 	  std::string::size_type n;
 	  n = filename.find("<zip>");
 	  if(n != std::string::npos)
@@ -1903,8 +1993,8 @@ BookOpWindows::editBook()
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(mw->get_child());
   Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
   Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
-  Gtk::ScrolledWindow *sres_scrl =
-      dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0, 0));
+  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(right_grid
+      ->get_child_at(0, 0));
   Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(sres_scrl->get_child());
   Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
 
@@ -1938,7 +2028,7 @@ BookOpWindows::editBook()
 	  size_t id;
 	  iter->get_value(0, id);
 	  std::get<0>(ttup) = "Genre";
-	  std::get<1>(ttup) = std::get<3>(mw->search_result_v[id - 1]);
+	  std::get<1>(ttup) = (mw->search_result_v[id - 1]).genre;
 	  bookv->push_back(ttup);
 
 	  val.clear();
@@ -1948,7 +2038,7 @@ BookOpWindows::editBook()
 	  bookv->push_back(ttup);
 
 	  std::get<0>(ttup) = "filepath";
-	  std::get<1>(ttup) = std::get<5>(mw->search_result_v[id - 1]);
+	  std::get<1>(ttup) = (mw->search_result_v[id - 1]).path_to_book;
 	  bookv->push_back(ttup);
 
 	  Gtk::Window *window = new Gtk::Window;
@@ -2072,7 +2162,7 @@ BookOpWindows::editBook()
 	  Gtk::Expander *maxexp = nullptr;
 	  for(size_t i = 0; i < mw->genrev->size(); i++)
 	    {
-	      Glib::ustring g_group(std::get<0>(mw->genrev->at(i)));
+	      Glib::ustring g_group(mw->genrev->at(i).header);
 
 	      if(i == 0)
 		{
@@ -2095,8 +2185,7 @@ BookOpWindows::editBook()
 	      else
 		{
 		  Gtk::Expander *chexp = Gtk::make_managed<Gtk::Expander>();
-		  std::vector<std::tuple<std::string, std::string>> tmpv =
-		      std::get<1>(mw->genrev->at(i));
+		  std::vector<genre_item> tmpv = mw->genrev->at(i).items;
 		  chexp->set_halign(Gtk::Align::START);
 		  chexp->set_margin(2);
 		  chexp->set_expanded(false);
@@ -2116,8 +2205,8 @@ BookOpWindows::editBook()
 		      Gtk::Label *txtl = Gtk::make_managed<Gtk::Label>();
 		      txtl->set_margin(2);
 		      txtl->set_halign(Gtk::Align::END);
-		      txtl->set_text(Glib::ustring(std::get<1>(tmpv[j])));
-		      std::string code = std::get<0>(tmpv[j]);
+		      txtl->set_text(Glib::ustring(tmpv[j].name));
+		      std::string code = tmpv[j].code;
 		      Glib::RefPtr<Gtk::GestureClick> clck =
 			  Gtk::GestureClick::create();
 		      clck->set_button(1);
@@ -2355,7 +2444,7 @@ BookOpWindows::bookSaveRestore(
       [searchstr]
       (auto &el)
 	{
-	  return std::get<5>(el) == searchstr;
+	  return el.path_to_book == searchstr;
 	});
 	if(itsv != mwl->search_result_v.end())
 	  {
@@ -2366,7 +2455,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<0>(*itsv) = std::get<1>(*itnewb);
+		(*itsv).authors = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -2376,7 +2465,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<1>(*itsv) = std::get<1>(*itnewb);
+		(*itsv).book = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -2386,7 +2475,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<2>(*itsv) = std::get<1>(*itnewb);
+		(*itsv).series = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -2396,7 +2485,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<3>(*itsv) = std::get<1>(*itnewb);
+		(*itsv).genre = std::get<1>(*itnewb);
 	      }
 
 	    itnewb = std::find_if(newbase->begin(), newbase->end(), []
@@ -2406,7 +2495,7 @@ BookOpWindows::bookSaveRestore(
 	      });
 	    if(itnewb != newbase->end())
 	      {
-		std::get<4>(*itsv) = std::get<1>(*itnewb);
+		(*itsv).date = std::get<1>(*itnewb);
 	      }
 	  }
 	mwl->prev_search_nm.clear();
@@ -2419,7 +2508,7 @@ BookOpWindows::bookSaveRestore(
 	Glib::RefPtr<Gtk::Adjustment> adj = sres_scrl->get_vadjustment();
 	double pos = adj->get_value();
 	CreateRightGrid crgr(mwl);
-	crgr.searchResultShow(1);
+	crgr.searchResultShow(1, nullptr);
 	Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
 	while(mc->pending())
 	  {
@@ -2909,14 +2998,7 @@ BookOpWindows::openBookFunc(Glib::ustring input_path)
       strm << ind_str;
       int index;
       strm >> index;
-      std::string outfolder;
-#ifdef __linux
-      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  	      outfolder =
-  		  std::filesystem::temp_directory_path().parent_path().u8string();
-  #endif
+      std::string outfolder = af.temp_path();
       outfolder = outfolder + "/MyLibraryForReading";
       std::filesystem::path ffr = std::filesystem::u8path(outfolder);
       if(std::filesystem::exists(ffr))
@@ -3033,14 +3115,7 @@ BookOpWindows::copyToFunc(Glib::ustring input_path, Glib::ustring author,
       strm << ind_str;
       int index;
       strm >> index;
-      std::string outfolder;
-#ifdef __linux
-      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-  	      outfolder =
-  		  std::filesystem::temp_directory_path().parent_path().u8string();
-  #endif
+      std::string outfolder = af.temp_path();
       outfolder = outfolder + "/" + af.randomFileName();
       std::filesystem::path ffr = std::filesystem::u8path(outfolder);
       if(std::filesystem::exists(ffr))
@@ -3118,11 +3193,11 @@ BookOpWindows::openBook(int variant)
 	  std::string filename;
 	  if(variant == 1)
 	    {
-	      filename = std::get<5>(mw->search_result_v[id - 1]);
+	      filename = (mw->search_result_v[id - 1]).path_to_book;
 	    }
 	  else if(variant == 2)
 	    {
-	      filename = std::get<5>(mw->bookmark_v[id - 1]);
+	      filename = (mw->bookmark_v[id - 1]).path_to_book;
 	    }
 	  std::string::size_type n;
 	  n = filename.find("<zip>");
@@ -3144,14 +3219,7 @@ BookOpWindows::openBook(int variant)
 	      strm << ind_str;
 	      int index;
 	      strm >> index;
-	      std::string outfolder;
-#ifdef __linux
-	      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      outfolder =
-	      		  std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
+	      std::string outfolder = af.temp_path();
 	      outfolder = outfolder + "/MyLibraryForReading";
 	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
 	      if(std::filesystem::exists(ffr))
@@ -3224,15 +3292,15 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 	  std::string filename, author, book;
 	  if(variant == 1)
 	    {
-	      filename = std::get<5>(mw->search_result_v[id - 1]);
-	      author = std::get<0>(mw->search_result_v[id - 1]);
-	      book = std::get<1>(mw->search_result_v[id - 1]);
+	      filename = (mw->search_result_v[id - 1]).path_to_book;
+	      author = (mw->search_result_v[id - 1]).authors;
+	      book = (mw->search_result_v[id - 1]).book;
 	    }
 	  else if(variant == 2)
 	    {
-	      filename = std::get<5>(mw->bookmark_v[id - 1]);
-	      author = std::get<0>(mw->bookmark_v[id - 1]);
-	      book = std::get<1>(mw->bookmark_v[id - 1]);
+	      filename = (mw->bookmark_v[id - 1]).path_to_book;
+	      author = (mw->bookmark_v[id - 1]).authors;
+	      book = (mw->bookmark_v[id - 1]).book;
 	    }
 	  std::string::size_type n;
 	  n = filename.find("<zip>");
@@ -3254,14 +3322,7 @@ BookOpWindows::copyTo(Gtk::TreeView *sres, int variant, Gtk::Window *win)
 	      strm << ind_str;
 	      int index;
 	      strm >> index;
-	      std::string outfolder;
-#ifdef __linux
-	      outfolder = std::filesystem::temp_directory_path().u8string();
-#endif
-#ifdef _WIN32
-	      outfolder =
-		  std::filesystem::temp_directory_path().parent_path().u8string();
-#endif
+	      std::string outfolder = af.temp_path();
 	      outfolder = outfolder + "/" + af.randomFileName();
 	      std::filesystem::path ffr = std::filesystem::u8path(outfolder);
 	      if(std::filesystem::exists(ffr))

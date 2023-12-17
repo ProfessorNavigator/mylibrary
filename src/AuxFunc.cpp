@@ -75,6 +75,21 @@ AuxFunc::homePath(std::string *filename)
   toutf8(*filename);
 }
 
+std::string
+AuxFunc::temp_path()
+{
+  std::string result;
+
+#ifdef __linux
+  result = std::filesystem::temp_directory_path().u8string();
+#endif
+#ifdef _WIN32
+  result = std::filesystem::temp_directory_path().parent_path().u8string();
+#endif
+
+  return result;
+}
+
 void
 AuxFunc::toutf8(std::string &line)
 {
@@ -1544,8 +1559,7 @@ AuxFunc::from_hex(std::string &hex, std::vector<char> &result)
     {
       if(hex.size() != result.size() * 2)
 	{
-	  std::cerr
-	      << "AuxFunc::from_hex: incompatible size of result array"
+	  std::cerr << "AuxFunc::from_hex: incompatible size of result array"
 	      << std::endl;
 	  return false;
 	}

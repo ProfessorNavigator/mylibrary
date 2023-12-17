@@ -38,6 +38,6 @@ Glib::RefPtr<ModelColumns>
 ModelColumns::create(std::string author, std::string book, std::string series,
 		     std::string genre, std::string date, std::string path)
 {
-  return Glib::make_refptr_for_instance < ModelColumns
-      > (new ModelColumns(author, book, series, genre, date, path));
+  return Glib::make_refptr_for_instance<ModelColumns>(
+      new ModelColumns(author, book, series, genre, date, path));
 }

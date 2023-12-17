@@ -18,10 +18,22 @@
 #ifndef INCLUDE_CREATERIGHTGRID_H_
 #define INCLUDE_CREATERIGHTGRID_H_
 
-#include "MainWindow.h"
 #ifndef ML_GTK_OLD
+#include <gtkmm.h>
 #include "ModelColumns.h"
+
+struct style_item
+{
+  Glib::RefPtr<ModelColumns>item;
+  Gtk::Label *authors = nullptr;
+  Gtk::Label *book = nullptr;
+  Gtk::Label *series = nullptr;
+  Gtk::Label *genre = nullptr;
+  Gtk::Label *date = nullptr;
+};
 #endif
+
+#include "MainWindow.h"
 
 class MainWindow;
 
@@ -41,7 +53,7 @@ public:
 #endif
 #ifdef ML_GTK_OLD
   void
-  searchResultShow(int variant);
+  searchResultShow(int variant, Gtk::Window *win);
 #endif
 private:
 #ifdef ML_GTK_OLD

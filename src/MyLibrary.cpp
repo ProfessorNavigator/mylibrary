@@ -26,6 +26,7 @@
 int
 main(int argc, char *argv[])
 {
+
   AuxFunc af;
   std::string Sharepath;
   std::filesystem::path p(std::filesystem::u8path(af.get_selfpath()));

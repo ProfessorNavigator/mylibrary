@@ -43,51 +43,75 @@ public:
   AuxFunc();
   virtual
   ~AuxFunc();
+
   void
   homePath(std::string *filename);
+
+  std::string
+  temp_path();
+
   void
   toutf8(std::string &line);
+
   void
   toutf8(std::string &line, std::string conv_name);
+
   std::string
   get_selfpath();
+
   int
   fileNames(std::string address,
 	    std::vector<std::tuple<int, int, std::string>> &filenames);
+
   int
   fileNamesNonZip(std::string address,
 		  std::vector<std::tuple<int, int, std::string>> &filenames);
+
   std::string
   randomFileName();
+
   void
   unpackByIndex(std::string archaddress, std::string outfolder, int index);
+
   std::string
   unpackByIndex(std::string archaddress, int index, size_t filesz);
+
   void
   unpackByIndexNonZip(std::string archaddress, std::string outfolder,
 		      int index);
+
   std::string
   unpackByIndexNonZipStr(std::string archaddress, int index);
+
   int
   packing(std::string source, std::string out);
+
   int
   packingNonZip(std::string source, std::string out, std::string extension);
+
   void
   stringToLower(std::string &line);
+
   std::vector<char>
   filehash(std::filesystem::path filepath, int *cancel);
+
   std::vector<char>
   filehash(std::filesystem::path filepath, std::function<void
   (uint64_t)> progress,
 	   int *cancel);
+
   std::string
   to_hex(std::vector<char> *source);
+
   bool
   from_hex(std::string &hex, std::vector<char> &result);
+
   std::string
   utf8to(std::string line);
+
   int
   removeFmArch(std::string archpath, uint64_t index);
+
   std::vector<std::tuple<std::string, std::string>>
   fileinfo(std::string address, int index);
 };

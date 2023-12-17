@@ -18,6 +18,21 @@
 #ifndef INCLUDE_CREATELEFTGRID_H_
 #define INCLUDE_CREATELEFTGRID_H_
 
+#include <string>
+#include <vector>
+
+struct genre_item
+{
+  std::string code;
+  std::string name;
+};
+
+struct genres
+{
+  std::string header;
+  std::vector<genre_item> items;
+};
+
 #include "MainWindow.h"
 #ifndef ML_GTK_OLD
 #include "ModelBoxes.h"
@@ -31,21 +46,22 @@ public:
   CreateLeftGrid(MainWindow *mw);
   virtual
   ~CreateLeftGrid();
+
   Gtk::Grid*
   formLeftGrid();
+
 #ifdef ML_GTK_OLD
   void
   formCollCombo(Gtk::ComboBoxText *combo);
 #endif
+
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gio::ListStore<ModelBoxes>>
   formCollCombo();
 #endif
+
   void
-  formGenreVect(
-      std::vector<
-	  std::tuple<std::string,
-	      std::vector<std::tuple<std::string, std::string>>>> *genrev);
+  formGenreVect(std::vector<genres> *genrev);
 private:
   MainWindow *mw = nullptr;
 };
