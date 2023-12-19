@@ -26,9 +26,11 @@ MyLibrary - это простая программа для создания и 
 
 Если всё прошло штатно, то исполняемый файл mylibrary.exe будет находиться в `msys_dir/mingw_dir/bin`.  Иконка для создания ярлыка на рабочем столе  -  в `msys_dir/mingw_dir/share/icons/hicolor/256x256/apps/mylibrary.ico`.
 
+Также теперь доступен экспериментальный инсталлятор (см. релизы).
+
 ## Зависимости
 
-В MyLibrary используются следующие бибилиотеки:  [gtkmm-4.0](http://www.gtkmm.org/), [gmp](https://gmplib.org/), [poppler](https://poppler.freedesktop.org/), [DjVuLibre](https://djvu.sourceforge.net/), [libzip](https://libzip.org/), [libarchive](https://libarchive.org/), [icu](https://icu.unicode.org/) (версия >= 69), [libgcrypt](https://www.gnupg.org/software/libgcrypt/) и [libgpg-error](https://www.gnupg.org/software/libgpg-error/). Все библиотеки для сборки должны иметь заголовочные файлы, т.е. если вы используете например Debian Linux, то вам потребуются также ...-dev версии пакетов. Кроме того для сборки понадобятся meson и ninja.
+В MyLibrary используются следующие бибилиотеки:  [gtkmm-4.0](http://www.gtkmm.org/), [poppler](https://poppler.freedesktop.org/), [DjVuLibre](https://djvu.sourceforge.net/), [libzip](https://libzip.org/), [libarchive](https://libarchive.org/), [icu](https://icu.unicode.org/) (версия >= 69), [libgcrypt](https://www.gnupg.org/software/libgcrypt/) и [libgpg-error](https://www.gnupg.org/software/libgpg-error/). Все библиотеки для сборки должны иметь заголовочные файлы, т.е. если вы используете например Debian Linux, то вам потребуются также ...-dev версии пакетов. Кроме того для сборки понадобятся meson и ninja.
 
 ## Использование
 

@@ -266,6 +266,7 @@ MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
   widg = right_grid->get_child_at(5, 7);
   Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
   drar->set_opacity(0.0);
+  cover_struct = cover_image();
   Gtk::TreeView *trv = column->get_tree_view();
   Glib::RefPtr<Gtk::TreeModel> model = trv->get_model();
   Gtk::TreeModel::iterator iter = model->get_iter(path);

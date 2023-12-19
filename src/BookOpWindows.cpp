@@ -94,7 +94,6 @@ BookOpWindows::searchBook(Gtk::DropDown *coll_nm, Gtk::Entry *surname_ent,
 
   window->signal_close_request().connect([window]
   {
-
     window->set_visible(false);
     delete window;
     return true;
@@ -217,7 +216,6 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   {
     CreateRightGrid crgr(mwl);
     crgr.searchResultShow(1, nullptr);
-
     window->close();
     delete search_compl_disp;
   });
@@ -225,7 +223,6 @@ BookOpWindows::searchBook(Gtk::ComboBoxText *coll_nm, Gtk::Entry *surname_ent,
   window->signal_close_request().connect([window]
   {
     window->hide();
-
     delete window;
     return true;
   },
@@ -461,11 +458,12 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 			  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
 			  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
 			  Gtk::DrawingArea *drar =
-			  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+			  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(5, 7));
 			  drar->set_opacity(0.0);
+			  mwl->cover_struct = cover_image();
 			  Gtk::ScrolledWindow *annot_scrl =
 			  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
-				  2));
+				  7));
 			  Gtk::TextView *annot =
 			  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
 			  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
@@ -506,11 +504,12 @@ BookOpWindows::bookRemoveVar1(Gtk::MessageDialog *mess)
 	    {
 	      mwl->search_result_v.erase(mwl->search_result_v.begin() + id - 1);
 	      Gtk::DrawingArea *drar =
-		  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+		  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(5, 7));
 	      drar->set_opacity(0.0);
+	      mwl->cover_struct = cover_image();
 	      Gtk::ScrolledWindow *annot_scrl =
 		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
-									      2));
+									      7));
 	      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl
 		  ->get_child());
 	      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
@@ -776,11 +775,12 @@ BookOpWindows::bookRemoveVar1()
 			  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0, 1));
 			  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(pn->get_end_child());
 			  Gtk::DrawingArea *drar =
-			  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+			  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(5, 7));
 			  drar->set_opacity(0.0);
+			  mwl->cover_struct = cover_image();
 			  Gtk::ScrolledWindow *annot_scrl =
 			  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
-				  2));
+				  7));
 			  Gtk::TextView *annot =
 			  dynamic_cast<Gtk::TextView*>(annot_scrl->get_child());
 			  Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
@@ -834,11 +834,12 @@ BookOpWindows::bookRemoveVar1()
 	  else
 	    {
 	      Gtk::DrawingArea *drar =
-		  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(1, 2));
+		  dynamic_cast<Gtk::DrawingArea*>(right_grid->get_child_at(5, 7));
 	      drar->set_opacity(0.0);
+	      mw->cover_struct = cover_image();
 	      Gtk::ScrolledWindow *annot_scrl =
 		  dynamic_cast<Gtk::ScrolledWindow*>(right_grid->get_child_at(0,
-									      2));
+									      7));
 	      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(annot_scrl
 		  ->get_child());
 	      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();

@@ -338,6 +338,7 @@ CreateRightGrid::searchResultShow()
   Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(right_grid
       ->get_child_at(5, 7));
   drar->set_opacity(0.0);
+  mw->cover_struct = cover_image();
   Glib::RefPtr<Gtk::Adjustment> v_adg = sres_scrl->get_vadjustment();
   v_adg->set_value(v_adg->get_lower());
   if(sres)
@@ -818,11 +819,7 @@ CreateRightGrid::rowActivated(guint rownum, Gtk::ColumnView *sres)
 {
   delete mw->ms_sel_book;
   mw->ms_sel_book = new guint(rownum);
-  mw->cover_struct.image.clear();
-  mw->cover_struct.image.shrink_to_fit();
-  mw->cover_struct.format.clear();
-  mw->cover_struct.format.shrink_to_fit();
-  mw->cover_struct.rowsize = 0;
+  mw->cover_struct = cover_image();
   Gtk::Widget *widg = mw->get_child();
   Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
   widg = main_grid->get_child_at(0, 1);
@@ -954,6 +951,7 @@ CreateRightGrid::searchResultShow(int variant, Gtk::Window *win)
       Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(right_grid
 	  ->get_child_at(5, 7));
       drar->set_opacity(0.0);
+      mw->cover_struct = cover_image();
       Glib::RefPtr<Gtk::Adjustment> v_adg = sres_scrl->get_vadjustment();
       v_adg->set_value(v_adg->get_lower());
       del_model = sres->get_model();
