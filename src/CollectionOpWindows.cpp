@@ -715,8 +715,11 @@ CollectionOpWindows::collectionRefresh(Gtk::DropDown *cmb,
   disp_hashed->connect(
       [tothsh, hashed, prgb]
       {
-	prgb->set_fraction(
-	    static_cast<double>(*hashed) / static_cast<double>(*tothsh));
+	if(*tothsh > 0)
+	  {
+	    prgb->set_fraction(
+		static_cast<double>(*hashed) / static_cast<double>(*tothsh));
+	  }
       });
 
   rc->byte_hashed = [hashed, disp_hashed]
@@ -1381,8 +1384,11 @@ CollectionOpWindows::collectionCreateFunc(Gtk::Entry *coll_ent,
   disp_progress->connect(
       [progr, totfiles, mwl]
       {
-	mwl->coll_cr_prog->set_fraction(
-	    static_cast<double>(*progr) / static_cast<double>(*totfiles));
+	if(*totfiles > 0 && mwl->coll_cr_prog)
+	  {
+	    mwl->coll_cr_prog->set_fraction(
+		static_cast<double>(*progr) / static_cast<double>(*totfiles));
+	  }
       });
 
   crcol->creation_finished = [disp_finished]

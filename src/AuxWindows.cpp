@@ -191,7 +191,7 @@ AuxWindows::bookmarkWindow()
   window->set_name("MLwindow");
   window->set_title(gettext("Book-marks"));
   window->set_transient_for(*mw);
-  window->set_modal(true);
+  window->set_modal(false);
   window->set_default_size(mw->get_width() * 0.75, mw->get_height());
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
