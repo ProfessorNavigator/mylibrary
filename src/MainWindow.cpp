@@ -167,7 +167,7 @@ MainWindow::readCollection(Gtk::DropDown *collect_box)
     {
       std::string collnm(mb->menu_line);
 
-      int *search_cancel = new int(0);
+      std::atomic<int> *search_cancel = new std::atomic<int>(0);
       SearchBook *sb = new SearchBook(collnm, "", "", "", "", "", "",
 				      &prev_search_nm, &base_v,
 				      &search_result_v, search_cancel);

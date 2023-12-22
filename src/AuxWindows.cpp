@@ -1296,7 +1296,6 @@ AuxWindows::aboutProg()
 	  "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
 	  "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
 	  "ICU https://icu.unicode.org/\n"
-	  "GMP https://gmplib.org/\n"
 	  "Poppler https://poppler.freedesktop.org/\n"
 	  "DjVuLibre https://djvu.sourceforge.net/");
   aboutd->set_comments(abbuf);

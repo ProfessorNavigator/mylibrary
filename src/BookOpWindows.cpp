@@ -48,7 +48,7 @@ BookOpWindows::searchBook(Gtk::DropDown *coll_nm, Gtk::Entry *surname_ent,
   std::string series(ser_ent->get_text());
   std::string genre(mw->active_genre);
 
-  int *search_cancel = new int(0);
+  std::atomic<int> *search_cancel = new std::atomic<int>(0);
   SearchBook *sb = new SearchBook(collnm, surnm, name, secname, book, series,
 				  genre, &mw->prev_search_nm, &mw->base_v,
 				  &mw->search_result_v, search_cancel);
@@ -77,9 +77,10 @@ BookOpWindows::searchBook(Gtk::DropDown *coll_nm, Gtk::Entry *surname_ent,
   cancel->set_margin(5);
   cancel->set_label(gettext("Cancel"));
   MainWindow *mwl = mw;
-  cancel->signal_clicked().connect([search_cancel]
+  cancel->signal_clicked().connect([search_cancel, lab]
   {
     *search_cancel = 1;
+    lab->set_text(gettext("Canceling..."));
   });
   grid->attach(*cancel, 0, 1, 1, 1);
 

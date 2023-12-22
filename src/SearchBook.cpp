@@ -23,7 +23,7 @@ SearchBook::SearchBook(const std::string &collnm, const std::string &surnm,
 		       const std::string &genre, std::string *prev_search_nm,
 		       std::vector<book_item> *base_v,
 		       std::vector<book_item> *search_result_v,
-		       int *cancel)
+		       std::atomic<int> *cancel)
 {
   this->collnm = collnm;
   this->surnm = surnm;
@@ -64,7 +64,7 @@ SearchBook::searchBook()
 	  filename = filename + "/fb2base";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
-	  if(*cancel == 1)
+	  if(cancel->load() == 1)
 	    {
 	      prev_search_nm->clear();
 	      base_v->clear();
@@ -74,7 +74,7 @@ SearchBook::searchBook()
 	  filename = filename + "/zipbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readZipBase(filepath);
-	  if(*cancel == 1)
+	  if(cancel->load() == 1)
 	    {
 	      prev_search_nm->clear();
 	      base_v->clear();
@@ -84,7 +84,7 @@ SearchBook::searchBook()
 	  filename = filename + "/epubbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
-	  if(*cancel == 1)
+	  if(cancel->load() == 1)
 	    {
 	      prev_search_nm->clear();
 	      base_v->clear();
@@ -94,7 +94,7 @@ SearchBook::searchBook()
 	  filename = filename + "/pdfbase";
 	  filepath = std::filesystem::u8path(filename);
 	  readBase(filepath);
-	  if(*cancel == 1)
+	  if(cancel->load() == 1)
 	    {
 	      prev_search_nm->clear();
 	      base_v->clear();
@@ -116,186 +116,130 @@ SearchBook::searchBook()
 void
 SearchBook::cleanSearchV()
 {
-  if(*cancel != 1)
+  search_result_v->clear();
+  bool all_collection = true;
+  if(cancel->load() != 1)
     {
-      *search_result_v = *base_v;
-      std::string searchstr = surnm;
       AuxFunc af;
-      af.stringToLower(searchstr);
-
-      if(!surnm.empty() && *cancel == 0)
+      for(int i = 0; i < 6; i++)
 	{
-	  search_result_v->erase(
-	      std::remove_if(search_result_v->begin(), search_result_v->end(),
-			     [searchstr]
-			     (auto &el)
-			       {
-				 std::string line = el.authors;
-				 AuxFunc af;
-				 af.stringToLower(line);
-				 std::string::size_type n;
-				 n = line.find(searchstr);
-				 if(n != std::string::npos)
-				   {
-				     return false;
-				   }
-				 else
-				   {
-				     return true;
-				   }
-			       }),
-	      search_result_v->end());
-	}
+	  if(cancel->load() == 1)
+	    {
+	      break;
+	    }
+	  std::string searchstr;
+	  switch(i)
+	    {
+	    case 0:
+	      {
+		searchstr = surnm;
+		break;
+	      }
+	    case 1:
+	      {
+		searchstr = name;
+		break;
+	      }
+	    case 2:
+	      {
+		searchstr = secname;
+		break;
+	      }
+	    case 3:
+	      {
+		searchstr = book;
+		break;
+	      }
+	    case 4:
+	      {
+		searchstr = series;
+		break;
+	      }
+	    case 5:
+	      {
+		searchstr = genre;
+		break;
+	      }
+	    default:
+	      break;
+	    }
 
-      searchstr = name;
-      af.stringToLower(searchstr);
-      if(!name.empty() && *cancel == 0)
-	{
-	  search_result_v->erase(
-	      std::remove_if(search_result_v->begin(), search_result_v->end(),
-			     [searchstr]
-			     (auto &el)
-			       {
-				 std::string line = el.authors;
-				 AuxFunc af;
-				 af.stringToLower(line);
-				 std::string::size_type n;
-				 n = line.find(searchstr);
-				 if(n != std::string::npos)
-				   {
-				     return false;
-				   }
-				 else
-				   {
-				     return true;
-				   }
-			       }),
-	      search_result_v->end());
-	}
+	  af.stringToLower(searchstr);
+	  if(!searchstr.empty())
+	    {
+	      all_collection = false;
+	      std::vector<book_item> *opv;
+	      if(search_result_v->size() == 0)
+		{
+		  opv = base_v;
+		}
+	      else
+		{
+		  opv = search_result_v;
+		}
 
-      searchstr = secname;
-      af.stringToLower(searchstr);
-      if(!secname.empty() && *cancel == 0)
-	{
-	  search_result_v->erase(
-	      std::remove_if(search_result_v->begin(), search_result_v->end(),
-			     [searchstr]
-			     (auto &el)
-			       {
-				 std::string line = el.authors;
-				 AuxFunc af;
-				 af.stringToLower(line);
-				 std::string::size_type n;
-				 n = line.find(searchstr);
-				 if(n != std::string::npos)
-				   {
-				     return false;
-				   }
-				 else
-				   {
-				     return true;
-				   }
-			       }),
-	      search_result_v->end());
-	}
-
-      searchstr = book;
-      af.stringToLower(searchstr);
-      if(!book.empty() && *cancel == 0)
-	{
-	  search_result_v->erase(
-	      std::remove_if(search_result_v->begin(), search_result_v->end(),
-			     [searchstr]
-			     (auto &el)
-			       {
-				 std::string line = el.book;
-				 AuxFunc af;
-				 af.stringToLower(line);
-				 std::string::size_type n;
-				 n = line.find(searchstr);
-				 if(n != std::string::npos)
-				   {
-				     return false;
-				   }
-				 else
-				   {
-				     return true;
-				   }
-			       }),
-	      search_result_v->end());
-	}
-
-      searchstr = series;
-      af.stringToLower(searchstr);
-      if(!series.empty() && *cancel == 0)
-	{
-	  search_result_v->erase(
-	      std::remove_if(search_result_v->begin(), search_result_v->end(),
-			     [searchstr]
-			     (auto &el)
-			       {
-				 std::string line = el.series;
-				 AuxFunc af;
-				 af.stringToLower(line);
-				 std::string::size_type n;
-				 n = line.find(searchstr);
-				 if(n != std::string::npos)
-				   {
-				     return false;
-				   }
-				 else
-				   {
-				     return true;
-				   }
-			       }),
-	      search_result_v->end());
-	}
-
-      searchstr = genre;
-      if(!genre.empty() && *cancel == 0)
-	{
-	  search_result_v->erase(
-	      std::remove_if(
-		  search_result_v->begin(), search_result_v->end(), [searchstr]
-		  (auto &el)
+	      for(auto it = opv->begin(); it != opv->end();)
+		{
+		  book_item item = *it;
+		  std::string line;
+		  switch(i)
 		    {
-		      std::string genrestr = el.genre;
-		      std::vector<std::string> genre_v;
-		      std::string::size_type n = 0;
-		      while (n != std::string::npos)
-			{
-			  std::string s_s = genrestr;
-			  n = s_s.find(", ");
-			  if(n != std::string::npos)
-			    {
-			      s_s = s_s.substr(0, n);
-			      genre_v.push_back(s_s);
-			      s_s = s_s + ", ";
-			      genrestr.erase(0,
-				  genrestr.find(s_s) + s_s.size());
-			    }
-			  else
-			    {
-			      if(!genrestr.empty())
-				{
-				  genre_v.push_back(genrestr);
-				}
-			    }
-			}
+		    case 0:
+		    case 1:
+		    case 2:
+		      {
+			line = item.authors;
+			break;
+		      }
+		    case 3:
+		      {
+			line = item.book;
+			break;
+		      }
+		    case 4:
+		      {
+			line = item.series;
+			break;
+		      }
+		    case 5:
+		      {
+			line = item.genre;
+			break;
+		      }
+		    default:
+		      break;
+		    }
 
-		      auto itgv = std::find(genre_v.begin(), genre_v.end(),
-			  searchstr);
-		      if(itgv != genre_v.end())
+		  af.stringToLower(line);
+		  std::string::size_type n = line.find(searchstr);
+
+		  if(n != std::string::npos)
+		    {
+		      if(opv == base_v)
 			{
-			  return false;
+			  search_result_v->push_back(item);
+			}
+		      it++;
+		    }
+		  else
+		    {
+		      if(opv == search_result_v)
+			{
+			  opv->erase(it);
 			}
 		      else
 			{
-			  return true;
+			  it++;
 			}
-		    }),
-	      search_result_v->end());
+		    }
+		}
+	    }
 	}
+      if(all_collection)
+	{
+	  *search_result_v = *base_v;
+	}
+
       std::sort(search_result_v->begin(), search_result_v->end(), [&af]
       (auto &el1, auto &el2)
 	{
@@ -313,6 +257,7 @@ SearchBook::cleanSearchV()
 	      return false;
 	    }
 	});
+
       std::for_each(search_result_v->begin(), search_result_v->end(), []
       (auto &el)
 	{
@@ -339,7 +284,9 @@ SearchBook::cleanSearchV()
 		    }
 		}
 	    }
+
 	  std::sort(genre_v.begin(), genre_v.end());
+
 	  for(size_t i = 0; i < genre_v.size(); i++)
 	    {
 	      if(i == 0)
@@ -382,7 +329,7 @@ SearchBook::readBase(std::filesystem::path filepath)
       bookpath = bookpath.substr(0, bookpath.find("</bp>"));
       while(!file_str.empty())
 	{
-	  if(*cancel == 1)
+	  if(cancel->load() == 1)
 	    {
 	      break;
 	    }

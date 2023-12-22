@@ -25,6 +25,7 @@
 #include <functional>
 #include <fstream>
 #include <filesystem>
+#include <atomic>
 #include "AuxFunc.h"
 
 struct book_item
@@ -45,7 +46,7 @@ public:
 	     const std::string &book, const std::string &series,
 	     const std::string &genre, std::string *prev_search_nm,
 	     std::vector<book_item> *base_v,
-	     std::vector<book_item> *search_result_v, int *cancel);
+	     std::vector<book_item> *search_result_v, std::atomic<int> *cancel);
   virtual
   ~SearchBook();
   void
@@ -73,6 +74,6 @@ private:
   std::string *prev_search_nm;
   std::vector<book_item> *base_v;
   std::vector<book_item> *search_result_v;
-  int *cancel = nullptr;
+  std::atomic<int> *cancel = nullptr;
 };
 #endif /* INCLUDE_SEARCHBOOK_H_ */
