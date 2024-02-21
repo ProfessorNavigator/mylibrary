@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,119 +18,98 @@
 #ifndef INCLUDE_CREATECOLLECTION_H_
 #define INCLUDE_CREATECOLLECTION_H_
 
-#include <iostream>
-#include <string.h>
+#include <AuxFunc.h>
+#include <FileParseEntry.h>
+#include <Hasher.h>
+#include <atomic>
+#include <condition_variable>
 #include <filesystem>
 #include <fstream>
 #include <functional>
-#include <vector>
-#include <tuple>
-#include <unistd.h>
-#include <thread>
+#include <memory>
 #include <mutex>
-#include <poppler-document.h>
-#include "AuxFunc.h"
+#include <string>
+#include <tuple>
+#include <vector>
 
-class CreateCollection
+class CreateCollection : public Hasher
 {
 public:
-  CreateCollection(
-      std::string coll_nm,
-      std::filesystem::path book_p,
-      unsigned int nm_thr,
-      std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed,
-      int *cancel);
+  CreateCollection(const std::shared_ptr<AuxFunc> &af,
+		   const std::filesystem::path &collection_path,
+		   const std::filesystem::path &books_path,
+		   const int &num_threads, std::atomic<bool> *cancel);
   virtual
   ~CreateCollection();
-  std::function<void
-  ()> creation_finished;
-  std::function<void
-  ()> collection_exist;
-  std::function<void
-  (int)> total_files;
-  std::function<void
-  (int)> files_added;
-  std::function<void
-  ()> op_canceled;
+
   void
-  createFileList(
-      std::vector<std::filesystem::path> *fb2in,
-      std::vector<std::filesystem::path> *epubin,
-      std::vector<
-	  std::tuple<std::filesystem::path,
-	      std::vector<std::tuple<int, int, std::string>>>> *zipvectin,
-      std::vector<std::filesystem::path> *pdfin,
-      std::vector<std::filesystem::path> *djvuin);
+  createCollection();
+
+  std::function<void
+  ()> pulse;
+
+  std::function<void
+  (const double &file_number)> total_file_number;
+
+  std::function<void
+  (const double &progress)> progress;
+
+protected:
+  CreateCollection(const std::shared_ptr<AuxFunc> &af,
+		   const int &num_threads, std::atomic<bool> *cancel);
+
   void
-  createCol();
+  threadRegulator();
+
+  void
+  openBaseFile();
+
+  void
+  closeBaseFile();
+
+  void
+  write_file_to_base(const FileParseEntry &fe);
+
+  std::vector<std::filesystem::path> need_to_parse;
+  std::filesystem::path base_path;
+  std::filesystem::path books_path;
+  std::vector<std::tuple<std::filesystem::path, std::string>> already_hashed;
+
 private:
   void
-  createFileList();
-  void
-  createDatabase();
-  std::vector<std::tuple<std::string, std::string>>
-  fb2parser(std::filesystem::path filepath);
-  std::vector<std::tuple<std::string, std::string>>
-  fb2parser(std::string input);
-  std::vector<std::tuple<std::string, std::string>>
-  epubparser(std::filesystem::path input);
-  std::vector<std::tuple<std::string, std::string>>
-  pdfparser(std::filesystem::path input);
-  std::vector<std::tuple<std::string, std::string>>
-  djvuparser(std::filesystem::path input);
-  void
-  fb2ThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
-		std::filesystem::path fb2_hashp);
-  void
-  zipThreadFunc(
-      std::tuple<std::filesystem::path,
-	  std::vector<std::tuple<int, int, std::string>>> arch_tup,
-      std::filesystem::path filepath, std::filesystem::path zip_hashp);
-  std::vector<std::tuple<std::string, std::string>>
-  zipFB2(archive *a, std::filesystem::path fp_loc, int index, size_t inpsz,
-	 std::string nm_in_arch);
-  std::vector<std::tuple<std::string, std::string>>
-  zipOther(archive *a, std::filesystem::path fp_loc, int index,
-	   std::string nm_in_arch);
-  void
-  epubThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
-		 std::filesystem::path epub_hashp);
-  void
-  pdfThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
-		std::filesystem::path pdf_hashp);
-  void
-  djvuThreadFunc(std::filesystem::path fp, std::filesystem::path filepath,
-		 std::filesystem::path djvu_hashp);
+  fb2_thread(const std::filesystem::path &file_col_path,
+	     const std::filesystem::path &resolved);
 
-  std::string coll_nm;
-  std::filesystem::path book_p;
-  std::vector<std::filesystem::path> fb2;
-  std::vector<std::filesystem::path> epub;
-  std::vector<std::filesystem::path> pdf;
-  std::vector<std::filesystem::path> djvu;
-  std::vector<
-      std::tuple<std::filesystem::path,
-	  std::vector<std::tuple<int, int, std::string>>>> zipvect;
-  std::vector<std::tuple<std::filesystem::path, std::vector<char>>> *already_hashed =
-      nullptr;
-  unsigned int threadnum = 1;
-  int *cancel = nullptr;
-  std::mutex fb2basemtx;
-  std::mutex fb2hashmtx;
-  std::mutex zipbasemtx;
-  std::mutex ziphashmtx;
-  std::mutex epubbasemtx;
-  std::mutex epubhashmtx;
-  std::mutex pdfbasemtx;
-  std::mutex pdfhashmtx;
-  std::mutex djvubasemtx;
-  std::mutex djvuhashmtx;
+  void
+  epub_thread(const std::filesystem::path &file_col_path,
+	      const std::filesystem::path &resolved);
 
-  std::mutex cmtx;
-  unsigned int num_thr_run = 0;
-  std::mutex num_thr_runmtx;
-  int file_count = 0;
-  std::mutex file_countmtx;
+  void
+  pdf_thread(const std::filesystem::path &file_col_path,
+	     const std::filesystem::path &resolved);
+
+  void
+  djvu_thread(const std::filesystem::path &file_col_path,
+	      const std::filesystem::path &resolved);
+
+  void
+  arch_thread(const std::filesystem::path &file_col_path,
+	      const std::filesystem::path &resolved);
+
+  void
+  book_entry_to_file_entry(std::string &file_entry,
+			   const std::string &book_entry);
+
+  std::shared_ptr<AuxFunc> af;
+  int num_threads = 1;
+  std::atomic<bool> *cancel = nullptr;
+
+  std::fstream base_strm;
+  std::mutex base_strm_mtx;
+
+  std::mutex newthrmtx;
+  std::condition_variable add_thread;
+  int run_threads = 0;
 };
 
 #endif /* INCLUDE_CREATECOLLECTION_H_ */

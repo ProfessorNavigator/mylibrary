@@ -1,0 +1,306 @@
+/*
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <BookParseEntry.h>
+#include <glibmm/signalproxy.h>
+#include <glibmm/ustring.h>
+#include <gtkmm/application.h>
+#include <gtkmm/button.h>
+#include <gtkmm/enums.h>
+#include <gtkmm/grid.h>
+#include <gtkmm/label.h>
+#include <gtkmm/object.h>
+#include <libintl.h>
+#include <MLException.h>
+#include <RemoveBook.h>
+#include <RemoveBookGui.h>
+#include <sigc++/connection.h>
+#include <filesystem>
+#include <iostream>
+#include <thread>
+
+RemoveBookGui::RemoveBookGui(const std::shared_ptr<AuxFunc> &af,
+			     Gtk::Window *parent_window,
+			     const BookBaseEntry &bbe,
+			     const std::string &col_name,
+			     const std::shared_ptr<BookMarks> &bookmarks)
+{
+  this->af = af;
+  this->parent_window = parent_window;
+  this->bbe = bbe;
+  this->col_name = col_name;
+  this->bookmarks = bookmarks;
+  remove_callback_disp = std::make_shared<Glib::Dispatcher>();
+}
+
+RemoveBookGui::~RemoveBookGui()
+{
+
+}
+
+void
+RemoveBookGui::createWindow()
+{
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(parent_window->get_application());
+  window->set_title(gettext("Confirmation"));
+  window->set_transient_for(*parent_window);
+  window->set_modal(true);
+  window->set_name("MLwindow");
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  grid->set_expand(true);
+  window->set_child(*grid);
+
+  int row_numb = 0;
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_expand(true);
+  lab->set_text(
+      gettext("This action will remove book from base and from filesystem."));
+  grid->attach(*lab, 0, row_numb, 2, 1);
+  row_numb++;
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_margin_top(10);
+  lab->set_margin_bottom(10);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_expand(true);
+  lab->set_text(gettext("For removing:"));
+  grid->attach(*lab, 0, row_numb, 1, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_expand(true);
+  Glib::ustring text;
+  if(!bbe.bpe.book_author.empty())
+    {
+      text = Glib::ustring(bbe.bpe.book_author) + " - "
+	  + Glib::ustring(bbe.bpe.book_name);
+    }
+  else
+    {
+      text = Glib::ustring(bbe.bpe.book_name);
+    }
+  lab->set_text(text);
+  grid->attach(*lab, 1, row_numb, 1, 1);
+  row_numb++;
+
+  bool ch_rar = false;
+  std::string ch_str = bbe.bpe.book_path;
+  std::string::size_type n;
+  std::filesystem::path ch_p;
+  std::string ext;
+  while(ch_str.size() > 0)
+    {
+      n = ch_str.find("\n");
+      if(n != std::string::npos)
+	{
+	  ch_p = std::filesystem::u8path(ch_str.substr(0, n));
+	  ext = ch_p.extension().u8string();
+	  ext = af->stringToLower(ext);
+	  if(ext == ".rar")
+	    {
+	      ch_rar = true;
+	      ch_str.clear();
+	    }
+	  else
+	    {
+	      ch_str.erase(0, n + std::string("\n").size());
+	    }
+	}
+      else
+	{
+	  ch_p = std::filesystem::u8path(ch_str);
+	  ext = ch_p.extension().u8string();
+	  ext = af->stringToLower(ext);
+	  if(ext == ".rar")
+	    {
+	      ch_rar = true;
+	    }
+	  ch_str.clear();
+	}
+    }
+
+  if(bbe.file_path.extension() == ".rar" || ch_rar)
+    {
+      lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_margin(5);
+      lab->set_margin_top(10);
+      lab->set_margin_bottom(10);
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_justify(Gtk::Justification::CENTER);
+      lab->set_expand(true);
+      lab->set_use_markup(true);
+      text = Glib::ustring("<b><span color=\"red\">")
+	  + gettext("Warning! Book is packed in rar archive.") + "\n"
+	  + gettext("Books removing from rar archive is impossible.") + "\n"
+	  + gettext("This action will remove whole archive.") + "</span></b>";
+      lab->set_markup(text);
+      grid->attach(*lab, 0, row_numb, 2, 1);
+      row_numb++;
+    }
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_margin_top(10);
+  lab->set_margin_bottom(10);
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_expand(true);
+  lab->set_use_markup(true);
+  lab->set_markup("<b>" + Glib::ustring(gettext("Are you sure?")) + "</b>");
+  grid->attach(*lab, 0, row_numb, 2, 1);
+  row_numb++;
+
+  Gtk::Grid *action_group_grid = Gtk::make_managed<Gtk::Grid>();
+  action_group_grid->set_halign(Gtk::Align::FILL);
+  action_group_grid->set_valign(Gtk::Align::FILL);
+  action_group_grid->set_expand(true);
+  action_group_grid->set_column_homogeneous(true);
+  grid->attach(*action_group_grid, 0, row_numb, 2, 1);
+
+  Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
+  yes->set_margin(5);
+  yes->set_halign(Gtk::Align::CENTER);
+  yes->set_name("removeBut");
+  yes->set_label(gettext("Yes"));
+  yes->signal_clicked().connect(
+      std::bind(&RemoveBookGui::removeBookFunc, this, window));
+  action_group_grid->attach(*yes, 0, 0, 1, 1);
+
+  Gtk::Button *no = Gtk::make_managed<Gtk::Button>();
+  no->set_margin(5);
+  no->set_halign(Gtk::Align::CENTER);
+  no->set_name("cancelBut");
+  no->set_label(gettext("No"));
+  no->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
+  action_group_grid->attach(*no, 1, 0, 1, 1);
+
+  window->signal_close_request().connect([window, this]
+  {
+    std::shared_ptr<Gtk::Window> win(window);
+    win->set_visible(false);
+    delete this;
+    return true;
+  },
+					 false);
+
+  window->present();
+
+  remove_callback_disp->connect([this, window]
+  {
+    if(this->remove_callback)
+      {
+	this->remove_callback(this->bbe);
+      }
+    this->removeFinished(window);
+  });
+}
+
+void
+RemoveBookGui::removeBookFunc(Gtk::Window *win)
+{
+  win->unset_child();
+  win->set_default_size(1, 1);
+  win->set_deletable(false);
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  grid->set_expand(true);
+  win->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_expand(true);
+  lab->set_text(gettext("Removing in progress..."));
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  std::thread *thr = new std::thread(
+      [this]
+      {
+	RemoveBook *rb = new RemoveBook(this->af, this->bbe, this->col_name,
+					this->bookmarks);
+	try
+	  {
+	    rb->removeBook();
+	    this->remove_result = 1;
+	  }
+	catch(MLException &er)
+	  {
+	    std::cout << er.what() << std::endl;
+	    this->remove_result = -1;
+	  }
+	delete rb;
+	remove_callback_disp->emit();
+      });
+  thr->detach();
+  delete thr;
+}
+
+void
+RemoveBookGui::removeFinished(Gtk::Window *win)
+{
+  win->unset_child();
+  win->set_default_size(1, 1);
+  win->set_deletable(true);
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  grid->set_expand(true);
+  win->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_expand(true);
+  if(remove_result > 0)
+    {
+      lab->set_text(gettext("Book successfully removed."));
+    }
+  else
+    {
+      lab->set_text(gettext("Error! See system log for details."));
+    }
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+  close->set_margin(5);
+  close->set_halign(Gtk::Align::CENTER);
+  close->set_name("operationBut");
+  close->set_label(gettext("Close"));
+  close->signal_clicked().connect(std::bind(&Gtk::Window::close, win));
+  grid->attach(*close, 0, 1, 1, 1);
+}

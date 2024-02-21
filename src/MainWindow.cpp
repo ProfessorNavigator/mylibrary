@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,1190 +15,462 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "MainWindow.h"
+#include <AddBookGui.h>
+#include <BookMarksGui.h>
+#include <CreateCollectionGui.h>
+#include <EmptyCollectionGui.h>
+#include <ExportCollectionGui.h>
+#include <gdkmm/display.h>
+#include <gdkmm/monitor.h>
+#include <gdkmm/pixbuf.h>
+#include <gdkmm/rectangle.h>
+#include <gdkmm/surface.h>
+#include <gdkmm/texture.h>
+#include <giomm/menu.h>
+#include <giomm/menuitem.h>
+#include <giomm/simpleaction.h>
+#include <giomm/simpleactiongroup.h>
+#include <glib/gtypes.h>
+#include <glibmm/refptr.h>
+#include <glibmm/signalproxy.h>
+#include <glibmm/ustring.h>
+#include <gtk/gtkstyleprovider.h>
+#include <gtk/gtktypes.h>
+#include <gtkmm/aboutdialog.h>
+#include <gtkmm/application.h>
+#include <gtkmm/cssprovider.h>
+#include <gtkmm/dropdown.h>
+#include <gtkmm/enums.h>
+#include <gtkmm/grid.h>
+#include <gtkmm/object.h>
+#include <gtkmm/stringlist.h>
+#include <ImportCollectionGui.h>
+#include <libintl.h>
+#include <MainWindow.h>
+#include <RefreshCollectionGui.h>
+#include <RemoveCollectionGui.h>
+#include <sigc++/connection.h>
+#include <stddef.h>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 
-MainWindow::MainWindow() :
-    Gtk::ApplicationWindow()
+MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
+  this->af = af;
+  std::filesystem::path share_path = af->share_path();
+  share_path /= std::filesystem::u8path("MLStyles.css");
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-  AuxFunc af;
-  std::filesystem::path p = std::filesystem::u8path(af.get_selfpath());
-  css_provider->load_from_path(
-      Glib::ustring(
-	  std::string(p.parent_path().u8string())
-	      + "/../share/MyLibrary/mainWindow.css"));
+  css_provider->load_from_path(share_path.u8string());
   Glib::RefPtr<Gdk::Display> disp = this->get_display();
-#ifdef ML_GTK_OLD
-  Gtk::StyleContext::add_provider_for_display(disp, css_provider,
-  GTK_STYLE_PROVIDER_PRIORITY_USER);
-#endif
 #ifndef ML_GTK_OLD
   Gtk::StyleProvider::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
-  genrev = new std::vector<genres>;
-  searchmtx = new std::mutex;
-  mainWindow();
+#ifdef ML_GTK_OLD
+  Gtk::StyleContext::add_provider_for_display(disp, css_provider,
+					      GTK_STYLE_PROVIDER_PRIORITY_USER);
+#endif
+  bookmarks = std::make_shared<BookMarks>(af);
+  formMainWindow();
 }
 
 MainWindow::~MainWindow()
 {
-  searchmtx->lock();
-  searchmtx->unlock();
-  delete genrev;
-  delete searchmtx;
-#ifndef ML_GTK_OLD
-  delete ms_sel_book;
-#endif
+  delete lg;
+  delete rg;
 }
 
 void
-MainWindow::mainWindow()
+MainWindow::formMainWindow()
 {
   this->set_title("MyLibrary");
   this->set_name("MLwindow");
-  this->signal_realize().connect([this]
-  {
-    Gdk::Rectangle rec = this->screenRes();
-    this->set_default_size(rec.get_width() * 0.75, rec.get_height() * 0.75);
-  });
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
   grid->set_expand(true);
-
-  Glib::RefPtr<Gio::SimpleActionGroup> pref = Gio::SimpleActionGroup::create();
-  pref->add_action("collectioncr", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.collectionCreate();
-  });
-  pref->add_action("collectionrem", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.collectionOp(1);
-  });
-
-  pref->add_action("collectionrefr", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.collectionOp(2);
-  });
-  pref->add_action("bookm", [this]
-  {
-    AuxWindows aw(this);
-    aw.bookmarkWindow();
-  });
-  pref->add_action("book_add", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.collectionOp(3);
-  });
-  pref->add_action("about", [this]
-  {
-    AuxWindows aw(this);
-    aw.aboutProg();
-  });
-  pref->add_action("collimport", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.importCollection();
-  });
-  pref->add_action("collexport", [this]
-  {
-    CollectionOpWindows copw(this);
-    copw.exportCollection();
-  });
-  Glib::RefPtr<Gtk::Builder> builder = Gtk::Builder::create();
-  this->insert_action_group("prefgr", pref);
-  builder->add_from_resource("/mainmenu/mainmenu.xml");
-
-  Gtk::Box *box = Gtk::make_managed<Gtk::Box>();
-  auto object = builder->get_object("menubar");
-  auto gmenu = std::dynamic_pointer_cast<Gio::Menu>(object);
-  if(!gmenu)
-    {
-      std::cerr << "GMenu not found" << std::endl;
-    }
-  else
-    {
-      Gtk::PopoverMenuBar *menbar = Gtk::make_managed<Gtk::PopoverMenuBar>(
-	  gmenu);
-      menbar->set_halign(Gtk::Align::START);
-      box->append(*menbar);
-    }
-  box->set_halign(Gtk::Align::START);
-  grid->attach(*box, 0, 0, 1, 1);
-
-  Gtk::Paned *pn = Gtk::make_managed<Gtk::Paned>();
-  pn->set_halign(Gtk::Align::FILL);
-  pn->set_valign(Gtk::Align::FILL);
-  pn->set_expand(true);
-
-  CreateLeftGrid clgr(this);
-  clgr.formGenreVect(genrev);
-  Gtk::Grid *left_gr = clgr.formLeftGrid();
-  pn->set_start_child(*left_gr);
-
-  CreateRightGrid crgr(this);
-  Gtk::Grid *right_gr = crgr.formRightGrid();
-
-  pn->set_end_child(*right_gr);
-  pn->set_resize_start_child(false);
-
-  grid->attach(*pn, 0, 1, 1, 1);
-
-  this->signal_close_request().connect([this]
-  {
-    return this->closeFunc();
-  },
-				       false);
   this->set_child(*grid);
-}
 
-#ifndef ML_GTK_OLD
-void
-MainWindow::readCollection(Gtk::DropDown *collect_box)
-{
-  Glib::RefPtr<ModelBoxes> mb = std::dynamic_pointer_cast<ModelBoxes>(
-      collect_box->get_selected_item());
-  if(mb)
+  createMainMenuActionGroup();
+
+  Gtk::PopoverMenuBar *menu_bar = createMainMenu();
+  grid->attach(*menu_bar, 0, 0, 1, 1);
+
+  main_pane = Gtk::make_managed<Gtk::Paned>();
+  main_pane->set_halign(Gtk::Align::FILL);
+  main_pane->set_valign(Gtk::Align::FILL);
+  main_pane->set_expand(true);
+  grid->attach(*main_pane, 0, 1, 1, 1);
+
+  lg = new LeftGrid(af, this);
+  Gtk::Grid *left_grid = lg->createGrid();
+  main_pane->set_start_child(*left_grid);
+
+  rg = new RightGrid(af, this, bookmarks);
+  Gtk::Grid *right_grid = rg->createGrid();
+  main_pane->set_end_child(*right_grid);
+  lg->clear_search_result = std::bind(&RightGrid::clearSearchResult, rg);
+
+  lg->search_result_show = std::bind(&RightGrid::search_result_show, rg,
+				     std::placeholders::_1);
+
+  rg->get_current_collection_name = std::bind(
+      &MainWindow::get_current_collection_name, this);
+
+  rg->reload_collection_base = [this]
+  (const std::string &col_name)
     {
-      std::string collnm(mb->menu_line);
+      this->lg->reloadCollection(col_name);
+    };
 
-      std::atomic<int> *search_cancel = new std::atomic<int>(0);
-      SearchBook *sb = new SearchBook(collnm, "", "", "", "", "", "",
-				      &prev_search_nm, &base_v,
-				      &search_result_v, search_cancel);
-      std::thread *thr = new std::thread([this, sb, search_cancel]
-      {
-	this->searchmtx->lock();
-	sb->searchBook();
-	this->searchmtx->unlock();
-	delete search_cancel;
-	delete sb;
-      });
-      thr->detach();
-      delete thr;
-    }
+  this->signal_realize().connect(
+      std::bind(&MainWindow::setMainWindowSizes, this));
+
+  this->signal_close_request().connect(
+      std::bind(&MainWindow::mainWindowCloseFunc, this), false);
 }
-#endif
 
-#ifdef ML_GTK_OLD
-void
-MainWindow::readCollection(Gtk::ComboBoxText *collect_box)
+Gtk::PopoverMenuBar*
+MainWindow::createMainMenu()
 {
-  std::string collnm(collect_box->get_active_text());
+  Gtk::PopoverMenuBar *bar = Gtk::make_managed<Gtk::PopoverMenuBar>();
+  bar->set_halign(Gtk::Align::START);
+  bar->set_margin(5);
 
-  std::atomic<int> *search_cancel = new std::atomic<int>(0);
-  SearchBook *sb = new SearchBook(collnm, "", "", "", "", "", "",
-				  &prev_search_nm, &base_v, &search_result_v,
-				  search_cancel);
+  Glib::RefPtr<Gio::Menu> menu_model = Gio::Menu::create();
 
-  std::thread *thr = new std::thread([this, sb, search_cancel]
-  {
-    this->searchmtx->lock();
-    sb->searchBook();
-    this->searchmtx->unlock();
-    delete search_cancel;
-    delete sb;
-  });
-  thr->detach();
-  delete thr;
+  bar->set_menu_model(menu_model);
+
+  Glib::RefPtr<Gio::Menu> collections_menu = Gio::Menu::create();
+  Glib::RefPtr<Gio::MenuItem> item = Gio::MenuItem::create(
+      gettext("Collections"), collections_menu);
+  menu_model->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Create collection"),
+			       "main_menu.create_collection");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Remove collection"),
+			       "main_menu.remove_collection");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Refresh collection"),
+			       "main_menu.refresh_collection");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Add books to collection"),
+			       "main_menu.add_book");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Add directories with books"),
+			       "main_menu.add_directory");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Export collection base"),
+			       "main_menu.export_collection");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Import collection base"),
+			       "main_menu.import_collection");
+  collections_menu->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Create empty collection"),
+			       "main_menu.empty_collection");
+  collections_menu->append_item(item);
+
+  Glib::RefPtr<Gio::Menu> book_marks_menu = Gio::Menu::create();
+  item = Gio::MenuItem::create(gettext("Bookmarks"), book_marks_menu);
+  menu_model->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Show bookmarks"),
+			       "main_menu.book_marks");
+  book_marks_menu->append_item(item);
+
+  Glib::RefPtr<Gio::Menu> about_menu = Gio::Menu::create();
+  item = Gio::MenuItem::create(gettext("About"), about_menu);
+  menu_model->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("About MyLibrary"),
+			       "main_menu.about_dialog");
+  about_menu->append_item(item);
+
+  return bar;
 }
-#endif
 
 void
-MainWindow::creationPulseWin(Gtk::Window *window, int *cncl)
+MainWindow::setMainWindowSizes()
 {
-  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-  while(mc->pending())
+  std::filesystem::path szpath = af->homePath();
+  szpath /= std::filesystem::u8path(".cache/MyLibrary/mwsizes");
+  int32_t height, width;
+  double pos;
+  std::fstream f;
+  f.open(szpath, std::ios_base::in);
+  if(f.is_open())
     {
-      mc->iteration(true);
-    }
-  window->unset_default_widget();
-  window->unset_child();
-  window->set_title(gettext("Collection creation progress"));
-  window->set_default_size(-1, -1);
-  window->set_deletable(false);
+      std::string rs;
+      rs.resize(std::filesystem::file_size(szpath));
+      f.read(rs.data(), rs.size());
+      f.close();
 
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::CENTER);
-  window->set_child(*grid);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_margin(5);
-  lab->set_text(gettext("Creation progress"));
-  grid->attach(*lab, 0, 0, 1, 1);
-
-  Gtk::ProgressBar *prg = Gtk::make_managed<Gtk::ProgressBar>();
-  prg->set_halign(Gtk::Align::CENTER);
-  prg->set_margin(5);
-  prg->set_show_text(true);
-  grid->attach(*prg, 0, 1, 1, 1);
-  coll_cr_prog = prg;
-
-  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-  cancel->set_name("cancelBut");
-  cancel->set_halign(Gtk::Align::CENTER);
-  cancel->set_margin(5);
-  cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect([cncl]
-  {
-    *cncl = 1;
-  });
-  grid->attach(*cancel, 0, 2, 1, 1);
-}
-
-#ifdef ML_GTK_OLD
-void
-MainWindow::rowActivated(const Gtk::TreeModel::Path &path,
-			 Gtk::TreeViewColumn *column)
-{
-  Gtk::Widget *widg = this->get_child();
-  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = main_grid->get_child_at(0, 1);
-  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
-  widg = pn->get_end_child();
-  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = right_grid->get_child_at(5, 7);
-  Gtk::DrawingArea *drar = dynamic_cast<Gtk::DrawingArea*>(widg);
-  drar->set_opacity(0.0);
-  cover_struct = cover_image();
-  Gtk::TreeView *trv = column->get_tree_view();
-  Glib::RefPtr<Gtk::TreeModel> model = trv->get_model();
-  Gtk::TreeModel::iterator iter = model->get_iter(path);
-  if(iter)
-    {
-      size_t id;
-      iter->get_value(0, id);
-      std::string filename = (search_result_v[id - 1]).path_to_book;
-      AnnotationCover ac(filename);
-      widg = right_grid->get_child_at(0, 7);
-      Gtk::ScrolledWindow *annot_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
-      widg = annot_scrl->get_child();
-      Gtk::TextView *annot = dynamic_cast<Gtk::TextView*>(widg);
-      Glib::ustring annotation(ac.annotationRet());
-      cover_struct = ac.coverRet();
-      drar->set_opacity(1.0);
-      drar->queue_draw();
-      Glib::RefPtr<Gtk::TextBuffer> tb = annot->get_buffer();
-      tb->set_text("");
-      tb->insert_markup(tb->begin(), annotation);
-    }
-}
-#endif
-
-Gdk::Rectangle
-MainWindow::screenRes()
-{
-  Glib::RefPtr<Gdk::Surface> surf = this->get_surface();
-  Glib::RefPtr<Gdk::Display> disp = this->get_display();
-  Glib::RefPtr<Gdk::Monitor> mon = disp->get_monitor_at_surface(surf);
-  Gdk::Rectangle req;
-  mon->get_geometry(req);
-  return req;
-}
-
-void
-MainWindow::drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width,
-		      int height)
-{
-  if(cover_struct.image.size() > 0)
-    {
-      if(cover_struct.format == "base64")
+      if(rs.size() >= 16)
 	{
-	  std::string base64(cover_struct.image.begin(),
-			     cover_struct.image.end());
-	  base64 = Glib::Base64::decode(base64);
-	  Glib::RefPtr<Glib::Bytes> bytes = Glib::Bytes::create(base64.c_str(),
-								base64.size());
-
-	  Glib::RefPtr<Gio::MemoryInputStream> strm =
-	      Gio::MemoryInputStream::create();
-	  strm->add_bytes(bytes);
-
-	  auto image = Gdk::Pixbuf::create_from_stream_at_scale(strm, width,
-								height, true);
-	  Gdk::Cairo::set_source_pixbuf(cr, image, 0, 0);
-	  cr->rectangle(0, 0, width, height);
-	  cr->fill();
-	}
-      else if(cover_struct.format == "rgba" || cover_struct.format == "rgb")
-	{
-	  guint8 *data = reinterpret_cast<guint8*>(cover_struct.image.data());
-	  int ih = static_cast<int>(cover_struct.image.size())
-	      / cover_struct.rowsize;
-	  Glib::RefPtr<Gdk::Pixbuf> image;
-	  if(cover_struct.format == "rgba")
-	    {
-	      int iw = cover_struct.rowsize / 4;
-
-	      width = height * iw / ih;
-	      image = Gdk::Pixbuf::create_from_data(data, Gdk::Colorspace::RGB,
-						    true, 8, iw, ih,
-						    cover_struct.rowsize);
-	    }
-	  else
-	    {
-	      int iw = cover_struct.rowsize / 3;
-
-	      width = height * iw / ih;
-	      image = Gdk::Pixbuf::create_from_data(data, Gdk::Colorspace::RGB,
-						    false, 8, iw, ih,
-						    cover_struct.rowsize);
-	    }
-	  image = image->scale_simple(width, height, Gdk::InterpType::BILINEAR);
-	  Gdk::Cairo::set_source_pixbuf(cr, image, 0, 0);
-	  cr->rectangle(0, 0, width, height);
-	  cr->fill();
+	  size_t read = 0;
+	  std::memcpy(&width, &rs[read], sizeof(width));
+	  read += sizeof(width);
+	  std::memcpy(&height, &rs[read], sizeof(height));
+	  read += sizeof(height);
+	  std::memcpy(&pos, &rs[read], sizeof(pos));
 	}
       else
 	{
-	  Glib::RefPtr<Glib::Bytes> bytes = Glib::Bytes::create(
-	      cover_struct.image.data(), cover_struct.image.size());
-
-	  Glib::RefPtr<Gio::MemoryInputStream> strm =
-	      Gio::MemoryInputStream::create();
-	  strm->add_bytes(bytes);
-
-	  auto image = Gdk::Pixbuf::create_from_stream_at_scale(strm, width,
-								height, true);
-	  Gdk::Cairo::set_source_pixbuf(cr, image, 0, 0);
-	  cr->rectangle(0, 0, width, height);
-	  cr->fill();
+	  width = -1;
+	  height = -1;
+	  pos = 0.35;
+	}
+      this->set_default_size(static_cast<int>(width), static_cast<int>(height));
+      if(width > 0)
+	{
+	  main_pane->set_position(static_cast<int>(width) * pos);
 	}
     }
+  else
+    {
+      Glib::RefPtr<Gdk::Surface> surf = this->get_surface();
+      Glib::RefPtr<Gdk::Display> disp = this->get_display();
+      Glib::RefPtr<Gdk::Monitor> mon = disp->get_monitor_at_surface(surf);
+      Gdk::Rectangle req;
+      mon->get_geometry(req);
+
+      req.set_width(req.get_width() * mon->get_scale_factor());
+      req.set_height(req.get_height() * mon->get_scale_factor());
+
+      width = static_cast<int32_t>(req.get_width());
+      height = static_cast<int32_t>(req.get_height());
+      int w = static_cast<int>(width * 0.75);
+      this->set_default_size(w, static_cast<int>(height * 0.75));
+      main_pane->set_position(w * 0.35);
+    }
+}
+
+void
+MainWindow::createMainMenuActionGroup()
+{
+  Glib::RefPtr<Gio::SimpleActionGroup> main_menu_actions =
+      Gio::SimpleActionGroup::create();
+
+  main_menu_actions->add_action("create_collection", [this]
+  {
+    CreateCollectionGui *ccg = new CreateCollectionGui(this->af, this);
+    ccg->add_new_collection = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    ccg->createWindow();
+  });
+
+  main_menu_actions->add_action("remove_collection", [this]
+  {
+    RemoveCollectionGui *rcg = new RemoveCollectionGui(this->af, this);
+    rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot, this, std::placeholders::_1);
+    rcg->createWindow();
+  });
+
+  main_menu_actions->add_action(
+      "refresh_collection",
+      [this]
+      {
+	RefreshCollectionGui *rfcg = new RefreshCollectionGui(this->af, this,
+							      this->bookmarks);
+	rfcg->collection_refreshed = [this]
+	(const std::string &col_name)
+	  {
+	    if(this->lg->reloadCollection(col_name))
+	      {
+		this->rg->clearSearchResult();
+	      }
+	  };
+	rfcg->createWindow();
+      });
+
+  main_menu_actions->add_action("book_marks", [this]
+  {
+    BookMarksGui *bmg = new BookMarksGui(this->af, this->bookmarks, this);
+    bmg->createWindow();
+  });
+
+  main_menu_actions->add_action("add_book", [this]
+  {
+    AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, false);
+    abg->books_added = [this]
+    (const std::string &col_name)
+      {
+	this->lg->reloadCollection(col_name);
+      };
+    abg->createWindow();
+  });
+
+  main_menu_actions->add_action("export_collection", [this]
+  {
+    ExportCollectionGui *ecg = new ExportCollectionGui(this->af, this);
+    ecg->createWindow();
+  });
+
+  main_menu_actions->add_action("import_collection", [this]
+  {
+    ImportCollectionGui *icg = new ImportCollectionGui(this->af, this);
+    icg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    icg->createWindow();
+  });
+
+  main_menu_actions->add_action("empty_collection", [this]
+  {
+    EmptyCollectionGui *ecg = new EmptyCollectionGui(this->af, this);
+    ecg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    ecg->createWindow();
+  });
+
+  main_menu_actions->add_action("add_directory", [this]
+  {
+    AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, true);
+    abg->books_added = [this]
+    (const std::string &col_name)
+      {
+	this->lg->reloadCollection(col_name);
+      };
+    abg->createWindow();
+  });
+
+  main_menu_actions->add_action("about_dialog",
+				std::bind(&MainWindow::about_dialog, this));
+
+  this->insert_action_group("main_menu", main_menu_actions);
 }
 
 bool
-MainWindow::closeFunc()
+MainWindow::mainWindowCloseFunc()
 {
-  AuxFunc af;
-  std::string outfolder = af.temp_path();
-  outfolder = outfolder + "/MyLibraryForReading";
-  std::filesystem::path ffr = std::filesystem::u8path(outfolder);
-  if(std::filesystem::exists(ffr))
+  int32_t width, height;
+  width = static_cast<int32_t>(this->get_width());
+  height = static_cast<int32_t>(this->get_height());
+
+  int pane_pos = main_pane->get_position();
+  double pos = static_cast<double>(pane_pos) / static_cast<double>(width);
+
+  std::filesystem::path szpath = af->homePath();
+  szpath /= std::filesystem::u8path(".cache/MyLibrary/mwsizes");
+  std::filesystem::create_directories(szpath.parent_path());
+  std::filesystem::remove_all(szpath);
+
+  std::fstream f;
+  f.open(szpath, std::ios_base::out | std::ios_base::binary);
+  if(f.is_open())
     {
-      std::filesystem::remove_all(ffr);
+      f.write(reinterpret_cast<char*>(&width), sizeof(width));
+      f.write(reinterpret_cast<char*>(&height), sizeof(height));
+      f.write(reinterpret_cast<char*>(&pos), sizeof(pos));
+
+      f.close();
     }
-  af.homePath(&outfolder);
-  outfolder = outfolder + "/.MyLibrary/CurrentCollection";
-  ffr = std::filesystem::u8path(outfolder);
-  outfolder = ffr.parent_path().u8string();
-  outfolder = outfolder + "/MWSize";
-  std::filesystem::path resp = std::filesystem::u8path(outfolder);
-  if(std::filesystem::exists(ffr.parent_path()))
-    {
-      std::fstream f;
-      f.open(ffr, std::ios_base::out | std::ios_base::binary);
-      if(f.is_open())
-	{
-	  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(this->get_child());
-	  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(main_grid->get_child_at(0,
-									     1));
-	  Gtk::Grid *left_gr = dynamic_cast<Gtk::Grid*>(pn->get_start_child());
-#ifdef ML_GTK_OLD
-	  Gtk::ComboBoxText *collect_box =
-	      dynamic_cast<Gtk::ComboBoxText*>(left_gr->get_child_at(0, 1));
-	  outfolder = std::string(collect_box->get_active_text());
-#endif
-#ifndef ML_GTK_OLD
-	  Gtk::DropDown *collect_box = dynamic_cast<Gtk::DropDown*>(left_gr
-	      ->get_child_at(0, 1));
-	  if(collect_box)
-	    {
-	      auto obj = collect_box->get_selected_item();
-	      auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
-	      if(mod_box)
-		{
-		  outfolder = std::string(mod_box->menu_line);
-		}
-	    }
-#endif
-	  f.write(outfolder.c_str(), outfolder.size());
-	  f.close();
-	}
-    }
-  if(!std::filesystem::exists(resp.parent_path()))
-    {
-      std::filesystem::create_directories(resp.parent_path());
-    }
-#ifdef ML_GTK_OLD
-  this->hide();
-#endif
-#ifndef ML_GTK_OLD
   this->set_visible(false);
-#endif
-  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
-  while(mc->pending())
-    {
-      mc->iteration(true);
-    }
-  return false;
+
+  return true;
 }
 
-#ifdef ML_GTK_OLD
 void
-MainWindow::createBookmark()
+MainWindow::collectionRemoveSlot(const std::string &filename)
 {
-  Gtk::Widget *widg = this->get_child();
-  Gtk::Grid *main_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = main_grid->get_child_at(0, 1);
-  Gtk::Paned *pn = dynamic_cast<Gtk::Paned*>(widg);
-  widg = pn->get_end_child();
-  Gtk::Grid *right_grid = dynamic_cast<Gtk::Grid*>(widg);
-  widg = right_grid->get_child_at(0, 0);
-  Gtk::ScrolledWindow *sres_scrl = dynamic_cast<Gtk::ScrolledWindow*>(widg);
-  widg = sres_scrl->get_child();
-  Gtk::TreeView *sres = dynamic_cast<Gtk::TreeView*>(widg);
-  Glib::RefPtr<Gtk::TreeSelection> selection = sres->get_selection();
-  if(selection)
+  Gtk::DropDown *col_sel = lg->get_collection_select();
+  Glib::RefPtr<Gtk::StringList> list =
+      std::dynamic_pointer_cast<Gtk::StringList>(col_sel->get_model());
+  if(list)
     {
-      Gtk::TreeModel::iterator iter = selection->get_selected();
-      if(iter)
+      Glib::ustring search(filename);
+      guint selected = col_sel->get_selected();
+      if(list->get_string(selected) == search)
 	{
-	  size_t id;
-	  AuxFunc af;
-	  std::string filename;
-	  af.homePath(&filename);
-	  filename = filename + "/.MyLibrary/Bookmarks";
-	  std::filesystem::path filepath = std::filesystem::u8path(filename);
-	  iter->get_value(0, id);
-	  filename = (search_result_v[id - 1]).path_to_book;
-	  std::string bookline;
-	  Glib::ustring val;
-	  iter->get_value(1, val);
-	  bookline = std::string(val);
-	  iter->get_value(2, val);
-	  bookline = bookline + "<?>" + std::string(val);
-	  iter->get_value(3, val);
-	  bookline = bookline + "<?>" + std::string(val);
-	  iter->get_value(4, val);
-	  bookline = bookline + "<?>" + std::string(val);
-	  iter->get_value(5, val);
-	  bookline = bookline + "<?>" + std::string(val);
-	  bookline = bookline + "<?>" + filename;
-	  bookline = bookline + "<?L>";
-	  std::fstream f;
-	  f.open(
-	      filepath,
-	      std::ios_base::out | std::ios_base::app | std::ios_base::binary);
-	  f.write(bookline.c_str(), bookline.size());
-	  f.close();
-	  AuxWindows aw(this);
-	  aw.errorWin(8, this);
+	  lg->clearCollectionBase();
+	  lg->clear_all_search_fields();
+	  rg->clearSearchResult();
+	}
+      for(guint i = 0; i < list->get_n_items(); i++)
+	{
+	  if(list->get_string(i) == search)
+	    {
+	      list->remove(i);
+	      break;
+	    }
 	}
     }
 }
-#endif
+
+std::string
+MainWindow::get_current_collection_name()
+{
+  std::string result;
+  Gtk::DropDown *dd = lg->get_collection_select();
+  if(dd)
+    {
+      guint sel = dd->get_selected();
+      auto model = std::dynamic_pointer_cast<Gtk::StringList>(dd->get_model());
+      if(sel != GTK_INVALID_LIST_POSITION && model)
+	{
+	  result = std::string(model->get_string(sel));
+	}
+    }
+  return result;
+}
 
 void
-MainWindow::bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
-		       Gtk::Entry *book_nm_ent)
+MainWindow::about_dialog()
 {
-#ifndef ML_GTK_OLD
-  Glib::RefPtr<Gtk::FileDialog> fchd = Gtk::FileDialog::create();
-  fchd->set_modal(true);
-  fchd->set_title(gettext("Choose a book"));
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fchd->set_initial_folder(fl);
+  Gtk::AboutDialog *about = new Gtk::AboutDialog;
+  about->set_application(this->get_application());
+  about->set_transient_for(*this);
+  about->set_modal(true);
+  about->set_name("MLwindow");
 
-  auto fl_filter_model = Gio::ListStore<Gtk::FileFilter>::create();
+  about->set_program_name("MyLibrary");
 
-  Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(gettext("All supported"));
-  fl_filter->add_pattern("*.fb2");
-  fl_filter->add_pattern("*.epub");
-  fl_filter->add_pattern("*.pdf");
-  fl_filter->add_pattern("*.djvu");
-  fl_filter->add_pattern("*.zip");
-  fl_filter->add_pattern("*.rar");
-  fl_filter->add_pattern("*.7z");
-  fl_filter->add_pattern("*.jar");
-  fl_filter->add_pattern("*.cpio");
-  fl_filter->add_pattern("*.iso");
-  fl_filter->add_pattern("*.a");
-  fl_filter->add_pattern("*.ar");
-  fl_filter->add_pattern("*.tar");
-  fl_filter->add_pattern("*.tgz");
-  fl_filter->add_pattern("*.tar.gz");
-  fl_filter->add_pattern("*.tar.bz2");
-  fl_filter->add_pattern("*.tar.xz");
-  fl_filter_model->append(fl_filter);
+  std::filesystem::path icon_p = af->share_path();
+  icon_p /= std::filesystem::u8path("mylibrary.png");
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".fb2");
-  fl_filter->add_pattern("*.fb2");
-  fl_filter_model->append(fl_filter);
+  Glib::RefPtr<Gdk::Pixbuf> icon = Gdk::Pixbuf::create_from_file(
+      icon_p.u8string());
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".epub");
-  fl_filter->add_pattern("*.epub");
-  fl_filter_model->append(fl_filter);
+  Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_for_pixbuf(icon);
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".pdf");
-  fl_filter->add_pattern("*.pdf");
-  fl_filter_model->append(fl_filter);
+  about->set_logo(icon_t);
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".djvu");
-  fl_filter->add_pattern("*.djvu");
-  fl_filter_model->append(fl_filter);
+  about->set_version("3.0");
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".zip");
-  fl_filter->add_pattern("*.zip");
-  fl_filter_model->append(fl_filter);
+  about->set_copyright(
+      "Copyright 2022-2024 Yury Bobylev <bobilev_yury@mail.ru>");
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".rar");
-  fl_filter->add_pattern("*.rar");
-  fl_filter_model->append(fl_filter);
+  about->set_license_type(Gtk::License::GPL_3_0);
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".7z");
-  fl_filter->add_pattern("*.7z");
-  fl_filter_model->append(fl_filter);
+  Glib::ustring abbuf = Glib::ustring(gettext("MyLibrary is a home librarian"))
+      + Glib::ustring("\n\n") + Glib::ustring(gettext("Author Yury Bobylev"))
+      + Glib::ustring(" <bobilev_yury@mail.ru>.\n\n")
+      + Glib::ustring(gettext("Program uses next libraries:"))
+      + Glib::ustring(
+	  "\n"
+	  "GTK https://www.gtk.org/\n"
+	  "libarchive https://libarchive.org\n"
+	  "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+	  "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
+	  "ICU https://icu.unicode.org/\n"
+	  "Poppler https://poppler.freedesktop.org/\n"
+	  "DjVuLibre https://djvu.sourceforge.net/");
+  about->set_comments(abbuf);
 
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".jar");
-  fl_filter->add_pattern("*.jar");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".cpio");
-  fl_filter->add_pattern("*.cpio");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".iso");
-  fl_filter->add_pattern("*.iso");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".a");
-  fl_filter->add_pattern("*.a");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".ar");
-  fl_filter->add_pattern("*.ar");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar");
-  fl_filter->add_pattern("*.tar");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tgz");
-  fl_filter->add_pattern("*.tgz");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.gz");
-  fl_filter->add_pattern("*.tar.gz");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.bz2");
-  fl_filter->add_pattern("*.tar.bz2");
-  fl_filter_model->append(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.xz");
-  fl_filter->add_pattern("*.tar.xz");
-  fl_filter_model->append(fl_filter);
-
-  fchd->set_filters(fl_filter_model);
-  fchd->set_accept_label(gettext("Open"));
-
-  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fchd->open(*win, [book_path_ent, book_nm_ent]
-  (Glib::RefPtr<Gio::AsyncResult> &result)
-    {
-      Glib::RefPtr<Gio::File> fl;
-      auto obj = result->get_source_object_base();
-      auto fchd = std::dynamic_pointer_cast<Gtk::FileDialog>(obj);
-      if(!fchd)
-	{
-	  return void();
-	}
-      try
-	{
-	  fl = fchd->open_finish(result);
-	}
-      catch(Glib::Error &er)
-	{
-	  if(er.code() != Gtk::DialogError::DISMISSED)
-	    {
-	      std::cout << "bookAddWin: " << er.what() << std::endl;
-	    }
-	}
-      if(fl)
-	{
-	  std::filesystem::path p;
-	  p = std::filesystem::u8path(std::string(fl->get_path()));
-	  book_path_ent->set_text(Glib::ustring(p.make_preferred().u8string()));
-	  book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
-	}
-    },
-	     cncl);
-#endif
-#ifdef ML_GTK_OLD
-  Gtk::FileChooserDialog *fchd = new Gtk::FileChooserDialog(
-      *win, gettext("Choose a book"), Gtk::FileChooser::Action::OPEN, false);
-  fchd->set_application(this->get_application());
-  fchd->set_modal(true);
-  fchd->set_select_multiple(false);
-  fchd->set_name("MLwindow");
-
-  Gtk::Box *cont = fchd->get_content_area();
-  cont->set_margin(5);
-
-  std::string filename;
-  AuxFunc af;
-  af.homePath(&filename);
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(filename);
-  fchd->set_current_folder(fl);
-
-  Glib::RefPtr<Gtk::FileFilter> fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(gettext("All supported"));
-  fl_filter->add_pattern("*.fb2");
-  fl_filter->add_pattern("*.epub");
-  fl_filter->add_pattern("*.pdf");
-  fl_filter->add_pattern("*.djvu");
-  fl_filter->add_pattern("*.zip");
-  fl_filter->add_pattern("*.rar");
-  fl_filter->add_pattern("*.7z");
-  fl_filter->add_pattern("*.jar");
-  fl_filter->add_pattern("*.cpio");
-  fl_filter->add_pattern("*.iso");
-  fl_filter->add_pattern("*.a");
-  fl_filter->add_pattern("*.ar");
-  fl_filter->add_pattern("*.tar");
-  fl_filter->add_pattern("*.tgz");
-  fl_filter->add_pattern("*.tar.gz");
-  fl_filter->add_pattern("*.tar.bz2");
-  fl_filter->add_pattern("*.tar.xz");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".fb2");
-  fl_filter->add_pattern("*.fb2");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".epub");
-  fl_filter->add_pattern("*.epub");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".pdf");
-  fl_filter->add_pattern("*.pdf");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".djvu");
-  fl_filter->add_pattern("*.djvu");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".zip");
-  fl_filter->add_pattern("*.zip");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".rar");
-  fl_filter->add_pattern("*.rar");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".7z");
-  fl_filter->add_pattern("*.7z");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".jar");
-  fl_filter->add_pattern("*.jar");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".cpio");
-  fl_filter->add_pattern("*.cpio");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".iso");
-  fl_filter->add_pattern("*.iso");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".a");
-  fl_filter->add_pattern("*.a");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".ar");
-  fl_filter->add_pattern("*.ar");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar");
-  fl_filter->add_pattern("*.tar");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tgz");
-  fl_filter->add_pattern("*.tgz");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.gz");
-  fl_filter->add_pattern("*.tar.gz");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.bz2");
-  fl_filter->add_pattern("*.tar.bz2");
-  fchd->add_filter(fl_filter);
-
-  fl_filter = Gtk::FileFilter::create();
-  fl_filter->set_name(".tar.xz");
-  fl_filter->add_pattern("*.tar.xz");
-  fchd->add_filter(fl_filter);
-
-  Gtk::Button *cancel = fchd->add_button(gettext("Cancel"),
-					 Gtk::ResponseType::CANCEL);
-  cancel->set_name("cancelBut");
-  cancel->set_margin(5);
-
-  Gtk::Requisition min, nat;
-  fchd->get_preferred_size(min, nat);
-
-  Gtk::Button *open = fchd->add_button(gettext("Open"),
-				       Gtk::ResponseType::ACCEPT);
-  open->set_margin_bottom(5);
-  open->set_margin_end(5);
-  open->set_margin_top(5);
-  open->set_margin_start(nat.get_width() - 15);
-  open->set_name("applyBut");
-
-  fchd->signal_response().connect(
-      [fchd, book_path_ent, book_nm_ent]
-      (int resp_id)
-	{
-	  if(resp_id == Gtk::ResponseType::CANCEL)
-	    {
-	      fchd->close();
-	    }
-	  else if (resp_id == Gtk::ResponseType::ACCEPT)
-	    {
-	      Glib::RefPtr<Gio::File> fl = fchd->get_file();
-	      if(fl)
-		{
-		  std::filesystem::path p;
-		  p = std::filesystem::u8path(std::string(fl->get_path()));
-		  book_path_ent->set_text(Glib::ustring(p.make_preferred().u8string()));
-		  book_nm_ent->set_text(Glib::ustring(p.filename().u8string()));
-		  fchd->close();
-		}
-	    }
-	});
-
-  fchd->signal_close_request().connect([fchd]
+  about->signal_close_request().connect([about]
   {
-    fchd->hide();
-    delete fchd;
+    std::shared_ptr<Gtk::AboutDialog> ab(about);
+    ab->set_visible(false);
     return true;
   },
-				       false);
-  fchd->present();
-#endif
+					false);
+
+  about->present();
 }
-
-#ifndef ML_GTK_OLD
-void
-MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext)
-{
-  auto obj = ext->get_selected_item();
-  auto mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
-  std::string arch_ext;
-  if(mod_box)
-    {
-      arch_ext = std::string(mod_box->menu_line);
-    }
-  else
-    {
-      return void();
-    }
-  if(arch_ext == std::string(gettext("<No>")))
-    {
-      arch_ext.clear();
-    }
-  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-  Gtk::DropDown *cmb = dynamic_cast<Gtk::DropDown*>(gr->get_child_at(0, 1));
-  std::string coll_name;
-  obj = cmb->get_selected_item();
-  mod_box = std::dynamic_pointer_cast<ModelBoxes>(obj);
-  if(mod_box)
-    {
-      coll_name = std::string(mod_box->menu_line);
-    }
-  else
-    {
-      return void();
-    }
-
-  Gtk::Entry *book_path_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
-  std::string book_path(book_path_ent->get_text());
-
-  Gtk::Entry *book_nm_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
-  std::string book_name(book_nm_ent->get_text());
-
-  std::filesystem::path ch_p = std::filesystem::u8path(book_path);
-  if(!book_path.empty() && !book_name.empty() && std::filesystem::exists(ch_p))
-    {
-      Gtk::Window *window = new Gtk::Window;
-      window->set_application(this->get_application());
-      window->set_name("MLwindow");
-      window->set_title(gettext("Books adding..."));
-      window->set_transient_for(*win);
-      window->set_modal(true);
-
-      Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-      grid->set_halign(Gtk::Align::CENTER);
-      window->set_child(*grid);
-      window->set_deletable(false);
-
-      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-      lab->set_halign(Gtk::Align::CENTER);
-      lab->set_margin(5);
-      lab->set_text(gettext("Book adding in progress..."));
-      grid->attach(*lab, 0, 0, 1, 1);
-
-      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-      cancel->set_name("cancelBut");
-      cancel->set_halign(Gtk::Align::CENTER);
-      cancel->set_margin(5);
-      cancel->set_label(gettext("Cancel"));
-
-      int *cncl = new int(0);
-      RefreshCollection *rc = new RefreshCollection(coll_name, 1, false, cncl);
-
-      sigc::connection *con = new sigc::connection();
-      *con = cancel->signal_clicked().connect([cncl]
-      {
-	*cncl = 1;
-      });
-      grid->attach(*cancel, 0, 1, 1, 1);
-
-      Glib::Dispatcher *disp_canceled = new Glib::Dispatcher();
-      disp_canceled->connect([window, lab, cancel, con]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Book adding canceled"));
-	cancel->set_name("applyBut");
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window]
-	{
-	  window->close();
-	});
-      });
-      rc->refresh_canceled = [disp_canceled]
-      {
-	disp_canceled->emit();
-      };
-
-      Glib::Dispatcher *disp_book_add_error = new Glib::Dispatcher();
-      disp_book_add_error->connect([window, lab, cancel, con]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Book adding error!"));
-	cancel->set_name("applyBut");
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window]
-	{
-	  window->close();
-	});
-      });
-      rc->book_add_error = [disp_book_add_error]
-      {
-	disp_book_add_error->emit();
-      };
-
-      std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
-      Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
-      disp_book_exists->connect([window, this, ttup]
-      {
-	AuxWindows aw(this);
-	aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
-      });
-      rc->file_exists = [ttup, disp_book_exists]
-      (std::mutex *inmtx, int *instopper)
-	{
-	  std::get<0>(*ttup) = inmtx;
-	  std::get<1>(*ttup) = instopper;
-	  disp_book_exists->emit();
-	};
-
-      Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-      disp_finished->connect([window, lab, cancel, con, this, win]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Book adding finished"));
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window, win]
-	{
-	  window->close();
-	  win->close();
-	});
-	this->prev_search_nm.clear();
-      });
-      rc->refresh_finished = [disp_finished]
-      {
-	disp_finished->emit();
-      };
-
-      Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher();
-      disp_col_notfound->connect([con, lab, cancel, window]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Collection book path does not exists!"));
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window]
-	{
-	  window->close();
-	});
-      });
-
-      rc->collection_not_exists = [disp_col_notfound]
-      {
-	disp_col_notfound->emit();
-      };
-
-      window->signal_close_request().connect(
-	  [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
-	   disp_book_add_error, window, con, ttup]
-	  {
-	    window->set_visible(false);
-	    delete disp_canceled;
-	    delete disp_book_exists;
-	    delete disp_finished;
-	    delete disp_col_notfound;
-	    delete disp_book_add_error;
-	    delete con;
-	    delete ttup;
-	    delete window;
-	    return true;
-	  },
-	  false);
-
-      window->present();
-
-      std::thread *thr = new std::thread(
-	  [rc, book_path, book_name, arch_ext, cncl]
-	  {
-	    rc->addBook(book_path, book_name, arch_ext);
-	    delete cncl;
-	    delete rc;
-	  });
-      thr->detach();
-      delete thr;
-    }
-  else
-    {
-      AuxWindows aw(this);
-      if(book_path.empty())
-	{
-	  aw.errorWin(10, win);
-	}
-      else if(book_name.empty())
-	{
-	  aw.errorWin(11, win);
-	}
-      else if(!std::filesystem::exists(ch_p))
-	{
-	  aw.errorWin(12, win);
-	}
-    }
-}
-#endif
-
-#ifdef ML_GTK_OLD
-void
-MainWindow::bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext)
-{
-  std::string arch_ext(ext->get_active_text());
-  if(arch_ext == std::string(gettext("<No>")))
-    {
-      arch_ext.clear();
-    }
-  Gtk::Grid *gr = dynamic_cast<Gtk::Grid*>(win->get_child());
-  Gtk::ComboBoxText *cmb = dynamic_cast<Gtk::ComboBoxText*>(gr->get_child_at(0,
-									     1));
-  std::string coll_name(cmb->get_active_text());
-
-  Gtk::Entry *book_path_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 3));
-  std::string book_path(book_path_ent->get_text());
-
-  Gtk::Entry *book_nm_ent = dynamic_cast<Gtk::Entry*>(gr->get_child_at(0, 5));
-  std::string book_name(book_nm_ent->get_text());
-
-  std::filesystem::path ch_p = std::filesystem::u8path(book_path);
-  if(!book_path.empty() && !book_name.empty() && std::filesystem::exists(ch_p))
-    {
-      Gtk::Window *window = new Gtk::Window;
-      window->set_application(this->get_application());
-      window->set_name("MLwindow");
-      window->set_title(gettext("Books adding..."));
-      window->set_transient_for(*win);
-      window->set_modal(true);
-
-      Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-      grid->set_halign(Gtk::Align::CENTER);
-      window->set_child(*grid);
-      window->set_deletable(false);
-
-      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-      lab->set_halign(Gtk::Align::CENTER);
-      lab->set_margin(5);
-      lab->set_text(gettext("Book adding in progress..."));
-      grid->attach(*lab, 0, 0, 1, 1);
-
-      Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-      cancel->set_name("cancelBut");
-      cancel->set_halign(Gtk::Align::CENTER);
-      cancel->set_margin(5);
-      cancel->set_label(gettext("Cancel"));
-
-      int *cncl = new int(0);
-      RefreshCollection *rc = new RefreshCollection(coll_name, 1, false, cncl);
-
-      sigc::connection *con = new sigc::connection();
-      *con = cancel->signal_clicked().connect([cncl]
-      {
-	*cncl = 1;
-      });
-      grid->attach(*cancel, 0, 1, 1, 1);
-
-      Glib::Dispatcher *disp_canceled = new Glib::Dispatcher();
-      disp_canceled->connect([window, lab, cancel, con]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Book adding canceled"));
-	cancel->set_name("applyBut");
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window]
-	{
-	  window->close();
-	});
-      });
-      rc->refresh_canceled = [disp_canceled]
-      {
-	disp_canceled->emit();
-      };
-
-      std::tuple<std::mutex*, int*> *ttup = new std::tuple<std::mutex*, int*>();
-      Glib::Dispatcher *disp_book_exists = new Glib::Dispatcher();
-      disp_book_exists->connect([window, this, ttup]
-      {
-	AuxWindows aw(this);
-	aw.bookCopyConfirm(window, std::get<0>(*ttup), std::get<1>(*ttup));
-      });
-      rc->file_exists = [ttup, disp_book_exists]
-      (std::mutex *inmtx, int *instopper)
-	{
-	  std::get<0>(*ttup) = inmtx;
-	  std::get<1>(*ttup) = instopper;
-	  disp_book_exists->emit();
-	};
-
-      Glib::Dispatcher *disp_finished = new Glib::Dispatcher();
-      disp_finished->connect([window, lab, cancel, con, this, win]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Book adding finished"));
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window, win]
-	{
-	  window->close();
-	  win->close();
-	});
-	this->prev_search_nm.clear();
-      });
-      rc->refresh_finished = [disp_finished]
-      {
-	disp_finished->emit();
-      };
-
-      Glib::Dispatcher *disp_col_notfound = new Glib::Dispatcher();
-      disp_col_notfound->connect([con, lab, cancel, window]
-      {
-	con->disconnect();
-	lab->set_text(gettext("Collection book path does not exists!"));
-	cancel->set_label(gettext("Close"));
-	cancel->signal_clicked().connect([window]
-	{
-	  window->close();
-	});
-      });
-
-      rc->collection_not_exists = [disp_col_notfound]
-      {
-	disp_col_notfound->emit();
-      };
-
-      window->signal_close_request().connect(
-	  [disp_finished, disp_canceled, disp_col_notfound, disp_book_exists,
-	   window, con, ttup]
-	  {
-	    window->hide();
-	    delete disp_canceled;
-	    delete disp_book_exists;
-	    delete disp_finished;
-	    delete disp_col_notfound;
-	    delete con;
-	    delete ttup;
-	    delete window;
-	    return true;
-	  },
-	  false);
-
-      window->present();
-
-      std::thread *thr = new std::thread(
-	  [rc, book_path, book_name, arch_ext, cncl]
-	  {
-	    rc->addBook(book_path, book_name, arch_ext);
-	    delete cncl;
-	    delete rc;
-	  });
-      thr->detach();
-      delete thr;
-    }
-  else
-    {
-      AuxWindows aw(this);
-      if(book_path.empty())
-	{
-	  aw.errorWin(10, win);
-	}
-      else if(book_name.empty())
-	{
-	  aw.errorWin(11, win);
-	}
-      else if(!std::filesystem::exists(ch_p))
-	{
-	  aw.errorWin(12, win);
-	}
-    }
-}
-#endif

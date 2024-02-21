@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2022-2024 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,44 +17,39 @@
 
 #include "MyLibraryApplication.h"
 
-MyLibraryApplication::MyLibraryApplication() :
+MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af) :
     Gtk::Application("ru.mail.bobilev_yury.MyLibrary")
 {
-
+  this->af = af;
 }
 
 MyLibraryApplication::~MyLibraryApplication()
 {
-
+  delete mw;
 }
 
 Glib::RefPtr<MyLibraryApplication>
-MyLibraryApplication::create()
+MyLibraryApplication::create(const std::shared_ptr<AuxFunc> &af)
 {
   return Glib::make_refptr_for_instance<MyLibraryApplication>(
-      new MyLibraryApplication());
+      new MyLibraryApplication(af));
 }
 
 MainWindow*
 MyLibraryApplication::create_appwindow()
 {
-  MainWindow *mw = new MainWindow;
+  mw = new MainWindow(af);
   this->add_window(*mw);
-  mw->signal_hide().connect([mw, this]
+  mw->signal_hide().connect([this]
   {
     std::vector<Gtk::Window*> wv;
     wv = this->get_windows();
     for(size_t i = 0; i < wv.size(); i++)
       {
 	Gtk::Window *win = wv[i];
-	if(win != mw)
+	if(win != this->mw)
 	  {
-#ifdef ML_GTK_OLD
-	    win->hide();
-#endif
-#ifndef ML_GTK_OLD
 	    win->set_visible(false);
-#endif
 	    delete win;
 	  }
       }

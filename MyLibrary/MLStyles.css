@@ -1,0 +1,148 @@
+#MLwindow {
+	color: black;
+	background-color: rgb(181, 176, 213);
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+}
+
+#applyBut {
+	background-image: none;
+	background-color: rgb(39, 188, 80);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#applyBut:hover {
+	background-image: none;
+	background-color: rgb(42, 98, 211);
+	color: white;
+}
+
+#applyBut:active {
+	background-image: none;
+	background-color: rgb(24, 174, 122);
+	color: white;
+}
+
+#cancelBut {
+	background-image: none;
+	background-color: rgb(244, 189, 34);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#cancelBut:hover {
+	background-image: none;
+	background-color: rgb(42, 98, 211);
+	color: white;
+}
+
+#cancelBut:active {
+	background-image: none;
+	background-color: rgb(24, 174, 122);
+	color: white;
+}
+
+#comboBox button {
+	background-image: none;
+	background-color: rgb(107, 205, 205);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#comboBox button:hover {
+	background-image: none;
+	background-color: rgb(154, 177, 177);
+}
+
+#menBut button.toggle {
+	background-image: none;
+	background-color: rgb(107, 205, 205);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#menBut button.toggle:hover {
+	background-image: none;
+	background-color: rgb(154, 177, 177);
+}
+
+#operationBut {
+	background-image: none;
+	background-color: rgb(103, 138, 244);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#operationBut:hover {
+	background-image: none;
+	background-color: rgb(42, 98, 211);
+	color: white;
+}
+
+#operationBut:active {
+	background-image: none;
+	background-color: rgb(24, 174, 122);
+	color: white;
+}
+
+#unselectedLab {
+	background-color: white;
+	color: black;
+}
+
+#selectedLab {
+	background-color: green;
+	color: white;
+}
+
+#progressBars {
+	color: black;
+}
+
+#removeBut {
+	background-image: none;
+	background-color: rgb(247, 124, 124);
+	border-width: 1px;
+	border-color: black;
+	color: black;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#removeBut:hover {
+	background-image: none;
+	background-color: rgb(42, 98, 211);
+	color: white;
+}
+
+#removeBut:active {
+	background-image: none;
+	background-color: rgb(24, 174, 122);
+	color: white;
+}
+
+#badLabel {
+	background-color: rgb(247, 124, 124);
+	color: black;
+}
+
+#yellowLab {
+	background-color: rgb(254, 230, 10);
+	color: black;
+}

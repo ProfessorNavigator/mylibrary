@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,109 +18,57 @@
 #ifndef INCLUDE_MAINWINDOW_H_
 #define INCLUDE_MAINWINDOW_H_
 
-#include <gtkmm.h>
-#include <iostream>
-#include <libintl.h>
-#include <vector>
-#include <tuple>
+#include <AuxFunc.h>
+#include <BookMarks.h>
+#include <gtkmm-4.0/gtkmm/applicationwindow.h>
+#include <gtkmm-4.0/gtkmm/paned.h>
+#include <gtkmm-4.0/gtkmm/popovermenubar.h>
+#include <LeftGrid.h>
+#include <RightGrid.h>
+#include <memory>
 #include <string>
-#include <functional>
-#include <thread>
-#include <mutex>
-#include "AuxFunc.h"
-#include "CreateCollection.h"
-#include "SearchBook.h"
-#include "AnnotationCover.h"
-#include "RefreshCollection.h"
-#include "CreateLeftGrid.h"
-#include "CreateRightGrid.h"
-#include "CollectionOpWindows.h"
-#include "BookOpWindows.h"
-#include "AuxWindows.h"
-#ifndef ML_GTK_OLD
-#include "ModelColumns.h"
-#endif
-
-class CreateLeftGrid;
 
 class MainWindow : public Gtk::ApplicationWindow
 {
-  friend class CreateLeftGrid;
-  friend class CreateRightGrid;
-  friend class CollectionOpWindows;
-  friend class BookOpWindows;
-  friend class AuxWindows;
 public:
-  MainWindow();
+  MainWindow(const std::shared_ptr<AuxFunc> &af);
   virtual
   ~MainWindow();
 
 private:
   void
-  mainWindow();
+  formMainWindow();
 
   void
-  creationPulseWin(Gtk::Window *window, int *cncl);
+  createMainMenuActionGroup();
 
-#ifdef ML_GTK_OLD
-  void
-  rowActivated(const Gtk::TreeModel::Path &path, Gtk::TreeViewColumn *column);
-#endif
+  Gtk::PopoverMenuBar*
+  createMainMenu();
 
   void
-  drawCover(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
-
-  void
-  bookAddWin(Gtk::Window *win, Gtk::Entry *book_path_ent,
-	     Gtk::Entry *book_nm_ent);
-
-#ifndef ML_GTK_OLD
-  void
-  bookAddWinFunc(Gtk::Window *win, Gtk::DropDown *ext);
-
-  void
-  readCollection(Gtk::DropDown *collect_box);
-#endif
-
-#ifdef ML_GTK_OLD
-  void
-  createBookmark();
-
-  void
-  bookAddWinFunc(Gtk::Window *win, Gtk::ComboBoxText *ext);
-
-  void
-  readCollection(Gtk::ComboBoxText *collect_box);
-#endif
+  setMainWindowSizes();
 
   bool
-  closeFunc();
+  mainWindowCloseFunc();
 
-  Gdk::Rectangle
-  screenRes();
+  void
+  collectionRemoveSlot(const std::string &filename);
 
-  Gtk::ProgressBar *coll_cr_prog = nullptr;
-  cover_image cover_struct;
-  std::vector<genres> *genrev = nullptr;
-  std::string prev_search_nm;
-  std::vector<book_item> search_result_v;
-  std::vector<book_item> base_v;
-  std::string active_genre = "nill";
-  std::vector<Gtk::Expander*> expv;
-#ifdef ML_GTK_OLD
-  Gtk::TreeView *bm_tv = nullptr;
-  std::vector<book_item> bookmark_v;
-#endif
-  std::mutex *searchmtx = nullptr;
-#ifndef ML_GTK_OLD
-  std::vector<Glib::RefPtr<Gtk::ColumnViewColumn>> search_res_col;
-  guint *ms_sel_book = nullptr;
-  Glib::RefPtr<ModelColumns> ms_sel_item;
-  guint *bm_sel_book = nullptr;
-  Gtk::ColumnView *bm_col_view = nullptr;
-  Glib::RefPtr<Gio::ListStore<ModelColumns>> list_sr;
-  std::vector<style_item> ms_style_v;
-#endif
+  std::string
+  get_current_collection_name();
+
+  void
+  about_dialog();
+
+  std::shared_ptr<AuxFunc> af;
+
+  Gtk::Paned *main_pane = nullptr;
+
+  LeftGrid *lg = nullptr;
+
+  RightGrid *rg = nullptr;
+
+  std::shared_ptr<BookMarks> bookmarks;
 };
 
 #endif /* INCLUDE_MAINWINDOW_H_ */

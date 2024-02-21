@@ -1,0 +1,119 @@
+/*
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef INCLUDE_LEFTGRID_H_
+#define INCLUDE_LEFTGRID_H_
+
+#include <AuxFunc.h>
+#include <BaseKeeper.h>
+#include <BookBaseEntry.h>
+#include <glib-2.0/glib/gtypes.h>
+#include <glibmm-2.68/glibmm/refptr.h>
+#include <gtkmm-4.0/gtkmm/dropdown.h>
+#include <gtkmm-4.0/gtkmm/entry.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/menubutton.h>
+#include <gtkmm-4.0/gtkmm/popover.h>
+#include <gtkmm-4.0/gtkmm/stringlist.h>
+#include <gtkmm-4.0/gtkmm/window.h>
+#include <Genre.h>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+class LeftGrid
+{
+public:
+  LeftGrid(const std::shared_ptr<AuxFunc> &af,
+	   Gtk::Window *main_window);
+  virtual
+  ~LeftGrid();
+
+  Gtk::Grid*
+  createGrid();
+
+  Gtk::DropDown*
+  get_collection_select();
+
+  void
+  clear_all_search_fields();
+
+  void
+  add_new_collection(const std::string &col_name);
+
+  void
+  clearCollectionBase();
+
+  bool
+  reloadCollection(const std::string &col_name);
+
+  std::function<void
+  ()> clear_search_result;
+
+  std::function<void
+  (const std::vector<BookBaseEntry> &result)> search_result_show;
+
+private:
+  Glib::RefPtr<Gtk::StringList>
+  createCollectionsList();
+
+  void
+  formAuthorSection(Gtk::Grid *grid, int &row);
+
+  void
+  formBookSection(Gtk::Grid *grid, int &row);
+
+  void
+  formSearchSection(Gtk::Grid *grid, int &row);
+
+  void
+  setGenrePopover(Gtk::MenuButton *genre_button);
+
+  void
+  setActiveCollection();
+
+  void
+  saveActiveCollection();
+
+  void
+  loadCollection(const guint &sel);
+
+  void
+  searchBook();
+
+  Gtk::Grid*
+  formGenreExpanderGrid(const std::vector<Genre> &genre,
+			Gtk::Popover *pop);
+
+  std::shared_ptr<AuxFunc> af;
+  Gtk::Window *main_window = nullptr;
+
+  Gtk::DropDown *collection_select = nullptr;
+
+  Gtk::Entry *surname = nullptr;
+  Gtk::Entry *name = nullptr;
+  Gtk::Entry *sec_name = nullptr;
+  Gtk::Entry *book_name = nullptr;
+  Gtk::Entry *series = nullptr;
+  Gtk::MenuButton *genre_button = nullptr;
+  BaseKeeper *base_keeper = nullptr;
+
+  Genre selected_genre;
+};
+
+#endif /* INCLUDE_LEFTGRID_H_ */

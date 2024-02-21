@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,25 +17,14 @@
 
 #ifndef INCLUDE_AUXFUNC_H_
 #define INCLUDE_AUXFUNC_H_
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
-#include <functional>
-#include <vector>
-#include <unicode/ucnv.h>
-#include <unicode/unistr.h>
-#include <zip.h>
-#include <archive.h>
-#include <archive_entry.h>
-#include <gcrypt.h>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
+#include <gcrypt.h>
+#include <Genre.h>
+#include <GenreGroup.h>
+#include <filesystem>
+#include <string>
+#include <tuple>
+#include <vector>
 
 class AuxFunc
 {
@@ -44,76 +33,85 @@ public:
   virtual
   ~AuxFunc();
 
-  void
-  homePath(std::string *filename);
+  std::string
+  to_utf_8(const std::string &input, const char *conv_name);
 
   std::string
-  temp_path();
-
-  void
-  toutf8(std::string &line);
-
-  void
-  toutf8(std::string &line, std::string conv_name);
+  utf8_to_system(const std::string &input);
 
   std::string
+  utf_8_to(const std::string &input, const char *conv_name);
+
+  const char*
+  get_converter_by_number(const int32_t &num);
+
+  std::string
+  detect_encoding(const std::string &buf);
+
+  std::filesystem::path
+  homePath();
+
+  std::filesystem::path
   get_selfpath();
 
-  int
-  fileNames(std::string address,
-	    std::vector<std::tuple<int, int, std::string>> &filenames);
+  std::filesystem::path
+  temp_path();
 
-  int
-  fileNamesNonZip(std::string address,
-		  std::vector<std::tuple<int, int, std::string>> &filenames);
+  std::filesystem::path
+  share_path();
+
+  std::vector<GenreGroup>
+  get_genre_list();
+
+  std::string
+  libgcrypt_error_handling(const gcry_error_t &err);
+
+  std::string
+  to_hex(std::string *source);
+
+  std::string
+  stringToLower(const std::string &line);
 
   std::string
   randomFileName();
 
-  void
-  unpackByIndex(std::string archaddress, std::string outfolder, int index);
-
   std::string
-  unpackByIndex(std::string archaddress, int index, size_t filesz);
-
-  void
-  unpackByIndexNonZip(std::string archaddress, std::string outfolder,
-		      int index);
-
-  std::string
-  unpackByIndexNonZipStr(std::string archaddress, int index);
-
-  int
-  packing(std::string source, std::string out);
-
-  int
-  packingNonZip(std::string source, std::string out, std::string extension);
-
-  void
-  stringToLower(std::string &line);
-
-  std::vector<char>
-  filehash(std::filesystem::path filepath, int *cancel);
-
-  std::vector<char>
-  filehash(std::filesystem::path filepath, std::function<void
-  (uint64_t)> progress,
-	   int *cancel);
-
-  std::string
-  to_hex(std::vector<char> *source);
+  time_t_to_date(const time_t &tt);
 
   bool
-  from_hex(std::string &hex, std::vector<char> &result);
+  if_supported_type(const std::filesystem::path &ch_p);
+
+  void
+  html_to_utf8(std::string &input);
+
+  void
+  open_book_callback(const std::filesystem::path &path);
+
+  void
+  copy_book_callback(const std::filesystem::path &source,
+		     const std::filesystem::path &out);
+
+  std::vector<std::string>
+  get_supported_types();
+
+  std::vector<std::string>
+  get_supported_archive_types_packing();
+
+  std::vector<std::string>
+  get_supported_archive_types_unpacking();
 
   std::string
-  utf8to(std::string line);
+  get_extension(const std::filesystem::path &p);
 
-  int
-  removeFmArch(std::string archpath, uint64_t index);
+  int32_t
+  get_charset_conv_quntity();
 
-  std::vector<std::tuple<std::string, std::string>>
-  fileinfo(std::string address, int index);
+private:
+  std::vector<std::tuple<std::string, Genre>>
+  read_genres(const bool &wrong_loc, const std::string &locname);
+
+  std::vector<GenreGroup>
+  read_genre_groups(const bool &wrong_loc, const std::string &locname);
 };
 
 #endif /* INCLUDE_AUXFUNC_H_ */
