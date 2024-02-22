@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2024-02-21 13:29+0400\n"
-"PO-Revision-Date: 2024-02-21 13:30+0400\n"
+"POT-Creation-Date: 2024-02-22 14:01+0400\n"
+"PO-Revision-Date: 2024-02-22 14:01+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -194,7 +194,7 @@ msgstr "Папки успешно добавлены!"
 msgid "Books were successfully added!"
 msgstr "Книги успешно добавлены!"
 
-#: AddBookGui.cpp:1581 RemoveBookGui.cpp:296 TransferBookGui.cpp:922
+#: AddBookGui.cpp:1581 RemoveBookGui.cpp:295 TransferBookGui.cpp:922
 msgid "Error! See system log for details."
 msgstr "Ошибка! См. системный журнал."
 
@@ -202,7 +202,7 @@ msgstr "Ошибка! См. системный журнал."
 #: CopyBookGui.cpp:278 CreateCollectionGui.cpp:343 EditBookGui.cpp:830
 #: EmptyCollectionGui.cpp:268 EmptyCollectionGui.cpp:393
 #: ExportCollectionGui.cpp:408 ImportCollectionGui.cpp:406
-#: ImportCollectionGui.cpp:629 RemoveBookGui.cpp:304
+#: ImportCollectionGui.cpp:629 RemoveBookGui.cpp:303
 #: RemoveCollectionGui.cpp:244 RightGrid.cpp:699 SaveCover.cpp:344
 #: TransferBookGui.cpp:110 TransferBookGui.cpp:944 TransferBookGui.cpp:1333
 msgid "Close"
@@ -369,22 +369,22 @@ msgid "Bookmark operations"
 msgstr "Операции с закладками"
 
 #: BookMarksGui.cpp:322 EditBookGui.cpp:662 RefreshCollectionGui.cpp:196
-#: RemoveBookGui.cpp:61 RemoveCollectionGui.cpp:136
+#: RemoveBookGui.cpp:60 RemoveCollectionGui.cpp:136
 msgid "Confirmation"
 msgstr "Подтверждение"
 
 #: BookMarksGui.cpp:337 EditBookGui.cpp:677 RefreshCollectionGui.cpp:211
-#: RemoveBookGui.cpp:172
+#: RemoveBookGui.cpp:171
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
 #: BookMarksGui.cpp:343 EditBookGui.cpp:684 RefreshCollectionGui.cpp:217
-#: RemoveBookGui.cpp:187 RemoveCollectionGui.cpp:176
+#: RemoveBookGui.cpp:186 RemoveCollectionGui.cpp:176
 msgid "Yes"
 msgstr "Да"
 
 #: BookMarksGui.cpp:360 EditBookGui.cpp:696 RefreshCollectionGui.cpp:226
-#: RemoveBookGui.cpp:196 RemoveCollectionGui.cpp:189
+#: RemoveBookGui.cpp:195 RemoveCollectionGui.cpp:189
 msgid "No"
 msgstr "Нет"
 
@@ -739,31 +739,31 @@ msgstr "Удалить из закладок отсутствующие книг
 msgid "Refresh"
 msgstr "Обновить"
 
-#: RemoveBookGui.cpp:79
+#: RemoveBookGui.cpp:78
 msgid "This action will remove book from base and from filesystem."
 msgstr "Данное действие удалит книгу из базы и из файловой системы."
 
-#: RemoveBookGui.cpp:89
+#: RemoveBookGui.cpp:88
 msgid "For removing:"
 msgstr "Для удаления:"
 
-#: RemoveBookGui.cpp:157
+#: RemoveBookGui.cpp:156
 msgid "Warning! Book is packed in rar archive."
 msgstr "Предупреждение! Книга упакована в rar архив."
 
-#: RemoveBookGui.cpp:158
+#: RemoveBookGui.cpp:157
 msgid "Books removing from rar archive is impossible."
 msgstr "Удаление книг из rar архивов невозможно."
 
-#: RemoveBookGui.cpp:159
+#: RemoveBookGui.cpp:158
 msgid "This action will remove whole archive."
 msgstr "Данное действие удалит архив целиком."
 
-#: RemoveBookGui.cpp:243
+#: RemoveBookGui.cpp:242
 msgid "Removing in progress..."
 msgstr "Идёт удаление..."
 
-#: RemoveBookGui.cpp:292
+#: RemoveBookGui.cpp:291
 msgid "Book successfully removed."
 msgstr "Книга успешно удалена."
 

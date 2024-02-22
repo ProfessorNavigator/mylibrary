@@ -836,9 +836,9 @@ void
 AuxFunc::copy_book_callback(const std::filesystem::path &source,
 			    const std::filesystem::path &out)
 {
+  std::filesystem::remove_all(out);
   std::error_code ec;
-  std::filesystem::copy(source, out,
-			std::filesystem::copy_options::overwrite_existing, ec);
+  std::filesystem::copy(source, out, ec);
   if(ec)
     {
       throw MLException("AuxFunc::copy_book_callback error: " + ec.message());

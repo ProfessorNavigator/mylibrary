@@ -55,9 +55,9 @@ AddBook::simple_add(
     {
       std::filesystem::path out = std::get<1>(*it);
       std::filesystem::create_directories(out.parent_path());
+      std::filesystem::remove_all(out);
       std::error_code ec;
       std::filesystem::copy(std::get<0>(*it), out,
-			    std::filesystem::copy_options::overwrite_existing,
 			    ec);
       if(ec)
 	{
@@ -316,8 +316,8 @@ AddBook::simple_add_dir(
     {
       std::filesystem::path out = std::get<1>(*it);
       std::filesystem::create_directories(out.parent_path());
-      const auto c_o_group = std::filesystem::copy_options::overwrite_existing
-	  | std::filesystem::copy_options::recursive
+      std::filesystem::remove_all(out);
+      const auto c_o_group = std::filesystem::copy_options::recursive
 	  | std::filesystem::copy_options::copy_symlinks;
       std::error_code ec;
       std::filesystem::copy(std::get<0>(*it), out, c_o_group, ec);
