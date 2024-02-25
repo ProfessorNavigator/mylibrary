@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2024-02-22 14:01+0400\n"
-"PO-Revision-Date: 2024-02-22 14:01+0400\n"
+"POT-Creation-Date: 2024-02-25 22:23+0400\n"
+"PO-Revision-Date: 2024-02-25 22:24+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -70,12 +70,12 @@ msgstr "Добавить книги"
 
 #: AddBookGui.cpp:215 AddBookGui.cpp:615 AddBookGui.cpp:743 AddBookGui.cpp:1209
 #: AddBookGui.cpp:1809 AddBookGui.cpp:1928 AddBookGui.cpp:2055
-#: CollectionCrProcessGui.cpp:130 CopyBookGui.cpp:117
-#: CreateCollectionGui.cpp:148 CreateCollectionGui.cpp:192 EditBookGui.cpp:616
+#: CollectionCrProcessGui.cpp:133 CopyBookGui.cpp:117
+#: CreateCollectionGui.cpp:157 CreateCollectionGui.cpp:201 EditBookGui.cpp:616
 #: EmptyCollectionGui.cpp:113 EmptyCollectionGui.cpp:157
 #: ExportCollectionGui.cpp:102 ExportCollectionGui.cpp:178
 #: ImportCollectionGui.cpp:134 ImportCollectionGui.cpp:233
-#: RefreshCollectionGui.cpp:151 RemoveCollectionGui.cpp:91 SaveCover.cpp:107
+#: RefreshCollectionGui.cpp:158 RemoveCollectionGui.cpp:91 SaveCover.cpp:107
 #: SaveCover.cpp:162 SearchProcessGui.cpp:74 TransferBookGui.cpp:255
 #: TransferBookGui.cpp:507 TransferBookGui.cpp:1021
 msgid "Cancel"
@@ -122,8 +122,8 @@ msgstr "Добавить"
 msgid "All supported"
 msgstr "Все поддерживаемые"
 
-#: AddBookGui.cpp:750 AddBookGui.cpp:2060 CreateCollectionGui.cpp:102
-#: CreateCollectionGui.cpp:197 EmptyCollectionGui.cpp:94
+#: AddBookGui.cpp:750 AddBookGui.cpp:2060 CreateCollectionGui.cpp:103
+#: CreateCollectionGui.cpp:206 EmptyCollectionGui.cpp:94
 #: EmptyCollectionGui.cpp:162 ImportCollectionGui.cpp:94
 #: ImportCollectionGui.cpp:115 ImportCollectionGui.cpp:242
 #: TransferBookGui.cpp:522
@@ -198,8 +198,8 @@ msgstr "Книги успешно добавлены!"
 msgid "Error! See system log for details."
 msgstr "Ошибка! См. системный журнал."
 
-#: AddBookGui.cpp:1594 AddBookGui.cpp:1651 CollectionCrProcessGui.cpp:426
-#: CopyBookGui.cpp:278 CreateCollectionGui.cpp:343 EditBookGui.cpp:830
+#: AddBookGui.cpp:1594 AddBookGui.cpp:1651 CollectionCrProcessGui.cpp:431
+#: CopyBookGui.cpp:278 CreateCollectionGui.cpp:352 EditBookGui.cpp:830
 #: EmptyCollectionGui.cpp:268 EmptyCollectionGui.cpp:393
 #: ExportCollectionGui.cpp:408 ImportCollectionGui.cpp:406
 #: ImportCollectionGui.cpp:629 RemoveBookGui.cpp:303
@@ -368,22 +368,22 @@ msgstr "Закладки"
 msgid "Bookmark operations"
 msgstr "Операции с закладками"
 
-#: BookMarksGui.cpp:322 EditBookGui.cpp:662 RefreshCollectionGui.cpp:196
+#: BookMarksGui.cpp:322 EditBookGui.cpp:662 RefreshCollectionGui.cpp:203
 #: RemoveBookGui.cpp:60 RemoveCollectionGui.cpp:136
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: BookMarksGui.cpp:337 EditBookGui.cpp:677 RefreshCollectionGui.cpp:211
+#: BookMarksGui.cpp:337 EditBookGui.cpp:677 RefreshCollectionGui.cpp:218
 #: RemoveBookGui.cpp:171
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: BookMarksGui.cpp:343 EditBookGui.cpp:684 RefreshCollectionGui.cpp:217
+#: BookMarksGui.cpp:343 EditBookGui.cpp:684 RefreshCollectionGui.cpp:224
 #: RemoveBookGui.cpp:186 RemoveCollectionGui.cpp:176
 msgid "Yes"
 msgstr "Да"
 
-#: BookMarksGui.cpp:360 EditBookGui.cpp:696 RefreshCollectionGui.cpp:226
+#: BookMarksGui.cpp:360 EditBookGui.cpp:696 RefreshCollectionGui.cpp:233
 #: RemoveBookGui.cpp:195 RemoveCollectionGui.cpp:189
 msgid "No"
 msgstr "Нет"
@@ -400,43 +400,43 @@ msgstr "Сохранить книгу как..."
 msgid "Remove bookmark"
 msgstr "Удалить закладку"
 
-#: CollectionCrProcessGui.cpp:89
+#: CollectionCrProcessGui.cpp:92
 msgid "Collection creation progress"
 msgstr "Прогресс создания коллекции"
 
-#: CollectionCrProcessGui.cpp:94
+#: CollectionCrProcessGui.cpp:97
 msgid "Collection refreshing progress"
 msgstr "Прогресс обновления коллекции"
 
-#: CollectionCrProcessGui.cpp:118
+#: CollectionCrProcessGui.cpp:121
 msgid "Collecting files..."
 msgstr "Сбор файлов..."
 
-#: CollectionCrProcessGui.cpp:194
+#: CollectionCrProcessGui.cpp:198
 msgid "Collection creation progress:"
 msgstr "Прогресс создания коллекции:"
 
-#: CollectionCrProcessGui.cpp:281
+#: CollectionCrProcessGui.cpp:286
 msgid "Collection hashing progress:"
 msgstr "Прогресс хеширования:"
 
-#: CollectionCrProcessGui.cpp:318
+#: CollectionCrProcessGui.cpp:323
 msgid "Collection refreshing progress:"
 msgstr "Прогресс обновления коллекции:"
 
-#: CollectionCrProcessGui.cpp:384
+#: CollectionCrProcessGui.cpp:389
 msgid "Collection created"
 msgstr "Коллекция создана"
 
-#: CollectionCrProcessGui.cpp:389
+#: CollectionCrProcessGui.cpp:394
 msgid "Collection refreshed"
 msgstr "Коллекция обновлена"
 
-#: CollectionCrProcessGui.cpp:410
+#: CollectionCrProcessGui.cpp:415
 msgid "Collection creation process finished."
 msgstr "Процесс создания коллекции завершён."
 
-#: CollectionCrProcessGui.cpp:415
+#: CollectionCrProcessGui.cpp:420
 msgid "Collection refresh process finished."
 msgstr "Процесс обновления коллекции завершён."
 
@@ -448,42 +448,46 @@ msgstr "Сохранить как..."
 msgid "Book successfully saved!"
 msgstr "Книга успешно сохранена!"
 
-#: CreateCollectionGui.cpp:58 MainWindow.cpp:152
+#: CreateCollectionGui.cpp:59 MainWindow.cpp:152
 msgid "Create collection"
 msgstr "Создать коллекцию"
 
-#: CreateCollectionGui.cpp:72 EmptyCollectionGui.cpp:70
+#: CreateCollectionGui.cpp:73 EmptyCollectionGui.cpp:70
 msgid "Collection name:"
 msgstr "Название коллекции:"
 
-#: CreateCollectionGui.cpp:87 EmptyCollectionGui.cpp:82
+#: CreateCollectionGui.cpp:88 EmptyCollectionGui.cpp:82
 #: ImportCollectionGui.cpp:103
 msgid "Path to books directory:"
 msgstr "Путь к директории с книгами:"
 
-#: CreateCollectionGui.cpp:123 RefreshCollectionGui.cpp:97
+#: CreateCollectionGui.cpp:124 RefreshCollectionGui.cpp:97
 msgid "Thread number (recommended max value: "
 msgstr "Количество потоков (рекомендованное максимальное значение: "
 
-#: CreateCollectionGui.cpp:139 EmptyCollectionGui.cpp:104
+#: CreateCollectionGui.cpp:141 RefreshCollectionGui.cpp:136
+msgid "Disable rar archives support (recommended)"
+msgstr "Отключить поддержку rar архивов (рекомендуется)"
+
+#: CreateCollectionGui.cpp:148 EmptyCollectionGui.cpp:104
 msgid "Create"
 msgstr "Создать"
 
-#: CreateCollectionGui.cpp:170 CreateCollectionGui.cpp:186
+#: CreateCollectionGui.cpp:179 CreateCollectionGui.cpp:195
 #: EmptyCollectionGui.cpp:135 EmptyCollectionGui.cpp:151
 #: ImportCollectionGui.cpp:166 ImportCollectionGui.cpp:216
 msgid "Books path"
 msgstr "Путь к книгам"
 
-#: CreateCollectionGui.cpp:321
+#: CreateCollectionGui.cpp:330
 msgid "Collection name cannot be empty!"
 msgstr "Название коллекции не может быть пустым!"
 
-#: CreateCollectionGui.cpp:326
+#: CreateCollectionGui.cpp:335
 msgid "Collection already exists!"
 msgstr "Коллекция уже существует!"
 
-#: CreateCollectionGui.cpp:331
+#: CreateCollectionGui.cpp:340
 msgid "Books path does not exist!"
 msgstr "Путь к книгам не существует!"
 
@@ -735,7 +739,7 @@ msgstr "Быстрое обновление (без хеширования)"
 msgid "Remove absent books from bookmarks"
 msgstr "Удалить из закладок отсутствующие книги"
 
-#: RefreshCollectionGui.cpp:142
+#: RefreshCollectionGui.cpp:149
 msgid "Refresh"
 msgstr "Обновить"
 

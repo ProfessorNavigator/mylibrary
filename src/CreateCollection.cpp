@@ -37,6 +37,7 @@
 CreateCollection::CreateCollection(const std::shared_ptr<AuxFunc> &af,
 				   const std::filesystem::path &collection_path,
 				   const std::filesystem::path &books_path,
+				   const bool &rar_support,
 				   const int &num_threads,
 				   std::atomic<bool> *cancel) : Hasher(af)
 {
@@ -44,6 +45,7 @@ CreateCollection::CreateCollection(const std::shared_ptr<AuxFunc> &af,
   base_path = collection_path;
   base_path /= std::filesystem::u8path("base");
   this->books_path = books_path;
+  this->rar_support = rar_support;
   if(num_threads > 0)
     {
       this->num_threads = num_threads;
@@ -101,6 +103,23 @@ CreateCollection::createCollection()
 	  if(af->if_supported_type(check_type))
 	    {
 	      need_to_parse.push_back(p);
+	    }
+	}
+    }
+  if(!rar_support)
+    {
+      std::string ext;
+      for(auto it = need_to_parse.begin(); it != need_to_parse.end();)
+	{
+	  ext = it->extension().u8string();
+	  ext = af->stringToLower(ext);
+	  if(ext == ".rar")
+	    {
+	      need_to_parse.erase(it);
+	    }
+	  else
+	    {
+	      it++;
 	    }
 	}
     }
@@ -525,7 +544,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
       filepath = file_col_path;
     }
 
-  ARCHParser arp(af, cancel);
+  ARCHParser arp(af, rar_support, cancel);
   FileParseEntry fe;
   fe.books = arp.arch_parser(filepath);
   if(fe.books.size() > 0)

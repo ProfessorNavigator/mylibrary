@@ -25,6 +25,7 @@
 #include <CreateCollection.h>
 #include <FileParseEntry.h>
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -32,7 +33,6 @@
 #include <mutex>
 #include <string>
 #include <vector>
-#include <condition_variable>
 
 class RefreshCollection : public CreateCollection
 {
@@ -62,6 +62,9 @@ public:
 
   bool
   refreshBook(const BookBaseEntry &bbe);
+
+  void
+  set_rar_support(const bool &rar_support);
 
 private:
   std::filesystem::path

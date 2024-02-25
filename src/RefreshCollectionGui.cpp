@@ -129,12 +129,19 @@ RefreshCollectionGui::createWindow()
   refresh_bookmarks->set_label(gettext("Remove absent books from bookmarks"));
   grid->attach(*refresh_bookmarks, 0, 5, 2, 1);
 
+  disable_rar = Gtk::make_managed<Gtk::CheckButton>();
+  disable_rar->set_margin(5);
+  disable_rar->set_halign(Gtk::Align::START);
+  disable_rar->set_active(true);
+  disable_rar->set_label(gettext("Disable rar archives support (recommended)"));
+  grid->attach(*disable_rar, 0, 6, 2, 1);
+
   Gtk::Grid *action_group_grid = Gtk::make_managed<Gtk::Grid>();
   action_group_grid->set_halign(Gtk::Align::FILL);
   action_group_grid->set_valign(Gtk::Align::FILL);
   action_group_grid->set_expand(true);
   action_group_grid->set_column_homogeneous(true);
-  grid->attach(*action_group_grid, 0, 6, 2, 1);
+  grid->attach(*action_group_grid, 0, 7, 2, 1);
 
   Gtk::Button *refresh = Gtk::make_managed<Gtk::Button>();
   refresh->set_margin(5);
@@ -254,7 +261,7 @@ RefreshCollectionGui::refreshCollection(Gtk::Window *win,
       CollectionCrProcessGui *ccpg = new CollectionCrProcessGui(
 	  af, main_window, coll_name, num_threads, clean_empty->get_active(),
 	  fast_refreshing->get_active(), refresh_bookmarks->get_active(),
-	  bookmarks);
+	  !disable_rar->get_active(), bookmarks);
       ccpg->collection_refreshed = collection_refreshed;
       ccpg->createWindow(2);
       win->unset_transient_for();

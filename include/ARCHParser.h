@@ -30,7 +30,7 @@
 class ARCHParser : public LibArchive
 {
 public:
-  ARCHParser(const std::shared_ptr<AuxFunc> &af,
+  ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support,
 	     std::atomic<bool> *cancel);
   virtual
   ~ARCHParser();
@@ -51,6 +51,7 @@ private:
   check_for_fbd();
 
   std::shared_ptr<AuxFunc> af;
+  bool rar_support = false;
   std::atomic<bool> *cancel = nullptr;
 
   std::vector<BookParseEntry> result;

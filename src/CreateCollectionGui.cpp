@@ -24,6 +24,7 @@
 #include <gtkmm/application.h>
 #include <gtkmm/button.h>
 #include <gtkmm/enums.h>
+
 #ifndef ML_GTK_OLD
 #include <gtkmm/error.h>
 #endif
@@ -132,6 +133,14 @@ CreateCollectionGui::createWindow()
   thread_num->set_alignment(Gtk::Align::CENTER);
   thread_num->set_text("1");
   thread_grid->attach(*thread_num, 1, 0, 1, 1);
+
+  disable_rar = Gtk::make_managed<Gtk::CheckButton>();
+  disable_rar->set_margin(5);
+  disable_rar->set_halign(Gtk::Align::START);
+  disable_rar->set_active(true);
+  disable_rar->set_label(gettext("Disable rar archives support (recommended)"));
+  grid->attach(*disable_rar, 0, row, 2, 1);
+  row++;
 
   Gtk::Button *create = Gtk::make_managed<Gtk::Button>();
   create->set_margin(5);
@@ -272,7 +281,7 @@ CreateCollectionGui::checkInput(Gtk::Window *win)
       return void();
     }
   CollectionCrProcessGui *progr = new CollectionCrProcessGui(
-      af, main_window, collection_path, bookpath,
+      af, main_window, collection_path, bookpath, !disable_rar->get_active(),
       std::string(thread_num->get_text()));
   progr->add_new_collection = add_new_collection;
   progr->createWindow(1);

@@ -38,7 +38,7 @@ public:
 			 Gtk::Window *main_window,
 			 const std::filesystem::path &collection_path,
 			 const std::filesystem::path &books_path,
-			 const std::string &num_thr);
+			 const bool &rar_support, const std::string &num_thr);
   virtual
   ~CollectionCrProcessGui();
 
@@ -46,6 +46,7 @@ public:
 			 Gtk::Window *main_window, const std::string &coll_name,
 			 const std::string &num_thr, const bool &remove_empty,
 			 const bool &fast, const bool &refresh_bookmarks,
+			 const bool &rar_support,
 			 const std::shared_ptr<BookMarks> &bookmarks);
 
   void
@@ -99,6 +100,7 @@ private:
   bool remove_empty = false;
   bool fast_refresh = false;
   bool refresh_bookmarkse = false;
+  bool rar_support = false;
 };
 
 #endif /* INCLUDE_COLLECTIONCRPROCESSGUI_H_ */

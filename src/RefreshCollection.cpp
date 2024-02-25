@@ -48,6 +48,7 @@ RefreshCollection::RefreshCollection(
   this->fast_refresh = fast_refresh;
   this->refresh_bookmarks = refresh_bookmarks;
   this->bookmarks = bookmarks;
+  rar_support = true;
 }
 
 RefreshCollection::~RefreshCollection()
@@ -184,6 +185,25 @@ RefreshCollection::refreshCollection()
 	{
 	  std::filesystem::remove_all(*it);
 	}
+
+      if(!rar_support)
+	{
+	  std::string ext;
+	  for(auto it = books_files.begin(); it != books_files.end();)
+	    {
+	      ext = it->extension().u8string();
+	      ext = af->stringToLower(ext);
+	      if(ext == ".rar")
+		{
+		  books_files.erase(it);
+		}
+	      else
+		{
+		  it++;
+		}
+	    }
+	}
+
       compaire_vectors(base, books_files);
       if(!fast_refresh)
 	{
@@ -513,6 +533,12 @@ RefreshCollection::refreshBook(const BookBaseEntry &bbe)
     }
 
   return result;
+}
+
+void
+RefreshCollection::set_rar_support(const bool &rar_support)
+{
+  this->rar_support = rar_support;
 }
 
 void

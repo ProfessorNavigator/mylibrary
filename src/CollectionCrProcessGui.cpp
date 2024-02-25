@@ -33,12 +33,14 @@
 CollectionCrProcessGui::CollectionCrProcessGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
     const std::filesystem::path &collection_path,
-    const std::filesystem::path &books_path, const std::string &num_thr)
+    const std::filesystem::path &books_path, const bool &rar_support,
+    const std::string &num_thr)
 {
   this->af = af;
   this->main_window = main_window;
   this->collection_path = collection_path;
   this->books_path = books_path;
+  this->rar_support = rar_support;
   std::stringstream strm;
   strm.imbue(std::locale("C"));
   strm.str(num_thr);
@@ -61,7 +63,7 @@ CollectionCrProcessGui::CollectionCrProcessGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
     const std::string &coll_name, const std::string &num_thr,
     const bool &remove_empty, const bool &fast, const bool &refresh_bookmarks,
-    const std::shared_ptr<BookMarks> &bookmarks)
+    const bool &rar_support, const std::shared_ptr<BookMarks> &bookmarks)
 {
   this->af = af;
   this->main_window = main_window;
@@ -74,6 +76,7 @@ CollectionCrProcessGui::CollectionCrProcessGui(
   this->remove_empty = remove_empty;
   fast_refresh = fast;
   this->refresh_bookmarkse = refresh_bookmarks;
+  this->rar_support = rar_support;
   this->bookmarks = bookmarks;
 }
 
@@ -91,7 +94,7 @@ CollectionCrProcessGui::createWindow(const int &variant)
       }
     case 2:
       {
-	 window->set_title(gettext("Collection refreshing progress"));
+	window->set_title(gettext("Collection refreshing progress"));
 	break;
       }
     default:
@@ -176,7 +179,8 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
     }
 
   CreateCollection *cc = new CreateCollection(af, collection_path, books_path,
-					      thr_num, &cancel_proc);
+					      rar_support, thr_num,
+					      &cancel_proc);
 
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this]
@@ -265,6 +269,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
 						 &cancel_proc, remove_empty,
 						 fast_refresh,
 						 refresh_bookmarkse, bookmarks);
+  rfr->set_rar_support(rar_support);
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this]
   {
@@ -378,7 +383,7 @@ CollectionCrProcessGui::finishInfo(Gtk::Window *win, const int &variant)
   win->set_default_size(1, 1);
   win->set_deletable(true);
   switch(variant)
-  {
+    {
     case 1:
       {
 	win->set_title(gettext("Collection created"));
@@ -391,7 +396,7 @@ CollectionCrProcessGui::finishInfo(Gtk::Window *win, const int &variant)
       }
     default:
       break;
-  }
+    }
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);

@@ -64,6 +64,7 @@ private:
   Gtk::CheckButton *clean_empty = nullptr;
   Gtk::CheckButton *fast_refreshing = nullptr;
   Gtk::CheckButton *refresh_bookmarks = nullptr;
+  Gtk::CheckButton *disable_rar = nullptr;
 };
 
 #endif /* INCLUDE_REFRESHCOLLECTIONGUI_H_ */

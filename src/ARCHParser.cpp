@@ -29,9 +29,10 @@
 #include <string>
 
 ARCHParser::ARCHParser(const std::shared_ptr<AuxFunc> &af,
-		       std::atomic<bool> *cancel)
+		       const bool &rar_support, std::atomic<bool> *cancel)
 {
   this->af = af;
+  this->rar_support = rar_support;
   this->cancel = cancel;
 }
 
@@ -148,6 +149,10 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 {
   std::string ext = ch_p.extension().u8string();
   ext = af->stringToLower(ext);
+  if(!rar_support && ext == ".rar")
+    {
+      return void();
+    }
   if(af->if_supported_type(ch_p) || ext == ".fbd")
     {
       std::string buf;
@@ -209,7 +214,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
 							    temp);
 	  std::vector<BookParseEntry> rec_v;
-	  ARCHParser arch(af, cancel);
+	  ARCHParser arch(af, rar_support, cancel);
 	  rec_v = arch.arch_parser(out);
 	  for(auto it = rec_v.begin(); it != rec_v.end(); it++)
 	    {

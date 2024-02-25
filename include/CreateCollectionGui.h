@@ -21,7 +21,9 @@
 #include <AuxFunc.h>
 #include <giomm-2.68/giomm/asyncresult.h>
 #include <glibmm-2.68/glibmm/refptr.h>
+#include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
+
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #endif
@@ -76,6 +78,8 @@ private:
   Gtk::Entry *book_path = nullptr;
 
   Gtk::Entry *thread_num = nullptr;
+
+  Gtk::CheckButton *disable_rar = nullptr;
 };
 
 #endif /* INCLUDE_CREATECOLLECTIONGUI_H_ */

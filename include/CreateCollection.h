@@ -38,7 +38,8 @@ public:
   CreateCollection(const std::shared_ptr<AuxFunc> &af,
 		   const std::filesystem::path &collection_path,
 		   const std::filesystem::path &books_path,
-		   const int &num_threads, std::atomic<bool> *cancel);
+		   const bool &rar_support, const int &num_threads,
+		   std::atomic<bool> *cancel);
   virtual
   ~CreateCollection();
 
@@ -55,8 +56,8 @@ public:
   (const double &progress)> progress;
 
 protected:
-  CreateCollection(const std::shared_ptr<AuxFunc> &af,
-		   const int &num_threads, std::atomic<bool> *cancel);
+  CreateCollection(const std::shared_ptr<AuxFunc> &af, const int &num_threads,
+		   std::atomic<bool> *cancel);
 
   void
   threadRegulator();
@@ -73,6 +74,7 @@ protected:
   std::vector<std::filesystem::path> need_to_parse;
   std::filesystem::path base_path;
   std::filesystem::path books_path;
+  bool rar_support = false;
   std::vector<std::tuple<std::filesystem::path, std::string>> already_hashed;
 
 private:
