@@ -142,11 +142,12 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
   bool loc_find_fbd = false;
   std::string::size_type n;
   std::string unpack_path;
-  n = bbe.bpe.book_path.find("\n");
+  std::string sstr = "\n";
+  n = bbe.bpe.book_path.find(sstr);
   if(n != std::string::npos)
     {
       unpack_path = bber.bpe.book_path.substr(0, n);
-      bber.bpe.book_path.erase(0, n + std::string("\n").size());
+      bber.bpe.book_path.erase(0, n + sstr.size());
     }
   else
     {

@@ -70,12 +70,13 @@ CopyBookGui::createWindow()
     {
       std::string bp = bbe.bpe.book_path;
       std::string::size_type n;
+      std::string sstr = "\n";
       for(;;)
 	{
-	  n = bp.find("\n");
+	  n = bp.find(sstr);
 	  if(n != std::string::npos)
 	    {
-	      bp.erase(0, n + std::string("\n").size());
+	      bp.erase(0, n + sstr.size());
 	    }
 	  else
 	    {
@@ -132,12 +133,13 @@ CopyBookGui::createWindow()
     {
       std::string bp = bbe.bpe.book_path;
       std::string::size_type n;
+      std::string sstr = "\n";
       for(;;)
 	{
-	  n = bp.find("\n");
+	  n = bp.find(sstr);
 	  if(n != std::string::npos)
 	    {
-	      bp.erase(0, n + std::string("\n").size());
+	      bp.erase(0, n + sstr.size());
 	    }
 	  else
 	    {

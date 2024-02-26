@@ -28,8 +28,10 @@
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gdkmm/pixbuf.h>
+#include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
+#include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <GenreGroup.h>
 #include <memory>
@@ -75,8 +77,11 @@ private:
   formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
 		  int &row_num);
 
+  Gdk::Rectangle
+  screen_size();
+
   int
-  cover_width(Gtk::Grid *grid);
+  cover_width(Gtk::ScrolledWindow *scrl);
 
   void
   cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width,

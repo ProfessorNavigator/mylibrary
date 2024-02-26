@@ -147,7 +147,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 			 const std::shared_ptr<archive> &a,
 			 const std::shared_ptr<archive_entry> &e)
 {
-  std::string ext = ch_p.extension().u8string();
+  std::string ext = af->get_extension(ch_p);
   ext = af->stringToLower(ext);
   if(!rar_support && ext == ".rar")
     {

@@ -20,6 +20,7 @@
 #include <ByteOrder.h>
 #include <MLException.h>
 #include <stddef.h>
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -479,21 +480,19 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
     }
   else
     {
-      for(auto it = result.begin(); it != result.end();)
+      result.erase(std::remove_if(result.begin(), result.end(), [search, this]
+      (auto &el)
 	{
-	  if(cancel_search.load())
+	  if(this->searchLineFunc(search.bpe.book_name, el.bpe.book_name))
 	    {
-	      break;
-	    }
-	  if(searchLineFunc(search.bpe.book_name, it->bpe.book_name))
-	    {
-	      it++;
+	      return false;
 	    }
 	  else
 	    {
-	      result.erase(it);
+	      return true;
 	    }
-	}
+	}),
+		   result.end());
     }
 }
 
@@ -522,21 +521,19 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
     }
   else
     {
-      for(auto it = result.begin(); it != result.end();)
+      result.erase(std::remove_if(result.begin(), result.end(), [search, this]
+      (auto &el)
 	{
-	  if(cancel_search.load())
+	  if(this->searchLineFunc(search.bpe.book_series, el.bpe.book_series))
 	    {
-	      break;
-	    }
-	  if(searchLineFunc(search.bpe.book_series, it->bpe.book_series))
-	    {
-	      it++;
+	      return false;
 	    }
 	  else
 	    {
-	      result.erase(it);
+	      return true;
 	    }
-	}
+	}),
+		   result.end());
     }
 }
 
@@ -636,21 +633,19 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
     }
   else
     {
-      for(auto it = result.begin(); it != result.end();)
+      result.erase(std::remove_if(result.begin(), result.end(), [search, this]
+      (auto &el)
 	{
-	  if(cancel_search.load())
+	  if(this->searchLineFunc(search.bpe.book_genre, el.bpe.book_genre))
 	    {
-	      break;
-	    }
-	  if(searchLineFunc(search.bpe.book_genre, it->bpe.book_genre))
-	    {
-	      it++;
+	      return false;
 	    }
 	  else
 	    {
-	      result.erase(it);
+	      return true;
 	    }
-	}
+	}),
+		   result.end());
     }
 }
 
@@ -666,14 +661,15 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
 {
   bool all_empty = true;
   std::string last_name = search.bpe.book_author;
-  std::string::size_type n = last_name.find("\n");
+  std::string sstr = "\n";
+  std::string::size_type n = last_name.find(sstr);
   if(n != std::string::npos)
     {
-      last_name.erase(0, n + std::string("\n").size());
-      n = last_name.find("\n");
+      last_name.erase(0, n + sstr.size());
+      n = last_name.find(sstr);
       if(n != std::string::npos)
 	{
-	  last_name.erase(0, n + std::string("\n").size());
+	  last_name.erase(0, n + sstr.size());
 	  if(!last_name.empty())
 	    {
 	      all_empty = false;
@@ -701,21 +697,23 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
 		}
 	      else
 		{
-		  for(auto it = result.begin(); it != result.end();)
-		    {
-		      if(cancel_search.load())
-			{
-			  break;
-			}
-		      if(searchLineFunc(last_name, it->bpe.book_author))
-			{
-			  it++;
-			}
-		      else
-			{
-			  result.erase(it);
-			}
-		    }
+		  result.erase(
+		      std::remove_if(
+			  result.begin(),
+			  result.end(),
+			  [last_name, this]
+			  (auto &el)
+			    {
+			      if(this->searchLineFunc(last_name, el.bpe.book_author))
+				{
+				  return false;
+				}
+			      else
+				{
+				  return true;
+				}
+			    }),
+		      result.end());
 		}
 	    }
 	}
@@ -729,11 +727,12 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
 {
   bool all_empty = true;
   std::string first_name = search.bpe.book_author;
-  std::string::size_type n = first_name.find("\n");
+  std::string sstr = "\n";
+  std::string::size_type n = first_name.find(sstr);
   if(n != std::string::npos)
     {
-      first_name.erase(0, n + std::string("\n").size());
-      n = first_name.find("\n");
+      first_name.erase(0, n + sstr.size());
+      n = first_name.find(sstr);
       if(n != std::string::npos)
 	{
 	  first_name = first_name.substr(0, n);
@@ -764,21 +763,23 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
 		}
 	      else
 		{
-		  for(auto it = result.begin(); it != result.end();)
-		    {
-		      if(cancel_search.load())
-			{
-			  break;
-			}
-		      if(searchLineFunc(first_name, it->bpe.book_author))
-			{
-			  it++;
-			}
-		      else
-			{
-			  result.erase(it);
-			}
-		    }
+		  result.erase(
+		      std::remove_if(
+			  result.begin(),
+			  result.end(),
+			  [first_name, this]
+			  (auto &el)
+			    {
+			      if(this->searchLineFunc(first_name, el.bpe.book_author))
+				{
+				  return false;
+				}
+			      else
+				{
+				  return true;
+				}
+			    }),
+		      result.end());
 		}
 	    }
 	}

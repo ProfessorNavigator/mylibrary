@@ -105,14 +105,15 @@ EditBookGui::create_genre_model()
   std::string::size_type n;
   std::string genre_code;
   Glib::RefPtr<EditBookGenreModelItem> item;
+  std::string sstr = ",";
   for(;;)
     {
       genre_code.clear();
-      n = genres.find(",");
+      n = genres.find(sstr);
       if(n != std::string::npos)
 	{
 	  genre_code = genres.substr(0, n);
-	  genres.erase(0, n + std::string(",").size());
+	  genres.erase(0, n + sstr.size());
 	  item = create_item(genre_code);
 	  if(item)
 	    {

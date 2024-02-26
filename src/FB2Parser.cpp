@@ -460,10 +460,11 @@ FB2Parser::fb2_cover_main(const std::string &book, std::string &cover)
 		      el[0].element, "href");
 		  if(!ref.empty())
 		    {
-		      std::string::size_type n = ref.find("#");
+		      std::string sstr = "#";
+		      std::string::size_type n = ref.find(sstr);
 		      if(n != std::string::npos)
 			{
-			  ref.erase(0, n + std::string("#").size());
+			  ref.erase(0, n + sstr.size());
 			}
 		      el = get_tag(book, "binary");
 		      for(auto it = el.begin(); it != el.end(); it++)

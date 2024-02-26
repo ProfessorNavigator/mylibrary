@@ -111,9 +111,10 @@ RemoveBookGui::createWindow()
   std::string::size_type n;
   std::filesystem::path ch_p;
   std::string ext;
+  std::string sstr = "\n";
   while(ch_str.size() > 0)
     {
-      n = ch_str.find("\n");
+      n = ch_str.find(sstr);
       if(n != std::string::npos)
 	{
 	  ch_p = std::filesystem::u8path(ch_str.substr(0, n));
@@ -126,7 +127,7 @@ RemoveBookGui::createWindow()
 	    }
 	  else
 	    {
-	      ch_str.erase(0, n + std::string("\n").size());
+	      ch_str.erase(0, n + sstr.size());
 	    }
 	}
       else

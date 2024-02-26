@@ -325,13 +325,14 @@ SearchResultShow::translate_genres(const std::string &genres)
 
   std::string loc_g = genres;
   std::string::size_type n;
+  std::string sstr = ",";
   while(loc_g.size() > 0)
     {
-      n = loc_g.find(",");
+      n = loc_g.find(sstr);
       if(n != std::string::npos)
 	{
 	  std::string genre = loc_g.substr(0, n);
-	  loc_g.erase(0, n + std::string(",").size());
+	  loc_g.erase(0, n + sstr.size());
 	  append_genre(result, genre);
 	}
       else
@@ -565,20 +566,21 @@ SearchResultShow::removeBook(const Glib::RefPtr<SearchResultModelItem> &item)
       bool rar = false;
       std::string::size_type n;
       std::filesystem::path val;
+      std::string sstr = "\n";
       for(;;)
 	{
-	  n = ent.find("\n");
+	  n = ent.find(sstr);
 	  if(n != std::string::npos)
 	    {
 	      val = std::filesystem::u8path(ent.substr(0, n));
-	      ent.erase(0, n + std::string("\n").size());
+	      ent.erase(0, n + sstr.size());
 	      if(ch_p.empty())
 		{
 		  ch_p = val.u8string();
 		}
 	      else
 		{
-		  ch_p = ch_p + "\n" + val.u8string();
+		  ch_p = ch_p + sstr + val.u8string();
 		}
 	      ext = val.extension().u8string();
 	      ext = af->stringToLower(ext);
@@ -599,7 +601,7 @@ SearchResultShow::removeBook(const Glib::RefPtr<SearchResultModelItem> &item)
 		    }
 		  else
 		    {
-		      ch_p = ch_p + "\n" + val.u8string();
+		      ch_p = ch_p + sstr + val.u8string();
 		    }
 		  ext = val.extension().u8string();
 		  ext = af->stringToLower(ext);

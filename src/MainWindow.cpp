@@ -442,7 +442,9 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("3.0");
+  about->set_version("3.0.1");
+
+  about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
   about->set_copyright(
       "Copyright 2022-2024 Yury Bobylev <bobilev_yury@mail.ru>");

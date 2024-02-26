@@ -108,20 +108,17 @@ CreateCollection::createCollection()
     }
   if(!rar_support)
     {
-      std::string ext;
-      for(auto it = need_to_parse.begin(); it != need_to_parse.end();)
-	{
-	  ext = it->extension().u8string();
-	  ext = af->stringToLower(ext);
-	  if(ext == ".rar")
-	    {
-	      need_to_parse.erase(it);
-	    }
-	  else
-	    {
-	      it++;
-	    }
-	}
+      std::string sstr = ".rar";
+      need_to_parse.erase(
+	  std::remove_if(need_to_parse.begin(), need_to_parse.end(),
+			 [sstr, this]
+			 (auto &el)
+			   {
+			     std::string ext = el.extension().u8string();
+			     ext = this->af->stringToLower(ext);
+			     return ext == sstr;
+			   }),
+	  need_to_parse.end());
     }
   if(total_file_number)
     {
@@ -156,11 +153,11 @@ CreateCollection::threadRegulator()
 	  == std::filesystem::file_type::symlink)
 	{
 	  resolved = std::filesystem::read_symlink(p);
-	  ext = resolved.extension().u8string();
+	  ext = af->get_extension(resolved);
 	}
       else
 	{
-	  ext = p.extension().u8string();
+	  ext = af->get_extension(p);
 	}
       ext = af->stringToLower(ext);
       std::unique_lock<std::mutex> lk(newthrmtx);

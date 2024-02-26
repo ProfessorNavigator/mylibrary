@@ -188,20 +188,17 @@ RefreshCollection::refreshCollection()
 
       if(!rar_support)
 	{
-	  std::string ext;
-	  for(auto it = books_files.begin(); it != books_files.end();)
-	    {
-	      ext = it->extension().u8string();
-	      ext = af->stringToLower(ext);
-	      if(ext == ".rar")
-		{
-		  books_files.erase(it);
-		}
-	      else
-		{
-		  it++;
-		}
-	    }
+	  std::string sstr = ".rar";
+	  books_files.erase(
+	      std::remove_if(books_files.begin(), books_files.end(),
+			     [sstr, this]
+			     (auto &el)
+			       {
+				 std::string ext = el.extension().u8string();
+				 ext = this->af->stringToLower(ext);
+				 return ext == sstr;
+			       }),
+	      books_files.end());
 	}
 
       compaire_vectors(base, books_files);

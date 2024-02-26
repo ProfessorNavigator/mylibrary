@@ -374,10 +374,11 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
 	else
 	  {
 	    std::string bp = bbe_from.bpe.book_path;
-	    std::string::size_type n = bp.rfind("\n");
+	    std::string sstr = "\n";
+	    std::string::size_type n = bp.rfind(sstr);
 	    if(n != std::string::npos)
 	      {
-		bp.erase(0, n + std::string("\n").size());
+		bp.erase(0, n + sstr.size());
 	      }
 	    std::filesystem::path p = std::filesystem::u8path(bp);
 	    std::string ext = af->get_extension(p);
@@ -397,10 +398,11 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
 	else
 	  {
 	    std::string bp = bbe_from.bpe.book_path;
-	    std::string::size_type n = bp.rfind("\n");
+	    std::string sstr = "\n";
+	    std::string::size_type n = bp.rfind(sstr);
 	    if(n != std::string::npos)
 	      {
-		bp.erase(0, n + std::string("\n").size());
+		bp.erase(0, n + sstr.size());
 	      }
 	    p = std::filesystem::u8path(bp);
 	  }
@@ -994,10 +996,11 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
   else
     {
       std::string bp = bbe_from.bpe.book_path;
-      std::string::size_type n = bp.rfind("\n");
+      std::string sstr = "\n";
+      std::string::size_type n = bp.rfind(sstr);
       if(n != std::string::npos)
 	{
-	  bp.erase(0, n + std::string("\n").size());
+	  bp.erase(0, n + sstr.size());
 	}
       p = std::filesystem::u8path(bp);
     }

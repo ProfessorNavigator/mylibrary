@@ -140,11 +140,12 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
   BookBaseEntry bber = bbe;
   std::string::size_type n;
   std::string unpack_path;
-  n = bbe.bpe.book_path.find("\n");
+  std::string sstr = "\n";
+  n = bbe.bpe.book_path.find(sstr);
   if(n != std::string::npos)
     {
       unpack_path = bber.bpe.book_path.substr(0, n);
-      bber.bpe.book_path.erase(0, n + std::string("\n").size());
+      bber.bpe.book_path.erase(0, n + sstr.size());
     }
   else
     {
@@ -155,7 +156,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
       std::vector<ZipFileEntry> files;
       la.fileNames(bbe.file_path, files);
       std::string::size_type n;
-      std::string sstr = "\\";
+      sstr = "\\";
       for(auto it = files.begin(); it != files.end(); it++)
 	{
 	  if(it->filename.size() > 0)

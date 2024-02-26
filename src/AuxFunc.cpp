@@ -165,12 +165,13 @@ AuxFunc::homePath()
     }
   std::string path = to_utf_8(result, nullptr);
   std::string::size_type n = 0;
+  std::string sstr = "\\";
   for(;;)
     {
-      n = path.find("\\", n);
+      n = path.find(sstr, n);
       if(n != std::string::npos)
 	{
-	  path.erase(path.begin() + n, path.begin() + n + 1);
+	  path.erase(n, sstr.size());
 	  path.insert(n, "/");
 	}
       else
@@ -287,13 +288,14 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
 	{
 	  if(!wrong_loc)
 	    {
+	      std::string sstr = ";";
 	      for(;;)
 		{
-		  n = line.find(";");
+		  n = line.find(sstr);
 		  if(n != std::string::npos)
 		    {
 		      std::string locl = line.substr(0, n);
-		      line.erase(0, n + std::string(";").size());
+		      line.erase(0, n + sstr.size());
 		      n = locl.find(locname);
 		      if(n != std::string::npos)
 			{
@@ -324,13 +326,14 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
 		{
 		  int fcount = 0;
 		  std::tuple<std::string, Genre> gen;
+		  std::string sstr = ";";
 		  for(;;)
 		    {
-		      n = line.find(";");
+		      n = line.find(sstr);
 		      if(n != std::string::npos)
 			{
 			  std::string locl = line.substr(0, n);
-			  line.erase(0, n + std::string(";").size());
+			  line.erase(0, n + sstr.size());
 			  if(fcount == 0)
 			    {
 			      std::get<1>(gen).genre_code = locl;
@@ -508,19 +511,20 @@ AuxFunc::html_to_utf8(std::string &result)
   strm.imbue(std::locale("C"));
   std::string::size_type n = 0;
   std::string::size_type n_end;
+  std::string sstr1 = "&#";
+  std::string sstr2 = ";";
   for(;;)
     {
-      n = result.find("&#", n);
+      n = result.find(sstr1, n);
       if(n != std::string::npos)
 	{
-	  n_end = result.find(";", n);
+	  n_end = result.find(sstr2, n);
 	  if(n_end != std::string::npos)
 	    {
 	      std::string val(result.begin() + n, result.begin() + n_end);
-	      result.erase(result.begin() + n,
-			   result.begin() + n_end + std::string(";").size());
-	      n_end = val.find("&#");
-	      val.erase(0, n_end + std::string("&#").size());
+	      result.erase(n, sstr2.size());
+	      n_end = val.find(sstr1);
+	      val.erase(0, n_end + sstr1.size());
 	      strm.clear();
 	      strm.str(val);
 	      int32_t ch;
@@ -667,13 +671,14 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
 	  if(!wrong_loc)
 	    {
 	      std::string::size_type n;
+	      std::string sstr = ";";
 	      for(;;)
 		{
-		  n = line.find(";");
+		  n = line.find(sstr);
 		  if(n != std::string::npos)
 		    {
 		      std::string locl = line.substr(0, n);
-		      line.erase(0, n + std::string(";").size());
+		      line.erase(0, n + sstr.size());
 		      n = locl.find(locname);
 		      if(n != std::string::npos)
 			{
@@ -707,9 +712,10 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
 	      GenreGroup g;
 	      std::string::size_type n;
 	      int trans_count = 0;
+	      std::string sstr = ";";
 	      for(;;)
 		{
-		  n = line.find(";");
+		  n = line.find(sstr);
 		  if(n != std::string::npos)
 		    {
 		      if(trans_count == 0)
@@ -720,7 +726,7 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
 			{
 			  g.group_name = line.substr(0, n);
 			}
-		      line.erase(0, n + std::string(";").size());
+		      line.erase(0, n + sstr.size());
 		    }
 		  else
 		    {

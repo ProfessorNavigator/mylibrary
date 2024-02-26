@@ -90,11 +90,12 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
 
   BookBaseEntry bber = bbe;
   std::string::size_type n;
-  n = bber.bpe.book_path.find("\n");
+  std::string sstr = "\n";
+  n = bber.bpe.book_path.find(sstr);
   if(n != std::string::npos)
     {
       path_in_arch = bber.bpe.book_path.substr(0, n);
-      bber.bpe.book_path.erase(0, n + std::string("\n").size());
+      bber.bpe.book_path.erase(0, n + sstr.size());
     }
   else
     {

@@ -1404,17 +1404,19 @@ LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
     }
   std::copy(add.begin(), add.end(), std::back_inserter(result));
 
-  for(auto it = result.begin(); it != result.end();)
+ result.erase(std::remove_if(result.begin(), result.end(), []
+  (auto &el)
     {
-      if(!std::filesystem::exists(std::get<0>(*it)))
+      if(!std::filesystem::exists(std::get<0>(el)))
 	{
-	  result.erase(it);
+	  return true;
 	}
       else
 	{
-	  it++;
+	  return false;
 	}
-    }
+    }),
+	       result.end());
 
   for(size_t i = 0;; i++)
     {

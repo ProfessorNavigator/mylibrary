@@ -20,8 +20,8 @@
 #include <iostream>
 #include <iterator>
 
-FormatAnnotation::FormatAnnotation(const std::shared_ptr<AuxFunc> &af) :
-    XMLParser(af)
+FormatAnnotation::FormatAnnotation(const std::shared_ptr<AuxFunc> &af) : XMLParser(
+    af)
 {
   formReplacementTable();
 }
@@ -34,19 +34,20 @@ FormatAnnotation::~FormatAnnotation()
 void
 FormatAnnotation::remove_escape_sequences(std::string &annotation)
 {
-  for(auto it = annotation.begin(); it != annotation.end();)
+  annotation.erase(std::remove_if(annotation.begin(), annotation.end(), []
+  (auto &el)
     {
-      char ch = *it;
-      if(ch == '\a' || ch == '\b' || ch == '\f' || ch == '\n'
-	  || ch == '\r' || ch == '\t' || ch == '\v')
+      if(el == '\a' || el == '\b' || el == '\f' || el == '\n' || el == '\r'
+	  || el == '\t' || el == '\v')
 	{
-	  annotation.erase(it);
+	  return true;
 	}
       else
 	{
-	  it++;
+	  return false;
 	}
-    }
+    }),
+		   annotation.end());
   for(auto it = annotation.begin(); it != annotation.end();)
     {
       if(*it == ' ')
@@ -60,9 +61,10 @@ FormatAnnotation::remove_escape_sequences(std::string &annotation)
     }
 
   std::string::size_type n = 0;
+  std::string sstr = "  ";
   for(;;)
     {
-      n = annotation.find("  ", n);
+      n = annotation.find(sstr, n);
       if(n != std::string::npos)
 	{
 	  annotation.erase(annotation.begin() + n);
@@ -79,12 +81,14 @@ FormatAnnotation::replace_tags(std::string &annotation)
 {
   std::string::size_type n_start = 0;
   std::string::size_type n_end = 0;
+  std::string sstr1 = "<";
+  std::string sstr2 = ">";
   for(;;)
     {
-      n_start = annotation.find("<", n_start);
+      n_start = annotation.find(sstr1, n_start);
       if(n_start != std::string::npos)
 	{
-	  n_end = annotation.find(">", n_start);
+	  n_end = annotation.find(sstr2, n_start);
 	  if(n_end != std::string::npos)
 	    {
 	      std::string tag(annotation.begin() + n_start,
@@ -179,8 +183,8 @@ FormatAnnotation::tag_replacement_process(const std::string &tag,
 	}
     }
 
-  auto it = std::find_if(replacement_table.begin(),
-			 replacement_table.end(), [id]
+  auto it = std::find_if(replacement_table.begin(), replacement_table.end(),
+			 [id]
 			 (auto &el)
 			   {
 			     return el.tag_to_replace == id.tag_id;
@@ -204,9 +208,10 @@ void
 FormatAnnotation::final_cleaning(std::string &annotation)
 {
   std::string::size_type n = 0;
+  std::string sstr = "   ";
   for(;;)
     {
-      n = annotation.find("   ", n);
+      n = annotation.find(sstr, n);
       if(n != std::string::npos)
 	{
 	  annotation.erase(annotation.begin() + n);
