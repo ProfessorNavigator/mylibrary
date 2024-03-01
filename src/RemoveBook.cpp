@@ -162,30 +162,41 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
 		SelfRemovingPath srp(tmp);
 		tmp = libarchive_read_entry(are->a_read.get(), entry.get(),
 					    srp.path);
-		er = archive_write_header(are->a_write.get(), entry.get());
-		if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
+		if(std::filesystem::exists(tmp))
 		  {
-		    if(er == ARCHIVE_WARN)
+		    er = archive_write_header(are->a_write.get(), entry.get());
+		    if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
 		      {
-			libarchive_error(
-			    are->a_write,
-			    "RemoveBook::archive_remove writing warning", er);
-			er = ARCHIVE_OK;
+			if(er == ARCHIVE_WARN)
+			  {
+			    libarchive_error(
+				are->a_write,
+				"RemoveBook::archive_remove writing warning",
+				er);
+			    er = ARCHIVE_OK;
+			  }
+			if(!std::filesystem::is_directory(tmp))
+			  {
+			    er = libarchive_write_data_from_file(
+				are->a_write.get(), tmp);
+			  }
 		      }
-		    if(!std::filesystem::is_directory(tmp))
+		    if(er != ARCHIVE_OK)
 		      {
-			er = libarchive_write_data_from_file(are->a_write.get(),
-							     tmp);
+			std::cout
+			    << "RemoveBook::archive_remove writing error: "
+			    << er << std::endl;
 		      }
-		  }
-		if(er != ARCHIVE_OK)
-		  {
-		    std::cout << "RemoveBook::archive_remove writing error: "
-			<< er << std::endl;
+		    else
+		      {
+			file_count++;
+		      }
 		  }
 		else
 		  {
-		    file_count++;
+		    std::cout << "RemoveBook::archive_remove writing error: "
+			"file from source archive was not unpacked"
+			<< std::endl;
 		  }
 	      }
 	    else
@@ -201,35 +212,44 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
 		    keep_path = tmp;
 		    tmp = libarchive_read_entry(are->a_read.get(), entry.get(),
 						tmp);
-		    bber.file_path = tmp;
-
-		    std::shared_ptr<RemoveBook> rb =
-			std::make_shared<RemoveBook>(af, bber, col_name,
-						     bookmarks);
-		    tmp = out_dir.path;
-		    tmp /= std::filesystem::u8path(af->randomFileName());
-		    SelfRemovingPath srp(tmp);
-		    tmp = rb->archive_remove(srp);
-
 		    if(std::filesystem::exists(tmp))
 		      {
-			std::shared_ptr<archive_entry> e_write(
-			    archive_entry_new2(are->a_write.get()), []
-			    (archive_entry *e)
+			bber.file_path = tmp;
+
+			std::shared_ptr<RemoveBook> rb = std::make_shared<
+			    RemoveBook>(af, bber, col_name, bookmarks);
+			tmp = out_dir.path;
+			tmp /= std::filesystem::u8path(af->randomFileName());
+			SelfRemovingPath srp(tmp);
+			tmp = rb->archive_remove(srp);
+
+			if(std::filesystem::exists(tmp))
+			  {
+			    std::shared_ptr<archive_entry> e_write(
+				archive_entry_new2(are->a_write.get()), []
+				(archive_entry *e)
+				  {
+				    archive_entry_free(e);
+				  });
+			    er = libarchive_write_file(are->a_write.get(),
+						       e_write.get(), ch_p,
+						       tmp);
+			    if(er != ARCHIVE_OK)
 			      {
-				archive_entry_free(e);
-			      });
-			er = libarchive_write_file(are->a_write.get(),
-						   e_write.get(), ch_p, tmp);
-			if(er != ARCHIVE_OK)
-			  {
-			    std::cout << "RemoveBook::archive_remove: "
-				"error on writing" << std::endl;
+				std::cout << "RemoveBook::archive_remove: "
+				    "error on writing" << std::endl;
+			      }
+			    else
+			      {
+				file_count++;
+			      }
 			  }
-			else
-			  {
-			    file_count++;
-			  }
+		      }
+		    else
+		      {
+			std::cout << "RemoveBook::archive_remove: "
+			    "error on writing, file was not correctly unpacked"
+			    << std::endl;
 		      }
 		  }
 	      }

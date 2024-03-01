@@ -23,6 +23,7 @@
 #include <FB2Parser.h>
 #include <MLException.h>
 #include <PDFParser.h>
+#include <SelfRemovingPath.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -171,10 +172,19 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	  temp /= std::filesystem::u8path(af->randomFileName());
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
 							    temp);
-	  EPUBParser epub(af);
-	  bpe = epub.epub_parser(out);
-	  std::filesystem::remove_all(temp);
-	  add = true;
+	  if(std::filesystem::exists(out))
+	    {
+	      EPUBParser epub(af);
+	      bpe = epub.epub_parser(out);
+	      std::filesystem::remove_all(temp);
+	      add = true;
+	    }
+	  else
+	    {
+	      std::cout << "ARCHParser::unpack_entry epub unpacking error"
+		  << std::endl;
+	      return void();
+	    }
 	}
       else if(ext == ".pdf")
 	{
@@ -189,11 +199,21 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	  temp /= std::filesystem::u8path(af->randomFileName());
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
 							    temp);
-	  DJVUParser djvu(af);
-	  bpe = djvu.djvu_parser(out);
-	  bpe.book_date = af->time_t_to_date(archive_entry_birthtime(e.get()));
-	  std::filesystem::remove_all(temp);
-	  add = true;
+	  if(std::filesystem::exists(out))
+	    {
+	      DJVUParser djvu(af);
+	      bpe = djvu.djvu_parser(out);
+	      bpe.book_date = af->time_t_to_date(
+		  archive_entry_birthtime(e.get()));
+	      std::filesystem::remove_all(temp);
+	      add = true;
+	    }
+	  else
+	    {
+	      std::cout << "ARCHParser::unpack_entry djvu unpacking error"
+		  << std::endl;
+	      return void();
+	    }
 	}
       else if(ext == ".fbd")
 	{
@@ -211,17 +231,25 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	{
 	  std::filesystem::path temp = af->temp_path();
 	  temp /= std::filesystem::u8path(af->randomFileName());
+	  SelfRemovingPath srp(temp);
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
 							    temp);
-	  std::vector<BookParseEntry> rec_v;
-	  ARCHParser arch(af, rar_support, cancel);
-	  rec_v = arch.arch_parser(out);
-	  for(auto it = rec_v.begin(); it != rec_v.end(); it++)
+	  if(std::filesystem::exists(out))
 	    {
-	      it->book_path = ch_p.u8string() + "\n" + it->book_path;
-	      result.push_back(*it);
+	      std::vector<BookParseEntry> rec_v;
+	      ARCHParser arch(af, rar_support, cancel);
+	      rec_v = arch.arch_parser(out);
+	      for(auto it = rec_v.begin(); it != rec_v.end(); it++)
+		{
+		  it->book_path = ch_p.u8string() + "\n" + it->book_path;
+		  result.push_back(*it);
+		}
 	    }
-	  std::filesystem::remove_all(temp);
+	  else
+	    {
+	      std::cout << "ARCHParser::unpack_entry archive unpacking error" << std::endl;
+	      return void();
+	    }
 	}
 
       if(add)

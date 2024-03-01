@@ -273,7 +273,6 @@ void
 RightGrid::set_annotation_n_cover(
     const Glib::RefPtr<SearchResultModelItem> &item)
 {
-
   bie.reset();
   try
     {
@@ -282,7 +281,6 @@ RightGrid::set_annotation_n_cover(
   catch(MLException &e)
     {
       std::cout << e.what() << std::endl;
-      bie.reset();
     }
   Glib::RefPtr<Gtk::TextBuffer> buffer = Gtk::TextBuffer::create();
   if(bie)
@@ -292,7 +290,6 @@ RightGrid::set_annotation_n_cover(
       formatter->final_cleaning(bie->annotation);
 
       buffer->insert_markup(buffer->begin(), Glib::ustring(bie->annotation));
-
     }
   this->annotation->set_buffer(buffer);
   annotation_parse_http(buffer);

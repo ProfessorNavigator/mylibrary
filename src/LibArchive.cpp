@@ -176,14 +176,36 @@ LibArchive::libarchive_read_entry(archive *a, archive_entry *entry,
 	    path = const_cast<char*>(archive_entry_pathname(entry));
 	    if(path)
 	      {
-		pathstr = "Book"
-		    + std::filesystem::u8path(path).extension().u8string();
+		pathstr = std::string(path);
+		std::string ext;
+		std::string::size_type n;
+		n = pathstr.rfind(".");
+		if(n != std::string::npos)
+		  {
+		    ext = std::string(pathstr.begin() + n, pathstr.end());
+		    pathstr.erase(pathstr.begin() + n, pathstr.end());
+		    n = pathstr.rfind(".tar");
+		    if(n != std::string::npos)
+		      {
+			pathstr.erase(0, n);
+			ext = pathstr + ext;
+		      }
+		  }
+		ext.erase(std::remove_if(ext.begin(), ext.end(), []
+		(auto &el)
+		  {
+		    return el == 0;
+		  }),
+			  ext.end());
+		AuxFunc af;
+		pathstr = af.randomFileName() + ext;
 	      }
 	    else
 	      {
 		std::cout
 		    << "LibArchive::libarchive_read_entry: path pointer is null (critical)!"
 		    << std::endl;
+		return result;
 	      }
 	  }
 	else
@@ -1404,7 +1426,7 @@ LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
     }
   std::copy(add.begin(), add.end(), std::back_inserter(result));
 
- result.erase(std::remove_if(result.begin(), result.end(), []
+  result.erase(std::remove_if(result.begin(), result.end(), []
   (auto &el)
     {
       if(!std::filesystem::exists(std::get<0>(el)))

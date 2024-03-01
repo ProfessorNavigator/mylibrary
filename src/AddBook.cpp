@@ -57,8 +57,7 @@ AddBook::simple_add(
       std::filesystem::create_directories(out.parent_path());
       std::filesystem::remove_all(out);
       std::error_code ec;
-      std::filesystem::copy(std::get<0>(*it), out,
-			    ec);
+      std::filesystem::copy(std::get<0>(*it), out, ec);
       if(ec)
 	{
 	  std::cout << "AddBook::simple_add error: " << ec.message()
@@ -197,34 +196,41 @@ AddBook::add_to_existing_archive(
 
 		    p = la.libarchive_read_entry(rment->a_read.get(),
 						 entry.get(), srp.path);
-		    er_write = archive_write_header(rment->a_write.get(),
-						    entry.get());
-		    if(er_write == ARCHIVE_OK || er_write == ARCHIVE_WARN)
+		    if(std::filesystem::exists(p))
 		      {
-			if(er_write == ARCHIVE_WARN)
+			er_write = archive_write_header(rment->a_write.get(),
+							entry.get());
+			if(er_write == ARCHIVE_OK || er_write == ARCHIVE_WARN)
 			  {
-			    la.libarchive_error(
-				rment->a_write,
-				"AddBook::add_to_existing_archive data writing warning",
-				er_write);
-			  }
-			if(!std::filesystem::is_directory(p))
-			  {
-			    er_write = la.libarchive_write_data_from_file(
-				rment->a_write.get(), p);
-			    if(er_write != ARCHIVE_OK)
+			    if(er_write == ARCHIVE_WARN)
 			      {
-				throw MLException(
-				    "AddBook::add_to_existing_archive data writing error");
+				la.libarchive_error(
+				    rment->a_write,
+				    "AddBook::add_to_existing_archive data writing warning",
+				    er_write);
 			      }
+			    if(!std::filesystem::is_directory(p))
+			      {
+				er_write = la.libarchive_write_data_from_file(
+				    rment->a_write.get(), p);
+				if(er_write != ARCHIVE_OK)
+				  {
+				    throw MLException(
+					"AddBook::add_to_existing_archive data writing error");
+				  }
+			      }
+			  }
+			else
+			  {
+			    throw MLException(
+				"AddBook::add_to_existing_archive header writing error");
 			  }
 		      }
 		    else
 		      {
 			throw MLException(
-			    "AddBook::add_to_existing_archive header writing error");
+			    "AddBook::add_to_existing_archive incorrect filename in archive");
 		      }
-
 		    break;
 		  }
 		case ARCHIVE_EOF:
@@ -418,34 +424,41 @@ AddBook::add_to_existing_archive_dir(
 
 		    p = la.libarchive_read_entry(rment->a_read.get(),
 						 entry.get(), srp.path);
-		    er_write = archive_write_header(rment->a_write.get(),
-						    entry.get());
-		    if(er_write == ARCHIVE_OK || er_write == ARCHIVE_WARN)
+		    if(std::filesystem::exists(p))
 		      {
-			if(er_write == ARCHIVE_WARN)
+			er_write = archive_write_header(rment->a_write.get(),
+							entry.get());
+			if(er_write == ARCHIVE_OK || er_write == ARCHIVE_WARN)
 			  {
-			    la.libarchive_error(
-				rment->a_write,
-				"AddBook::add_to_existing_archive_dir write header warning:",
-				er);
-			  }
-			if(!std::filesystem::is_directory(p))
-			  {
-			    er_write = la.libarchive_write_data_from_file(
-				rment->a_write.get(), p);
-			    if(er_write != ARCHIVE_OK)
+			    if(er_write == ARCHIVE_WARN)
 			      {
-				throw MLException(
-				    "AddBook::add_to_existing_archive_dir data writing error");
+				la.libarchive_error(
+				    rment->a_write,
+				    "AddBook::add_to_existing_archive_dir write header warning:",
+				    er);
 			      }
+			    if(!std::filesystem::is_directory(p))
+			      {
+				er_write = la.libarchive_write_data_from_file(
+				    rment->a_write.get(), p);
+				if(er_write != ARCHIVE_OK)
+				  {
+				    throw MLException(
+					"AddBook::add_to_existing_archive_dir data writing error");
+				  }
+			      }
+			  }
+			else
+			  {
+			    throw MLException(
+				"AddBook::add_to_existing_archive_dir header writing error");
 			  }
 		      }
 		    else
 		      {
 			throw MLException(
-			    "AddBook::add_to_existing_archive_dir header writing error");
+			    "AddBook::add_to_existing_archive_dir incorrect filename in archive");
 		      }
-
 		    break;
 		  }
 		case ARCHIVE_EOF:
