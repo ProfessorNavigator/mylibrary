@@ -646,7 +646,7 @@ LibArchive::fileNames(const std::filesystem::path &filepath,
 		}
 	      if(eocd.size() > 1024)
 		{
-		  std::cout << "Too big record" << std::endl;
+		  std::cout << "LibArchive::fileNames: too big record" << std::endl;
 		  f.close();
 		  return -1;
 		}
@@ -672,7 +672,7 @@ LibArchive::fileNames(const std::filesystem::path &filepath,
 	      locator = bo;
 	      if(locator != 0x07064b50)
 		{
-		  std::cout << "Central directory is encrypted "
+		  std::cout << "LibArchive::fileNames: central directory is encrypted "
 		      "or compressed, need fall back mode" << std::endl;
 		  f.close();
 		  return -2;
@@ -700,9 +700,18 @@ LibArchive::fileNames(const std::filesystem::path &filepath,
 	{
 	  cd.erase(0, n);
 	  size_t off = 0;
-
+	  size_t cd_sz = cd.size();
+	  size_t var_sz = sizeof(uint32_t) + 42;
 	  while(off < cd.size())
 	    {
+	      if(off + var_sz > cd_sz)
+		{
+		  std::cout << "LibArchive::fileNames error: "
+		      "incorrect central directory entry size (1)" << std::endl;
+		  filenames.clear();
+		  return -1;
+		}
+
 	      uint32_t c_sz = 0;
 	      std::memcpy(&c_sz, &cd[off + 20], sizeof(c_sz));
 	      bo.set_little(c_sz);
@@ -717,6 +726,13 @@ LibArchive::fileNames(const std::filesystem::path &filepath,
 	      std::memcpy(&fnml, &cd[off + 28], sizeof(fnml));
 	      bo.set_little(fnml);
 	      fnml = bo;
+	      if(off + static_cast<size_t>(fnml) + 46 > cd_sz)
+		{
+		  std::cout << "LibArchive::fileNames error: "
+		      "incorrect central directory entry size (2)" << std::endl;
+		  filenames.clear();
+		  return -1;
+		}
 
 	      uint16_t efl = 0;
 	      std::memcpy(&efl, &cd[off + 30], sizeof(efl));
@@ -740,6 +756,14 @@ LibArchive::fileNames(const std::filesystem::path &filepath,
 	      if(c_sz == 0xffffffff || u_sz == 0xffffffff
 		  || offset == 0xffffffff)
 		{
+		  if(off + static_cast<size_t>(fnml) + static_cast<size_t>(efl)
+		      + 46 > cd_sz)
+		    {
+		      std::cout << "LibArchive::fileNames error: "
+			  "incorrect central directory entry size (3)" << std::endl;
+		      filenames.clear();
+		      return -1;
+		    }
 		  std::string extra;
 		  extra.resize(efl);
 		  std::memcpy(&extra[0], &cd[off + 46 + fnml], extra.size());
