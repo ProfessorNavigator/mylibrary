@@ -379,7 +379,7 @@ RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
   std::string hash;
   try
     {
-      hash = file_hashing(file_to_hash);
+      hash = file_hashing(file_to_hash, cancel);
     }
   catch(MLException &er)
     {

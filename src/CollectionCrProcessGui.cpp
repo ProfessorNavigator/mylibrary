@@ -135,6 +135,9 @@ CollectionCrProcessGui::createWindow(const int &variant)
   cancel->signal_clicked().connect([this]
   {
     this->cancel_proc.store(true);
+    this->cancel->hide();
+    this->creation_progress->hide();
+    this->process_name->set_text(gettext("Interruption..."));
   });
   grid->attach(*cancel, 0, 2, 1, 1);
 
@@ -173,6 +176,7 @@ CollectionCrProcessGui::createWindow(const int &variant)
 void
 CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
 {
+  progress_count.store(0.0);
   if(thr_num <= 0)
     {
       thr_num = 1;
@@ -220,7 +224,10 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
   cc->progress = [this]
   (const double &prog)
     {
-      this->progress_count = prog;
+      if(prog > this->progress_count.load())
+	{
+	  this->progress_count.store(prog);
+	}
       this->progress_disp->emit();
     };
 
@@ -260,6 +267,7 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
 void
 CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
 {
+  progress_count.store(0.0);
   if(thr_num <= 0)
     {
       thr_num = 1;
@@ -346,7 +354,10 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
   rfr->progress = [this]
   (const double &prog)
     {
-      this->progress_count = prog;
+      if(prog > this->progress_count.load())
+	{
+	  this->progress_count.store(prog);
+	}
       this->progress_disp->emit();
     };
 

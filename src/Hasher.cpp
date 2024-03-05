@@ -47,8 +47,8 @@ Hasher::buf_hashing(const std::string &buf)
     }
   gcry_md_write(hd, buf.c_str(), buf.size());
   result.resize(gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256));
-  char *result_buf = reinterpret_cast<char*>(gcry_md_read(
-      hd, GCRY_MD_BLAKE2B_256));
+  char *result_buf = reinterpret_cast<char*>(gcry_md_read(hd,
+							  GCRY_MD_BLAKE2B_256));
   if(result_buf)
     {
       for(size_t i = 0; i < result.size(); i++)
@@ -67,7 +67,8 @@ Hasher::buf_hashing(const std::string &buf)
 }
 
 std::string
-Hasher::file_hashing(const std::filesystem::path &filepath)
+Hasher::file_hashing(const std::filesystem::path &filepath,
+		     std::atomic<bool> *cancel)
 {
   std::string result;
 
@@ -96,6 +97,10 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
       uintmax_t dif;
       for(;;)
 	{
+	  if(cancel->load())
+	    {
+	      break;
+	    }
 	  buf.clear();
 	  dif = fsz - read_b;
 	  if(dif > 10485760)
@@ -124,8 +129,8 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
     }
 
   result.resize(gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256));
-  char *result_buf = reinterpret_cast<char*>(gcry_md_read(
-      hd, GCRY_MD_BLAKE2B_256));
+  char *result_buf = reinterpret_cast<char*>(gcry_md_read(hd,
+							  GCRY_MD_BLAKE2B_256));
   if(result_buf)
     {
       for(size_t i = 0; i < result.size(); i++)

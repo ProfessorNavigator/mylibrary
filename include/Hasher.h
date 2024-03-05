@@ -19,6 +19,7 @@
 #define INCLUDE_HASHER_H_
 
 #include <AuxFunc.h>
+#include <atomic>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -34,7 +35,8 @@ public:
   buf_hashing(const std::string &buf);
 
   std::string
-  file_hashing(const std::filesystem::path &filepath);
+  file_hashing(const std::filesystem::path &filepath,
+	       std::atomic<bool> *cancel);
 
 private:
   std::shared_ptr<AuxFunc> af;

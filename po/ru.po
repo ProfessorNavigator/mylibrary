@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2024-02-26 17:13+0400\n"
-"PO-Revision-Date: 2024-02-26 17:13+0400\n"
+"POT-Creation-Date: 2024-03-05 17:50+0400\n"
+"PO-Revision-Date: 2024-03-05 17:50+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -156,7 +156,7 @@ msgstr ""
 msgid "Remove directory"
 msgstr "Удалить папку"
 
-#: AddBookGui.cpp:1141 RightGrid.cpp:515
+#: AddBookGui.cpp:1141 RightGrid.cpp:512
 msgid "Remove book"
 msgstr "Удалить книгу"
 
@@ -198,12 +198,12 @@ msgstr "Книги успешно добавлены!"
 msgid "Error! See system log for details."
 msgstr "Ошибка! См. системный журнал."
 
-#: AddBookGui.cpp:1594 AddBookGui.cpp:1651 CollectionCrProcessGui.cpp:431
+#: AddBookGui.cpp:1594 AddBookGui.cpp:1651 CollectionCrProcessGui.cpp:442
 #: CopyBookGui.cpp:280 CreateCollectionGui.cpp:352 EditBookGui.cpp:831
 #: EmptyCollectionGui.cpp:268 EmptyCollectionGui.cpp:393
 #: ExportCollectionGui.cpp:408 ImportCollectionGui.cpp:406
 #: ImportCollectionGui.cpp:629 RemoveBookGui.cpp:304
-#: RemoveCollectionGui.cpp:244 RightGrid.cpp:699 SaveCover.cpp:344
+#: RemoveCollectionGui.cpp:244 RightGrid.cpp:696 SaveCover.cpp:344
 #: TransferBookGui.cpp:110 TransferBookGui.cpp:946 TransferBookGui.cpp:1336
 msgid "Close"
 msgstr "Закрыть"
@@ -256,7 +256,7 @@ msgstr "Предупреждение! Некоторые файлы уже ес�
 msgid "Wait..."
 msgstr "Подождите..."
 
-#: BookInfoGui.cpp:101 BookMarksGui.cpp:386 RightGrid.cpp:508
+#: BookInfoGui.cpp:101 BookMarksGui.cpp:386 RightGrid.cpp:505
 msgid "Book info"
 msgstr "Информация о книге"
 
@@ -352,11 +352,11 @@ msgstr "Версия:"
 msgid "History:"
 msgstr "История:"
 
-#: BookInfoGui.cpp:1002 RightGrid.cpp:571
+#: BookInfoGui.cpp:1002 RightGrid.cpp:568
 msgid "Show full size"
 msgstr "Показать в натуральную величину"
 
-#: BookInfoGui.cpp:1005 RightGrid.cpp:574
+#: BookInfoGui.cpp:1005 RightGrid.cpp:571
 msgid "Save cover"
 msgstr "Сохранить обложку"
 
@@ -388,11 +388,11 @@ msgstr "Да"
 msgid "No"
 msgstr "Нет"
 
-#: BookMarksGui.cpp:383 RightGrid.cpp:501
+#: BookMarksGui.cpp:383 RightGrid.cpp:498
 msgid "Open book"
 msgstr "Открыть книгу"
 
-#: BookMarksGui.cpp:389 RightGrid.cpp:511
+#: BookMarksGui.cpp:389 RightGrid.cpp:508
 msgid "Save book as..."
 msgstr "Сохранить книгу как..."
 
@@ -412,31 +412,35 @@ msgstr "Прогресс обновления коллекции"
 msgid "Collecting files..."
 msgstr "Сбор файлов..."
 
-#: CollectionCrProcessGui.cpp:198
+#: CollectionCrProcessGui.cpp:140
+msgid "Interruption..."
+msgstr "Прерывание..."
+
+#: CollectionCrProcessGui.cpp:202
 msgid "Collection creation progress:"
 msgstr "Прогресс создания коллекции:"
 
-#: CollectionCrProcessGui.cpp:286
+#: CollectionCrProcessGui.cpp:294
 msgid "Collection hashing progress:"
 msgstr "Прогресс хеширования:"
 
-#: CollectionCrProcessGui.cpp:323
+#: CollectionCrProcessGui.cpp:331
 msgid "Collection refreshing progress:"
 msgstr "Прогресс обновления коллекции:"
 
-#: CollectionCrProcessGui.cpp:389
+#: CollectionCrProcessGui.cpp:400
 msgid "Collection created"
 msgstr "Коллекция создана"
 
-#: CollectionCrProcessGui.cpp:394
+#: CollectionCrProcessGui.cpp:405
 msgid "Collection refreshed"
 msgstr "Коллекция обновлена"
 
-#: CollectionCrProcessGui.cpp:415
+#: CollectionCrProcessGui.cpp:426
 msgid "Collection creation process finished."
 msgstr "Процесс создания коллекции завершён."
 
-#: CollectionCrProcessGui.cpp:420
+#: CollectionCrProcessGui.cpp:431
 msgid "Collection refresh process finished."
 msgstr "Процесс обновления коллекции завершён."
 
@@ -795,31 +799,31 @@ msgstr "Коллекция удалена."
 msgid "Book operations"
 msgstr "Операции с книгами"
 
-#: RightGrid.cpp:504
+#: RightGrid.cpp:501
 msgid "Create bookmark"
 msgstr "Создать закладку"
 
-#: RightGrid.cpp:518
+#: RightGrid.cpp:515
 msgid "Edit book entry"
 msgstr "Редактировать запись о книге"
 
-#: RightGrid.cpp:522
+#: RightGrid.cpp:519
 msgid "Move to another collection"
 msgstr "Переместить в другую коллекцию"
 
-#: RightGrid.cpp:655
+#: RightGrid.cpp:652
 msgid "Message"
 msgstr "Сообщение"
 
-#: RightGrid.cpp:674
+#: RightGrid.cpp:671
 msgid "Error! Bookmark has not been saved!"
 msgstr "Ошибка! Закладка не была сохранена!"
 
-#: RightGrid.cpp:679
+#: RightGrid.cpp:676
 msgid "Book is already in bookmarks"
 msgstr "Книга уже в закладках"
 
-#: RightGrid.cpp:684
+#: RightGrid.cpp:681
 msgid "Bookmark successfully saved"
 msgstr "Закладка успешно сохранена"
 

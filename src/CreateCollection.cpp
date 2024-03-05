@@ -143,7 +143,7 @@ CreateCollection::threadRegulator()
   std::string ext;
   for(size_t i = 0; i < need_to_parse.size(); i++)
     {
-      if(cancel->load() != 0)
+      if(cancel->load())
 	{
 	  break;
 	}
@@ -165,7 +165,7 @@ CreateCollection::threadRegulator()
       if(ext == ".fb2")
 	{
 	  run_threads++;
-	  thr = new std::thread([this, p, resolved]
+	  thr = new std::thread([this, p, resolved, i]
 	  {
 	    try
 	      {
@@ -174,16 +174,20 @@ CreateCollection::threadRegulator()
 	    catch(MLException &er)
 	      {
 		std::cout << er.what() << std::endl;
-		std::lock_guard<std::mutex> lk(this->newthrmtx);
-		this->run_threads--;
-		this->add_thread.notify_one();
 	      }
+	    if(this->progress)
+	      {
+		this->progress(static_cast<double>(i + 1));
+	      }
+	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    this->run_threads--;
+	    this->add_thread.notify_one();
 	  });
 	}
       else if(ext == ".epub")
 	{
 	  run_threads++;
-	  thr = new std::thread([this, p, resolved]
+	  thr = new std::thread([this, p, resolved, i]
 	  {
 	    try
 	      {
@@ -192,16 +196,20 @@ CreateCollection::threadRegulator()
 	    catch(MLException &er)
 	      {
 		std::cout << er.what() << std::endl;
-		std::lock_guard<std::mutex> lk(this->newthrmtx);
-		this->run_threads--;
-		this->add_thread.notify_one();
 	      }
+	    if(this->progress)
+	      {
+		this->progress(static_cast<double>(i + 1));
+	      }
+	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    this->run_threads--;
+	    this->add_thread.notify_one();
 	  });
 	}
       else if(ext == ".pdf")
 	{
 	  run_threads++;
-	  thr = new std::thread([this, p, resolved]
+	  thr = new std::thread([this, p, resolved, i]
 	  {
 	    try
 	      {
@@ -210,16 +218,20 @@ CreateCollection::threadRegulator()
 	    catch(MLException &er)
 	      {
 		std::cout << er.what() << std::endl;
-		std::lock_guard<std::mutex> lk(this->newthrmtx);
-		this->run_threads--;
-		this->add_thread.notify_one();
 	      }
+	    if(this->progress)
+	      {
+		this->progress(static_cast<double>(i + 1));
+	      }
+	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    this->run_threads--;
+	    this->add_thread.notify_one();
 	  });
 	}
       else if(ext == ".djvu")
 	{
 	  run_threads++;
-	  thr = new std::thread([this, p, resolved]
+	  thr = new std::thread([this, p, resolved, i]
 	  {
 	    try
 	      {
@@ -228,16 +240,20 @@ CreateCollection::threadRegulator()
 	    catch(MLException &er)
 	      {
 		std::cout << er.what() << std::endl;
-		std::lock_guard<std::mutex> lk(this->newthrmtx);
-		this->run_threads--;
-		this->add_thread.notify_one();
 	      }
+	    if(this->progress)
+	      {
+		this->progress(static_cast<double>(i + 1));
+	      }
+	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    this->run_threads--;
+	    this->add_thread.notify_one();
 	  });
 	}
       else
 	{
 	  run_threads++;
-	  thr = new std::thread([this, p, resolved]
+	  thr = new std::thread([this, p, resolved, i]
 	  {
 	    try
 	      {
@@ -246,10 +262,14 @@ CreateCollection::threadRegulator()
 	    catch(MLException &er)
 	      {
 		std::cout << er.what() << std::endl;
-		std::lock_guard<std::mutex> lk(this->newthrmtx);
-		this->run_threads--;
-		this->add_thread.notify_one();
 	      }
+	    if(this->progress)
+	      {
+		this->progress(static_cast<double>(i + 1));
+	      }
+	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    this->run_threads--;
+	    this->add_thread.notify_one();
 	  });
 	}
       thr->detach();
@@ -258,10 +278,6 @@ CreateCollection::threadRegulator()
       {
 	return this->run_threads < this->num_threads;
       });
-      if(progress)
-	{
-	  progress(static_cast<double>(i + 1));
-	}
     }
 
   std::unique_lock<std::mutex> lk(newthrmtx);
@@ -333,10 +349,6 @@ CreateCollection::fb2_thread(const std::filesystem::path &file_col_path,
       fe.books.push_back(be);
       write_file_to_base(fe);
     }
-
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  add_thread.notify_one();
 }
 
 void
@@ -443,24 +455,24 @@ CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
     }
   else
     {
-      fe.file_hash = file_hashing(filepath);
+      fe.file_hash = file_hashing(filepath, cancel);
     }
 
-  fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
-
-  EPUBParser epub(af);
-  BookParseEntry be = epub.epub_parser(filepath);
-  if(be.book_name.empty())
+  if(!cancel->load())
     {
-      be.book_name = filepath.stem().u8string();
+      fe.file_rel_path =
+	  file_col_path.lexically_proximate(books_path).u8string();
+
+      EPUBParser epub(af);
+      BookParseEntry be = epub.epub_parser(filepath);
+      if(be.book_name.empty())
+	{
+	  be.book_name = filepath.stem().u8string();
+	}
+      fe.books.push_back(be);
+
+      write_file_to_base(fe);
     }
-  fe.books.push_back(be);
-
-  write_file_to_base(fe);
-
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  add_thread.notify_one();
 }
 
 void
@@ -521,10 +533,6 @@ CreateCollection::pdf_thread(const std::filesystem::path &file_col_path,
       fe.books.push_back(be);
       write_file_to_base(fe);
     }
-
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  add_thread.notify_one();
 }
 
 void
@@ -544,7 +552,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
   ARCHParser arp(af, rar_support, cancel);
   FileParseEntry fe;
   fe.books = arp.arch_parser(filepath);
-  if(fe.books.size() > 0)
+  if(fe.books.size() > 0 && !cancel->load())
     {
       fe.file_rel_path =
 	  file_col_path.lexically_proximate(books_path).u8string();
@@ -560,14 +568,13 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
 	}
       else
 	{
-	  fe.file_hash = file_hashing(filepath);
+	  fe.file_hash = file_hashing(filepath, cancel);
 	}
-      write_file_to_base(fe);
+      if(!cancel->load())
+	{
+	  write_file_to_base(fe);
+	}
     }
-
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  add_thread.notify_one();
 }
 
 void
@@ -704,13 +711,11 @@ CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
     }
   else
     {
-      fe.file_hash = file_hashing(filepath);
+      fe.file_hash = file_hashing(filepath, cancel);
     }
-
-  fe.books.push_back(be);
-  write_file_to_base(fe);
-
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  add_thread.notify_one();
+  if(!cancel->load())
+    {
+      fe.books.push_back(be);
+      write_file_to_base(fe);
+    }
 }
