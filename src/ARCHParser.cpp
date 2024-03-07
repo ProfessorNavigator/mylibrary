@@ -56,7 +56,7 @@ ARCHParser::arch_parser(const std::filesystem::path &filepath)
       else
 	{
 	  throw MLException(
-	      "ARCHParser::arch_parser: initialize archive: "
+	      "ARCHParser::arch_parser: initialize archive error: "
 		  + filepath.u8string());
 	}
     }
@@ -163,20 +163,38 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	{
 	  buf = libarchive_read_entry_str(a.get(), e.get());
 	  FB2Parser fb2(af);
-	  bpe = fb2.fb2_parser(buf);
+	  try
+	    {
+	      bpe = fb2.fb2_parser(buf);
+	    }
+	  catch(MLException &er)
+	    {
+	      std::cout << "ARCHParser::unpack_entry error: " << er.what()
+		  << std::endl;
+	      return void();
+	    }
 	  add = true;
 	}
       else if(ext == ".epub")
 	{
 	  std::filesystem::path temp = af->temp_path();
 	  temp /= std::filesystem::u8path(af->randomFileName());
+	  SelfRemovingPath srp(temp);
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
-							    temp);
+							    srp.path);
 	  if(std::filesystem::exists(out))
 	    {
 	      EPUBParser epub(af);
-	      bpe = epub.epub_parser(out);
-	      std::filesystem::remove_all(temp);
+	      try
+		{
+		  bpe = epub.epub_parser(out);
+		}
+	      catch(MLException &er)
+		{
+		  std::cout << "ARCHParser::unpack_entry error: " << er.what()
+		      << std::endl;
+		  return void();
+		}
 	      add = true;
 	    }
 	  else
@@ -190,22 +208,40 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	{
 	  buf = libarchive_read_entry_str(a.get(), e.get());
 	  PDFParser pdf(af);
-	  bpe = pdf.pdf_parser(buf);
+	  try
+	    {
+	      bpe = pdf.pdf_parser(buf);
+	    }
+	  catch(MLException &er)
+	    {
+	      std::cout << "ARCHParser::unpack_entry error: " << er.what()
+		  << std::endl;
+	      return void();
+	    }
 	  add = true;
 	}
       else if(ext == ".djvu")
 	{
 	  std::filesystem::path temp = af->temp_path();
 	  temp /= std::filesystem::u8path(af->randomFileName());
+	  SelfRemovingPath srp(temp);
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
-							    temp);
+							    srp.path);
 	  if(std::filesystem::exists(out))
 	    {
 	      DJVUParser djvu(af);
-	      bpe = djvu.djvu_parser(out);
+	      try
+		{
+		  bpe = djvu.djvu_parser(out);
+		}
+	      catch(MLException &er)
+		{
+		  std::cout << "ARCHParser::unpack_entry error: " << er.what()
+		      << std::endl;
+		  return void();
+		}
 	      bpe.book_date = af->time_t_to_date(
 		  archive_entry_birthtime(e.get()));
-	      std::filesystem::remove_all(temp);
 	      add = true;
 	    }
 	  else
@@ -219,7 +255,16 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	{
 	  buf = libarchive_read_entry_str(a.get(), e.get());
 	  FB2Parser fb2(af);
-	  bpe = fb2.fb2_parser(buf);
+	  try
+	    {
+	      bpe = fb2.fb2_parser(buf);
+	    }
+	  catch(MLException &er)
+	    {
+	      std::cout << "ARCHParser::unpack_entry error: " << er.what()
+		  << std::endl;
+	      return void();
+	    }
 	  bpe.book_path = ch_p.u8string();
 	  if(bpe.book_name.empty())
 	    {
@@ -233,12 +278,21 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	  temp /= std::filesystem::u8path(af->randomFileName());
 	  SelfRemovingPath srp(temp);
 	  std::filesystem::path out = libarchive_read_entry(a.get(), e.get(),
-							    temp);
+							    srp.path);
 	  if(std::filesystem::exists(out))
 	    {
 	      std::vector<BookParseEntry> rec_v;
 	      ARCHParser arch(af, rar_support, cancel);
-	      rec_v = arch.arch_parser(out);
+	      try
+		{
+		  rec_v = arch.arch_parser(out);
+		}
+	      catch(MLException &er)
+		{
+		  std::cout << "ARCHParser::unpack_entry: " << er.what()
+		      << std::endl;
+		  return void();
+		}
 	      for(auto it = rec_v.begin(); it != rec_v.end(); it++)
 		{
 		  it->book_path = ch_p.u8string() + "\n" + it->book_path;
@@ -247,7 +301,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 	    }
 	  else
 	    {
-	      std::cout << "ARCHParser::unpack_entry archive unpacking error" << std::endl;
+	      std::cout << "ARCHParser::unpack_entry archive unpacking error"
+		  << std::endl;
 	      return void();
 	    }
 	}

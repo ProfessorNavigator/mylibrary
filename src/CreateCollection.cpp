@@ -167,6 +167,7 @@ CreateCollection::threadRegulator()
 	  run_threads++;
 	  thr = new std::thread([this, p, resolved, i]
 	  {
+	    std::cout << "Parse file: " << p.u8string() << std::endl;
 	    try
 	      {
 		this->fb2_thread(p, resolved);
@@ -180,6 +181,7 @@ CreateCollection::threadRegulator()
 		this->progress(static_cast<double>(i + 1));
 	      }
 	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    std::cout << "Parsing finished: " << p.u8string() << std::endl;
 	    this->run_threads--;
 	    this->add_thread.notify_one();
 	  });
@@ -189,6 +191,7 @@ CreateCollection::threadRegulator()
 	  run_threads++;
 	  thr = new std::thread([this, p, resolved, i]
 	  {
+	    std::cout << "Parse file: " << p.u8string() << std::endl;
 	    try
 	      {
 		this->epub_thread(p, resolved);
@@ -202,6 +205,7 @@ CreateCollection::threadRegulator()
 		this->progress(static_cast<double>(i + 1));
 	      }
 	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    std::cout << "Parsing finished: " << p.u8string() << std::endl;
 	    this->run_threads--;
 	    this->add_thread.notify_one();
 	  });
@@ -211,6 +215,7 @@ CreateCollection::threadRegulator()
 	  run_threads++;
 	  thr = new std::thread([this, p, resolved, i]
 	  {
+	    std::cout << "Parse file: " << p.u8string() << std::endl;
 	    try
 	      {
 		this->pdf_thread(p, resolved);
@@ -224,6 +229,7 @@ CreateCollection::threadRegulator()
 		this->progress(static_cast<double>(i + 1));
 	      }
 	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    std::cout << "Parsing finished: " << p.u8string() << std::endl;
 	    this->run_threads--;
 	    this->add_thread.notify_one();
 	  });
@@ -233,6 +239,7 @@ CreateCollection::threadRegulator()
 	  run_threads++;
 	  thr = new std::thread([this, p, resolved, i]
 	  {
+	    std::cout << "Parse file: " << p.u8string() << std::endl;
 	    try
 	      {
 		this->djvu_thread(p, resolved);
@@ -246,6 +253,7 @@ CreateCollection::threadRegulator()
 		this->progress(static_cast<double>(i + 1));
 	      }
 	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    std::cout << "Parsing finished: " << p.u8string() << std::endl;
 	    this->run_threads--;
 	    this->add_thread.notify_one();
 	  });
@@ -255,6 +263,7 @@ CreateCollection::threadRegulator()
 	  run_threads++;
 	  thr = new std::thread([this, p, resolved, i]
 	  {
+	    std::cout << "Parse file: " << p.u8string() << std::endl;
 	    try
 	      {
 		this->arch_thread(p, resolved);
@@ -268,6 +277,7 @@ CreateCollection::threadRegulator()
 		this->progress(static_cast<double>(i + 1));
 	      }
 	    std::lock_guard<std::mutex> lk(this->newthrmtx);
+	    std::cout << "Parsing finished: " << p.u8string() << std::endl;
 	    this->run_threads--;
 	    this->add_thread.notify_one();
 	  });
