@@ -40,6 +40,9 @@ public:
   void
   final_cleaning(std::string &annotation);
 
+  void
+  replace_html_symbols(std::string &annotation);
+
 private:
   struct replace_tag
   {
@@ -54,6 +57,10 @@ private:
   void
   tag_replacement_process(const std::string &tag, std::string &annotation,
 			  std::string::size_type &n);
+
+  void
+  replace_html(std::string &annotation, const std::string &sstr,
+	       const std::string &replacement);
 
   std::vector<replace_tag> replacement_table;
 };

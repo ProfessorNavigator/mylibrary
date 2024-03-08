@@ -286,6 +286,7 @@ RightGrid::set_annotation_n_cover(
   if(bie)
     {
       formatter->remove_escape_sequences(bie->annotation);
+      formatter->replace_html_symbols(bie->annotation);
       formatter->replace_tags(bie->annotation);
       formatter->final_cleaning(bie->annotation);
 

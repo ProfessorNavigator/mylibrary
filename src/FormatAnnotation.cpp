@@ -151,6 +151,21 @@ FormatAnnotation::formReplacementTable()
 }
 
 void
+FormatAnnotation::replace_html_symbols(std::string &annotation)
+{
+  if(annotation.size() > 0)
+    {
+      std::string sstr = "&lt;";
+      std::string replace = "<";
+      replace_html(annotation, sstr, replace);
+
+      sstr = "&gt;";
+      replace = ">";
+      replace_html(annotation, sstr, replace);
+    }
+}
+
+void
 FormatAnnotation::tag_replacement_process(const std::string &tag,
 					  std::string &annotation,
 					  std::string::size_type &n)
@@ -226,6 +241,26 @@ FormatAnnotation::final_cleaning(std::string &annotation)
       if(*it == '\n')
 	{
 	  annotation.erase(it);
+	}
+      else
+	{
+	  break;
+	}
+    }
+}
+
+void
+FormatAnnotation::replace_html(std::string &annotation, const std::string &sstr,
+			       const std::string &replacement)
+{
+  std::string::size_type n = 0;
+  for(;;)
+    {
+      n = annotation.find(sstr, n);
+      if(n != std::string::npos)
+	{
+	  annotation.erase(n, sstr.size());
+	  annotation.insert(n, replacement);
 	}
       else
 	{

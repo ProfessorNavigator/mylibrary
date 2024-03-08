@@ -522,7 +522,7 @@ AuxFunc::html_to_utf8(std::string &result)
 	  if(n_end != std::string::npos)
 	    {
 	      std::string val(result.begin() + n, result.begin() + n_end);
-	      result.erase(n, sstr2.size());
+	      result.erase(n, val.size() + sstr2.size());
 	      n_end = val.find(sstr1);
 	      val.erase(0, n_end + sstr1.size());
 	      strm.clear();
