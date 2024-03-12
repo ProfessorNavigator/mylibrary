@@ -228,6 +228,10 @@ BookMarks::saveBookMarks()
 	  f.close();
 	}
     }
+  else
+    {
+      std::filesystem::remove_all(bookmp);
+    }
   bookmarksmtx.unlock();
 
   return result;
