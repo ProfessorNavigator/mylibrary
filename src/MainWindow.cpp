@@ -433,7 +433,7 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("3.1");
+  about->set_version("3.1.1");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
