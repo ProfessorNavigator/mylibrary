@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_AUXFUNC_H_
-#define INCLUDE_AUXFUNC_H_
+#ifndef AUXFUNC_H
+#define AUXFUNC_H
 
-#include <gcrypt.h>
 #include <Genre.h>
 #include <GenreGroup.h>
 #include <filesystem>
+#include <gcrypt.h>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -30,8 +30,6 @@ class AuxFunc
 {
 public:
   AuxFunc();
-  virtual
-  ~AuxFunc();
 
   std::string
   to_utf_8(const std::string &input, const char *conv_name);
@@ -42,7 +40,7 @@ public:
   std::string
   utf_8_to(const std::string &input, const char *conv_name);
 
-  const char*
+  const char *
   get_converter_by_number(const int32_t &num);
 
   std::string
@@ -89,7 +87,7 @@ public:
 
   void
   copy_book_callback(const std::filesystem::path &source,
-		     const std::filesystem::path &out);
+                     const std::filesystem::path &out);
 
   std::vector<std::string>
   get_supported_types();
@@ -104,7 +102,7 @@ public:
   get_extension(const std::filesystem::path &p);
 
   int32_t
-  get_charset_conv_quntity();
+  get_charset_conv_quantity();
 
 private:
   std::vector<std::tuple<std::string, Genre>>
@@ -114,4 +112,4 @@ private:
   read_genre_groups(const bool &wrong_loc, const std::string &locname);
 };
 
-#endif /* INCLUDE_AUXFUNC_H_ */
+#endif // AUXFUNC_H

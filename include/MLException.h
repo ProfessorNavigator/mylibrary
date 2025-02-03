@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_MLEXCEPTION_H_
-#define INCLUDE_MLEXCEPTION_H_
+#ifndef MLEXCEPTION_H
+#define MLEXCEPTION_H
 
 #include <string>
 
@@ -24,8 +24,6 @@ class MLException
 {
 public:
   MLException(const std::string &msg);
-  virtual
-  ~MLException();
 
   std::string
   what();
@@ -34,4 +32,4 @@ private:
   std::string msg;
 };
 
-#endif /* INCLUDE_MLEXCEPTION_H_ */
+#endif // MLEXCEPTION_H

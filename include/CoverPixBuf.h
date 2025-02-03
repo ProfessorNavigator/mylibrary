@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_COVERPIXBUF_H_
-#define INCLUDE_COVERPIXBUF_H_
+#ifndef COVERPIXBUF_H
+#define COVERPIXBUF_H
 
 #include <BookInfoEntry.h>
 #include <glibmm-2.68/glibmm/refptr.h>
@@ -26,10 +26,8 @@
 class CoverPixBuf
 {
 public:
-  CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
-	      const int &width, const int &height);
-  virtual
-  ~CoverPixBuf();
+  CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie, const int &width,
+              const int &height);
 
   CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie);
 
@@ -37,10 +35,10 @@ public:
 
   CoverPixBuf(CoverPixBuf &&other);
 
-  CoverPixBuf&
+  CoverPixBuf &
   operator=(const CoverPixBuf &other);
 
-  CoverPixBuf&
+  CoverPixBuf &
   operator=(CoverPixBuf &&other);
 
   operator Glib::RefPtr<Gdk::Pixbuf>();
@@ -69,4 +67,4 @@ private:
   int height = -1;
 };
 
-#endif /* INCLUDE_COVERPIXBUF_H_ */
+#endif // COVERPIXBUF_H

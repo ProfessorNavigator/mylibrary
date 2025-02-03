@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2022-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_MYLIBRARYAPPLICATION_H_
-#define INCLUDE_MYLIBRARYAPPLICATION_H_
+#ifndef MYLIBRARYAPPLICATION_H
+#define MYLIBRARYAPPLICATION_H
 
-#include <gtkmm.h>
 #include "MainWindow.h"
+#include <gtkmm.h>
 
 class MyLibraryApplication : public Gtk::Application
 {
 public:
-  virtual
-  ~MyLibraryApplication();
+  virtual ~MyLibraryApplication();
 
   static Glib::RefPtr<MyLibraryApplication>
   create(const std::shared_ptr<AuxFunc> &af);
@@ -37,7 +36,7 @@ protected:
   on_activate() override;
 
 private:
-  MainWindow*
+  MainWindow *
   create_appwindow();
 
   MainWindow *mw = nullptr;
@@ -45,4 +44,4 @@ private:
   std::shared_ptr<AuxFunc> af;
 };
 
-#endif /* INCLUDE_MYLIBRARYAPPLICATION_H_ */
+#endif // MYLIBRARYAPPLICATION_H

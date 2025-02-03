@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_FILEPARSEENTRY_H_
-#define INCLUDE_FILEPARSEENTRY_H_
+#ifndef FILEPARSEENTRY_H
+#define FILEPARSEENTRY_H
 
 #include <BookParseEntry.h>
 #include <string>
@@ -26,17 +26,15 @@ class FileParseEntry
 {
 public:
   FileParseEntry();
-  virtual
-  ~FileParseEntry();
 
   FileParseEntry(const FileParseEntry &other);
 
   FileParseEntry(FileParseEntry &&other);
 
-  FileParseEntry&
+  FileParseEntry &
   operator=(const FileParseEntry &other);
 
-  FileParseEntry&
+  FileParseEntry &
   operator=(FileParseEntry &&other);
 
   std::string file_rel_path;
@@ -44,4 +42,4 @@ public:
   std::vector<BookParseEntry> books;
 };
 
-#endif /* INCLUDE_FILEPARSEENTRY_H_ */
+#endif // FILEPARSEENTRY_H

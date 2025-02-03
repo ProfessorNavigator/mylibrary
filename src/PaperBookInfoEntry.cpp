@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,42 +19,29 @@
 
 PaperBookInfoEntry::PaperBookInfoEntry()
 {
-
 }
 
-PaperBookInfoEntry::~PaperBookInfoEntry()
+PaperBookInfoEntry::PaperBookInfoEntry(const PaperBookInfoEntry &other)
 {
-
-}
-
-PaperBookInfoEntry::PaperBookInfoEntry(
-    const PaperBookInfoEntry &other)
-{
-  if(this != &other)
-    {
-      available = other.available;
-      book_name = other.book_name;
-      publisher = other.publisher;
-      city = other.city;
-      year = other.year;
-      isbn = other.isbn;
-    }
+  available = other.available;
+  book_name = other.book_name;
+  publisher = other.publisher;
+  city = other.city;
+  year = other.year;
+  isbn = other.isbn;
 }
 
 PaperBookInfoEntry::PaperBookInfoEntry(PaperBookInfoEntry &&other)
 {
-  if(this != &other)
-    {
-      available = other.available;
-      book_name = other.book_name;
-      publisher = other.publisher;
-      city = other.city;
-      year = other.year;
-      isbn = other.isbn;
-    }
+  available = other.available;
+  book_name = other.book_name;
+  publisher = other.publisher;
+  city = other.city;
+  year = other.year;
+  isbn = other.isbn;
 }
 
-PaperBookInfoEntry&
+PaperBookInfoEntry &
 PaperBookInfoEntry::operator=(const PaperBookInfoEntry &other)
 {
   if(this != &other)
@@ -69,7 +56,7 @@ PaperBookInfoEntry::operator=(const PaperBookInfoEntry &other)
   return *this;
 }
 
-PaperBookInfoEntry&
+PaperBookInfoEntry &
 PaperBookInfoEntry::operator=(PaperBookInfoEntry &&other)
 {
   if(this != &other)
@@ -83,4 +70,3 @@ PaperBookInfoEntry::operator=(PaperBookInfoEntry &&other)
     }
   return *this;
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,27 +15,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_ZIPFILEENTRY_H_
-#define INCLUDE_ZIPFILEENTRY_H_
+#ifndef ZIPFILEENTRY_H
+#define ZIPFILEENTRY_H
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 class ZipFileEntry
 {
 public:
   ZipFileEntry();
-  virtual
-  ~ZipFileEntry();
 
   ZipFileEntry(const ZipFileEntry &other);
 
-  ZipFileEntry&
+  ZipFileEntry &
   operator=(const ZipFileEntry &other);
 
   ZipFileEntry(ZipFileEntry &&other);
 
-  ZipFileEntry&
+  ZipFileEntry &
   operator=(ZipFileEntry &&other);
 
   uint64_t size = 0;
@@ -44,4 +42,4 @@ public:
   std::string filename;
 };
 
-#endif /* INCLUDE_ZIPFILEENTRY_H_ */
+#endif // ZIPFILEENTRY_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,35 +19,23 @@
 
 XMLTagId::XMLTagId()
 {
-
-}
-
-XMLTagId::~XMLTagId()
-{
-
 }
 
 XMLTagId::XMLTagId(const XMLTagId &other)
 {
-  if(this != &other)
-    {
-      end_tag = other.end_tag;
-      single_tag = other.single_tag;
-      tag_id = other.tag_id;
-    }
+  end_tag = other.end_tag;
+  single_tag = other.single_tag;
+  tag_id = other.tag_id;
 }
 
 XMLTagId::XMLTagId(XMLTagId &&other)
 {
-  if(this != &other)
-    {
-      end_tag = other.end_tag;
-      single_tag = other.single_tag;
-      tag_id = other.tag_id;
-    }
+  end_tag = other.end_tag;
+  single_tag = other.single_tag;
+  tag_id = other.tag_id;
 }
 
-XMLTagId&
+XMLTagId &
 XMLTagId::operator=(const XMLTagId &other)
 {
   if(this != &other)
@@ -59,7 +47,7 @@ XMLTagId::operator=(const XMLTagId &other)
   return *this;
 }
 
-XMLTagId&
+XMLTagId &
 XMLTagId::operator=(XMLTagId &&other)
 {
   if(this != &other)
@@ -70,4 +58,3 @@ XMLTagId::operator=(XMLTagId &&other)
     }
   return *this;
 }
-

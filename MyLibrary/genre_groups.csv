@@ -1,11 +1,15 @@
 en_EN;ru_RU Russian_Russia
 Adventure;Приключения
 Antique;Древняя литература
+Art, art criticism, design;Искусство, искусствоведение, дизайн
 Child;Детская литература
 Computers;Компьютеры
 Detective;Детективы
+Dramaturgy;Драматургия
 Economics, buisness, finance;Экономика, бизнес, финансы
+Engineering;Техника
 Fantasy;Фэнтези
+Folklore;Фольклор 
 Foreign;Иностранная литература
 Geaography;География
 Home;Дом
@@ -13,10 +17,11 @@ Humor;Юмор
 Love;Любовь
 Nonfiction;Документальная литература
 Other;Другое
+Poetry;Поэзия
 Prose;Проза
 Psychology;Психология
 Reference;Справочники
 Religion;Религия
 Science;Наука
 Science fiction;Научная фантастика
-Visual arts;Визуальное искусство
+Textbooks and manuals;Учебники и пособия

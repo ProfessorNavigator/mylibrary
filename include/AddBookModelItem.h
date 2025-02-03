@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_ADDBOOKMODELITEM_H_
-#define INCLUDE_ADDBOOKMODELITEM_H_
+#ifndef ADDBOOKMODELITEM_H
+#define ADDBOOKMODELITEM_H
 
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/label.h>
@@ -25,11 +25,7 @@
 class AddBookModelItem : public Glib::Object
 {
 public:
-  virtual
-  ~AddBookModelItem();
-
-  static
-  Glib::RefPtr<AddBookModelItem>
+  static Glib::RefPtr<AddBookModelItem>
   create(const std::string &source_path);
 
   std::string source_path;
@@ -42,4 +38,4 @@ protected:
   AddBookModelItem(const std::string &source_path);
 };
 
-#endif /* INCLUDE_ADDBOOKMODELITEM_H_ */
+#endif // ADDBOOKMODELITEM_H

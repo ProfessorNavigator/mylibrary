@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,51 +19,37 @@
 
 ElectroBookInfoEntry::ElectroBookInfoEntry()
 {
-
 }
 
-ElectroBookInfoEntry::~ElectroBookInfoEntry()
+ElectroBookInfoEntry::ElectroBookInfoEntry(const ElectroBookInfoEntry &other)
 {
-
+  available = other.available;
+  author = other.author;
+  program_used = other.program_used;
+  date = other.date;
+  src_url = other.src_url;
+  src_ocr = other.src_ocr;
+  id = other.id;
+  version = other.version;
+  history = other.version;
+  publisher = other.publisher;
 }
 
-ElectroBookInfoEntry::ElectroBookInfoEntry(
-    const ElectroBookInfoEntry &other)
+ElectroBookInfoEntry::ElectroBookInfoEntry(ElectroBookInfoEntry &&other)
 {
-  if(this != &other)
-    {
-      available = other.available;
-      author = other.author;
-      program_used = other.program_used;
-      date = other.date;
-      src_url = other.src_url;
-      src_ocr = other.src_ocr;
-      id = other.id;
-      version = other.version;
-      history = other.version;
-      publisher = other.publisher;
-    }
+  available = other.available;
+  author = other.author;
+  program_used = other.program_used;
+  date = other.date;
+  src_url = other.src_url;
+  src_ocr = other.src_ocr;
+  id = other.id;
+  version = other.version;
+  history = other.version;
+  publisher = other.publisher;
 }
 
-ElectroBookInfoEntry::ElectroBookInfoEntry(
-    ElectroBookInfoEntry &&other)
-{
-  if(this != &other)
-    {
-      available = other.available;
-      author = other.author;
-      program_used = other.program_used;
-      date = other.date;
-      src_url = other.src_url;
-      src_ocr = other.src_ocr;
-      id = other.id;
-      version = other.version;
-      history = other.version;
-      publisher = other.publisher;
-    }
-}
-
-ElectroBookInfoEntry&
+ElectroBookInfoEntry &
 ElectroBookInfoEntry::operator=(const ElectroBookInfoEntry &other)
 {
   if(this != &other)
@@ -82,7 +68,7 @@ ElectroBookInfoEntry::operator=(const ElectroBookInfoEntry &other)
   return *this;
 }
 
-ElectroBookInfoEntry&
+ElectroBookInfoEntry &
 ElectroBookInfoEntry::operator=(ElectroBookInfoEntry &&other)
 {
   if(this != &other)
@@ -100,4 +86,3 @@ ElectroBookInfoEntry::operator=(ElectroBookInfoEntry &&other)
     }
   return *this;
 }
-

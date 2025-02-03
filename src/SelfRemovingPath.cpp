@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,74 +29,62 @@ SelfRemovingPath::~SelfRemovingPath()
 
 SelfRemovingPath::SelfRemovingPath(const SelfRemovingPath &other)
 {
-  if(this != &other)
-    {
-      if(path != other.path)
-	{
-	  path = other.path;
-	  count = other.count;
-	  count->store(count->load() + 1);
-	}
-    }
+  path = other.path;
+  count = other.count;
+  count->store(count->load() + 1);
 }
 
 SelfRemovingPath::SelfRemovingPath(SelfRemovingPath &&other)
 {
-  if(this != &other)
-    {
-      if(path != other.path)
-	{
-	  count = other.count;
-	  other.count = nullptr;
-	  path = other.path;
-	}
-    }
+  count = other.count;
+  other.count = nullptr;
+  path = other.path;
 }
 
-SelfRemovingPath&
+SelfRemovingPath &
 SelfRemovingPath::operator=(const SelfRemovingPath &other)
 {
   if(this != &other)
     {
       if(path != other.path)
-	{
-	  deleter();
-	  path = other.path;
-	  count = other.count;
-	  count->store(count->load() + 1);
-	}
+        {
+          deleter();
+          path = other.path;
+          count = other.count;
+          count->store(count->load() + 1);
+        }
     }
   return *this;
 }
 
-SelfRemovingPath&
+SelfRemovingPath &
 SelfRemovingPath::operator=(SelfRemovingPath &&other)
 {
   if(this != &other)
     {
       if(path != other.path)
-	{
-	  deleter();
-	  count = other.count;
-	  other.count = nullptr;
-	  path = other.path;
-	}
+        {
+          deleter();
+          count = other.count;
+          other.count = nullptr;
+          path = other.path;
+        }
     }
   return *this;
 }
 
-SelfRemovingPath&
-SelfRemovingPath::operator =(const std::filesystem::path &path)
+SelfRemovingPath &
+SelfRemovingPath::operator=(const std::filesystem::path &path)
 {
   if(this->path != path)
     {
       if(this->path != path)
-	{
-	  deleter();
-	  count = new std::atomic<uint64_t>;
-	  count->store(1);
-	  this->path = path;
-	}
+        {
+          deleter();
+          count = new std::atomic<uint64_t>;
+          count->store(1);
+          this->path = path;
+        }
     }
   return *this;
 }
@@ -119,9 +107,9 @@ SelfRemovingPath::deleter()
     {
       count->store(count->load() - 1);
       if(count->load() == 0)
-	{
-	  std::filesystem::remove_all(path);
-	  delete count;
-	}
+        {
+          std::filesystem::remove_all(path);
+          delete count;
+        }
     }
 }

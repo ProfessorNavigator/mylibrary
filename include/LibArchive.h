@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_LIBARCHIVE_H_
-#define INCLUDE_LIBARCHIVE_H_
+#ifndef LIBARCHIVE_H
+#define LIBARCHIVE_H
 
-#include <archive_entry.h>
 #include <ArchiveFileEntry.h>
 #include <ArchiveRemoveEntry.h>
-#include <stddef.h>
 #include <ZipFileEntry.h>
+#include <archive_entry.h>
 #include <filesystem>
 #include <memory>
+#include <stddef.h>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -33,55 +33,53 @@ class LibArchive
 {
 public:
   LibArchive();
-  virtual
-  ~LibArchive();
 
   std::filesystem::path
   unpackByPosition(const std::filesystem::path &archaddress,
-		   const std::filesystem::path &outfolder,
-		   const ZipFileEntry &entry);
+                   const std::filesystem::path &outfolder,
+                   const ZipFileEntry &entry);
 
   std::string
   unpackByPosition(const std::filesystem::path &archaddress,
-		   const ZipFileEntry &entry);
+                   const ZipFileEntry &entry);
 
   std::filesystem::path
   unpackByFileNameStream(const std::filesystem::path &archaddress,
-			 const std::filesystem::path &outfolder,
-			 const std::string &filename);
+                         const std::filesystem::path &outfolder,
+                         const std::string &filename);
 
   std::string
   unpackByFileNameStreamStr(const std::filesystem::path &archaddress,
-			    const std::string &filename);
+                            const std::string &filename);
 
   int
   fileNames(const std::filesystem::path &filepath,
-	    std::vector<ZipFileEntry> &filenames);
+            std::vector<ZipFileEntry> &filenames);
 
   int
   fileNamesStream(const std::filesystem::path &address,
-		  std::vector<ZipFileEntry> &filenames);
+                  std::vector<ZipFileEntry> &filenames);
 
   ZipFileEntry
   fileinfo(const std::filesystem::path &address, const std::string &filename);
 
   int
   libarchive_packing(const std::filesystem::path &sourcepath,
-		     const std::filesystem::path &outpath);
+                     const std::filesystem::path &outpath);
 
   int
   libarchive_packing(const std::shared_ptr<archive> &a,
-		     const std::filesystem::path &sourcepath,
-		     const bool &rename_source,
-		     const std::string &new_source_name);
+                     const std::filesystem::path &sourcepath,
+                     const bool &rename_source,
+                     const std::string &new_source_name);
 
   ArchiveRemoveEntry
   libarchive_remove_init(const std::filesystem::path &sourcepath,
-			 const std::filesystem::path &outpath);
+                         const std::filesystem::path &outpath);
 
   void
   libarchive_error(const std::shared_ptr<archive> &a,
-		   const std::string &message, const int &error_number);
+                   const std::string &message, const int &error_number);
 
   std::string
   libarchive_read_entry_str(archive *a, archive_entry *entry);
@@ -91,7 +89,7 @@ public:
 
   std::shared_ptr<ArchiveFileEntry>
   createArchFile(const std::filesystem::path &archaddress,
-		 const la_int64_t &position);
+                 const la_int64_t &position);
 
   std::shared_ptr<archive>
   libarchive_read_init(std::shared_ptr<ArchiveFileEntry> fl);
@@ -101,24 +99,24 @@ public:
 
   std::filesystem::path
   libarchive_read_entry(archive *a, archive_entry *entry,
-			const std::filesystem::path &outfolder);
+                        const std::filesystem::path &outfolder);
 
   std::shared_ptr<archive>
   libarchive_write_init(const std::filesystem::path &outpath);
 
   int
   libarchive_write_directory(archive *a, archive_entry *entry,
-			     const std::filesystem::path &path_in_arch,
-			     const std::filesystem::path &source);
+                             const std::filesystem::path &path_in_arch,
+                             const std::filesystem::path &source);
 
   int
   libarchive_write_file(archive *a, archive_entry *entry,
-			const std::filesystem::path &path_in_arch,
-			const std::filesystem::path &source);
+                        const std::filesystem::path &path_in_arch,
+                        const std::filesystem::path &source);
 
   int
   libarchive_write_data_from_file(archive *a,
-				  const std::filesystem::path &source);
+                                  const std::filesystem::path &source);
 
 private:
   static int
@@ -132,22 +130,22 @@ private:
 
   static la_int64_t
   libarchive_seek_callback(archive *a, void *data, la_int64_t offset,
-			   int whence);
+                           int whence);
 
   static int
   libarchive_close_callback(archive *a, void *data);
 
   int
   write_func(archive *a, const std::filesystem::path &source,
-	     const std::filesystem::path &path_in_arch);
+             const std::filesystem::path &path_in_arch);
 
   std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
   dir_symlink_resolver(const std::filesystem::path &source,
-		       const std::filesystem::path &append_to);
+                       const std::filesystem::path &append_to);
 
   static la_ssize_t
   libarchive_write_callback(archive *a, void *data, const void *buffer,
-			    size_t length);
+                            size_t length);
 
   static int
   libarchive_free_callback(archive *a, void *data);
@@ -156,4 +154,4 @@ private:
   libarchive_open_callback_write(archive *a, void *data);
 };
 
-#endif /* INCLUDE_LIBARCHIVE_H_ */
+#endif // LIBARCHIVE_H

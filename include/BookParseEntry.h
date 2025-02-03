@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BOOKPARSEENTRY_H_
-#define INCLUDE_BOOKPARSEENTRY_H_
+#ifndef BOOKPARSEENTRY_H
+#define BOOKPARSEENTRY_H
 
 #include <string>
 
@@ -24,17 +24,15 @@ class BookParseEntry
 {
 public:
   BookParseEntry();
-  virtual
-  ~BookParseEntry();
 
   BookParseEntry(const BookParseEntry &other);
 
   BookParseEntry(BookParseEntry &&other);
 
-  BookParseEntry&
+  BookParseEntry &
   operator=(const BookParseEntry &other);
 
-  BookParseEntry&
+  BookParseEntry &
   operator=(BookParseEntry &&other);
 
   bool
@@ -48,4 +46,4 @@ public:
   std::string book_date;
 };
 
-#endif /* INCLUDE_BOOKPARSEENTRY_H_ */
+#endif // BOOKPARSEENTRY_H

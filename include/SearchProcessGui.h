@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,45 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_SEARCHPROCESSGUI_H_
-#define INCLUDE_SEARCHPROCESSGUI_H_
+#ifndef SEARCHPROCESSGUI_H
+#define SEARCHPROCESSGUI_H
 
 #include <BaseKeeper.h>
 #include <BookBaseEntry.h>
-#include <gtkmm-4.0/gtkmm/window.h>
 #include <functional>
+#include <gtkmm-4.0/gtkmm/window.h>
 #include <vector>
 
 class SearchProcessGui
 {
 public:
   SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window);
-  virtual
-  ~SearchProcessGui();
 
   void
   createWindow(const BookBaseEntry &search);
 
-  std::function<void
-  (const std::vector<BookBaseEntry> &result)> search_result_show;
+  void
+  createWindow(const std::string &collection_name,
+               std::shared_ptr<AuxFunc> af);
+
+  std::function<void(const std::vector<BookBaseEntry> &result)>
+      search_result_show;
+
+  std::function<void(const std::vector<FileParseEntry> &result)>
+      search_result_file;
 
 private:
   void
   startSearch(Gtk::Window *win, const BookBaseEntry &search);
 
+  void
+  copyFiles(Gtk::Window *win, const std::string &collection_name,
+            std::shared_ptr<AuxFunc> af);
+
   BaseKeeper *bk = nullptr;
   Gtk::Window *main_window = nullptr;
   std::vector<BookBaseEntry> search_result;
+  std::vector<FileParseEntry> files;
 };
 
-#endif /* INCLUDE_SEARCHPROCESSGUI_H_ */
+#endif // SEARCHPROCESSGUI_H

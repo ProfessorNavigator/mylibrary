@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_EDITBOOKGUI_H_
-#define INCLUDE_EDITBOOKGUI_H_
+#ifndef EDITBOOKGUI_H
+#define EDITBOOKGUI_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookMarks.h>
 #include <EditBookGenreModelItem.h>
+#include <Genre.h>
+#include <GenreGroup.h>
+#include <functional>
 #include <giomm-2.68/giomm/liststore.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <glib-2.0/glib/gtypes.h>
@@ -35,9 +38,6 @@
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
 #include <gtkmm-4.0/gtkmm/singleselection.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <Genre.h>
-#include <GenreGroup.h>
-#include <functional>
 #include <memory>
 #include <string>
 #include <thread>
@@ -47,18 +47,18 @@ class EditBookGui
 {
 public:
   EditBookGui(const std::shared_ptr<AuxFunc> &af, Gtk::Window *parent_window,
-	      const std::shared_ptr<BookMarks> &bookmarks,
-	      const std::string &collection_name, const BookBaseEntry &bbe);
-  virtual
-  ~EditBookGui();
+              const std::shared_ptr<BookMarks> &bookmarks,
+              const std::string &collection_name, const BookBaseEntry &bbe);
+
+  virtual ~EditBookGui();
 
   void
   createWindow();
 
-  std::function<
-      void
-      (const BookBaseEntry &bbe_old, const BookBaseEntry &bbe_new,
-       const std::string &collecton_name)> successfully_edited_signal;
+  std::function<void(const BookBaseEntry &bbe_old,
+                     const BookBaseEntry &bbe_new,
+                     const std::string &collecton_name)>
+      successfully_edited_signal;
 
 private:
   void
@@ -81,7 +81,7 @@ private:
 
   void
   slot_genre_bind(const Glib::RefPtr<Gtk::ListItem> &list_item,
-		  const int &variant);
+                  const int &variant);
 
   void
   select_genre(guint pos);
@@ -89,13 +89,13 @@ private:
   void
   setGenrePopover(Gtk::MenuButton *genre_button);
 
-  Gtk::Grid*
+  Gtk::Grid *
   formGenreExpanderGrid(const std::string &group_name,
-			const std::vector<Genre> &genre);
+                        const std::vector<Genre> &genre);
 
   void
   slot_genre_select(int numclc, double x, double y, const Genre &g,
-		    const std::string &group_name);
+                    const std::string &group_name);
 
   void
   remove_genre();
@@ -108,7 +108,7 @@ private:
 
   void
   show_genre_menu(int numclck, double x, double y, Gtk::PopoverMenu *menu,
-		  const Glib::RefPtr<Gtk::SingleSelection> &selection);
+                  const Glib::RefPtr<Gtk::SingleSelection> &selection);
 
   void
   confirmationDialog(Gtk::Window *win);
@@ -146,4 +146,4 @@ private:
   Gtk::Entry *date_ent = nullptr;
 };
 
-#endif /* INCLUDE_EDITBOOKGUI_H_ */
+#endif // EDITBOOKGUI_H

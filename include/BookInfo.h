@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BOOKINFO_H_
-#define INCLUDE_BOOKINFO_H_
+#ifndef BOOKINFO_H
+#define BOOKINFO_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
@@ -29,8 +29,6 @@ class BookInfo
 {
 public:
   BookInfo(const std::shared_ptr<AuxFunc> &af);
-  virtual
-  ~BookInfo();
 
   std::shared_ptr<BookInfoEntry>
   get_book_info(const BookBaseEntry &bbe);
@@ -44,11 +42,12 @@ private:
 
   bool
   compare_func(const ZipFileEntry &ent, const bool &encoding,
-	       const std::string &conv_nm, const std::filesystem::path &ch_fbd);
+               const std::string &conv_nm,
+               const std::filesystem::path &ch_fbd);
 
   std::shared_ptr<AuxFunc> af;
   double h_dpi = 72.0;
   double v_dpi = 72.0;
 };
 
-#endif /* INCLUDE_BOOKINFO_H_ */
+#endif // BOOKINFO_H

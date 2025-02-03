@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_EMPTYCOLLECTIONGUI_H_
-#define INCLUDE_EMPTYCOLLECTIONGUI_H_
+#ifndef EMPTYCOLLECTIONGUI_H
+#define EMPTYCOLLECTIONGUI_H
 
 #include <AuxFunc.h>
 #include <giomm-2.68/giomm/asyncresult.h>
@@ -25,9 +25,9 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #endif
-#include <gtkmm-4.0/gtkmm/window.h>
 #include <filesystem>
 #include <functional>
+#include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
 
@@ -39,15 +39,12 @@ class EmptyCollectionGui
 {
 public:
   EmptyCollectionGui(const std::shared_ptr<AuxFunc> &af,
-		     Gtk::Window *parent_window);
-  virtual
-  ~EmptyCollectionGui();
+                     Gtk::Window *parent_window);
 
   void
   createWindow();
 
-  std::function<void
-  (const std::string &col_name)> signal_success;
+  std::function<void(const std::string &col_name)> signal_success;
 
 private:
   void
@@ -56,13 +53,13 @@ private:
 #ifndef ML_GTK_OLD
   void
   open_directory_dialog_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-			     const Glib::RefPtr<Gtk::FileDialog> &fd,
-			     Gtk::Entry *ent);
+                             const Glib::RefPtr<Gtk::FileDialog> &fd,
+                             Gtk::Entry *ent);
 #endif
 #ifdef ML_GTK_OLD
   void
   open_directory_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
-  			     Gtk::Entry *ent);
+                             Gtk::Entry *ent);
 #endif
 
   void
@@ -73,7 +70,7 @@ private:
 
   void
   creat_collection(Gtk::Window *win, std::filesystem::path &col_base_path,
-		   const std::filesystem::path &books_p);
+                   const std::filesystem::path &books_p);
 
   void
   final_dialog(Gtk::Window *win);
@@ -85,4 +82,4 @@ private:
   Gtk::Entry *books_path_ent = nullptr;
 };
 
-#endif /* INCLUDE_EMPTYCOLLECTIONGUI_H_ */
+#endif // EMPTYCOLLECTIONGUI_H

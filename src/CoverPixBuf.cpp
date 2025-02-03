@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,11 +30,6 @@ CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
   this->width = width;
   this->height = height;
   createBuffer();
-}
-
-CoverPixBuf::~CoverPixBuf()
-{
-
 }
 
 CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie)

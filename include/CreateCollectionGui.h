@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_CREATECOLLECTIONGUI_H_
-#define INCLUDE_CREATECOLLECTIONGUI_H_
+#ifndef CREATECOLLECTIONGUI_H
+#define CREATECOLLECTIONGUI_H
 
 #include <AuxFunc.h>
 #include <giomm-2.68/giomm/asyncresult.h>
@@ -27,8 +27,8 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #endif
-#include <gtkmm-4.0/gtkmm/window.h>
 #include <functional>
+#include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
 
@@ -40,15 +40,12 @@ class CreateCollectionGui
 {
 public:
   CreateCollectionGui(const std::shared_ptr<AuxFunc> &af,
-		      Gtk::Window *main_window);
-  virtual
-  ~CreateCollectionGui();
+                      Gtk::Window *main_window);
 
   void
   createWindow();
 
-  std::function<void
-  (const std::string &col_name)> add_new_collection;
+  std::function<void(const std::string &col_name)> add_new_collection;
 
 private:
   void
@@ -57,7 +54,7 @@ private:
 #ifndef ML_GTK_OLD
   void
   bookPathDialogSlot(const Glib::RefPtr<Gio::AsyncResult> &result,
-		     const Glib::RefPtr<Gtk::FileDialog> &fd);
+                     const Glib::RefPtr<Gtk::FileDialog> &fd);
 #endif
 #ifdef ML_GTK_OLD
   void
@@ -82,4 +79,4 @@ private:
   Gtk::CheckButton *disable_rar = nullptr;
 };
 
-#endif /* INCLUDE_CREATECOLLECTIONGUI_H_ */
+#endif // CREATECOLLECTIONGUI_H

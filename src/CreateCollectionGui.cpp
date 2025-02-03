@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,27 +28,22 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm/error.h>
 #endif
+#include <filesystem>
 #include <gtkmm/grid.h>
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
-#include <libintl.h>
-#include <sigc++/connection.h>
-#include <filesystem>
 #include <iostream>
+#include <libintl.h>
 #include <locale>
+#include <sigc++/connection.h>
 #include <sstream>
 #include <thread>
 
 CreateCollectionGui::CreateCollectionGui(const std::shared_ptr<AuxFunc> &af,
-					 Gtk::Window *main_window)
+                                         Gtk::Window *main_window)
 {
   this->af = af;
   this->main_window = main_window;
-}
-
-CreateCollectionGui::~CreateCollectionGui()
-{
-
 }
 
 void
@@ -120,9 +115,8 @@ CreateCollectionGui::createWindow()
   std::stringstream strm;
   strm.imbue(std::locale("C"));
   strm << std::thread::hardware_concurrency();
-  lab->set_text(
-      gettext("Thread number (recommended max value: ")
-	  + Glib::ustring(strm.str()) + ")");
+  lab->set_text(gettext("Thread number (recommended max value: ")
+                + Glib::ustring(strm.str()) + ")");
   thread_grid->attach(*lab, 0, 0, 1, 1);
 
   thread_num = Gtk::make_managed<Gtk::Entry>();
@@ -137,8 +131,8 @@ CreateCollectionGui::createWindow()
   disable_rar = Gtk::make_managed<Gtk::CheckButton>();
   disable_rar->set_margin(5);
   disable_rar->set_halign(Gtk::Align::START);
-  disable_rar->set_active(true);
-  disable_rar->set_label(gettext("Disable rar archives support (recommended)"));
+  disable_rar->set_active(false);
+  disable_rar->set_label(gettext("Disable rar archives support"));
   grid->attach(*disable_rar, 0, row, 2, 1);
   row++;
 
@@ -159,14 +153,14 @@ CreateCollectionGui::createWindow()
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*cancel, 1, row, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -179,16 +173,15 @@ CreateCollectionGui::bookPathDialog(Gtk::Window *win)
   fd->set_title(gettext("Books path"));
   fd->set_modal(true);
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      af->homePath().u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_initial_folder(initial);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fd->select_folder(
-      *win,
-      std::bind(&CreateCollectionGui::bookPathDialogSlot, this,
-		std::placeholders::_1, fd),
-      cncl);
+  fd->select_folder(*win,
+                    std::bind(&CreateCollectionGui::bookPathDialogSlot, this,
+                              std::placeholders::_1, fd),
+                    cncl);
 #endif
 #ifdef ML_GTK_OLD
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
@@ -198,8 +191,8 @@ CreateCollectionGui::bookPathDialog(Gtk::Window *win)
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
-  Gtk::Button *but = fd->add_button(gettext("Cancel"),
-				    Gtk::ResponseType::CANCEL);
+  Gtk::Button *but
+      = fd->add_button(gettext("Cancel"), Gtk::ResponseType::CANCEL);
   but->set_margin(5);
   but->set_name("cancelBut");
 
@@ -207,21 +200,21 @@ CreateCollectionGui::bookPathDialog(Gtk::Window *win)
   but->set_margin(5);
   but->set_name("applyBut");
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      af->homePath().u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_current_folder(initial);
 
   fd->signal_response().connect(
       std::bind(&CreateCollectionGui::bookPathDialogSlot, this,
-		std::placeholders::_1, fd));
+                std::placeholders::_1, fd));
 
-  fd->signal_close_request().connect([fd]
-  {
-    std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
-    fdl->set_visible(false);
-    return true;
-  },
-				     false);
+  fd->signal_close_request().connect(
+      [fd] {
+        std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
+        fdl->set_visible(false);
+        return true;
+      },
+      false);
 
   fd->present();
 #endif
@@ -241,10 +234,10 @@ CreateCollectionGui::bookPathDialogSlot(
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::Code::FAILED)
-	{
-	  std::cout << "CreateCollectionGui::bookPathDialogSlot error: "
-	      << er.what() << std::endl;
-	}
+        {
+          std::cout << "CreateCollectionGui::bookPathDialogSlot error: "
+                    << er.what() << std::endl;
+        }
     }
   if(fl)
     {
@@ -264,8 +257,8 @@ CreateCollectionGui::checkInput(Gtk::Window *win)
     }
 
   std::filesystem::path collection_path = af->homePath();
-  collection_path /= std::filesystem::u8path(
-      ".local/share/MyLibrary/Collections");
+  collection_path
+      /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
   collection_path /= std::filesystem::u8path(filename);
   if(std::filesystem::exists(collection_path))
     {
@@ -296,9 +289,9 @@ CreateCollectionGui::bookPathDialogSlot(int resp, Gtk::FileChooserDialog *fd)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  book_path->set_text(fl->get_path());
-	}
+        {
+          book_path->set_text(fl->get_path());
+        }
     }
   fd->close();
 }
@@ -327,18 +320,18 @@ CreateCollectionGui::errorDialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	lab->set_text(gettext("Collection name cannot be empty!"));
-	break;
+        lab->set_text(gettext("Collection name cannot be empty!"));
+        break;
       }
     case 2:
       {
-	lab->set_text(gettext("Collection already exists!"));
-	break;
+        lab->set_text(gettext("Collection already exists!"));
+        break;
       }
     case 3:
       {
-	lab->set_text(gettext("Books path does not exist!"));
-	break;
+        lab->set_text(gettext("Books path does not exist!"));
+        break;
       }
     default:
       break;
@@ -353,13 +346,13 @@ CreateCollectionGui::errorDialog(Gtk::Window *win, const int &variant)
   close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*close, 0, 1, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }

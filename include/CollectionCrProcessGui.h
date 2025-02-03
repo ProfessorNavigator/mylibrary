@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_COLLECTIONCRPROCESSGUI_H_
-#define INCLUDE_COLLECTIONCRPROCESSGUI_H_
+#ifndef COLLECTIONCRPROCESSGUI_H
+#define COLLECTIONCRPROCESSGUI_H
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <atomic>
+#include <filesystem>
+#include <functional>
 #include <glibmm-2.68/glibmm/dispatcher.h>
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <gtkmm-4.0/gtkmm/progressbar.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <atomic>
-#include <filesystem>
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -35,28 +35,27 @@ class CollectionCrProcessGui
 {
 public:
   CollectionCrProcessGui(const std::shared_ptr<AuxFunc> &af,
-			 Gtk::Window *main_window,
-			 const std::filesystem::path &collection_path,
-			 const std::filesystem::path &books_path,
-			 const bool &rar_support, const std::string &num_thr);
-  virtual
-  ~CollectionCrProcessGui();
+                         Gtk::Window *main_window,
+                         const std::filesystem::path &collection_path,
+                         const std::filesystem::path &books_path,
+                         const bool &rar_support, const std::string &num_thr);
+
+  virtual ~CollectionCrProcessGui();
 
   CollectionCrProcessGui(const std::shared_ptr<AuxFunc> &af,
-			 Gtk::Window *main_window, const std::string &coll_name,
-			 const std::string &num_thr, const bool &remove_empty,
-			 const bool &fast, const bool &refresh_bookmarks,
-			 const bool &rar_support,
-			 const std::shared_ptr<BookMarks> &bookmarks);
+                         Gtk::Window *main_window,
+                         const std::string &coll_name,
+                         const std::string &num_thr, const bool &remove_empty,
+                         const bool &fast, const bool &refresh_bookmarks,
+                         const bool &rar_support,
+                         const std::shared_ptr<BookMarks> &bookmarks);
 
   void
   createWindow(const int &variant);
 
-  std::function<void
-  (const std::string &col_name)> add_new_collection;
+  std::function<void(const std::string &col_name)> add_new_collection;
 
-  std::function<void
-  (const std::string &col_name)> collection_refreshed;
+  std::function<void(const std::string &col_name)> collection_refreshed;
 
 private:
   void
@@ -92,7 +91,7 @@ private:
   Glib::Dispatcher *bytes_hashed_disp = nullptr;
 
   double total_files = 0.0;
-  std::atomic<double>progress_count;
+  std::atomic<double> progress_count;
 
   double total_bytes_to_hash = 0.0;
   double bytes_hashed = 0.0;
@@ -103,4 +102,4 @@ private:
   bool rar_support = false;
 };
 
-#endif /* INCLUDE_COLLECTIONCRPROCESSGUI_H_ */
+#endif // COLLECTIONCRPROCESSGUI_H

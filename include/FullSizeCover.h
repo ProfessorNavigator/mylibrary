@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_FULLSIZECOVER_H_
-#define INCLUDE_FULLSIZECOVER_H_
+#ifndef FULLSIZECOVER_H
+#define FULLSIZECOVER_H
 
 #include <BookInfoEntry.h>
 #include <cairomm-1.16/cairomm/context.h>
@@ -30,9 +30,7 @@ class FullSizeCover
 {
 public:
   FullSizeCover(const std::shared_ptr<BookInfoEntry> &bie,
-		Gtk::Window *parent_window);
-  virtual
-  ~FullSizeCover();
+                Gtk::Window *parent_window);
 
   void
   createWindow();
@@ -42,8 +40,7 @@ private:
   calculateSizes();
 
   void
-  cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
-	     int height);
+  cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
 
   std::shared_ptr<BookInfoEntry> bie;
   Gtk::Window *parent_window = nullptr;
@@ -54,4 +51,4 @@ private:
   int height = 0;
 };
 
-#endif /* INCLUDE_FULLSIZECOVER_H_ */
+#endif // FULLSIZECOVER_H

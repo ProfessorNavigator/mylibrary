@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_REFRESHCOLLECTIONGUI_H_
-#define INCLUDE_REFRESHCOLLECTIONGUI_H_
+#ifndef REFRESHCOLLECTIONGUI_H
+#define REFRESHCOLLECTIONGUI_H
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -34,16 +34,13 @@ class RefreshCollectionGui
 {
 public:
   RefreshCollectionGui(const std::shared_ptr<AuxFunc> &af,
-		       Gtk::Window *main_window,
-		       const std::shared_ptr<BookMarks> &bookmarks);
-  virtual
-  ~RefreshCollectionGui();
+                       Gtk::Window *main_window,
+                       const std::shared_ptr<BookMarks> &bookmarks);
 
   void
   createWindow();
 
-  std::function<void
-  (const std::string &collection_name)> collection_refreshed;
+  std::function<void(const std::string &collection_name)> collection_refreshed;
 
 private:
   Glib::RefPtr<Gtk::StringList>
@@ -67,4 +64,4 @@ private:
   Gtk::CheckButton *disable_rar = nullptr;
 };
 
-#endif /* INCLUDE_REFRESHCOLLECTIONGUI_H_ */
+#endif // REFRESHCOLLECTIONGUI_H

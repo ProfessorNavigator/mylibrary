@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_DJVUPARSER_H_
-#define INCLUDE_DJVUPARSER_H_
+#ifndef DJVUPARSER_H
+#define DJVUPARSER_H
 
 #include <AuxFunc.h>
 #include <BookInfoEntry.h>
 #include <BookParseEntry.h>
-#include <libdjvu/ddjvuapi.h>
 #include <filesystem>
+#include <libdjvu/ddjvuapi.h>
 #include <memory>
 
 class DJVUParser
 {
 public:
   DJVUParser(const std::shared_ptr<AuxFunc> &af);
-  virtual
-  ~DJVUParser();
 
   BookParseEntry
   djvu_parser(const std::filesystem::path &filepath);
@@ -41,9 +39,9 @@ public:
 private:
   bool
   handle_djvu_msgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-		   const bool &wait);
+                   const bool &wait);
 
   std::shared_ptr<AuxFunc> af;
 };
 
-#endif /* INCLUDE_DJVUPARSER_H_ */
+#endif // DJVUPARSER_H

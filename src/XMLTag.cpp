@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,24 +19,15 @@
 
 XMLTag::XMLTag()
 {
-
-}
-
-XMLTag::~XMLTag()
-{
-
 }
 
 XMLTag::XMLTag(const XMLTag &other)
 {
-  if(this != &other)
-    {
-      element = other.element;
-      content = other.content;
-    }
+  element = other.element;
+  content = other.content;
 }
 
-XMLTag&
+XMLTag &
 XMLTag::operator=(const XMLTag &other)
 {
   if(this != &other)
@@ -49,14 +40,11 @@ XMLTag::operator=(const XMLTag &other)
 
 XMLTag::XMLTag(XMLTag &&other)
 {
-  if(this != &other)
-    {
-      element = other.element;
-      content = other.content;
-    }
+  element = other.element;
+  content = other.content;
 }
 
-XMLTag&
+XMLTag &
 XMLTag::operator=(XMLTag &&other)
 {
   if(this != &other)
@@ -66,4 +54,3 @@ XMLTag::operator=(XMLTag &&other)
     }
   return *this;
 }
-

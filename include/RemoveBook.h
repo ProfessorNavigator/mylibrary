@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_REMOVEBOOK_H_
-#define INCLUDE_REMOVEBOOK_H_
+#ifndef REMOVEBOOK_H
+#define REMOVEBOOK_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
@@ -31,10 +31,8 @@ class RemoveBook : public LibArchive
 {
 public:
   RemoveBook(const std::shared_ptr<AuxFunc> &af, const BookBaseEntry &bbe,
-	     const std::string &col_name,
-	     const std::shared_ptr<BookMarks> &bookmarks);
-  virtual
-  ~RemoveBook();
+             const std::string &col_name,
+             const std::shared_ptr<BookMarks> &bookmarks);
 
   void
   removeBook();
@@ -51,4 +49,4 @@ private:
   SelfRemovingPath keep_path;
 };
 
-#endif /* INCLUDE_REMOVEBOOK_H_ */
+#endif // REMOVEBOOK_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,38 +15,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BOOKBASEENTRY_H_
-#define INCLUDE_BOOKBASEENTRY_H_
+#ifndef BOOKBASEENTRY_H
+#define BOOKBASEENTRY_H
 
 #include <BookParseEntry.h>
 #include <filesystem>
-#include <string>
 
 class BookBaseEntry
 {
 public:
   BookBaseEntry();
-  virtual
-  ~BookBaseEntry();
 
   BookBaseEntry(const BookBaseEntry &other);
 
   BookBaseEntry(BookBaseEntry &&other);
 
-  BookBaseEntry&
+  BookBaseEntry &
   operator=(const BookBaseEntry &other);
 
-  BookBaseEntry&
+  BookBaseEntry &
   operator=(BookBaseEntry &&other);
 
   bool
   operator==(const BookBaseEntry &other);
 
   BookBaseEntry(const BookParseEntry &bpe,
-		const std::filesystem::path &book_file_path);
+                const std::filesystem::path &book_file_path);
 
   std::filesystem::path file_path;
   BookParseEntry bpe;
 };
 
-#endif /* INCLUDE_BOOKBASEENTRY_H_ */
+#endif // BOOKBASEENTRY_H

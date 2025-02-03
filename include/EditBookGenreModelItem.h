@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_EDITBOOKGENREMODELITEM_H_
-#define INCLUDE_EDITBOOKGENREMODELITEM_H_
+#ifndef EDITBOOKGENREMODELITEM_H
+#define EDITBOOKGENREMODELITEM_H
 
 #include <glibmm-2.68/glibmm/object.h>
 #include <glibmm-2.68/glibmm/refptr.h>
@@ -25,9 +25,6 @@
 class EditBookGenreModelItem : public Glib::Object
 {
 public:
-  virtual
-  ~EditBookGenreModelItem();
-
   static Glib::RefPtr<EditBookGenreModelItem>
   create(const std::string &genre_code, const std::string &genre_name);
 
@@ -36,7 +33,7 @@ public:
 
 protected:
   EditBookGenreModelItem(const std::string &genre_code,
-			 const std::string &genre_name);
+                         const std::string &genre_name);
 };
 
-#endif /* INCLUDE_EDITBOOKGENREMODELITEM_H_ */
+#endif // EDITBOOKGENREMODELITEM_H

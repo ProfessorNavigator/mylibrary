@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_FB2PARSER_H_
-#define INCLUDE_FB2PARSER_H_
+#ifndef FB2PARSER_H
+#define FB2PARSER_H
 
 #include <AuxFunc.h>
 #include <BookInfoEntry.h>
@@ -31,8 +31,6 @@ class FB2Parser : public XMLParser
 {
 public:
   FB2Parser(const std::shared_ptr<AuxFunc> &af);
-  virtual
-  ~FB2Parser();
 
   BookParseEntry
   fb2_parser(const std::string &book);
@@ -58,11 +56,10 @@ private:
 
   void
   fb2_annotation_decode(const std::string &book, std::string &result,
-			const int &variant);
+                        const int &variant);
 
   void
-  fb2_cover(const std::string &book, std::string &cover,
-	    const int &variant);
+  fb2_cover(const std::string &book, std::string &cover, const int &variant);
 
   void
   fb2_cover_main(const std::string &book, std::string &cover);
@@ -72,7 +69,7 @@ private:
 
   void
   fb2_extra_info(const std::string &book, BookInfoEntry &result,
-		 const int &variant);
+                 const int &variant);
 
   void
   fb2_extra_info_1(const std::string &book, BookInfoEntry &result);
@@ -81,22 +78,18 @@ private:
   fb2_extra_info_2(const std::string &book, BookInfoEntry &result);
 
   void
-  fb2_publisher_info_1(const std::string &book,
-		       BookInfoEntry &result);
+  fb2_publisher_info_1(const std::string &book, BookInfoEntry &result);
 
   void
-  fb2_publisher_info_2(const std::string &book,
-		       BookInfoEntry &result);
+  fb2_publisher_info_2(const std::string &book, BookInfoEntry &result);
 
   void
-  fb2_electro_doc_info_1(const std::string &book,
-			 BookInfoEntry &result);
+  fb2_electro_doc_info_1(const std::string &book, BookInfoEntry &result);
 
   void
-  fb2_electro_doc_info_2(const std::string &book,
-			 BookInfoEntry &result);
+  fb2_electro_doc_info_2(const std::string &book, BookInfoEntry &result);
 
   std::shared_ptr<AuxFunc> af;
 };
 
-#endif /* INCLUDE_FB2PARSER_H_ */
+#endif // FB2PARSER_H

@@ -1,32 +1,45 @@
 Code;Group;en_EN;ru_RU Russian_Russia
-accounting;Economics, buisness, finance;Accounting;Экономика, учёт
 adv_animal;Adventure;Nature & animals;Природа и животные
 adv_geo;Adventure;Travel & geography;Путешествия и география
 adv_history;Adventure;History;История
+adv_indian;Adventure;Western;Вестерн, про индейцев
 adv_maritime;Adventure;Maritime;Море
+adv_modern;Adventure;Adventures in the modern world;Приключения в современном мире
+adv_story;Adventure;Adventurous novels;Авантюрный роман
 adv_western;Adventure;Western;Вестерн
 adventure;Adventure;Adventure;Приключения
-antique;Antique;Antique;Древняя литература
+child_adv;Adventure;Adventure;Приключения для детей и подростков
+tale_chivalry;Adventure;Chivalrous romance;Рыцарский роман
+antique;Antique;Antique;Старинное
 antique_ant;Antique;Antique;Античность
 antique_east;Antique;Old east;Древневосточная литература
 antique_european;Antique;European;Старая европейская литература
-antique_myths;Antique;Myths;Мифы
 antique_russian;Antique;Old russian;Древнерусская литература
-aphorism_quote;Other;Aphorism;Афоризмы
-architecture_book;Other;Architecture;Архитектура
-auto_regulations;Other;Cars;Автомобили
-banking;Economics, buisness, finance;Banking;Банкинг
-beginning_authors;Other;Beginning authors;Начинающие авторы
-child_adv;Child;Adventure;Приключения
+architecture_book;Art, art criticism, design;Architecture;Архитектура, скульптура
+art_criticism;Art, art criticism, design;Art criticism;Искусствоведение
+art_world_culture;Art, art criticism, design;World art culture;Мировая художественная культура
+cine;Art, art criticism, design;Cinema;Кино
+cinema_theatre;Art, art criticism, design;Cinema, theatre;Кино, театр
+design;Art, art criticism, design;Design;Дизайн
+music;Art, art criticism, design;Music;Музыка
+music_dancing;Art, art criticism, design;Music, dancing;Музыка, танцы
+nonf_criticism;Art, art criticism, design;Criticism;Критика
+notes;Art, art criticism, design;Scores;Партитуры
+painting;Art, art criticism, design;Painting;Живопись
+sci_culture;Art, art criticism, design;Culture;Культура
+theatre;Art, art criticism, design;Theatre;Театр
+visual_arts;Art, art criticism, design;Visual arts;Живопись
+child_classical;Child;Classic;Классическая детская литература
 child_det;Child;Detective;Детектив
 child_education;Child;Education;Образовательная литература
 child_prose;Child;Prose;Детская проза
 child_sf;Child;Science fiction;Детская научная фантастика
-child_tale;Child;Tale;Сказки
+child_tale;Child;Tales;Сказки
+child_tale_rus;Child;Russian tales;Русские сказки
 child_verse;Child;Verse;Стихи
 children;Child;Child;Детская литература
-cinema_theatre;Other;Cinema, theatre;Кино, театр
-city_fantasy;Fantasy;City fantasy;Городское фэнтези
+foreign_children;Child;Children;Детские книги
+prose_game;Child;Games, training;Игры, упражнения для детей
 comp_db;Computers;Databases;Базы данных
 comp_hard;Computers;Hardware;Компьютеры, аппаратная часть
 comp_osnet;Computers;OS, net;Операционные системы, сети
@@ -34,7 +47,7 @@ comp_programming;Computers;Progrmming;Программирование
 comp_soft;Computers;Software;Программы
 comp_www;Computers;Internet;Интернет
 computers;Computers;Computers;Компьютеры
-design;Visual arts;Design;Дизайн
+tbg_computers;Computers;Manuals, guides;Учебные пособия, самоучители
 det_action;Detective;Action;Боевик
 det_classic;Detective;Classic;Классический
 det_crime;Detective;Crime;Криминал
@@ -42,25 +55,68 @@ det_espionage;Detective;Espionage;Шпионаж
 det_hard;Detective;Hard-boiled;Крутой
 det_history;Detective;History;Исторический
 det_irony;Detective;Irony;Иронический
+det_maniac;Detective;Maniac;Про маньяков
 det_police;Detective;Police;Полицейский
 det_political;Detective;Political;Политический
+det_su;Detective;USSR detective;Советский детектив
 detective;Detective;Detective;Детектив
-dragon_fantasy;Fantasy;Dragons;Драконы
-dramaturgy;Other;Dramaturgy;Драматургия
+thriller;Detective;Thriller;Триллер
+comedy;Dramaturgy;Comedy;Комедия
+drama;Dramaturgy;Drama;Драма
+drama_antique;Dramaturgy;Antique drama;Античная драма
+dramaturgy;Dramaturgy;Dramaturgy;Драматургия
+foreign_dramaturgy;Dramaturgy;Dramaturgy;Драматургия
+screenplays;Dramaturgy;Screenplay;Сценарий
+tragedy;Dramaturgy;Tragedy;Трагедия
+vaudeville;Dramaturgy;Vaudeville;Мистерия, буффонада, водевиль
+accounting;Economics, buisness, finance;Accounting;Экономика, учёт
+banking;Economics, buisness, finance;Banking;Банкинг
 economics;Economics, buisness, finance;Economics;Экономика
-essays;Other;Essays;Эссе
+economics_ref;Economics, buisness, finance;Buisness;Деловая литература
+global_economy;Economics, buisness, finance;Economics, global;Глобальная экономика
+marketing;Economics, buisness, finance;Marketing;Маркетинг
+org_behavior;Economics, buisness, finance;Organisation;Организация, маркетинг, PR
+personal_finance;Economics, buisness, finance;Personal finance;Личные финансы
+popular_business;Economics, buisness, finance;Buisness, popular;Бизнес
+real_estate;Economics, buisness, finance;Real estate;Недвижимость
+small_business;Economics, buisness, finance;Small buisness;Малый бизнес
+stock;Economics, buisness, finance;Stock;Биржа
+auto_business;Engineering;Automobile engineering;Автодело
+equ_history;Engineering;The history of technology;История техники
+military_weapon;Engineering;Military science, military equipment and armament;Военное дело, военная техника и вооружение
+sci_build;Engineering;Construction;Строительство и сопромат
+sci_metal;Engineering;Metallurgy;Металлургия
+sci_radio;Engineering;Radioelectronics;Радиоэлектроника
+sci_tech;Engineering;Tech;Техника
+sci_transport;Engineering;Transport and aviation;Транспорт и авиация
+city_fantasy;Fantasy;City fantasy;Городское фэнтези
+dragon_fantasy;Fantasy;Dragons;Драконы
+fairy_fantasy;Fantasy;Mythological fantasy;Мифологическое фэнтези
 fantasy_fight;Fantasy;Fighting;Битвы
+historical_fantasy;Fantasy;Historical fantasy;Историческое фэнтези
+modern_tale;Fantasy;Modern tale;Современная сказка
+russian_fantasy;Fantasy;Russian, fantasy;Русское фэнтези
+sf_fantasy;Fantasy;Fantasy;Фэнтези
+sf_fantasy_city;Fantasy;Urban fantasy;Городское фэнтези
+sf_mystic;Fantasy;Mysticism;Мистика
+sf_stimpank;Fantasy;Steampunk;Стимпанк
+sf_technofantasy;Fantasy;Techno fantasy;Технофэнтези
+antique_myths;Folklore;Myths;Мифы
+child_folklore;Folklore;Children's folklore;Детский фольклор
+epic;Folklore;Epics;Былины, эпопея
+folk_songs;Folklore;Folk songs;Народные песни
+folk_tale;Folklore;Folk tales;Народные сказки
+folklore;Folklore;Folklore;Фольклор
+limerick;Folklore;Ditties, jokes, nursery rhymes;Частушки, прибаутки, потешки
+proverbs;Folklore;Proverbs;Пословицы, поговорки
 foreign_action;Foreign;Action;Боевик
 foreign_adventure;Foreign;Adventyre;Приключения
-foreign_antique;Foreign;Antique;Древние книги
 foreign_business;Foreign;Buisness;Бизнес
-foreign_children;Foreign;Children;Детские книги
 foreign_comp;Foreign;Computers;Компьютеры
 foreign_contemporary;Foreign;Contemporary;Современное
 foreign_contemporary_lit;Foreign;Contemporary litirature;Современная литература
 foreign_desc;Foreign;Description;Описания
 foreign_detective;Foreign;Detective;Детектив
-foreign_dramaturgy;Foreign;Dramaturgy;Драматургия
 foreign_edu;Foreign;Education;Образование
 foreign_fantasy;Foreign;Fantasy;Фэнтези
 foreign_home;Foreign;Home;Дом
@@ -69,18 +125,15 @@ foreign_language;Foreign;Languages;Языкознание
 foreign_love;Foreign;Love;Любовное
 foreign_novel;Foreign;Novel;Новеллы
 foreign_other;Foreign;Other;Другое
-foreign_poetry;Foreign;Poetry;Поэзия
-foreign_prose;Foreign;Prose;Проза
 foreign_psychology;Foreign;Psychology;Психология
 foreign_publicism;Foreign;Publicism;Публицистика
-foreign_religion;Foreign;Religion;Религия
 foreign_sf;Foreign;Science fiction;Научная фантастика
 geo_guides;Geaography;Guides;Справочники
 geography_book;Geaography;Geography;География
-global_economy;Economics, buisness, finance;Economics, global;Глобальная экономика
-historical_fantasy;Fantasy;Historical fantasy;Историческое фэнтези
+family;Home;Relationships;Семейные отношения
 home;Home;Home;Дом
-home_cooking;Home;Cooking;Кухня
+home_collecting;Home;Collecting;Коллекционирование
+home_cooking;Home;Cooking;Кулинария
 home_crafts;Home;Crafts;Увлечения
 home_diy;Home;DIY;Сделай сам
 home_entertain;Home;Entertainment;Развлечения
@@ -89,49 +142,86 @@ home_health;Home;Health;Здоровье
 home_pets;Home;Pets;Домашние животные
 home_sex;Home;Sex;Секс
 home_sport;Home;Sport;Спорт
+sci_pedagogy;Home;Pedagogy;Педагогика, воспитание детей, литература для родителей
 humor;Humor;Humor;Юмор
 humor_anecdote;Humor;Anecdote;Анекдоты
 humor_fantasy;Humor;Fantasy;Фэнтези
-humor_prose;Humor;Prose;Проза
-humor_verse;Humor;Verse;Стихи
-industries;Other;Industries;Промышленность
-job_hunting;Other;Job hunting;Поиск работы
-literature_18;Other;Literature 18+;Литература 18+
-literature_19;Other;Literature 19+;Литература 19+
-literature_20;Other;Literature 20+;Литература 20+
-love_contemporary;Love;Contemporary;Современное
-love_detective;Love;Detective;Детектив
+humor_prose;Humor;Humor, prose;Юмористическая проза
+humor_satire;Humor;Satire;Сатира
+love;Love;Love;Любовные романы
+love_contemporary;Love;Love contemporary;Современные любовные романы
+love_detective;Love;Love detective;Остросюжетные любовные романы
 love_erotica;Love;Erotica;Эротика
-love_fantasy;Love;Fantasy;Фэнтези
-love_history;Love;History;История
-love_sf;Love;Science fiction;Научная фантастика
+love_fantasy;Love;Love fantasy;Любовное фэнтези
+love_hard;Love;Porno;Порно
+love_history;Love;Love, historical;Любовные исторические романы
+love_sf;Love;Love fantasy, love fiction;Любовное фэнтези, любовно-фантастические романы
 love_short;Love;Short;Короткое
-magician_book;Other;Magic;Магия
-management;Other;Management;Менеджмент
-marketing;Economics, buisness, finance;Marketing;Маркетинг
-military_special;Other;Military;Военное дело
-music_dancing;Other;Music, dancing;Музыка, танцы
-narrative;Other;Narrative;Повествовательное
-newspapers;Other;Newspapers;Газеты
-nonf_biography;Nonfiction;Biography;Биографии
-nonf_criticism;Nonfiction;Criticism;Критика
+military_special;Nonfiction;Military;Военное дело
+nonf_biography;Nonfiction;Biography;Биографии и Мемуары
+nonf_military;Nonfiction;War documentation and analitics;Военная документалистика и аналитика
 nonf_publicism;Nonfiction;Publicism;Публицистика
 nonfiction;Nonfiction;Nonfiction;Художественная литература
-org_behavior;Other;Organisation;Организация
+travel_notes;Nonfiction;Travel notes;Путевые заметки
+aphorism_quote;Other;Aphorism;Афоризмы
+auto_regulations;Other;Cars;Автомобили
+beginning_authors;Other;Beginning authors;Начинающие авторы
+comics;Other;Comics;Комиксы
+essays;Other;Essays;Эссе
+fanfiction;Other;Fan fiction;Фанфик
+industries;Other;Industries;Промышленность
+job_hunting;Other;Job hunting;Поиск работы
+magician_book;Other;Magic;Магия
+management;Other;Management;Менеджмент
+narrative;Other;Narrative;Повествовательное
+network_literature;Other;Network literature;Самиздат, сетевая литература
+newspapers;Other;Newspapers;Газеты
+other;Other;Other;Неотсортированное
 paper_work;Other;Papaer work;Бумажная работа
 pedagogy_book;Other;Pedagogical;Педагогика
 periodic;Other;Periodic;Периодические издания
-personal_finance;Economics, buisness, finance;Personal finance;Личные финансы
-poetry;Other;Poetry;Поэзия
-popadanec;Science fiction;Popadanec (untranslatable concept);Уе… попаданцы
-popular_business;Economics, buisness, finance;Buisness, popular;Бизнес
+russian_contemporary;Other;Russian, contemporary;Современная российская литература
+short_story;Other;Short story;Короткие истории
+sketch;Other;Sketch;Скетч
+unfinished;Other;Unfinished;Незавершенное
+unrecognised;Other;Unrecognised;Неизвестный
+upbringing_book;Other;Upbringing;Воспитание
+vampire_book;Other;Vampire;Вампиры
+foreign_poetry;Poetry;Poetry;Поэзия
+humor_verse;Poetry;Verse;Стихи
+lyrics;Poetry;Lyrics;Лирика
+palindromes;Poetry;Palindrome;Визуальная и экспериментальная поэзия, верлибры, палиндромы
+poem;Poetry;Poem;Поэма, эпическая поэзия
+poetry;Poetry;Poetry;Поэзия
+poetry_classical;Poetry;Classic poetry;Классическая поэзия
+poetry_east;Poetry;Poetry of the East;Поэзия Востока
+poetry_for_classical;Poetry;Classic foreign poetry;Классическая зарубежная поэзия
+poetry_for_modern;Poetry;Modern foreign poetry;Современная зарубежная поэзия
+poetry_modern;Poetry;Modern poetry;Современная поэзия
+poetry_rus_classical;Poetry;Classic russian poetry;Классическая русская поэзия
+poetry_rus_modern;Poetry;Modern russian poetry;Современная русская поэзия
+song_poetry;Poetry;Songs;Песенная поэзия
+aphorisms;Prose;Aphorisms;Афоризмы, цитаты
+epistolary_fiction;Prose;Epistolary prose;Эпистолярная проза
+foreign_antique;Prose;Medieval classical prose;Средневековая классическая проза
+foreign_prose;Prose;Classic foreign prose;Зарубежная классическая проза
+gothic_novel;Prose;Gothic novel;Готический роман
+great_story;Prose;Novel, short story;Роман, повесть
+literature_18;Prose;Classical prose of the XVII-XVIII centuries;Классическая проза XVII-XVIII веков
+literature_19;Prose;Classical prose of the 19th century;Классическая проза ХIX века
+literature_20;Prose;Classical prose of the twentieth century;Классическая проза ХX века
+prose;Prose;Prose;Проза
+prose_abs;Prose;Phantasmagoria, absurdist prose;Фантасмагория, абсурдистская проза
 prose_classic;Prose;Classical;Классика
 prose_contemporary;Prose;Contemporary;Современная проза
 prose_counter;Prose;Counter;Контр-проза
 prose_history;Prose;History;История
+prose_magic;Prose;Magical realism;Магический реализм
 prose_military;Prose;Military;Военная проза
+prose_neformatny;Prose;Experimental, informal prose;Экспериментальная, неформатная проза
 prose_rus_classic;Prose;Russian classic;Русская классика
 prose_su_classics;Prose;Soviet Union classic;Советская классика
+story;Prose;Small literary forms;Малые литературные формы
 psy_alassic;Psychology;Psychology;Психология
 psy_childs;Psychology;Childs;Дети
 psy_generic;Psychology;Generic;Общее
@@ -139,50 +229,73 @@ psy_personal;Psychology;Personal;Личное
 psy_sex_and_family;Psychology;Sex and family;Секс и семья
 psy_social;Psychology;Social;Социальное
 psy_theraphy;Psychology;Therapy;Терапия
-real_estate;Economics, buisness, finance;Real estate;Недвижимость
 ref_dict;Reference;Dictionaries;Словари
 ref_encyc;Reference;Encyclopedia;Энциклопедии
 ref_guide;Reference;Guide;Инструкции
 ref_ref;Reference;Reference;Справочники
 reference;Reference;Reference;Справочники
+astrology;Religion;Astrology and Palmistry;Астрология и хиромантия
+foreign_religion;Religion;Foreign religion;Иностранная религиозная литература
 religion;Religion;Religion;Религия
+religion_budda;Religion;Buddhism;Буддизм
+religion_catholicism;Religion;Catholicism;Католицизм
+religion_christianity;Religion;Christianity;Христианство
 religion_esoterics;Religion;Esoterics;Эзотерика
+religion_hinduism;Religion;Hinduism;Индуизм
+religion_islam;Religion;Islam;Islam
+religion_judaism;Religion;Judaism;Иудаизм
+religion_orthodoxy;Religion;Orthodoxy;Православие
+religion_paganism;Religion;Paganism;Язычество
+religion_protestantism;Religion;Protestantism;Протестантизм
 religion_rel;Religion;Relationships;Отношения
 religion_self;Religion;Self-knowledge;Самопознание
-russian_contemporary;Other;Russian, contemporary;Современная российская литература
-russian_fantasy;Fantasy;Russian, fantasy;Русское фэнтези
+military_history;Science;Military history;Военная история
 sci_biology;Science;Biology;Биология
+sci_botany;Science;Botany;Ботаника
 sci_chem;Science;Chemistry;Химия
-sci_culture;Science;Culture;Культура
+sci_cosmos;Science;Astronomy and Space;Астрономия и Космос
+sci_ecology;Science;Ecology;Экология
+sci_economy;Science;Economics;Экономика
+sci_geo;Science;Geology and geography;Геология и география
 sci_history;Science;History;История
 sci_juris;Science;Jurisprudence;Юриспруденция
 sci_linguistic;Science;Linguistic;Лингвистика
 sci_math;Science;Math;Математика
 sci_medicine;Science;Medicine;Медицина
+sci_medicine_alternative;Science;Alternative (non)medicine;Альтернативная (не)медицина
+sci_oriental;Science;Oriental studies;Востоковедение
+sci_philology;Science;Philology;Литературоведение
 sci_philosophy;Science;Philosophy;Философия
 sci_phys;Science;Physics;Физика
 sci_politics;Science;Politics;Политика
+sci_popular;Science;Popular science;Научно-популярная литература
+sci_psychology;Science;Psychology and psychotherapy;Психология и психотерапия
 sci_religion;Science;Religion;Религия
-sci_tech;Science;Tech;Техника
+sci_social_studies;Science;Sociology;Обществознание, социология
+sci_state;Science;State and law;Государство и право
+sci_theories;Science;Sciense theories;Альтернативные (не)науки и (не)научные теории
+sci_veterinary;Science;Veterinary;Ветеринария
+sci_zoo;Science;Zoology;Зоология
 science;Science;Science;Наука
+sociology_book;Science;Sociology;Социология
+hronoopera;Science fiction;Chronoopera;Хроноопера
+popadancy;Science fiction;Popadanec (untranslatable concept)(1);Уе… попаданцы(1)
+popadanec;Science fiction;Popadanec (untranslatable concept)(2);Уе… попаданцы(2)
 sf;Science fiction;Sciense fiction;Научная фантастика
-sf_action;Science fiction;Action;Боевик
+sf_action;Science fiction;Action;Боевая фантастика
 sf_cyberpunk;Science fiction;Cyberpunk;Киберпанк
 sf_detective;Science fiction;Detective;Детектив
-sf_fantasy;Science fiction;Fantasy;Фэнтези
+sf_epic;Science fiction;Epic science fiction;Эпическая фантастика
+sf_etc;Science fiction;Science fiction;Фантастика
 sf_heroic;Science fiction;Heroic;Героическое
 sf_history;Science fiction;History;История
 sf_horror;Science fiction;Horror;Ужас
 sf_humor;Science fiction;Humor;Юмор
-sf_social;Science fiction;Social;Социальное
+sf_litrpg;Science fiction;LitRPG;ЛитРПГ
+sf_postapocalyptic;Science fiction;The post-Apocalypse;Постапокалипсис
+sf_social;Science fiction;Social;Социально-психологическая фантастика
 sf_space;Science fiction;Space;Космос
-short_story;Other;Short story;Короткие истории
-sketch;Other;Sketch;Скетч
-small_business;Economics, buisness, finance;Small buisness;Малый бизнес
-sociology_book;Science;Sociology;Социология
-stock;Economics, buisness, finance;Stock;Биржа
-thriller;Other;Thriller;Триллер
-upbringing_book;Other;Upbringing;Воспитание
-vampire_book;Other;Vampire;Вампиры
-visual_arts;Visual arts;Visual arts;Живопись
-unrecognised;Other;Unrecognised;Неизвестный
+sci_textbook;Textbooks and manuals;Textbooks and manuals;Учебники и пособия
+tbg_higher;Textbooks and manuals;University textbooks and manuals;Учебники и пособия ВУЗов
+tbg_school;Textbooks and manuals;School textbooks and manuals, essays, cheat sheets;Школьные учебники и пособия, рефераты, шпаргалки
+tbg_secondary;Textbooks and manuals;Textbooks and manuals for secondary and special education;Учебники и пособия для среднего и специального образования

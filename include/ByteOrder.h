@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2023-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BYTEORDER_H_
-#define INCLUDE_BYTEORDER_H_
+#ifndef BYTEORDER_H
+#define BYTEORDER_H
 
 #include <cstdint>
 #include <cstring>
-#include <vector>
-#include <typeinfo>
 #include <mutex>
+#include <vector>
 
 class ByteOrder
 {
 public:
   ByteOrder();
-  virtual
-  ~ByteOrder();
+
   ByteOrder(const ByteOrder &other);
 
   ByteOrder(uint64_t val);
@@ -48,32 +46,32 @@ public:
 
   ByteOrder(double val);
 
-  ByteOrder&
-  operator =(const ByteOrder &other);
+  ByteOrder &
+  operator=(const ByteOrder &other);
 
-  ByteOrder&
-  operator =(const uint64_t &val);
+  ByteOrder &
+  operator=(const uint64_t &val);
 
-  ByteOrder&
-  operator =(const uint32_t &val);
+  ByteOrder &
+  operator=(const uint32_t &val);
 
-  ByteOrder&
-  operator =(const uint16_t &val);
+  ByteOrder &
+  operator=(const uint16_t &val);
 
-  ByteOrder&
-  operator =(const int64_t &val);
+  ByteOrder &
+  operator=(const int64_t &val);
 
-  ByteOrder&
-  operator =(const int32_t &val);
+  ByteOrder &
+  operator=(const int32_t &val);
 
-  ByteOrder&
-  operator =(const int16_t &val);
+  ByteOrder &
+  operator=(const int16_t &val);
 
-  ByteOrder&
-  operator =(const float &val);
+  ByteOrder &
+  operator=(const float &val);
 
-  ByteOrder&
-  operator =(const double &val);
+  ByteOrder &
+  operator=(const double &val);
 
   operator uint64_t();
   operator uint32_t();
@@ -86,38 +84,38 @@ public:
   operator float();
   operator double();
 
-  template<typename T>
-    void
-    get_native(T &result);
+  template <typename T>
+  void
+  get_native(T &result);
 
-  template<typename T>
-    void
-    get_big(T &result);
+  template <typename T>
+  void
+  get_big(T &result);
 
-  template<typename T>
-    void
-    get_little(T &result);
+  template <typename T>
+  void
+  get_little(T &result);
 
-  template<typename T>
-    void
-    set_big(T val);
+  template <typename T>
+  void
+  set_big(T val);
 
-  template<typename T>
-    void
-    set_little(T val);
+  template <typename T>
+  void
+  set_little(T val);
 
 private:
-  template<typename T>
-    void
-    form_native_order(T &control);
+  template <typename T>
+  void
+  form_native_order(T &control);
 
-  template<typename T>
-    void
-    form_inner(T &val);
+  template <typename T>
+  void
+  form_inner(T &val);
 
   std::vector<uint8_t> inner;
   std::vector<size_t> native_order;
   std::mutex bomtx;
 };
 
-#endif /* INCLUDE_BYTEORDER_H_ */
+#endif // BYTEORDER_H

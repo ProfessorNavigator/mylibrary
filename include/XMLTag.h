@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_XMLTAG_H_
-#define INCLUDE_XMLTAG_H_
+#ifndef XMLTAG_H
+#define XMLTAG_H
 
 #include <string>
 
@@ -24,21 +24,19 @@ class XMLTag
 {
 public:
   XMLTag();
-  virtual
-  ~XMLTag();
 
   XMLTag(const XMLTag &other);
 
-  XMLTag&
+  XMLTag &
   operator=(const XMLTag &other);
 
   XMLTag(XMLTag &&other);
 
-  XMLTag&
+  XMLTag &
   operator=(XMLTag &&other);
 
   std::string element;
   std::string content;
 };
 
-#endif /* INCLUDE_XMLTAG_H_ */
+#endif // XMLTAG_H

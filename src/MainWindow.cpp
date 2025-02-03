@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,14 @@
 #include <CreateCollectionGui.h>
 #include <EmptyCollectionGui.h>
 #include <ExportCollectionGui.h>
+#include <ImportCollectionGui.h>
+#include <MainWindow.h>
+#include <RefreshCollectionGui.h>
+#include <RemoveCollectionGui.h>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <gdkmm/display.h>
 #include <gdkmm/monitor.h>
 #include <gdkmm/pixbuf.h>
@@ -44,17 +52,9 @@
 #include <gtkmm/grid.h>
 #include <gtkmm/object.h>
 #include <gtkmm/stringlist.h>
-#include <ImportCollectionGui.h>
 #include <libintl.h>
-#include <MainWindow.h>
-#include <RefreshCollectionGui.h>
-#include <RemoveCollectionGui.h>
 #include <sigc++/connection.h>
 #include <stddef.h>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
 
 MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
@@ -69,8 +69,8 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
 #ifdef ML_GTK_OLD
-  Gtk::StyleContext::add_provider_for_display(disp, css_provider,
-					      GTK_STYLE_PROVIDER_PRIORITY_USER);
+  Gtk::StyleContext::add_provider_for_display(
+      disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
   bookmarks = std::make_shared<BookMarks>(af);
   formMainWindow();
@@ -114,17 +114,18 @@ MainWindow::formMainWindow()
   main_pane->set_end_child(*right_grid);
   lg->clear_search_result = std::bind(&RightGrid::clearSearchResult, rg);
 
-  lg->search_result_show = std::bind(&RightGrid::search_result_show, rg,
-				     std::placeholders::_1);
+  lg->search_result_show
+      = std::bind(&RightGrid::search_result_show, rg, std::placeholders::_1);
 
-  rg->get_current_collection_name = std::bind(
-      &MainWindow::get_current_collection_name, this);
+  lg->search_result_show_files = std::bind(
+      &RightGrid::search_result_show_files, rg, std::placeholders::_1);
 
-  rg->reload_collection_base = [this]
-  (const std::string &col_name)
-    {
-      this->lg->reloadCollection(col_name);
-    };
+  rg->get_current_collection_name
+      = std::bind(&MainWindow::get_current_collection_name, this);
+
+  rg->reload_collection_base = [this](const std::string &col_name) {
+    this->lg->reloadCollection(col_name);
+  };
 
   this->signal_realize().connect(
       std::bind(&MainWindow::setMainWindowSizes, this));
@@ -133,7 +134,7 @@ MainWindow::formMainWindow()
       std::bind(&MainWindow::mainWindowCloseFunc, this), false);
 }
 
-Gtk::PopoverMenuBar*
+Gtk::PopoverMenuBar *
 MainWindow::createMainMenu()
 {
   Gtk::PopoverMenuBar *bar = Gtk::make_managed<Gtk::PopoverMenuBar>();
@@ -145,40 +146,40 @@ MainWindow::createMainMenu()
   bar->set_menu_model(menu_model);
 
   Glib::RefPtr<Gio::Menu> collections_menu = Gio::Menu::create();
-  Glib::RefPtr<Gio::MenuItem> item = Gio::MenuItem::create(
-      gettext("Collections"), collections_menu);
+  Glib::RefPtr<Gio::MenuItem> item
+      = Gio::MenuItem::create(gettext("Collections"), collections_menu);
   menu_model->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Create collection"),
-			       "main_menu.create_collection");
+                               "main_menu.create_collection");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Remove collection"),
-			       "main_menu.remove_collection");
+                               "main_menu.remove_collection");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Refresh collection"),
-			       "main_menu.refresh_collection");
+                               "main_menu.refresh_collection");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Add books to collection"),
-			       "main_menu.add_book");
+                               "main_menu.add_book");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Add directories with books"),
-			       "main_menu.add_directory");
+                               "main_menu.add_directory");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Export collection base"),
-			       "main_menu.export_collection");
+                               "main_menu.export_collection");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Import collection base"),
-			       "main_menu.import_collection");
+                               "main_menu.import_collection");
   collections_menu->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Create empty collection"),
-			       "main_menu.empty_collection");
+                               "main_menu.empty_collection");
   collections_menu->append_item(item);
 
   Glib::RefPtr<Gio::Menu> book_marks_menu = Gio::Menu::create();
@@ -186,7 +187,7 @@ MainWindow::createMainMenu()
   menu_model->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Show bookmarks"),
-			       "main_menu.book_marks");
+                               "main_menu.book_marks");
   book_marks_menu->append_item(item);
 
   Glib::RefPtr<Gio::Menu> about_menu = Gio::Menu::create();
@@ -194,7 +195,7 @@ MainWindow::createMainMenu()
   menu_model->append_item(item);
 
   item = Gio::MenuItem::create(gettext("About MyLibrary"),
-			       "main_menu.about_dialog");
+                               "main_menu.about_dialog");
   about_menu->append_item(item);
 
   return bar;
@@ -212,30 +213,33 @@ MainWindow::setMainWindowSizes()
   if(f.is_open())
     {
       std::string rs;
-      rs.resize(std::filesystem::file_size(szpath));
+      f.seekg(0, std::ios_base::end);
+      rs.resize(f.tellg());
+      f.seekg(0, std::ios_base::beg);
       f.read(rs.data(), rs.size());
       f.close();
 
       if(rs.size() >= 16)
-	{
-	  size_t read = 0;
-	  std::memcpy(&width, &rs[read], sizeof(width));
-	  read += sizeof(width);
-	  std::memcpy(&height, &rs[read], sizeof(height));
-	  read += sizeof(height);
-	  std::memcpy(&pos, &rs[read], sizeof(pos));
-	}
+        {
+          size_t read = 0;
+          std::memcpy(&width, &rs[read], sizeof(width));
+          read += sizeof(width);
+          std::memcpy(&height, &rs[read], sizeof(height));
+          read += sizeof(height);
+          std::memcpy(&pos, &rs[read], sizeof(pos));
+        }
       else
-	{
-	  width = -1;
-	  height = -1;
-	  pos = 0.35;
-	}
-      this->set_default_size(static_cast<int>(width), static_cast<int>(height));
+        {
+          width = -1;
+          height = -1;
+          pos = 0.35;
+        }
+      this->set_default_size(static_cast<int>(width),
+                             static_cast<int>(height));
       if(width > 0)
-	{
-	  main_pane->set_position(static_cast<int>(width) * pos);
-	}
+        {
+          main_pane->set_position(static_cast<int>(width) * pos);
+        }
     }
   else
     {
@@ -259,90 +263,77 @@ MainWindow::setMainWindowSizes()
 void
 MainWindow::createMainMenuActionGroup()
 {
-  Glib::RefPtr<Gio::SimpleActionGroup> main_menu_actions =
-      Gio::SimpleActionGroup::create();
+  Glib::RefPtr<Gio::SimpleActionGroup> main_menu_actions
+      = Gio::SimpleActionGroup::create();
 
-  main_menu_actions->add_action("create_collection", [this]
-  {
+  main_menu_actions->add_action("create_collection", [this] {
     CreateCollectionGui *ccg = new CreateCollectionGui(this->af, this);
-    ccg->add_new_collection = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    ccg->add_new_collection = std::bind(&LeftGrid::add_new_collection,
+                                        this->lg, std::placeholders::_1);
     ccg->createWindow();
   });
 
-  main_menu_actions->add_action("remove_collection", [this]
-  {
+  main_menu_actions->add_action("remove_collection", [this] {
     RemoveCollectionGui *rcg = new RemoveCollectionGui(this->af, this);
-    rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot, this, std::placeholders::_1);
+    rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot,
+                                        this, std::placeholders::_1);
     rcg->createWindow();
   });
 
-  main_menu_actions->add_action(
-      "refresh_collection",
-      [this]
-      {
-	RefreshCollectionGui *rfcg = new RefreshCollectionGui(this->af, this,
-							      this->bookmarks);
-	rfcg->collection_refreshed = [this]
-	(const std::string &col_name)
-	  {
-	    if(this->lg->reloadCollection(col_name))
-	      {
-		this->rg->clearSearchResult();
-	      }
-	  };
-	rfcg->createWindow();
-      });
+  main_menu_actions->add_action("refresh_collection", [this] {
+    RefreshCollectionGui *rfcg
+        = new RefreshCollectionGui(this->af, this, this->bookmarks);
+    rfcg->collection_refreshed = [this](const std::string &col_name) {
+      if(this->lg->reloadCollection(col_name))
+        {
+          this->rg->clearSearchResult();
+        }
+    };
+    rfcg->createWindow();
+  });
 
-  main_menu_actions->add_action("book_marks", [this]
-  {
+  main_menu_actions->add_action("book_marks", [this] {
     BookMarksGui *bmg = new BookMarksGui(this->af, this->bookmarks, this);
     bmg->createWindow();
   });
 
-  main_menu_actions->add_action("add_book", [this]
-  {
+  main_menu_actions->add_action("add_book", [this] {
     AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, false);
-    abg->books_added = [this]
-    (const std::string &col_name)
-      {
-	this->lg->reloadCollection(col_name);
-      };
+    abg->books_added = [this](const std::string &col_name) {
+      this->lg->reloadCollection(col_name);
+    };
     abg->createWindow();
   });
 
-  main_menu_actions->add_action("export_collection", [this]
-  {
+  main_menu_actions->add_action("export_collection", [this] {
     ExportCollectionGui *ecg = new ExportCollectionGui(this->af, this);
     ecg->createWindow();
   });
 
-  main_menu_actions->add_action("import_collection", [this]
-  {
+  main_menu_actions->add_action("import_collection", [this] {
     ImportCollectionGui *icg = new ImportCollectionGui(this->af, this);
-    icg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    icg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg,
+                                    std::placeholders::_1);
     icg->createWindow();
   });
 
-  main_menu_actions->add_action("empty_collection", [this]
-  {
+  main_menu_actions->add_action("empty_collection", [this] {
     EmptyCollectionGui *ecg = new EmptyCollectionGui(this->af, this);
-    ecg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg, std::placeholders::_1);
+    ecg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg,
+                                    std::placeholders::_1);
     ecg->createWindow();
   });
 
-  main_menu_actions->add_action("add_directory", [this]
-  {
+  main_menu_actions->add_action("add_directory", [this] {
     AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, true);
-    abg->books_added = [this]
-    (const std::string &col_name)
-      {
-	this->lg->reloadCollection(col_name);
-      };
+    abg->books_added = [this](const std::string &col_name) {
+      this->lg->reloadCollection(col_name);
+    };
     abg->createWindow();
   });
 
   main_menu_actions->add_action("about_dialog",
-				std::bind(&MainWindow::about_dialog, this));
+                                std::bind(&MainWindow::about_dialog, this));
 
   this->insert_action_group("main_menu", main_menu_actions);
 }
@@ -366,9 +357,9 @@ MainWindow::mainWindowCloseFunc()
   f.open(szpath, std::ios_base::out | std::ios_base::binary);
   if(f.is_open())
     {
-      f.write(reinterpret_cast<char*>(&width), sizeof(width));
-      f.write(reinterpret_cast<char*>(&height), sizeof(height));
-      f.write(reinterpret_cast<char*>(&pos), sizeof(pos));
+      f.write(reinterpret_cast<char *>(&width), sizeof(width));
+      f.write(reinterpret_cast<char *>(&height), sizeof(height));
+      f.write(reinterpret_cast<char *>(&pos), sizeof(pos));
 
       f.close();
     }
@@ -381,26 +372,26 @@ void
 MainWindow::collectionRemoveSlot(const std::string &filename)
 {
   Gtk::DropDown *col_sel = lg->get_collection_select();
-  Glib::RefPtr<Gtk::StringList> list =
-      std::dynamic_pointer_cast<Gtk::StringList>(col_sel->get_model());
+  Glib::RefPtr<Gtk::StringList> list
+      = std::dynamic_pointer_cast<Gtk::StringList>(col_sel->get_model());
   if(list)
     {
       Glib::ustring search(filename);
       guint selected = col_sel->get_selected();
       if(list->get_string(selected) == search)
-	{
-	  lg->clearCollectionBase();
-	  lg->clear_all_search_fields();
-	  rg->clearSearchResult();
-	}
+        {
+          lg->clearCollectionBase();
+          lg->clear_all_search_fields();
+          rg->clearSearchResult();
+        }
       for(guint i = 0; i < list->get_n_items(); i++)
-	{
-	  if(list->get_string(i) == search)
-	    {
-	      list->remove(i);
-	      break;
-	    }
-	}
+        {
+          if(list->get_string(i) == search)
+            {
+              list->remove(i);
+              break;
+            }
+        }
     }
 }
 
@@ -414,9 +405,9 @@ MainWindow::get_current_collection_name()
       guint sel = dd->get_selected();
       auto model = std::dynamic_pointer_cast<Gtk::StringList>(dd->get_model());
       if(sel != GTK_INVALID_LIST_POSITION && model)
-	{
-	  result = std::string(model->get_string(sel));
-	}
+        {
+          result = std::string(model->get_string(sel));
+        }
     }
   return result;
 }
@@ -435,44 +426,45 @@ MainWindow::about_dialog()
   std::filesystem::path icon_p = af->share_path();
   icon_p /= std::filesystem::u8path("mylibrary.png");
 
-  Glib::RefPtr<Gdk::Pixbuf> icon = Gdk::Pixbuf::create_from_file(
-      icon_p.u8string());
+  Glib::RefPtr<Gdk::Pixbuf> icon
+      = Gdk::Pixbuf::create_from_file(icon_p.u8string());
 
   Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_for_pixbuf(icon);
 
   about->set_logo(icon_t);
 
-  about->set_version("3.0.2");
+  about->set_version("3.1");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
   about->set_copyright(
-      "Copyright 2022-2024 Yury Bobylev <bobilev_yury@mail.ru>");
+      "Copyright 2022-2025 Yury Bobylev <bobilev_yury@mail.ru>");
 
   about->set_license_type(Gtk::License::GPL_3_0);
 
-  Glib::ustring abbuf = Glib::ustring(gettext("MyLibrary is a home librarian"))
-      + Glib::ustring("\n\n") + Glib::ustring(gettext("Author Yury Bobylev"))
-      + Glib::ustring(" <bobilev_yury@mail.ru>.\n\n")
-      + Glib::ustring(gettext("Program uses next libraries:"))
-      + Glib::ustring(
-	  "\n"
-	  "GTK https://www.gtk.org/\n"
-	  "libarchive https://libarchive.org\n"
-	  "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
-	  "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
-	  "ICU https://icu.unicode.org/\n"
-	  "Poppler https://poppler.freedesktop.org/\n"
-	  "DjVuLibre https://djvu.sourceforge.net/");
+  Glib::ustring abbuf
+      = Glib::ustring(gettext("MyLibrary is a home librarian"))
+        + Glib::ustring("\n\n") + Glib::ustring(gettext("Author Yury Bobylev"))
+        + Glib::ustring(" <bobilev_yury@mail.ru>.\n\n")
+        + Glib::ustring(gettext("Program uses next libraries:"))
+        + Glib::ustring(
+            "\n"
+            "GTK https://www.gtk.org/\n"
+            "libarchive https://libarchive.org\n"
+            "libgcrypt https://www.gnupg.org/software/libgcrypt/\n"
+            "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
+            "ICU https://icu.unicode.org/\n"
+            "Poppler https://poppler.freedesktop.org/\n"
+            "DjVuLibre https://djvu.sourceforge.net/");
   about->set_comments(abbuf);
 
-  about->signal_close_request().connect([about]
-  {
-    std::shared_ptr<Gtk::AboutDialog> ab(about);
-    ab->set_visible(false);
-    return true;
-  },
-					false);
+  about->signal_close_request().connect(
+      [about] {
+        std::unique_ptr<Gtk::AboutDialog> ab(about);
+        ab->set_visible(false);
+        return true;
+      },
+      false);
 
   about->present();
 }

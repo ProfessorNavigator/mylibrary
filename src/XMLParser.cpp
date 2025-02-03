@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,16 +18,10 @@
 #include <XMLParser.h>
 #include <algorithm>
 #include <iostream>
-#include <iterator>
 
 XMLParser::XMLParser(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
-}
-
-XMLParser::~XMLParser()
-{
-
 }
 
 std::vector<XMLTag>
@@ -46,75 +40,75 @@ XMLParser::get_tag(const std::string &book, const std::string &tag_id)
     {
       n = book.find("<", n);
       if(n != std::string::npos)
-	{
-	  n_end = book.find(">", n);
-	  if(n_end != std::string::npos)
-	    {
-	      XMLTag vl;
-	      vl.element = std::string(book.begin() + n,
-				       book.begin() + n_end + 1);
-	      XMLTagId id = get_tag_id(vl.element);
-	      if(id.tag_id == tag_id)
-		{
-		  if(!id.end_tag)
-		    {
-		      std::string::size_type n_fin = n_end;
-		      std::string::size_type n_fin_end;
-		      std::string loc_tag;
-		      for(;;)
-			{
-			  n_fin = book.find("<", n_fin);
-			  if(n_fin != std::string::npos)
-			    {
-			      n_fin_end = book.find(">", n_fin);
-			      if(n_fin_end != std::string::npos)
-				{
-				  loc_tag = std::string(
-				      book.begin() + n_fin,
-				      book.begin() + n_fin_end + 1);
-				  XMLTagId l_id = get_tag_id(loc_tag);
-				  if(l_id.tag_id == tag_id && l_id.end_tag)
-				    {
-				      vl.content = std::string(
-					  book.begin() + n_end + 1,
-					  book.begin() + n_fin);
-				      af->html_to_utf8(vl.content);
-				      break;
-				    }
-				  else
-				    {
-				      n_fin = n_fin_end;
-				    }
-				}
-			      else
-				{
-				  break;
-				}
-			    }
-			  else
-			    {
-			      break;
-			    }
-			}
-		      result.emplace_back(vl);
-		    }
-		  else if(id.single_tag)
-		    {
-		      result.emplace_back(vl);
-		    }
-		}
-	      n = n_end;
-	    }
-	  else
-	    {
-	      std::cout << "XMLParser::get_tag parsing error" << std::endl;
-	      break;
-	    }
-	}
+        {
+          n_end = book.find(">", n);
+          if(n_end != std::string::npos)
+            {
+              XMLTag vl;
+              vl.element
+                  = std::string(book.begin() + n, book.begin() + n_end + 1);
+              XMLTagId id = get_tag_id(vl.element);
+              if(id.tag_id == tag_id)
+                {
+                  if(!id.end_tag)
+                    {
+                      std::string::size_type n_fin = n_end;
+                      std::string::size_type n_fin_end;
+                      std::string loc_tag;
+                      for(;;)
+                        {
+                          n_fin = book.find("<", n_fin);
+                          if(n_fin != std::string::npos)
+                            {
+                              n_fin_end = book.find(">", n_fin);
+                              if(n_fin_end != std::string::npos)
+                                {
+                                  loc_tag = std::string(book.begin() + n_fin,
+                                                        book.begin()
+                                                            + n_fin_end + 1);
+                                  XMLTagId l_id = get_tag_id(loc_tag);
+                                  if(l_id.tag_id == tag_id && l_id.end_tag)
+                                    {
+                                      vl.content = std::string(
+                                          book.begin() + n_end + 1,
+                                          book.begin() + n_fin);
+                                      af->html_to_utf8(vl.content);
+                                      break;
+                                    }
+                                  else
+                                    {
+                                      n_fin = n_fin_end;
+                                    }
+                                }
+                              else
+                                {
+                                  break;
+                                }
+                            }
+                          else
+                            {
+                              break;
+                            }
+                        }
+                      result.emplace_back(vl);
+                    }
+                  else if(id.single_tag)
+                    {
+                      result.emplace_back(vl);
+                    }
+                }
+              n = n_end;
+            }
+          else
+            {
+              std::cout << "XMLParser::get_tag parsing error" << std::endl;
+              break;
+            }
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   return result;
@@ -135,18 +129,17 @@ XMLParser::get_book_encoding(const std::string &book)
     {
       std::string::size_type n2 = book.find(">", n);
       if(n2 != std::string::npos)
-	{
-	  result = std::string(book.begin() + n, book.begin() + n2);
-	  std::string code_page = af->detect_encoding(result);
-	  result = af->to_utf_8(result, code_page.c_str());
-	  result.erase(std::remove_if(result.begin(), result.end(), []
-	  (auto &el)
-	    {
-	      return el == 0;
-	    }),
-		       result.end());
-	  result = get_element_attribute(result, "encoding");
-	}
+        {
+          result = std::string(book.begin() + n, book.begin() + n2);
+          std::string code_page = af->detect_encoding(result);
+          result = af->to_utf_8(result, code_page.c_str());
+          result.erase(std::remove_if(result.begin(), result.end(),
+                                      [](char &el) {
+                                        return el == 0;
+                                      }),
+                       result.end());
+          result = get_element_attribute(result, "encoding");
+        }
     }
   else
     {
@@ -158,7 +151,7 @@ XMLParser::get_book_encoding(const std::string &book)
 
 std::string
 XMLParser::get_element_attribute(const std::string &element,
-				 const std::string &attr_name)
+                                 const std::string &attr_name)
 {
   std::string result;
 
@@ -172,28 +165,28 @@ XMLParser::get_element_attribute(const std::string &element,
     {
       std::string::size_type n2 = element.find("\"", n);
       if(n2 != std::string::npos)
-	{
-	  n2 = n2 + std::string("\"").size();
-	  std::string::size_type n3 = element.find("\"", n2);
-	  if(n3 != std::string::npos)
-	    {
-	      result = std::string(element.begin() + n2, element.begin() + n3);
-	    }
-	}
+        {
+          n2 = n2 + std::string("\"").size();
+          std::string::size_type n3 = element.find("\"", n2);
+          if(n3 != std::string::npos)
+            {
+              result = std::string(element.begin() + n2, element.begin() + n3);
+            }
+        }
       else
-	{
-	  n2 = element.find("'", n);
-	  if(n2 != std::string::npos)
-	    {
-	      n2 = n2 + std::string("'").size();
-	      std::string::size_type n3 = element.find("'", n2);
-	      if(n3 != std::string::npos)
-		{
-		  result = std::string(element.begin() + n2,
-				       element.begin() + n3);
-		}
-	    }
-	}
+        {
+          n2 = element.find("'", n);
+          if(n2 != std::string::npos)
+            {
+              n2 = n2 + std::string("'").size();
+              std::string::size_type n3 = element.find("'", n2);
+              if(n3 != std::string::npos)
+                {
+                  result = std::string(element.begin() + n2,
+                                       element.begin() + n3);
+                }
+            }
+        }
     }
 
   return result;
@@ -201,7 +194,7 @@ XMLParser::get_element_attribute(const std::string &element,
 
 std::vector<XMLTag>
 XMLParser::get_tag(const std::string &book, const std::string &tag_id,
-		   const bool &content_decode)
+                   const bool &content_decode)
 {
   std::vector<XMLTag> result;
 
@@ -217,87 +210,87 @@ XMLParser::get_tag(const std::string &book, const std::string &tag_id,
     {
       n = book.find("<", n);
       if(n != std::string::npos)
-	{
-	  n_end = book.find(">", n);
-	  if(n_end != std::string::npos)
-	    {
-	      XMLTag vl;
-	      vl.element = std::string(book.begin() + n,
-				       book.begin() + n_end + 1);
-	      code_page = af->detect_encoding(vl.element);
-	      vl.element = af->to_utf_8(vl.element, code_page.c_str());
-	      XMLTagId id = get_tag_id(vl.element);
-	      if(id.tag_id == tag_id)
-		{
-		  if(!id.end_tag)
-		    {
-		      std::string::size_type n_fin = n_end;
-		      std::string::size_type n_fin_end;
-		      std::string loc_tag;
-		      for(;;)
-			{
-			  n_fin = book.find("<", n_fin);
-			  if(n_fin != std::string::npos)
-			    {
-			      n_fin_end = book.find(">", n_fin);
-			      if(n_fin_end != std::string::npos)
-				{
-				  loc_tag = std::string(
-				      book.begin() + n_fin,
-				      book.begin() + n_fin_end + 1);
-				  code_page = af->detect_encoding(loc_tag);
-				  loc_tag = af->to_utf_8(loc_tag,
-							 code_page.c_str());
-				  XMLTagId l_id = get_tag_id(loc_tag);
-				  if(l_id.tag_id == tag_id && l_id.end_tag)
-				    {
-				      vl.content = std::string(
-					  book.begin() + n_end + 1,
-					  book.begin() + n_fin);
-				      if(content_decode)
-					{
-					  code_page = af->detect_encoding(
-					      vl.content);
-					  vl.content = af->to_utf_8(
-					      vl.content, code_page.c_str());
-					}
-				      af->html_to_utf8(vl.content);
-				      break;
-				    }
-				  else
-				    {
-				      n_fin = n_fin_end;
-				    }
-				}
-			      else
-				{
-				  break;
-				}
-			    }
-			  else
-			    {
-			      break;
-			    }
-			}
-		      result.emplace_back(vl);
-		    }
-		  else if(id.single_tag)
-		    {
-		      result.emplace_back(vl);
-		    }
-		}
-	      n = n_end;
-	    }
-	  else
-	    {
-	      std::cout << "XMLParser::get_tag(2) parsing error" << std::endl;
-	      break;
-	    }
-	}
+        {
+          n_end = book.find(">", n);
+          if(n_end != std::string::npos)
+            {
+              XMLTag vl;
+              vl.element
+                  = std::string(book.begin() + n, book.begin() + n_end + 1);
+              code_page = af->detect_encoding(vl.element);
+              vl.element = af->to_utf_8(vl.element, code_page.c_str());
+              XMLTagId id = get_tag_id(vl.element);
+              if(id.tag_id == tag_id)
+                {
+                  if(!id.end_tag)
+                    {
+                      std::string::size_type n_fin = n_end;
+                      std::string::size_type n_fin_end;
+                      std::string loc_tag;
+                      for(;;)
+                        {
+                          n_fin = book.find("<", n_fin);
+                          if(n_fin != std::string::npos)
+                            {
+                              n_fin_end = book.find(">", n_fin);
+                              if(n_fin_end != std::string::npos)
+                                {
+                                  loc_tag = std::string(book.begin() + n_fin,
+                                                        book.begin()
+                                                            + n_fin_end + 1);
+                                  code_page = af->detect_encoding(loc_tag);
+                                  loc_tag = af->to_utf_8(loc_tag,
+                                                         code_page.c_str());
+                                  XMLTagId l_id = get_tag_id(loc_tag);
+                                  if(l_id.tag_id == tag_id && l_id.end_tag)
+                                    {
+                                      vl.content = std::string(
+                                          book.begin() + n_end + 1,
+                                          book.begin() + n_fin);
+                                      if(content_decode)
+                                        {
+                                          code_page = af->detect_encoding(
+                                              vl.content);
+                                          vl.content = af->to_utf_8(
+                                              vl.content, code_page.c_str());
+                                        }
+                                      af->html_to_utf8(vl.content);
+                                      break;
+                                    }
+                                  else
+                                    {
+                                      n_fin = n_fin_end;
+                                    }
+                                }
+                              else
+                                {
+                                  break;
+                                }
+                            }
+                          else
+                            {
+                              break;
+                            }
+                        }
+                      result.emplace_back(vl);
+                    }
+                  else if(id.single_tag)
+                    {
+                      result.emplace_back(vl);
+                    }
+                }
+              n = n_end;
+            }
+          else
+            {
+              std::cout << "XMLParser::get_tag(2) parsing error" << std::endl;
+              break;
+            }
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   return result;
@@ -323,22 +316,22 @@ XMLParser::get_tag_id(const std::string &tag)
     {
       tag_single = loc_tag.find("</");
       if(tag_single != std::string::npos)
-	{
-	  id.end_tag = true;
-	}
+        {
+          id.end_tag = true;
+        }
     }
 
   for(auto it = loc_tag.begin(); it != loc_tag.end();)
     {
       char ch = *it;
       if(ch == ' ' || ch == '<' || ch == '/')
-	{
-	  loc_tag.erase(it);
-	}
+        {
+          loc_tag.erase(it);
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   std::string::size_type tag_e;
@@ -351,17 +344,17 @@ XMLParser::get_tag_id(const std::string &tag)
     {
       tag_e = loc_tag.find("/>");
       if(tag_e != std::string::npos)
-	{
-	  loc_tag = loc_tag.substr(0, tag_e);
-	}
+        {
+          loc_tag = loc_tag.substr(0, tag_e);
+        }
       else
-	{
-	  tag_e = loc_tag.find(">");
-	  if(tag_e != std::string::npos)
-	    {
-	      loc_tag = loc_tag.substr(0, tag_e);
-	    }
-	}
+        {
+          tag_e = loc_tag.find(">");
+          if(tag_e != std::string::npos)
+            {
+              loc_tag = loc_tag.substr(0, tag_e);
+            }
+        }
     }
 
   id.tag_id = loc_tag;

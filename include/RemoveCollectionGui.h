@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_REMOVECOLLECTIONGUI_H_
-#define INCLUDE_REMOVECOLLECTIONGUI_H_
+#ifndef REMOVECOLLECTIONGUI_H
+#define REMOVECOLLECTIONGUI_H
 
 #include <AuxFunc.h>
+#include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -31,15 +31,12 @@ class RemoveCollectionGui
 {
 public:
   RemoveCollectionGui(const std::shared_ptr<AuxFunc> &af,
-		      Gtk::Window *main_window);
-  virtual
-  ~RemoveCollectionGui();
+                      Gtk::Window *main_window);
 
   void
   createWindow();
 
-  std::function<void
-  (const std::string &collection_name)> collection_removed;
+  std::function<void(const std::string &collection_name)> collection_removed;
 
 private:
   std::shared_ptr<AuxFunc> af;
@@ -57,4 +54,4 @@ private:
   successDialog(Gtk::Window *win, const std::string &filename);
 };
 
-#endif /* INCLUDE_REMOVECOLLECTIONGUI_H_ */
+#endif // REMOVECOLLECTIONGUI_H

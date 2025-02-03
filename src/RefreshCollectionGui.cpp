@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
  */
 
 #include <CollectionCrProcessGui.h>
+#include <RefreshCollectionGui.h>
+#include <filesystem>
+#include <functional>
 #include <glib/gtypes.h>
 #include <glibmm/signalproxy.h>
 #include <glibmm/ustring.h>
@@ -27,11 +30,8 @@
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
 #include <libintl.h>
-#include <RefreshCollectionGui.h>
-#include <sigc++/connection.h>
-#include <filesystem>
-#include <functional>
 #include <locale>
+#include <sigc++/connection.h>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -43,11 +43,6 @@ RefreshCollectionGui::RefreshCollectionGui(
   this->af = af;
   this->main_window = main_window;
   this->bookmarks = bookmarks;
-}
-
-RefreshCollectionGui::~RefreshCollectionGui()
-{
-
 }
 
 void
@@ -93,9 +88,8 @@ RefreshCollectionGui::createWindow()
   std::stringstream strm;
   strm.imbue(std::locale("C"));
   strm << std::thread::hardware_concurrency();
-  lab->set_text(
-      gettext("Thread number (recommended max value: ")
-	  + Glib::ustring(strm.str()) + ")");
+  lab->set_text(gettext("Thread number (recommended max value: ")
+                + Glib::ustring(strm.str()) + ")");
   grid->attach(*lab, 0, 2, 1, 1);
 
   num_threads = Gtk::make_managed<Gtk::Entry>();
@@ -132,8 +126,8 @@ RefreshCollectionGui::createWindow()
   disable_rar = Gtk::make_managed<Gtk::CheckButton>();
   disable_rar->set_margin(5);
   disable_rar->set_halign(Gtk::Align::START);
-  disable_rar->set_active(true);
-  disable_rar->set_label(gettext("Disable rar archives support (recommended)"));
+  disable_rar->set_active(false);
+  disable_rar->set_label(gettext("Disable rar archives support"));
   grid->attach(*disable_rar, 0, 6, 2, 1);
 
   Gtk::Grid *action_group_grid = Gtk::make_managed<Gtk::Grid>();
@@ -160,14 +154,14 @@ RefreshCollectionGui::createWindow()
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   action_group_grid->attach(*cancel, 1, 0, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -175,21 +169,21 @@ RefreshCollectionGui::createWindow()
 Glib::RefPtr<Gtk::StringList>
 RefreshCollectionGui::createCollectionsList()
 {
-  Glib::RefPtr<Gtk::StringList> list = Gtk::StringList::create(
-      std::vector<Glib::ustring>());
+  Glib::RefPtr<Gtk::StringList> list
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path collections = af->homePath();
   collections /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
   if(std::filesystem::exists(collections))
     {
       for(auto &dirit : std::filesystem::directory_iterator(collections))
-	{
-	  std::filesystem::path p = dirit.path();
-	  if(std::filesystem::is_directory(p))
-	    {
-	      list->append(Glib::ustring(p.filename().u8string()));
-	    }
-	}
+        {
+          std::filesystem::path p = dirit.path();
+          if(std::filesystem::is_directory(p))
+            {
+              list->append(Glib::ustring(p.filename().u8string()));
+            }
+        }
     }
 
   return list;
@@ -235,23 +229,23 @@ RefreshCollectionGui::confirmationDialog(Gtk::Window *win)
   no->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*no, 1, 1, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }
 
 void
 RefreshCollectionGui::refreshCollection(Gtk::Window *win,
-					Gtk::Window *parent_window)
+                                        Gtk::Window *parent_window)
 {
-  Glib::RefPtr<Gtk::StringList> list =
-      std::dynamic_pointer_cast<Gtk::StringList>(collection->get_model());
+  Glib::RefPtr<Gtk::StringList> list
+      = std::dynamic_pointer_cast<Gtk::StringList>(collection->get_model());
   guint sel = collection->get_selected();
   if(sel != GTK_INVALID_LIST_POSITION && list)
     {
@@ -259,9 +253,9 @@ RefreshCollectionGui::refreshCollection(Gtk::Window *win,
       std::string num_threads(this->num_threads->get_text());
 
       CollectionCrProcessGui *ccpg = new CollectionCrProcessGui(
-	  af, main_window, coll_name, num_threads, clean_empty->get_active(),
-	  fast_refreshing->get_active(), refresh_bookmarks->get_active(),
-	  !disable_rar->get_active(), bookmarks);
+          af, main_window, coll_name, num_threads, clean_empty->get_active(),
+          fast_refreshing->get_active(), refresh_bookmarks->get_active(),
+          !disable_rar->get_active(), bookmarks);
       ccpg->collection_refreshed = collection_refreshed;
       ccpg->createWindow(2);
       win->unset_transient_for();

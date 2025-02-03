@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,18 +22,10 @@ Genre::Genre()
 
 }
 
-Genre::~Genre()
-{
-
-}
-
 Genre::Genre(const Genre &other)
 {
-  if(this != &other)
-    {
-      genre_code = other.genre_code;
-      genre_name = other.genre_name;
-    }
+  genre_code = other.genre_code;
+  genre_name = other.genre_name;
 }
 
 Genre&
@@ -49,11 +41,8 @@ Genre::operator =(const Genre &other)
 
 Genre::Genre(Genre &&other)
 {
-  if(this != &other)
-    {
-      genre_code = other.genre_code;
-      genre_name = other.genre_name;
-    }
+  genre_code = other.genre_code;
+  genre_name = other.genre_name;
 }
 
 Genre&

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gcrypt.h>
 #include <Hasher.h>
 #include <MLException.h>
-#include <stddef.h>
 #include <fstream>
+#include <gcrypt.h>
 #include <iostream>
+#include <stddef.h>
+#include <thread>
 
 Hasher::Hasher(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
-}
-
-Hasher::~Hasher()
-{
-
 }
 
 std::string
@@ -41,25 +37,25 @@ Hasher::buf_hashing(const std::string &buf)
   gcry_error_t err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
   if(err != 0)
     {
-      std::string error = "Hasher::buf_hashing error: "
-	  + af->libgcrypt_error_handling(err);
+      std::string error
+          = "Hasher::buf_hashing error: " + af->libgcrypt_error_handling(err);
       throw MLException(error);
     }
   gcry_md_write(hd, buf.c_str(), buf.size());
   result.resize(gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256));
-  char *result_buf = reinterpret_cast<char*>(gcry_md_read(hd,
-							  GCRY_MD_BLAKE2B_256));
+  char *result_buf
+      = reinterpret_cast<char *>(gcry_md_read(hd, GCRY_MD_BLAKE2B_256));
   if(result_buf)
     {
       for(size_t i = 0; i < result.size(); i++)
-	{
-	  result[i] = *(result_buf + i);
-	}
+        {
+          result[i] = result_buf[i];
+        }
     }
   else
     {
       std::cout << "Hasher::buf_hashing error: result buffer is null"
-	  << std::endl;
+                << std::endl;
     }
   gcry_md_close(hd);
 
@@ -68,7 +64,7 @@ Hasher::buf_hashing(const std::string &buf)
 
 std::string
 Hasher::file_hashing(const std::filesystem::path &filepath,
-		     std::atomic<bool> *cancel)
+                     std::atomic<bool> *cancel)
 {
   std::string result;
 
@@ -76,8 +72,8 @@ Hasher::file_hashing(const std::filesystem::path &filepath,
   gcry_error_t err = gcry_md_open(&hd, GCRY_MD_BLAKE2B_256, 0);
   if(err != 0)
     {
-      std::string error = "Hasher::buf_hashing error: "
-	  + af->libgcrypt_error_handling(err);
+      std::string error
+          = "Hasher::buf_hashing error: " + af->libgcrypt_error_handling(err);
       throw MLException(error);
     }
   std::fstream f;
@@ -85,63 +81,63 @@ Hasher::file_hashing(const std::filesystem::path &filepath,
   if(f.is_open())
     {
       uintmax_t read_b = 0;
-      std::error_code ec;
-      uintmax_t fsz = std::filesystem::file_size(filepath, ec);
-      if(ec)
-	{
-	  f.close();
-	  gcry_md_close(hd);
-	  throw MLException("Hasher::file_hashing: " + ec.message());
-	}
-      std::string buf;
+      f.seekg(0, std::ios_base::end);
+      uintmax_t fsz = f.tellg();
+      f.seekg(0, std::ios_base::beg);
       uintmax_t dif;
+      std::thread thr([] {
+      });
       for(;;)
-	{
-	  if(cancel->load())
-	    {
-	      break;
-	    }
-	  buf.clear();
-	  dif = fsz - read_b;
-	  if(dif > 10485760)
-	    {
-	      buf.resize(10485760);
-	    }
-	  else if(dif > 0)
-	    {
-	      buf.resize(dif);
-	    }
-	  else
-	    {
-	      break;
-	    }
-	  f.read(buf.data(), buf.size());
-	  read_b += static_cast<uintmax_t>(buf.size());
-	  gcry_md_write(hd, buf.c_str(), buf.size());
-	}
+        {
+          if(cancel->load())
+            {
+              break;
+            }
+          std::string buf;
+          dif = fsz - read_b;
+          if(dif > 10485760)
+            {
+              buf.resize(10485760);
+            }
+          else if(dif > 0)
+            {
+              buf.resize(dif);
+            }
+          else
+            {
+              break;
+            }
+          f.read(buf.data(), buf.size());
+          read_b += static_cast<uintmax_t>(buf.size());
+          thr.join();
+          thr = std::thread([hd, buf] {
+            gcry_md_write(hd, buf.c_str(), buf.size());
+          });
+        }
       f.close();
+      thr.join();
     }
   else
     {
       gcry_md_close(hd);
       throw MLException(
-	  "Hasher::file_hashing: file for hashing cannot be opened");
+          "Hasher::file_hashing: file for hashing cannot be opened");
     }
 
   result.resize(gcry_md_get_algo_dlen(GCRY_MD_BLAKE2B_256));
-  char *result_buf = reinterpret_cast<char*>(gcry_md_read(hd,
-							  GCRY_MD_BLAKE2B_256));
+  char *result_buf
+      = reinterpret_cast<char *>(gcry_md_read(hd, GCRY_MD_BLAKE2B_256));
   if(result_buf)
     {
       for(size_t i = 0; i < result.size(); i++)
-	{
-	  result[i] = *(result_buf + i);
-	}
+        {
+          result[i] = *(result_buf + i);
+        }
     }
   else
     {
       std::cout << "Hasher::buf_hashing error: result buffer is null"
-	  << std::endl;
+                << std::endl;
     }
   gcry_md_close(hd);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +19,17 @@
 
 ZipFileEntry::ZipFileEntry()
 {
-
-}
-
-ZipFileEntry::~ZipFileEntry()
-{
-
 }
 
 ZipFileEntry::ZipFileEntry(const ZipFileEntry &other)
 {
-  if(this != &other)
-    {
-      size = other.size;
-      compressed_size = other.compressed_size;
-      position = other.position;
-      filename = other.filename;
-    }
+  size = other.size;
+  compressed_size = other.compressed_size;
+  position = other.position;
+  filename = other.filename;
 }
 
-ZipFileEntry&
+ZipFileEntry &
 ZipFileEntry::operator=(const ZipFileEntry &other)
 {
   if(this != &other)
@@ -53,16 +44,13 @@ ZipFileEntry::operator=(const ZipFileEntry &other)
 
 ZipFileEntry::ZipFileEntry(ZipFileEntry &&other)
 {
-  if(this != &other)
-    {
-      size = other.size;
-      compressed_size = other.compressed_size;
-      position = other.position;
-      filename = other.filename;
-    }
+  size = other.size;
+  compressed_size = other.compressed_size;
+  position = other.position;
+  filename = other.filename;
 }
 
-ZipFileEntry&
+ZipFileEntry &
 ZipFileEntry::operator=(ZipFileEntry &&other)
 {
   if(this != &other)
@@ -74,4 +62,3 @@ ZipFileEntry::operator=(ZipFileEntry &&other)
     }
   return *this;
 }
-

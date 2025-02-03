@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,9 @@
 
 #include <BookParseEntry.h>
 #include <EditBookGui.h>
+#include <MLException.h>
+#include <RefreshCollection.h>
+#include <atomic>
 #include <gdkmm/rectangle.h>
 #include <giomm/menuitem.h>
 #include <giomm/simpleaction.h>
@@ -34,20 +37,17 @@
 #include <gtkmm/requisition.h>
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/signallistitemfactory.h>
-#include <libintl.h>
-#include <MLException.h>
-#include <RefreshCollection.h>
-#include <sigc++/connection.h>
-#include <stddef.h>
-#include <atomic>
 #include <iostream>
 #include <iterator>
+#include <libintl.h>
+#include <sigc++/connection.h>
+#include <stddef.h>
 
 EditBookGui::EditBookGui(const std::shared_ptr<AuxFunc> &af,
-			 Gtk::Window *parent_window,
-			 const std::shared_ptr<BookMarks> &bookmarks,
-			 const std::string &collection_name,
-			 const BookBaseEntry &bbe)
+                         Gtk::Window *parent_window,
+                         const std::shared_ptr<BookMarks> &bookmarks,
+                         const std::string &collection_name,
+                         const BookBaseEntry &bbe)
 {
   this->af = af;
   this->parent_window = parent_window;
@@ -74,22 +74,21 @@ EditBookGui::createWindow()
   create_genre_action_group(window);
 
   restore_disp = new Glib::Dispatcher;
-  restore_disp->connect([this, window]
-  {
+  restore_disp->connect([this, window] {
     window->unset_child();
     this->form_window_grid(window);
   });
 
   form_window_grid(window);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -97,8 +96,8 @@ EditBookGui::createWindow()
 Glib::RefPtr<Gio::ListStore<EditBookGenreModelItem>>
 EditBookGui::create_genre_model()
 {
-  Glib::RefPtr<Gio::ListStore<EditBookGenreModelItem>> result = Gio::ListStore<
-      EditBookGenreModelItem>::create();
+  Glib::RefPtr<Gio::ListStore<EditBookGenreModelItem>> result
+      = Gio::ListStore<EditBookGenreModelItem>::create();
 
   std::string genres = bbe.bpe.book_genre;
 
@@ -111,27 +110,27 @@ EditBookGui::create_genre_model()
       genre_code.clear();
       n = genres.find(sstr);
       if(n != std::string::npos)
-	{
-	  genre_code = genres.substr(0, n);
-	  genres.erase(0, n + sstr.size());
-	  item = create_item(genre_code);
-	  if(item)
-	    {
-	      result->append(item);
-	    }
-	}
+        {
+          genre_code = genres.substr(0, n);
+          genres.erase(0, n + sstr.size());
+          item = create_item(genre_code);
+          if(item)
+            {
+              result->append(item);
+            }
+        }
       else
-	{
-	  if(!genres.empty())
-	    {
-	      item = create_item(genres);
-	      if(item)
-		{
-		  result->append(item);
-		}
-	    }
-	  break;
-	}
+        {
+          if(!genres.empty())
+            {
+              item = create_item(genres);
+              if(item)
+                {
+                  result->append(item);
+                }
+            }
+          break;
+        }
     }
 
   return result;
@@ -144,13 +143,13 @@ EditBookGui::create_item(std::string &genre_code)
   for(auto it = genre_code.begin(); it != genre_code.end();)
     {
       if(*it == ' ')
-	{
-	  genre_code.erase(it);
-	}
+        {
+          genre_code.erase(it);
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   if(genre_code.empty())
@@ -165,25 +164,25 @@ EditBookGui::create_item(std::string &genre_code)
       g_v = it->genres;
       bool found = false;
       for(auto itgv = g_v.begin(); itgv != g_v.end(); itgv++)
-	{
-	  if(itgv->genre_code == genre_code)
-	    {
-	      found = true;
-	      if(itgv->genre_name != it->group_name)
-		{
-		  genre_name = it->group_name + ", "
-		      + af->stringToLower(itgv->genre_name);
-		}
-	      else
-		{
-		  genre_name = it->group_name;
-		}
-	    }
-	}
+        {
+          if(itgv->genre_code == genre_code)
+            {
+              found = true;
+              if(itgv->genre_name != it->group_name)
+                {
+                  genre_name = it->group_name + ", "
+                               + af->stringToLower(itgv->genre_name);
+                }
+              else
+                {
+                  genre_name = it->group_name;
+                }
+            }
+        }
       if(found)
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
   if(genre_name.empty())
     {
@@ -196,15 +195,15 @@ EditBookGui::create_item(std::string &genre_code)
 Glib::RefPtr<Gtk::ColumnViewColumn>
 EditBookGui::genre_col_name()
 {
-  Glib::RefPtr<Gtk::ColumnViewColumn> result = Gtk::ColumnViewColumn::create(
-      gettext("Genre name"));
+  Glib::RefPtr<Gtk::ColumnViewColumn> result
+      = Gtk::ColumnViewColumn::create(gettext("Genre name"));
 
-  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
-      Gtk::SignalListItemFactory::create();
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
   factory->signal_setup().connect(
       std::bind(&EditBookGui::slot_genre_setup, this, std::placeholders::_1));
-  factory->signal_bind().connect(
-      std::bind(&EditBookGui::slot_genre_bind, this, std::placeholders::_1, 1));
+  factory->signal_bind().connect(std::bind(&EditBookGui::slot_genre_bind, this,
+                                           std::placeholders::_1, 1));
   result->set_factory(factory);
 
   result->set_expand(true);
@@ -216,15 +215,15 @@ EditBookGui::genre_col_name()
 Glib::RefPtr<Gtk::ColumnViewColumn>
 EditBookGui::genre_col_code()
 {
-  Glib::RefPtr<Gtk::ColumnViewColumn> result = Gtk::ColumnViewColumn::create(
-      gettext("Genre code"));
+  Glib::RefPtr<Gtk::ColumnViewColumn> result
+      = Gtk::ColumnViewColumn::create(gettext("Genre code"));
 
-  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
-      Gtk::SignalListItemFactory::create();
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
   factory->signal_setup().connect(
       std::bind(&EditBookGui::slot_genre_setup, this, std::placeholders::_1));
-  factory->signal_bind().connect(
-      std::bind(&EditBookGui::slot_genre_bind, this, std::placeholders::_1, 2));
+  factory->signal_bind().connect(std::bind(&EditBookGui::slot_genre_bind, this,
+                                           std::placeholders::_1, 2));
   result->set_factory(factory);
 
   result->set_expand(true);
@@ -245,39 +244,40 @@ EditBookGui::slot_genre_setup(const Glib::RefPtr<Gtk::ListItem> &list_item)
 
 void
 EditBookGui::slot_genre_bind(const Glib::RefPtr<Gtk::ListItem> &list_item,
-			     const int &variant)
+                             const int &variant)
 {
-  Glib::RefPtr<EditBookGenreModelItem> item = std::dynamic_pointer_cast<
-      EditBookGenreModelItem>(list_item->get_item());
+  Glib::RefPtr<EditBookGenreModelItem> item
+      = std::dynamic_pointer_cast<EditBookGenreModelItem>(
+          list_item->get_item());
 
   if(item)
     {
-      Gtk::Label *lab = dynamic_cast<Gtk::Label*>(list_item->get_child());
+      Gtk::Label *lab = dynamic_cast<Gtk::Label *>(list_item->get_child());
       if(item == selected_genre)
-	{
-	  lab->set_name("selectedLab");
-	}
+        {
+          lab->set_name("selectedLab");
+        }
       else
-	{
-	  lab->set_name("unselectedLab");
-	}
+        {
+          lab->set_name("unselectedLab");
+        }
       switch(variant)
-	{
-	case 1:
-	  {
-	    lab->set_text(Glib::ustring(item->genre_name));
-	    break;
-	  }
-	case 2:
-	  {
-	    lab->set_text(Glib::ustring(item->genre_code));
-	    break;
-	  }
-	default:
-	  {
-	    break;
-	  }
-	}
+        {
+        case 1:
+          {
+            lab->set_text(Glib::ustring(item->genre_name));
+            break;
+          }
+        case 2:
+          {
+            lab->set_text(Glib::ustring(item->genre_code));
+            break;
+          }
+        default:
+          {
+            break;
+          }
+        }
     }
 }
 
@@ -291,10 +291,10 @@ EditBookGui::select_genre(guint pos)
     {
       auto it = genre_model->get_item(i);
       if(it == item || it == selected_genre)
-	{
-	  genre_model->insert(i, it);
-	  genre_model->remove(i);
-	}
+        {
+          genre_model->insert(i, it);
+          genre_model->remove(i);
+        }
     }
 }
 
@@ -306,7 +306,7 @@ EditBookGui::setGenrePopover(Gtk::MenuButton *genre_button)
 
   Gtk::ScrolledWindow *genre_scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
   genre_scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
-			 Gtk::PolicyType::AUTOMATIC);
+                         Gtk::PolicyType::AUTOMATIC);
   genre_scrl->set_halign(Gtk::Align::FILL);
   genre_scrl->set_valign(Gtk::Align::FILL);
   genre_scrl->set_expand(true);
@@ -329,7 +329,7 @@ EditBookGui::setGenrePopover(Gtk::MenuButton *genre_button)
       exp->set_expanded(false);
       exp->set_label(Glib::ustring(genre_list[i].group_name));
       exp_grid = formGenreExpanderGrid(genre_list[i].group_name,
-				       genre_list[i].genres);
+                                       genre_list[i].genres);
       exp->set_child(*exp_grid);
       grid->attach(*exp, 0, static_cast<int>(i), 1, 1);
     }
@@ -340,9 +340,9 @@ EditBookGui::setGenrePopover(Gtk::MenuButton *genre_button)
   genre_scrl->set_min_content_height(nat.get_height());
 }
 
-Gtk::Grid*
+Gtk::Grid *
 EditBookGui::formGenreExpanderGrid(const std::string &group_name,
-				   const std::vector<Genre> &genre)
+                                   const std::vector<Genre> &genre)
 {
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
@@ -361,10 +361,9 @@ EditBookGui::formGenreExpanderGrid(const std::string &group_name,
       lab->set_text(Glib::ustring(g.genre_name));
       clck = Gtk::GestureClick::create();
       clck->set_button(1);
-      clck->signal_pressed().connect(
-	  std::bind(&EditBookGui::slot_genre_select, this,
-		    std::placeholders::_1, std::placeholders::_2,
-		    std::placeholders::_3, g, group_name));
+      clck->signal_pressed().connect(std::bind(
+          &EditBookGui::slot_genre_select, this, std::placeholders::_1,
+          std::placeholders::_2, std::placeholders::_3, g, group_name));
       lab->add_controller(clck);
       grid->attach(*lab, 0, static_cast<int>(i), 1, 1);
     }
@@ -373,8 +372,8 @@ EditBookGui::formGenreExpanderGrid(const std::string &group_name,
 }
 
 void
-EditBookGui::slot_genre_select(int numclc, double x, double y, const Genre &g,
-			       const std::string &group_name)
+EditBookGui::slot_genre_select(int, double, double, const Genre &g,
+                               const std::string &group_name)
 {
   std::string nm;
   if(g.genre_name == group_name)
@@ -385,8 +384,8 @@ EditBookGui::slot_genre_select(int numclc, double x, double y, const Genre &g,
     {
       nm = group_name + ", " + this->af->stringToLower(g.genre_name);
     }
-  Glib::RefPtr<EditBookGenreModelItem> item = EditBookGenreModelItem::create(
-      g.genre_code, nm);
+  Glib::RefPtr<EditBookGenreModelItem> item
+      = EditBookGenreModelItem::create(g.genre_code, nm);
   genre_model->append(item);
 
   genre_popover->popdown();
@@ -398,21 +397,22 @@ EditBookGui::remove_genre()
   for(guint i = 0; i < genre_model->get_n_items(); i++)
     {
       if(genre_model->get_item(i) == selected_genre)
-	{
-	  genre_model->remove(i);
-	  selected_genre.reset();
-	  break;
-	}
+        {
+          genre_model->remove(i);
+          selected_genre.reset();
+          break;
+        }
     }
 }
 
 void
 EditBookGui::create_genre_action_group(Gtk::Window *win)
 {
-  Glib::RefPtr<Gio::SimpleActionGroup> group = Gio::SimpleActionGroup::create();
+  Glib::RefPtr<Gio::SimpleActionGroup> group
+      = Gio::SimpleActionGroup::create();
 
   group->add_action("remove_genre",
-		    std::bind(&EditBookGui::remove_genre, this));
+                    std::bind(&EditBookGui::remove_genre, this));
 
   win->insert_action_group("genre_ac", group);
 }
@@ -499,7 +499,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
 
   Gtk::ScrolledWindow *genre_scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
   genre_scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
-			 Gtk::PolicyType::AUTOMATIC);
+                         Gtk::PolicyType::AUTOMATIC);
   genre_scrl->set_halign(Gtk::Align::FILL);
   genre_scrl->set_valign(Gtk::Align::FILL);
   genre_scrl->set_expand(true);
@@ -509,8 +509,8 @@ EditBookGui::form_window_grid(Gtk::Window *window)
 
   genre_model = create_genre_model();
 
-  Glib::RefPtr<Gtk::SingleSelection> selection = Gtk::SingleSelection::create(
-      genre_model);
+  Glib::RefPtr<Gtk::SingleSelection> selection
+      = Gtk::SingleSelection::create(genre_model);
 
   Glib::RefPtr<Gtk::ColumnViewColumn> col_name = genre_col_name();
   Glib::RefPtr<Gtk::ColumnViewColumn> col_code = genre_col_code();
@@ -538,10 +538,9 @@ EditBookGui::form_window_grid(Gtk::Window *window)
 
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(3);
-  clck->signal_pressed().connect(
-      std::bind(&EditBookGui::show_genre_menu, this, std::placeholders::_1,
-		std::placeholders::_2, std::placeholders::_3, genre_menu,
-		selection));
+  clck->signal_pressed().connect(std::bind(
+      &EditBookGui::show_genre_menu, this, std::placeholders::_1,
+      std::placeholders::_2, std::placeholders::_3, genre_menu, selection));
   genre_view->add_controller(clck);
 
   Gtk::Grid *genre_action_grid = Gtk::make_managed<Gtk::Grid>();
@@ -600,10 +599,8 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   restore->set_halign(Gtk::Align::CENTER);
   restore->set_name("operationBut");
   restore->set_label(gettext("Restore"));
-  restore->signal_clicked().connect([this]
-  {
-    this->refresh_thr = std::make_shared<std::thread>([this]
-    {
+  restore->signal_clicked().connect([this] {
+    this->refresh_thr = std::make_shared<std::thread>([this] {
       this->restore_disp->emit();
     });
     this->refresh_thr->detach();
@@ -619,8 +616,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   grid->attach(*cancel, 2, row_num, 1, 1);
   row_num++;
 
-  auto signal = grid->signal_realize().connect([grid, genre_scrl, row_num]
-  {
+  auto signal = grid->signal_realize().connect([grid, genre_scrl, row_num] {
     Gtk::Requisition min, nat;
     grid->get_preferred_size(min, nat);
 
@@ -631,24 +627,25 @@ EditBookGui::form_window_grid(Gtk::Window *window)
 
 void
 EditBookGui::show_genre_menu(
-    int numclck, double x, double y, Gtk::PopoverMenu *menu,
+    int, double x, double y, Gtk::PopoverMenu *menu,
     const Glib::RefPtr<Gtk::SingleSelection> &selection)
 {
-  Glib::RefPtr<EditBookGenreModelItem> item = std::dynamic_pointer_cast<
-      EditBookGenreModelItem>(selection->get_selected_item());
+  Glib::RefPtr<EditBookGenreModelItem> item
+      = std::dynamic_pointer_cast<EditBookGenreModelItem>(
+          selection->get_selected_item());
   if(item)
     {
       Glib::RefPtr<EditBookGenreModelItem> prev = selected_genre;
       selected_genre = item;
       for(guint i = 0; i < genre_model->get_n_items(); i++)
-	{
-	  auto it = genre_model->get_item(i);
-	  if(it == prev || it == selected_genre)
-	    {
-	      genre_model->insert(i, it);
-	      genre_model->remove(i);
-	    }
-	}
+        {
+          auto it = genre_model->get_item(i);
+          if(it == prev || it == selected_genre)
+            {
+              genre_model->insert(i, it);
+              genre_model->remove(i);
+            }
+        }
       Gdk::Rectangle rec(static_cast<int>(x), static_cast<int>(y), 1, 1);
       menu->set_pointing_to(rec);
       menu->popup();
@@ -683,8 +680,7 @@ EditBookGui::confirmationDialog(Gtk::Window *win)
   yes->set_halign(Gtk::Align::CENTER);
   yes->set_name("applyBut");
   yes->set_label(gettext("Yes"));
-  yes->signal_clicked().connect([window, this]
-  {
+  yes->signal_clicked().connect([window, this] {
     this->wait_window(window);
     this->edit_book(window);
   });
@@ -698,13 +694,13 @@ EditBookGui::confirmationDialog(Gtk::Window *win)
   no->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*no, 1, 1, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -742,20 +738,20 @@ EditBookGui::edit_book(Gtk::Window *win)
     {
       Glib::RefPtr<EditBookGenreModelItem> item = genre_model->get_item(i);
       if(bbe_new.bpe.book_genre.empty())
-	{
-	  if(!item->genre_code.empty())
-	    {
-	      bbe_new.bpe.book_genre = item->genre_code;
-	    }
-	}
+        {
+          if(!item->genre_code.empty())
+            {
+              bbe_new.bpe.book_genre = item->genre_code;
+            }
+        }
       else
-	{
-	  if(!item->genre_code.empty())
-	    {
-	      bbe_new.bpe.book_genre = bbe_new.bpe.book_genre + ", "
-		  + item->genre_code;
-	    }
-	}
+        {
+          if(!item->genre_code.empty())
+            {
+              bbe_new.bpe.book_genre
+                  = bbe_new.bpe.book_genre + ", " + item->genre_code;
+            }
+        }
     }
   std::atomic<bool> cancel;
   cancel.store(false);
@@ -765,17 +761,17 @@ EditBookGui::edit_book(Gtk::Window *win)
   try
     {
       if(rfr->editBook(bbe, bbe_new))
-	{
-	  finish_dialog(win, 1);
-	  if(successfully_edited_signal)
-	    {
-	      successfully_edited_signal(bbe, bbe_new, collection_name);
-	    }
-	}
+        {
+          finish_dialog(win, 1);
+          if(successfully_edited_signal)
+            {
+              successfully_edited_signal(bbe, bbe_new, collection_name);
+            }
+        }
       else
-	{
-	  finish_dialog(win, 2);
-	}
+        {
+          finish_dialog(win, 2);
+        }
     }
   catch(MLException &er)
     {
@@ -805,19 +801,19 @@ EditBookGui::finish_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	lab->set_text(gettext("Book entry was successfully edited!"));
-	break;
+        lab->set_text(gettext("Book entry was successfully edited!"));
+        break;
       }
     case 2:
       {
-	lab->set_text(
-	    gettext("Error! Book entry was not found in collection."));
-	break;
+        lab->set_text(
+            gettext("Error! Book entry was not found in collection."));
+        break;
       }
     case 3:
       {
-	lab->set_text(gettext("Critical error! See system log for details."));
-	break;
+        lab->set_text(gettext("Critical error! See system log for details."));
+        break;
       }
     default:
       break;
@@ -833,19 +829,18 @@ EditBookGui::finish_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	close->signal_clicked().connect([win]
-	{
-	  Gtk::Window *p = win->get_transient_for();
-	  win->unset_transient_for();
-	  p->close();
-	  win->close();
-	});
-	break;
+        close->signal_clicked().connect([win] {
+          Gtk::Window *p = win->get_transient_for();
+          win->unset_transient_for();
+          p->close();
+          win->close();
+        });
+        break;
       }
     default:
       {
-	close->signal_clicked().connect(std::bind(&Gtk::Window::close, win));
-	break;
+        close->signal_clicked().connect(std::bind(&Gtk::Window::close, win));
+        break;
       }
     }
   grid->attach(*close, 0, 1, 1, 1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_REFRESHCOLLECTION_H_
-#define INCLUDE_REFRESHCOLLECTION_H_
+#ifndef REFRESHCOLLECTION_H
+#define REFRESHCOLLECTION_H
 
 #include <AuxFunc.h>
 #include <BaseKeeper.h>
@@ -25,7 +25,6 @@
 #include <CreateCollection.h>
 #include <FileParseEntry.h>
 #include <atomic>
-#include <condition_variable>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -38,18 +37,14 @@ class RefreshCollection : public CreateCollection
 {
 public:
   RefreshCollection(const std::shared_ptr<AuxFunc> &af,
-		    const std::string &collection_name, const int &num_threads,
-		    std::atomic<bool> *cancel, const bool &remove_empty,
-		    const bool &fast_refresh, const bool &refresh_bookmarks,
-		    const std::shared_ptr<BookMarks> &bookmarks);
-  virtual
-  ~RefreshCollection();
+                    const std::string &collection_name, const int &num_threads,
+                    std::atomic<bool> *cancel, const bool &remove_empty,
+                    const bool &fast_refresh, const bool &refresh_bookmarks,
+                    const std::shared_ptr<BookMarks> &bookmarks);
 
-  std::function<void
-  (const double &total_hash)> total_bytes_to_hash;
+  std::function<void(const double &total_hash)> total_bytes_to_hash;
 
-  std::function<void
-  (const double &hashed)> bytes_hashed;
+  std::function<void(const double &hashed)> bytes_hashed;
 
   void
   refreshCollection();
@@ -75,23 +70,23 @@ private:
 
   void
   compaire_vectors(std::vector<FileParseEntry> &base,
-		   std::vector<std::filesystem::path> &books_files);
+                   std::vector<std::filesystem::path> &books_files);
 
   bool
   compare_function1(const std::filesystem::path &book_path,
-		    const FileParseEntry &ent);
+                    const FileParseEntry &ent);
 
   bool
   compare_function2(const FileParseEntry &ent,
-		    const std::filesystem::path &book_path);
+                    const std::filesystem::path &book_path);
 
   void
   check_hashes(std::vector<FileParseEntry> *base,
-	       std::vector<std::filesystem::path> *books_files);
+               std::vector<std::filesystem::path> *books_files);
 
   void
   hash_thread(const std::filesystem::path &file_to_hash,
-	      std::vector<FileParseEntry> *base);
+              std::vector<FileParseEntry> *base);
 
   void
   refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk);
@@ -110,9 +105,11 @@ private:
   std::mutex need_to_parsemtx;
   std::mutex basemtx;
 
+#ifndef USE_OPENMP
   std::mutex newthrmtx;
   std::condition_variable continue_hashing;
   int run_threads = 0;
+#endif
 };
 
-#endif /* INCLUDE_REFRESHCOLLECTION_H_ */
+#endif // REFRESHCOLLECTION_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <RemoveCollectionGui.h>
+#include <filesystem>
 #include <glibmm/main.h>
 #include <glibmm/signalproxy.h>
 #include <glibmm/ustring.h>
@@ -25,20 +27,13 @@
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
 #include <libintl.h>
-#include <RemoveCollectionGui.h>
 #include <sigc++/connection.h>
-#include <filesystem>
 
 RemoveCollectionGui::RemoveCollectionGui(const std::shared_ptr<AuxFunc> &af,
-					 Gtk::Window *main_window)
+                                         Gtk::Window *main_window)
 {
   this->af = af;
   this->main_window = main_window;
-}
-
-RemoveCollectionGui::~RemoveCollectionGui()
-{
-
 }
 
 void
@@ -93,14 +88,13 @@ RemoveCollectionGui::createWindow()
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*cancel, 1, row, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::shared_ptr<Gtk::Window> win(window);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -108,21 +102,21 @@ RemoveCollectionGui::createWindow()
 Glib::RefPtr<Gtk::StringList>
 RemoveCollectionGui::formCollectionsModel()
 {
-  Glib::RefPtr<Gtk::StringList> list = Gtk::StringList::create(
-      std::vector<Glib::ustring>());
+  Glib::RefPtr<Gtk::StringList> list
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path col_path = af->homePath();
   col_path /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
   if(std::filesystem::exists(col_path))
     {
       for(auto &dirit : std::filesystem::directory_iterator(col_path))
-	{
-	  std::filesystem::path p = dirit.path();
-	  if(std::filesystem::is_directory(p))
-	    {
-	      list->append(p.filename().u8string());
-	    }
-	}
+        {
+          std::filesystem::path p = dirit.path();
+          if(std::filesystem::is_directory(p))
+            {
+              list->append(p.filename().u8string());
+            }
+        }
     }
 
   return list;
@@ -144,8 +138,9 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
   grid->set_expand(true);
   window->set_child(*grid);
 
-  Glib::RefPtr<Gtk::StringList> list =
-      std::dynamic_pointer_cast<Gtk::StringList>(collection_name->get_model());
+  Glib::RefPtr<Gtk::StringList> list
+      = std::dynamic_pointer_cast<Gtk::StringList>(
+          collection_name->get_model());
   guint sel = collection_name->get_selected();
   if(sel != 0xffffffff)
     {
@@ -155,9 +150,8 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       lab->set_margin(5);
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_expand(true);
-      lab->set_text(
-	  Glib::ustring(gettext("Collection for removing:")) + " "
-	      + Glib::ustring(filename));
+      lab->set_text(Glib::ustring(gettext("Collection for removing:")) + " "
+                    + Glib::ustring(filename));
       grid->attach(*lab, 0, 0, 2, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -175,10 +169,9 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       yes->set_expand(true);
       yes->set_label(gettext("Yes"));
       yes->set_name("removeBut");
-      yes->signal_clicked().connect([window, win, filename, this]
-      {
-	this->successDialog(win, filename);
-	window->close();
+      yes->signal_clicked().connect([window, win, filename, this] {
+        this->successDialog(win, filename);
+        window->close();
       });
       grid->attach(*yes, 0, 2, 1, 1);
 
@@ -197,20 +190,20 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       return void();
     }
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::shared_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }
 
 void
 RemoveCollectionGui::successDialog(Gtk::Window *win,
-				   const std::string &filename)
+                                   const std::string &filename)
 {
   std::filesystem::path p = af->homePath();
   p /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
@@ -243,8 +236,7 @@ RemoveCollectionGui::successDialog(Gtk::Window *win,
   close->set_halign(Gtk::Align::CENTER);
   close->set_label(gettext("Close"));
   close->set_name("operationBut");
-  close->signal_clicked().connect([win]
-  {
+  close->signal_clicked().connect([win] {
     win->close();
   });
   grid->attach(*close, 0, 1, 1, 1);

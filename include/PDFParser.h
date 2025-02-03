@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_PDFPARSER_H_
-#define INCLUDE_PDFPARSER_H_
+#ifndef PDFPARSER_H
+#define PDFPARSER_H
 
 #include <AuxFunc.h>
 #include <BookInfoEntry.h>
@@ -28,18 +28,16 @@ class PDFParser
 {
 public:
   PDFParser(const std::shared_ptr<AuxFunc> &af);
-  virtual
-  ~PDFParser();
 
   BookParseEntry
   pdf_parser(const std::string &file);
 
   std::shared_ptr<BookInfoEntry>
   pdf_annotation_n_cover(const std::string &file, const double &x_dpi,
-			 const double &y_dpi);
+                         const double &y_dpi);
 
 private:
   std::shared_ptr<AuxFunc> af;
 };
 
-#endif /* INCLUDE_PDFPARSER_H_ */
+#endif // PDFPARSER_H

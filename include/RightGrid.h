@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,31 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_RIGHTGRID_H_
-#define INCLUDE_RIGHTGRID_H_
+#ifndef RIGHTGRID_H
+#define RIGHTGRID_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookInfo.h>
 #include <BookInfoEntry.h>
 #include <BookMarks.h>
+#include <FormatAnnotation.h>
+#include <OpenBook.h>
+#include <SearchResultModelItem.h>
+#include <SearchResultShow.h>
 #include <cairomm-1.16/cairomm/context.h>
 #include <cairomm-1.16/cairomm/refptr.h>
-#include <FormatAnnotation.h>
+#include <functional>
 #include <giomm-2.68/giomm/menu.h>
 #include <glib-2.0/glib/gtypes.h>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
 #include <gtkmm-4.0/gtkmm/drawingarea.h>
+#include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/menubutton.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
 #include <gtkmm-4.0/gtkmm/textbuffer.h>
 #include <gtkmm-4.0/gtkmm/textview.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <OpenBook.h>
-#include <SearchResultModelItem.h>
-#include <SearchResultShow.h>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,14 +50,14 @@ class RightGrid
 {
 public:
   RightGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
-	    const std::shared_ptr<BookMarks> &bookmarks);
-  virtual
-  ~RightGrid();
+            const std::shared_ptr<BookMarks> &bookmarks);
 
-  Gtk::Grid*
+  virtual ~RightGrid();
+
+  Gtk::Grid *
   createGrid();
 
-  Gtk::ColumnView*
+  Gtk::ColumnView *
   get_search_result();
 
   void
@@ -64,11 +66,12 @@ public:
   void
   search_result_show(const std::vector<BookBaseEntry> &result);
 
-  std::function<std::string
-  ()> get_current_collection_name;
+  void
+  search_result_show_files(const std::vector<FileParseEntry> &result);
 
-  std::function<void
-  (const std::string &col_name)> reload_collection_base;
+  std::function<std::string()> get_current_collection_name;
+
+  std::function<void(const std::string &col_name)> reload_collection_base;
 
 private:
   void
@@ -89,8 +92,11 @@ private:
   void
   book_operations_action_group();
 
-  Glib::RefPtr<Gio::Menu>
-  book_menu();
+  void
+  book_menu(Glib::RefPtr<Gio::Menu> &result);
+
+  void
+  files_menu(Glib::RefPtr<Gio::Menu> &result);
 
   void
   show_popup_menu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
@@ -100,7 +106,7 @@ private:
 
   void
   show_cover_popup_menu(int num, double x, double y,
-			Gtk::PopoverMenu *pop_menu);
+                        Gtk::PopoverMenu *pop_menu);
 
   void
   cover_operations_action_group();
@@ -119,8 +125,8 @@ private:
 
   void
   edit_book_success_slot(const BookBaseEntry &bbe_old,
-			 const BookBaseEntry &bbe_new,
-			 const std::string &col_name);
+                         const BookBaseEntry &bbe_new,
+                         const std::string &col_name);
 
   void
   open_book_action();
@@ -143,6 +149,11 @@ private:
   std::string current_collection;
 
   std::shared_ptr<BookInfoEntry> bie;
+
+  Glib::RefPtr<Gio::Menu> menu_sr;
+  Gtk::DropDown *filter_selection;
+
+  Gtk::MenuButton *book_ops;
 };
 
-#endif /* INCLUDE_RIGHTGRID_H_ */
+#endif // RIGHTGRID_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_LEFTGRID_H_
-#define INCLUDE_LEFTGRID_H_
+#ifndef LEFTGRID_H
+#define LEFTGRID_H
 
 #include <AuxFunc.h>
 #include <BaseKeeper.h>
 #include <BookBaseEntry.h>
-#include <glib-2.0/glib/gtypes.h>
+#include <Genre.h>
+#include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
@@ -30,8 +31,6 @@
 #include <gtkmm-4.0/gtkmm/popover.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <Genre.h>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,15 +38,14 @@
 class LeftGrid
 {
 public:
-  LeftGrid(const std::shared_ptr<AuxFunc> &af,
-	   Gtk::Window *main_window);
-  virtual
-  ~LeftGrid();
+  LeftGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window);
 
-  Gtk::Grid*
+  virtual ~LeftGrid();
+
+  Gtk::Grid *
   createGrid();
 
-  Gtk::DropDown*
+  Gtk::DropDown *
   get_collection_select();
 
   void
@@ -62,11 +60,13 @@ public:
   bool
   reloadCollection(const std::string &col_name);
 
-  std::function<void
-  ()> clear_search_result;
+  std::function<void()> clear_search_result;
 
-  std::function<void
-  (const std::vector<BookBaseEntry> &result)> search_result_show;
+  std::function<void(const std::vector<BookBaseEntry> &result)>
+      search_result_show;
+
+  std::function<void(const std::vector<FileParseEntry> &result)>
+      search_result_show_files;
 
 private:
   Glib::RefPtr<Gtk::StringList>
@@ -96,9 +96,11 @@ private:
   void
   searchBook();
 
-  Gtk::Grid*
-  formGenreExpanderGrid(const std::vector<Genre> &genre,
-			Gtk::Popover *pop);
+  void
+  showCollectionFiles();
+
+  Gtk::Grid *
+  formGenreExpanderGrid(const std::vector<Genre> &genre, Gtk::Popover *pop);
 
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
@@ -116,4 +118,4 @@ private:
   Genre selected_genre;
 };
 
-#endif /* INCLUDE_LEFTGRID_H_ */
+#endif // LEFTGRID_H

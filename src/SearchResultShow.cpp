@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,28 +16,29 @@
  */
 
 #include <BookParseEntry.h>
+#include <Genre.h>
+#include <SearchResultShow.h>
+#include <filesystem>
+#include <functional>
 #include <glibmm/main.h>
 #include <glibmm/signalproxy.h>
 #include <gtkmm/adjustment.h>
 #include <gtkmm/columnviewcolumn.h>
 #include <gtkmm/enums.h>
 #include <gtkmm/expression.h>
+#include <gtkmm/filterlistmodel.h>
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
 #include <gtkmm/singleselection.h>
 #include <gtkmm/sortlistmodel.h>
+#include <gtkmm/stringfilter.h>
 #include <gtkmm/stringsorter.h>
-#include <Genre.h>
 #include <libintl.h>
 #include <pangomm/layout.h>
 #include <sigc++/connection.h>
-#include <SearchResultShow.h>
-#include <filesystem>
-#include <functional>
-#include <iterator>
 
 SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
-				   Gtk::ColumnView *search_res)
+                                   Gtk::ColumnView *search_res)
 {
   this->af = af;
   this->search_res = search_res;
@@ -45,50 +46,65 @@ SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
   genre_list = af->get_genre_list();
 }
 
-SearchResultShow::~SearchResultShow()
-{
-
-}
-
 void
 SearchResultShow::clearSearchResult()
 {
   selected_item.reset();
-  model.reset();
-  Glib::RefPtr<Gio::ListStoreBase> list = std::dynamic_pointer_cast<
-      Gio::ListStoreBase>(search_res->get_columns());
+  selected_item_file.reset();
+  if(model)
+    {
+      model->remove_all();
+      model.reset();
+    }
+  if(model_files)
+    {
+      model_files->remove_all();
+      model_files.reset();
+    }
+  str_filter.reset();
+  filter_model.reset();
+  author_filter.reset();
+  book_filter.reset();
+  series_filter.reset();
+  genre_filter.reset();
+  date_filter.reset();
+  Glib::RefPtr<Gio::ListStoreBase> list
+      = std::dynamic_pointer_cast<Gio::ListStoreBase>(
+          search_res->get_columns());
   if(list)
     {
       std::vector<Glib::RefPtr<Gtk::ColumnViewColumn>> lv;
       for(guint i = 0; i < list->get_n_items(); i++)
-	{
-	  Glib::RefPtr<Gtk::ColumnViewColumn> col = std::dynamic_pointer_cast<
-	      Gtk::ColumnViewColumn>(list->get_object(i));
-	  if(col)
-	    {
-	      lv.push_back(col);
-	    }
-	}
+        {
+          Glib::RefPtr<Gtk::ColumnViewColumn> col
+              = std::dynamic_pointer_cast<Gtk::ColumnViewColumn>(
+                  list->get_object(i));
+          if(col)
+            {
+              lv.push_back(col);
+            }
+        }
       for(auto it = lv.begin(); it != lv.end(); it++)
-	{
-	  search_res->remove_column(*it);
-	}
+        {
+          search_res->remove_column(*it);
+        }
     }
-  Glib::RefPtr<Gtk::SingleSelection> sel = std::dynamic_pointer_cast<
-      Gtk::SingleSelection>(search_res->get_model());
+  Glib::RefPtr<Gtk::SingleSelection> sel
+      = std::dynamic_pointer_cast<Gtk::SingleSelection>(
+          search_res->get_model());
   if(sel)
     {
-      Glib::RefPtr<Gtk::SortListModel> sort_model = std::dynamic_pointer_cast<
-	  Gtk::SortListModel>(sel->get_model());
+      Glib::RefPtr<Gtk::SortListModel> sort_model
+          = std::dynamic_pointer_cast<Gtk::SortListModel>(sel->get_model());
       if(sort_model)
-	{
-	  list = std::dynamic_pointer_cast<Gio::ListStoreBase>(
-	      sort_model->get_model());
-	  if(list)
-	    {
-	      list->remove_all();
-	    }
-	}
+        {
+          list = std::dynamic_pointer_cast<Gio::ListStoreBase>(
+              sort_model->get_model());
+          if(list)
+            {
+              list->remove_all();
+            }
+        }
     }
 }
 
@@ -101,17 +117,85 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
 
   for(auto it = result.begin(); it != result.end(); it++)
     {
-      Glib::RefPtr<SearchResultModelItem> item = SearchResultModelItem::create(
-	  *it);
+      Glib::RefPtr<SearchResultModelItem> item
+          = SearchResultModelItem::create(*it);
       model->append(item);
     }
 
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, search_res->get_sorter());
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+            Glib::ustring result;
+            Glib::RefPtr<SearchResultModelItem> item
+                = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
+            if(item)
+              {
+                result = Glib::ustring(item->bbe.bpe.book_author);
+              }
+            return result;
+          });
+  author_filter = Gtk::StringFilter::create(expr);
+
+  expr = Gtk::ClosureExpression<Glib::ustring>::create(
+      [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+        Glib::ustring result;
+        Glib::RefPtr<SearchResultModelItem> item
+            = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
+        if(item)
+          {
+            result = Glib::ustring(item->bbe.bpe.book_name);
+          }
+        return result;
+      });
+  book_filter = Gtk::StringFilter::create(expr);
+
+  expr = Gtk::ClosureExpression<Glib::ustring>::create(
+      [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+        Glib::ustring result;
+        Glib::RefPtr<SearchResultModelItem> item
+            = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
+        if(item)
+          {
+            result = Glib::ustring(item->bbe.bpe.book_series);
+          }
+        return result;
+      });
+  series_filter = Gtk::StringFilter::create(expr);
+
+  expr = Gtk::ClosureExpression<Glib::ustring>::create(
+      [this](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+        Glib::ustring result;
+        Glib::RefPtr<SearchResultModelItem> item
+            = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
+        if(item)
+          {
+            result = translate_genres(item->bbe.bpe.book_genre);
+          }
+        return result;
+      });
+  genre_filter = Gtk::StringFilter::create(expr);
+
+  expr = Gtk::ClosureExpression<Glib::ustring>::create(
+      [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+        Glib::ustring result;
+        Glib::RefPtr<SearchResultModelItem> item
+            = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
+        if(item)
+          {
+            result = Glib::ustring(item->bbe.bpe.book_date);
+          }
+        return result;
+      });
+  date_filter = Gtk::StringFilter::create(expr);
+
+  filter_model = Gtk::FilterListModel::create(model, author_filter);
+
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(filter_model, search_res->get_sorter());
   sort_model->set_sorter(search_res->get_sorter());
 
-  Glib::RefPtr<Gtk::SingleSelection> select = Gtk::SingleSelection::create(
-      sort_model);
+  Glib::RefPtr<Gtk::SingleSelection> select
+      = Gtk::SingleSelection::create(sort_model);
 
   search_res->set_model(select);
 
@@ -132,26 +216,78 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
 }
 
 void
+SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
+{
+  clearSearchResult();
+
+  model_files = Gio::ListStore<SearchResultModelItemFL>::create();
+
+  for(auto it = result.begin(); it != result.end(); it++)
+    {
+      Glib::RefPtr<SearchResultModelItemFL> item
+          = SearchResultModelItemFL::create(*it);
+      model_files->append(item);
+    }
+
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+            Glib::ustring result;
+            Glib::RefPtr<SearchResultModelItemFL> item
+                = std::dynamic_pointer_cast<SearchResultModelItemFL>(
+                    list_item);
+            if(item)
+              {
+                result = Glib::ustring(item->entry.file_rel_path);
+              }
+            return result;
+          });
+
+  str_filter = Gtk::StringFilter::create(expr);
+  Glib::RefPtr<Gtk::FilterListModel> filer_list_model
+      = Gtk::FilterListModel::create(model_files, str_filter);
+
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(filer_list_model, search_res->get_sorter());
+  sort_model->set_sorter(search_res->get_sorter());
+
+  Glib::RefPtr<Gtk::SingleSelection> select
+      = Gtk::SingleSelection::create(sort_model);
+
+  search_res->set_model(select);
+
+  formFilesColumn(model_files);
+
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
+
+  Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
+  adj->set_value(0.0);
+}
+
+void
 SearchResultShow::formAuthorColumn(
     const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(1);
 
-  Glib::RefPtr<Gtk::ColumnViewColumn> column = Gtk::ColumnViewColumn::create(
-      gettext("Author"), factory);
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Author"), factory);
 
   column->set_fixed_width(0.25 * search_res->get_width());
   column->set_resizable(true);
   column->set_expand(true);
 
-  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr =
-      Gtk::ClosureExpression<Glib::ustring>::create(
-	  std::bind(&SearchResultShow::expression_slot, this,
-		    std::placeholders::_1, 1));
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(std::bind(
+          &SearchResultShow::expression_slot, this, std::placeholders::_1, 1));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, sorter);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   search_res->append_column(column);
@@ -177,17 +313,16 @@ SearchResultShow::formBookColumn(
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(2);
 
-  Glib::RefPtr<Gtk::ColumnViewColumn> column = Gtk::ColumnViewColumn::create(
-      gettext("Book"), factory);
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Book"), factory);
 
-  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr =
-      Gtk::ClosureExpression<Glib::ustring>::create(
-	  std::bind(&SearchResultShow::expression_slot, this,
-		    std::placeholders::_1, 2));
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(std::bind(
+          &SearchResultShow::expression_slot, this, std::placeholders::_1, 2));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, sorter);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.25 * search_res->get_width());
@@ -203,17 +338,16 @@ SearchResultShow::formSeriesColumn(
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(3);
 
-  Glib::RefPtr<Gtk::ColumnViewColumn> column = Gtk::ColumnViewColumn::create(
-      gettext("Series"), factory);
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Series"), factory);
 
-  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr =
-      Gtk::ClosureExpression<Glib::ustring>::create(
-	  std::bind(&SearchResultShow::expression_slot, this,
-		    std::placeholders::_1, 3));
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(std::bind(
+          &SearchResultShow::expression_slot, this, std::placeholders::_1, 3));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, sorter);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.2 * search_res->get_width());
@@ -229,17 +363,16 @@ SearchResultShow::formGenreColumn(
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(4);
 
-  Glib::RefPtr<Gtk::ColumnViewColumn> column = Gtk::ColumnViewColumn::create(
-      gettext("Genre"), factory);
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Genre"), factory);
 
-  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr =
-      Gtk::ClosureExpression<Glib::ustring>::create(
-	  std::bind(&SearchResultShow::expression_slot, this,
-		    std::placeholders::_1, 4));
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(std::bind(
+          &SearchResultShow::expression_slot, this, std::placeholders::_1, 4));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, sorter);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.2 * search_res->get_width());
@@ -252,69 +385,69 @@ SearchResultShow::formGenreColumn(
 Glib::RefPtr<Gtk::SignalListItemFactory>
 SearchResultShow::createFactory(const int &variant)
 {
-  Glib::RefPtr<Gtk::SignalListItemFactory> factory =
-      Gtk::SignalListItemFactory::create();
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
 
   factory->signal_setup().connect(
       std::bind(&SearchResultShow::itemSetup, this, std::placeholders::_1));
 
-  factory->signal_bind().connect(
-      std::bind(&SearchResultShow::itemBind, this, std::placeholders::_1,
-		variant));
+  factory->signal_bind().connect(std::bind(&SearchResultShow::itemBind, this,
+                                           std::placeholders::_1, variant));
   return factory;
 }
 
 void
 SearchResultShow::itemBind(const Glib::RefPtr<Gtk::ListItem> &list_item,
-			   const int &variant)
+                           const int &variant)
 {
-  Glib::RefPtr<SearchResultModelItem> item = std::dynamic_pointer_cast<
-      SearchResultModelItem>(list_item->get_item());
+  Glib::RefPtr<SearchResultModelItem> item
+      = std::dynamic_pointer_cast<SearchResultModelItem>(
+          list_item->get_item());
   if(item)
     {
-      Gtk::Label *lab = dynamic_cast<Gtk::Label*>(list_item->get_child());
+      Gtk::Label *lab = dynamic_cast<Gtk::Label *>(list_item->get_child());
       if(lab)
-	{
-	  if(item == selected_item)
-	    {
-	      lab->set_name("selectedLab");
-	    }
-	  else
-	    {
-	      lab->set_name("unselectedLab");
-	    }
-	  switch(variant)
-	    {
-	    case 1:
-	      {
-		lab->set_text(item->bbe.bpe.book_author);
-		break;
-	      }
-	    case 2:
-	      {
-		lab->set_text(item->bbe.bpe.book_name);
-		break;
-	      }
-	    case 3:
-	      {
-		lab->set_text(item->bbe.bpe.book_series);
-		break;
-	      }
-	    case 4:
-	      {
-		lab->set_text(translate_genres(item->bbe.bpe.book_genre));
-		break;
-	      }
-	    case 5:
-	      {
-		lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
-		lab->set_text(item->bbe.bpe.book_date);
-		break;
-	      }
-	    default:
-	      break;
-	    }
-	}
+        {
+          if(item == selected_item)
+            {
+              lab->set_name("selectedLab");
+            }
+          else
+            {
+              lab->set_name("unselectedLab");
+            }
+          switch(variant)
+            {
+            case 1:
+              {
+                lab->set_text(item->bbe.bpe.book_author);
+                break;
+              }
+            case 2:
+              {
+                lab->set_text(item->bbe.bpe.book_name);
+                break;
+              }
+            case 3:
+              {
+                lab->set_text(item->bbe.bpe.book_series);
+                break;
+              }
+            case 4:
+              {
+                lab->set_text(translate_genres(item->bbe.bpe.book_genre));
+                break;
+              }
+            case 5:
+              {
+                lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
+                lab->set_text(item->bbe.bpe.book_date);
+                break;
+              }
+            default:
+              break;
+            }
+        }
     }
 }
 
@@ -330,16 +463,16 @@ SearchResultShow::translate_genres(const std::string &genres)
     {
       n = loc_g.find(sstr);
       if(n != std::string::npos)
-	{
-	  std::string genre = loc_g.substr(0, n);
-	  loc_g.erase(0, n + sstr.size());
-	  append_genre(result, genre);
-	}
+        {
+          std::string genre = loc_g.substr(0, n);
+          loc_g.erase(0, n + sstr.size());
+          append_genre(result, genre);
+        }
       else
-	{
-	  append_genre(result, loc_g);
-	  break;
-	}
+        {
+          append_genre(result, loc_g);
+          break;
+        }
     }
 
   return result;
@@ -351,17 +484,82 @@ SearchResultShow::formDateColumn(
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(5);
 
-  Glib::RefPtr<Gtk::ColumnViewColumn> column = Gtk::ColumnViewColumn::create(
-      gettext("Date"), factory);
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Date"), factory);
 
-  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr =
-      Gtk::ClosureExpression<Glib::ustring>::create(
-	  std::bind(&SearchResultShow::expression_slot, this,
-		    std::placeholders::_1, 5));
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(std::bind(
+          &SearchResultShow::expression_slot, this, std::placeholders::_1, 5));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model = Gtk::SortListModel::create(
-      model, sorter);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
+  column->set_sorter(sorter);
+
+  column->set_resizable(true);
+  column->set_expand(true);
+
+  search_res->append_column(column);
+}
+
+void
+SearchResultShow::formFilesColumn(
+    const Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> &model)
+{
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
+
+  factory->signal_setup().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+        lab->set_halign(Gtk::Align::START);
+        lab->set_ellipsize(Pango::EllipsizeMode::START);
+        l_item->set_child(*lab);
+      });
+
+  factory->signal_bind().connect(
+      [this](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Glib::RefPtr<SearchResultModelItemFL> item
+            = std::dynamic_pointer_cast<SearchResultModelItemFL>(
+                l_item->get_item());
+        if(item)
+          {
+            Gtk::Label *lab = dynamic_cast<Gtk::Label *>(l_item->get_child());
+            if(lab)
+              {
+                lab->set_text(item->entry.file_rel_path);
+                if(item == selected_item_file)
+                  {
+                    lab->set_name("selectedLab");
+                  }
+                else
+                  {
+                    lab->set_name("unselectedLab");
+                  }
+              }
+          }
+      });
+
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("File path"), factory);
+
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+            Glib::ustring result;
+            Glib::RefPtr<SearchResultModelItemFL> item
+                = std::dynamic_pointer_cast<SearchResultModelItemFL>(
+                    list_item);
+            if(item)
+              {
+                result = Glib::ustring(item->entry.file_rel_path);
+              }
+            return result;
+          });
+
+  Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_resizable(true);
@@ -376,13 +574,13 @@ SearchResultShow::append_genre(Glib::ustring &result, std::string &genre)
   for(auto it = genre.begin(); it != genre.end();)
     {
       if(*it == ' ')
-	{
-	  genre.erase(it);
-	}
+        {
+          genre.erase(it);
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   if(!genre.empty())
@@ -391,64 +589,63 @@ SearchResultShow::append_genre(Glib::ustring &result, std::string &genre)
       GenreGroup gg;
       bool stop = false;
       for(auto it = genre_list.begin(); it != genre_list.end(); it++)
-	{
-	  for(auto itgg = it->genres.begin(); itgg != it->genres.end(); itgg++)
-	    {
-	      if(itgg->genre_code == genre)
-		{
-		  g = *itgg;
-		  gg = *it;
-		  stop = true;
-		  break;
-		}
-	    }
-	  if(stop)
-	    {
-	      break;
-	    }
-	}
+        {
+          for(auto itgg = it->genres.begin(); itgg != it->genres.end(); itgg++)
+            {
+              if(itgg->genre_code == genre)
+                {
+                  g = *itgg;
+                  gg = *it;
+                  stop = true;
+                  break;
+                }
+            }
+          if(stop)
+            {
+              break;
+            }
+        }
       if(!g.genre_name.empty())
-	{
-	  if(result.empty())
-	    {
-	      if(gg.group_name != g.genre_name)
-		{
-		  result = Glib::ustring(
-		      gg.group_name + ", " + af->stringToLower(g.genre_name));
-		}
-	      else
-		{
-		  result = Glib::ustring(gg.group_name);
-		}
-	    }
-	  else
-	    {
-	      result = result + "\n";
+        {
+          if(result.empty())
+            {
+              if(gg.group_name != g.genre_name)
+                {
+                  result = Glib::ustring(gg.group_name + ", "
+                                         + af->stringToLower(g.genre_name));
+                }
+              else
+                {
+                  result = Glib::ustring(gg.group_name);
+                }
+            }
+          else
+            {
+              result = result + "\n";
 
-	      if(gg.group_name != g.genre_name)
-		{
-		  result = result
-		      + Glib::ustring(
-			  gg.group_name + ", "
-			      + af->stringToLower(g.genre_name));
-		}
-	      else
-		{
-		  result = result + Glib::ustring(gg.group_name);
-		}
-	    }
-	}
+              if(gg.group_name != g.genre_name)
+                {
+                  result = result
+                           + Glib::ustring(gg.group_name + ", "
+                                           + af->stringToLower(g.genre_name));
+                }
+              else
+                {
+                  result = result + Glib::ustring(gg.group_name);
+                }
+            }
+        }
       else
-	{
-	  if(result.empty())
-	    {
-	      result = Glib::ustring(genre);
-	    }
-	  else
-	    {
-	      result = result + "\n" + Glib::ustring(genre);
-	    }
-	}
+        {
+          if(result.empty())
+            {
+              result = Glib::ustring(genre);
+            }
+          else
+            {
+              result = result + "\n" + Glib::ustring(genre);
+            }
+        }
     }
 }
 
@@ -456,41 +653,41 @@ Glib::ustring
 SearchResultShow::expression_slot(
     const Glib::RefPtr<Glib::ObjectBase> &list_item, const int &variant)
 {
-  Glib::RefPtr<SearchResultModelItem> item = std::dynamic_pointer_cast<
-      SearchResultModelItem>(list_item);
+  Glib::RefPtr<SearchResultModelItem> item
+      = std::dynamic_pointer_cast<SearchResultModelItem>(list_item);
   Glib::ustring result;
   if(item)
     {
       switch(variant)
-	{
-	case 1:
-	  {
-	    result = Glib::ustring(item->bbe.bpe.book_author);
-	    break;
-	  }
-	case 2:
-	  {
-	    result = Glib::ustring(item->bbe.bpe.book_name);
-	    break;
-	  }
-	case 3:
-	  {
-	    result = Glib::ustring(item->bbe.bpe.book_series);
-	    break;
-	  }
-	case 4:
-	  {
-	    result = translate_genres(item->bbe.bpe.book_genre);
-	    break;
-	  }
-	case 5:
-	  {
-	    result = Glib::ustring(item->bbe.bpe.book_date);
-	    break;
-	  }
-	default:
-	  break;
-	}
+        {
+        case 1:
+          {
+            result = Glib::ustring(item->bbe.bpe.book_author);
+            break;
+          }
+        case 2:
+          {
+            result = Glib::ustring(item->bbe.bpe.book_name);
+            break;
+          }
+        case 3:
+          {
+            result = Glib::ustring(item->bbe.bpe.book_series);
+            break;
+          }
+        case 4:
+          {
+            result = translate_genres(item->bbe.bpe.book_genre);
+            break;
+          }
+        case 5:
+          {
+            result = Glib::ustring(item->bbe.bpe.book_date);
+            break;
+          }
+        default:
+          break;
+        }
       return result;
     }
   else
@@ -508,10 +705,27 @@ SearchResultShow::select_item(const Glib::RefPtr<SearchResultModelItem> &item)
     {
       Glib::RefPtr<SearchResultModelItem> si = model->get_item(i);
       if(si == prev || si == selected_item)
-	{
-	  model->insert(i, si);
-	  model->remove(i);
-	}
+        {
+          model->insert(i, si);
+          model->remove(i);
+        }
+    }
+}
+
+void
+SearchResultShow::select_item(
+    const Glib::RefPtr<SearchResultModelItemFL> &item)
+{
+  Glib::RefPtr<SearchResultModelItemFL> prev = selected_item_file;
+  selected_item_file = item;
+  for(guint i = 0; i < model_files->get_n_items(); i++)
+    {
+      Glib::RefPtr<SearchResultModelItemFL> si = model_files->get_item(i);
+      if(si == prev || si == selected_item_file)
+        {
+          model_files->insert(i, si);
+          model_files->remove(i);
+        }
     }
 }
 
@@ -521,20 +735,26 @@ SearchResultShow::get_selected_item()
   return selected_item;
 }
 
+Glib::RefPtr<SearchResultModelItemFL>
+SearchResultShow::get_selected_item_file()
+{
+  return selected_item_file;
+}
+
 void
 SearchResultShow::removeItem(const Glib::RefPtr<SearchResultModelItem> &item)
 {
   for(guint i = 0; i < model->get_n_items(); i++)
     {
       if(model->get_item(i) == item)
-	{
-	  model->remove(i);
-	  if(selected_item == item)
-	    {
-	      selected_item.reset();
-	    }
-	  break;
-	}
+        {
+          model->remove(i);
+          if(selected_item == item)
+            {
+              selected_item.reset();
+            }
+          break;
+        }
     }
 }
 
@@ -548,16 +768,16 @@ SearchResultShow::removeBook(const Glib::RefPtr<SearchResultModelItem> &item)
   if(ext == ".rar")
     {
       for(guint i = 0; i < model->get_n_items(); i++)
-	{
-	  Glib::RefPtr<SearchResultModelItem> it = model->get_item(i);
-	  if(it != item)
-	    {
-	      if(it->bbe.file_path == item->bbe.file_path)
-		{
-		  for_remove.push_back(it);
-		}
-	    }
-	}
+        {
+          Glib::RefPtr<SearchResultModelItem> it = model->get_item(i);
+          if(it != item)
+            {
+              if(it->bbe.file_path == item->bbe.file_path)
+                {
+                  for_remove.push_back(it);
+                }
+            }
+        }
     }
   else
     {
@@ -568,71 +788,71 @@ SearchResultShow::removeBook(const Glib::RefPtr<SearchResultModelItem> &item)
       std::filesystem::path val;
       std::string sstr = "\n";
       for(;;)
-	{
-	  n = ent.find(sstr);
-	  if(n != std::string::npos)
-	    {
-	      val = std::filesystem::u8path(ent.substr(0, n));
-	      ent.erase(0, n + sstr.size());
-	      if(ch_p.empty())
-		{
-		  ch_p = val.u8string();
-		}
-	      else
-		{
-		  ch_p = ch_p + sstr + val.u8string();
-		}
-	      ext = val.extension().u8string();
-	      ext = af->stringToLower(ext);
-	      if(ext == ".rar")
-		{
-		  rar = true;
-		  break;
-		}
-	    }
-	  else
-	    {
-	      if(!ent.empty())
-		{
-		  val = std::filesystem::u8path(ent);
-		  if(ch_p.empty())
-		    {
-		      ch_p = val.u8string();
-		    }
-		  else
-		    {
-		      ch_p = ch_p + sstr + val.u8string();
-		    }
-		  ext = val.extension().u8string();
-		  ext = af->stringToLower(ext);
-		  if(ext == ".rar")
-		    {
-		      rar = true;
-		    }
-		}
-	      break;
-	    }
-	}
+        {
+          n = ent.find(sstr);
+          if(n != std::string::npos)
+            {
+              val = std::filesystem::u8path(ent.substr(0, n));
+              ent.erase(0, n + sstr.size());
+              if(ch_p.empty())
+                {
+                  ch_p = val.u8string();
+                }
+              else
+                {
+                  ch_p = ch_p + sstr + val.u8string();
+                }
+              ext = val.extension().u8string();
+              ext = af->stringToLower(ext);
+              if(ext == ".rar")
+                {
+                  rar = true;
+                  break;
+                }
+            }
+          else
+            {
+              if(!ent.empty())
+                {
+                  val = std::filesystem::u8path(ent);
+                  if(ch_p.empty())
+                    {
+                      ch_p = val.u8string();
+                    }
+                  else
+                    {
+                      ch_p = ch_p + sstr + val.u8string();
+                    }
+                  ext = val.extension().u8string();
+                  ext = af->stringToLower(ext);
+                  if(ext == ".rar")
+                    {
+                      rar = true;
+                    }
+                }
+              break;
+            }
+        }
 
       if(rar)
-	{
-	  for(guint i = 0; i < model->get_n_items(); i++)
-	    {
-	      Glib::RefPtr<SearchResultModelItem> it = model->get_item(i);
-	      if(it != item)
-		{
-		  if(it->bbe.file_path == item->bbe.file_path)
-		    {
-		      std::string b_p = it->bbe.bpe.book_path;
-		      n = b_p.find(ch_p);
-		      if(n != std::string::npos)
-			{
-			  for_remove.push_back(it);
-			}
-		    }
-		}
-	    }
-	}
+        {
+          for(guint i = 0; i < model->get_n_items(); i++)
+            {
+              Glib::RefPtr<SearchResultModelItem> it = model->get_item(i);
+              if(it != item)
+                {
+                  if(it->bbe.file_path == item->bbe.file_path)
+                    {
+                      std::string b_p = it->bbe.bpe.book_path;
+                      n = b_p.find(ch_p);
+                      if(n != std::string::npos)
+                        {
+                          for_remove.push_back(it);
+                        }
+                    }
+                }
+            }
+        }
     }
 
   for(auto it = for_remove.begin(); it != for_remove.end(); it++)
@@ -641,8 +861,73 @@ SearchResultShow::removeBook(const Glib::RefPtr<SearchResultModelItem> &item)
     }
 }
 
-Glib::RefPtr<Gio::ListStore<SearchResultModelItem> >
+Glib::RefPtr<Gio::ListStore<SearchResultModelItem>>
 SearchResultShow::get_model()
 {
   return model;
+}
+
+void
+SearchResultShow::filterFiles(const Glib::ustring &filter_val)
+{
+  if(str_filter)
+    {
+      str_filter->set_search(filter_val);
+    }
+}
+
+void
+SearchResultShow::filterBooks(const Glib::ustring &filter_val,
+                              const guint &variant)
+{
+  switch(variant)
+    {
+    case 0:
+      {
+        if(author_filter)
+          {
+            filter_model->set_filter(author_filter);
+            author_filter->set_search(filter_val);
+          }
+        break;
+      }
+    case 1:
+      {
+        if(book_filter)
+          {
+            filter_model->set_filter(book_filter);
+            book_filter->set_search(filter_val);
+          }
+        break;
+      }
+    case 2:
+      {
+        if(series_filter)
+          {
+            filter_model->set_filter(series_filter);
+            series_filter->set_search(filter_val);
+          }
+        break;
+      }
+    case 3:
+      {
+        if(genre_filter)
+          {
+            filter_model->set_filter(genre_filter);
+            genre_filter->set_search(filter_val);
+          }
+        break;
+      }
+    case 4:
+      {
+        if(date_filter)
+          {
+            filter_model->set_filter(date_filter);
+            date_filter->set_search(filter_val);
+          }
+        break;
+      }
+    default:
+      break;
+    }
 }

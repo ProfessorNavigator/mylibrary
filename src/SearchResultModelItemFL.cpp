@@ -14,21 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <SearchResultModelItemFL.h>
 
-#include <EditBookGenreModelItem.h>
-
-EditBookGenreModelItem::EditBookGenreModelItem(const std::string &genre_code,
-					       const std::string &genre_name)
+Glib::RefPtr<SearchResultModelItemFL>
+SearchResultModelItemFL::create(const FileParseEntry &entry)
 {
-  this->genre_code = genre_code;
-  this->genre_name = genre_name;
+  SearchResultModelItemFL *item = new SearchResultModelItemFL(entry);
+  return Glib::make_refptr_for_instance(item);
 }
 
-Glib::RefPtr<EditBookGenreModelItem>
-EditBookGenreModelItem::create(const std::string &genre_code,
-			       const std::string &genre_name)
+SearchResultModelItemFL::SearchResultModelItemFL(const FileParseEntry &entry)
 {
-  EditBookGenreModelItem *item = new EditBookGenreModelItem(genre_code,
-							    genre_name);
-  return Glib::make_refptr_for_instance(item);
+  this->entry = entry;
 }

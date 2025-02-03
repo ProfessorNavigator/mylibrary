@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,42 +32,37 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm/error.h>
 #endif
+#include <MLException.h>
+#include <OpenBook.h>
+#include <RefreshCollection.h>
+#include <RemoveBook.h>
+#include <SelfRemovingPath.h>
+#include <TransferBookGui.h>
+#include <atomic>
 #include <gtkmm/filefilter.h>
 #include <gtkmm/grid.h>
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
 #include <gtkmm/stringobject.h>
-#include <libintl.h>
-#include <MLException.h>
-#include <OpenBook.h>
-#include <RefreshCollection.h>
-#include <RemoveBook.h>
-#include <sigc++/connection.h>
-#include <SelfRemovingPath.h>
-#include <TransferBookGui.h>
-#include <atomic>
 #include <iostream>
 #include <iterator>
+#include <libintl.h>
+#include <sigc++/connection.h>
 #include <thread>
 #include <tuple>
 #include <vector>
 
 TransferBookGui::TransferBookGui(const std::shared_ptr<AuxFunc> &af,
-				 const std::shared_ptr<BookMarks> &bookmarks,
-				 const BookBaseEntry &bbe_from,
-				 const std::string &collection_from,
-				 Gtk::Window *parent_window)
+                                 const std::shared_ptr<BookMarks> &bookmarks,
+                                 const BookBaseEntry &bbe_from,
+                                 const std::string &collection_from,
+                                 Gtk::Window *parent_window)
 {
   this->af = af;
   this->bookmarks = bookmarks;
   this->bbe_from = bbe_from;
   this->collection_from = collection_from;
   this->parent_window = parent_window;
-}
-
-TransferBookGui::~TransferBookGui()
-{
-
 }
 
 void
@@ -95,12 +90,11 @@ TransferBookGui::createWindow()
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_justify(Gtk::Justification::CENTER);
       lab->set_text(
-	  Glib::ustring(gettext("Book is packed in rar archive.")) + "\n"
-	      + gettext("This operation is not available for rar archives.")
-	      + "\n"
-	      + gettext("Use \"Add books\" function from main menu instead.")
+          Glib::ustring(gettext("Book is packed in rar archive.")) + "\n"
+          + gettext("This operation is not available for rar archives.") + "\n"
+          + gettext("Use \"Add books\" function from main menu instead.")
 
-	      );
+      );
       grid->attach(*lab, 0, 0, 1, 1);
 
       Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
@@ -160,8 +154,8 @@ TransferBookGui::createWindow()
       lab->set_text(gettext("Archive type:"));
       arch_t_gr->attach(*lab, 0, 0, 1, 1);
 
-      Glib::RefPtr<Gtk::StringList> arch_types_list =
-	  create_archive_types_model();
+      Glib::RefPtr<Gtk::StringList> arch_types_list
+          = create_archive_types_model();
 
       arch_types = Gtk::make_managed<Gtk::DropDown>();
       arch_types->set_margin(5);
@@ -179,64 +173,61 @@ TransferBookGui::createWindow()
       grid->attach(*add_to_arch, 0, row_num, 2, 1);
       row_num++;
 
-      Glib::PropertyProxy<bool> prop_compress_active =
-	  compress->property_active();
-      prop_compress_active.signal_changed().connect([window, this, arch_t_gr]
-      {
-	if(this->compress->get_active())
-	  {
-	    this->add_to_arch->set_visible(true);
-	    arch_t_gr->set_visible(true);
-	  }
-	else
-	  {
-	    this->add_to_arch->set_visible(false);
-	    this->add_to_arch->set_active(false);
-	    arch_t_gr->set_visible(false);
-	    window->set_default_size(1, 1);
-	  }
+      Glib::PropertyProxy<bool> prop_compress_active
+          = compress->property_active();
+      prop_compress_active.signal_changed().connect([window, this, arch_t_gr] {
+        if(this->compress->get_active())
+          {
+            this->add_to_arch->set_visible(true);
+            arch_t_gr->set_visible(true);
+          }
+        else
+          {
+            this->add_to_arch->set_visible(false);
+            this->add_to_arch->set_active(false);
+            arch_t_gr->set_visible(false);
+            window->set_default_size(1, 1);
+          }
       });
 
-      Glib::PropertyProxy<bool> prop_add_arch_active =
-	  add_to_arch->property_active();
-      prop_add_arch_active.signal_changed().connect([window, this, arch_t_gr]
-      {
-	if(this->add_to_arch->get_active())
-	  {
-	    arch_t_gr->set_visible(false);
-	    window->set_default_size(1, 1);
-	  }
-	else
-	  {
-	    if(this->compress->get_active())
-	      {
-		arch_t_gr->set_visible(true);
-	      }
-	    else
-	      {
-		arch_t_gr->set_visible(false);
-	      }
-	  }
+      Glib::PropertyProxy<bool> prop_add_arch_active
+          = add_to_arch->property_active();
+      prop_add_arch_active.signal_changed().connect([window, this, arch_t_gr] {
+        if(this->add_to_arch->get_active())
+          {
+            arch_t_gr->set_visible(false);
+            window->set_default_size(1, 1);
+          }
+        else
+          {
+            if(this->compress->get_active())
+              {
+                arch_t_gr->set_visible(true);
+              }
+            else
+              {
+                arch_t_gr->set_visible(false);
+              }
+          }
       });
 
       Glib::PropertyProxy<bool> prop_tr_fbd = transfer_fbd->property_active();
-      prop_tr_fbd.signal_changed().connect([this, window]
-      {
-	this->_transfer_fbd = this->transfer_fbd->get_active();
-	if(this->_transfer_fbd)
-	  {
-	    this->compress->set_active(true);
-	    this->compress->set_sensitive(false);
-	    this->add_to_arch->set_active(false);
-	    this->add_to_arch->set_visible(false);
-	    window->set_default_size(1, 1);
-	  }
-	else
-	  {
-	    this->compress->set_sensitive(true);
-	    this->add_to_arch->set_active(false);
-	    this->add_to_arch->set_visible(true);
-	  }
+      prop_tr_fbd.signal_changed().connect([this, window] {
+        this->_transfer_fbd = this->transfer_fbd->get_active();
+        if(this->_transfer_fbd)
+          {
+            this->compress->set_active(true);
+            this->compress->set_sensitive(false);
+            this->add_to_arch->set_active(false);
+            this->add_to_arch->set_visible(false);
+            window->set_default_size(1, 1);
+          }
+        else
+          {
+            this->compress->set_sensitive(true);
+            this->add_to_arch->set_active(false);
+            this->add_to_arch->set_visible(true);
+          }
       });
 
       Gtk::Button *choose_path = Gtk::make_managed<Gtk::Button>();
@@ -245,7 +236,7 @@ TransferBookGui::createWindow()
       choose_path->set_name("operationBut");
       choose_path->set_label(gettext("Choose path"));
       choose_path->signal_clicked().connect(
-	  std::bind(&TransferBookGui::mode_selector, this, window));
+          std::bind(&TransferBookGui::mode_selector, this, window));
       grid->attach(*choose_path, 0, row_num, 1, 1);
 
       Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -258,14 +249,14 @@ TransferBookGui::createWindow()
       row_num++;
     }
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::shared_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -273,8 +264,8 @@ TransferBookGui::createWindow()
 Glib::RefPtr<Gtk::StringList>
 TransferBookGui::create_collections_model()
 {
-  Glib::RefPtr<Gtk::StringList> result = Gtk::StringList::create(
-      std::vector<Glib::ustring>());
+  Glib::RefPtr<Gtk::StringList> result
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path col_p = af->homePath();
   col_p /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
@@ -282,17 +273,17 @@ TransferBookGui::create_collections_model()
     {
       std::string col_nm;
       for(auto &dirit : std::filesystem::directory_iterator(col_p))
-	{
-	  std::filesystem::path p = dirit.path();
-	  if(std::filesystem::is_directory(p))
-	    {
-	      col_nm = p.filename().u8string();
-	      if(col_nm != collection_from)
-		{
-		  result->append(Glib::ustring(col_nm));
-		}
-	    }
-	}
+        {
+          std::filesystem::path p = dirit.path();
+          if(std::filesystem::is_directory(p))
+            {
+              col_nm = p.filename().u8string();
+              if(col_nm != collection_from)
+                {
+                  result->append(Glib::ustring(col_nm));
+                }
+            }
+        }
     }
 
   return result;
@@ -301,8 +292,8 @@ TransferBookGui::create_collections_model()
 Glib::RefPtr<Gtk::StringList>
 TransferBookGui::create_archive_types_model()
 {
-  Glib::RefPtr<Gtk::StringList> result = Gtk::StringList::create(
-      std::vector<Glib::ustring>());
+  Glib::RefPtr<Gtk::StringList> result
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::vector<std::string> types = af->get_supported_archive_types_packing();
 
@@ -317,27 +308,28 @@ TransferBookGui::create_archive_types_model()
 void
 TransferBookGui::mode_selector(Gtk::Window *win)
 {
-  Glib::RefPtr<Gtk::StringObject> item = std::dynamic_pointer_cast<
-      Gtk::StringObject>(collections->get_selected_item());
+  Glib::RefPtr<Gtk::StringObject> item
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collections->get_selected_item());
   if(item)
     {
       collection_to = std::string(item->get_string());
       books_path = BaseKeeper::get_books_path(collection_to, af);
       if(compress->get_active())
-	{
-	  if(add_to_arch->get_active())
-	    {
-	      path_choose_dialog(win, 3);
-	    }
-	  else
-	    {
-	      path_choose_dialog(win, 2);
-	    }
-	}
+        {
+          if(add_to_arch->get_active())
+            {
+              path_choose_dialog(win, 3);
+            }
+          else
+            {
+              path_choose_dialog(win, 2);
+            }
+        }
       else
-	{
-	  path_choose_dialog(win, 1);
-	}
+        {
+          path_choose_dialog(win, 1);
+        }
     }
   else
     {
@@ -353,8 +345,8 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
   fd->set_modal(true);
   fd->set_title(gettext("Path in collection"));
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      books_path.u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(books_path.u8string());
   fd->set_initial_folder(initial);
 
   std::vector<std::string> types;
@@ -363,74 +355,77 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	if(bbe_from.bpe.book_path.empty())
-	  {
-	    std::string ext = af->get_extension(bbe_from.file_path);
-	    ext = "*" + ext;
-	    filter->add_pattern(Glib::ustring(ext));
-	    fd->set_initial_name(
-		Glib::ustring(bbe_from.file_path.filename().u8string()));
-	  }
-	else
-	  {
-	    std::string bp = bbe_from.bpe.book_path;
-	    std::string sstr = "\n";
-	    std::string::size_type n = bp.rfind(sstr);
-	    if(n != std::string::npos)
-	      {
-		bp.erase(0, n + sstr.size());
-	      }
-	    std::filesystem::path p = std::filesystem::u8path(bp);
-	    std::string ext = af->get_extension(p);
-	    ext = "*" + ext;
-	    filter->add_pattern(Glib::ustring(ext));
-	    fd->set_initial_name(p.filename().u8string());
-	  }
-	break;
+        if(bbe_from.bpe.book_path.empty())
+          {
+            std::string ext = af->get_extension(bbe_from.file_path);
+            ext = "*" + ext;
+            filter->add_pattern(Glib::ustring(ext));
+            fd->set_initial_name(
+                Glib::ustring(bbe_from.file_path.filename().u8string()));
+          }
+        else
+          {
+            std::string bp = bbe_from.bpe.book_path;
+            std::string sstr = "\n";
+            std::string::size_type n = bp.rfind(sstr);
+            if(n != std::string::npos)
+              {
+                bp.erase(0, n + sstr.size());
+              }
+            std::filesystem::path p = std::filesystem::u8path(bp);
+            std::string ext = af->get_extension(p);
+            ext = "*" + ext;
+            filter->add_pattern(Glib::ustring(ext));
+            fd->set_initial_name(p.filename().u8string());
+          }
+        break;
       }
     case 2:
       {
-	std::filesystem::path p;
-	if(bbe_from.bpe.book_path.empty())
-	  {
-	    p = bbe_from.file_path;
-	  }
-	else
-	  {
-	    std::string bp = bbe_from.bpe.book_path;
-	    std::string sstr = "\n";
-	    std::string::size_type n = bp.rfind(sstr);
-	    if(n != std::string::npos)
-	      {
-		bp.erase(0, n + sstr.size());
-	      }
-	    p = std::filesystem::u8path(bp);
-	  }
-	Glib::RefPtr<Gtk::StringObject> type = std::dynamic_pointer_cast<
-	    Gtk::StringObject>(arch_types->get_selected_item());
-	if(type)
-	  {
-	    std::string suffix(type->get_string());
-	    filter->add_suffix(suffix);
-	    fd->set_initial_name(p.stem().u8string() + "." + suffix);
-	  }
-	else
-	  {
-	    std::cout << "TransferBookGui::path_choose_dialog_overwrite error: "
-		"archive type is null" << std::endl;
-	    return void();
-	  }
-	break;
+        std::filesystem::path p;
+        if(bbe_from.bpe.book_path.empty())
+          {
+            p = bbe_from.file_path;
+          }
+        else
+          {
+            std::string bp = bbe_from.bpe.book_path;
+            std::string sstr = "\n";
+            std::string::size_type n = bp.rfind(sstr);
+            if(n != std::string::npos)
+              {
+                bp.erase(0, n + sstr.size());
+              }
+            p = std::filesystem::u8path(bp);
+          }
+        Glib::RefPtr<Gtk::StringObject> type
+            = std::dynamic_pointer_cast<Gtk::StringObject>(
+                arch_types->get_selected_item());
+        if(type)
+          {
+            std::string suffix(type->get_string());
+            filter->add_suffix(suffix);
+            fd->set_initial_name(p.stem().u8string() + "." + suffix);
+          }
+        else
+          {
+            std::cout
+                << "TransferBookGui::path_choose_dialog_overwrite error: "
+                   "archive type is null"
+                << std::endl;
+            return void();
+          }
+        break;
       }
     case 3:
       {
-	types = af->get_supported_archive_types_packing();
-	for(auto it = types.begin(); it != types.end(); it++)
-	  {
-	    filter->add_suffix(*it);
-	  }
-	filter->set_name(gettext("All supported"));
-	break;
+        types = af->get_supported_archive_types_packing();
+        for(auto it = types.begin(); it != types.end(); it++)
+          {
+            filter->add_suffix(*it);
+          }
+        filter->set_name(gettext("All supported"));
+        break;
       }
     default:
       return void();
@@ -440,15 +435,15 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
 
   if(variant == 3)
     {
-      Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list = Gio::ListStore<
-	  Gtk::FileFilter>::create();
+      Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
+          = Gio::ListStore<Gtk::FileFilter>::create();
       f_list->append(filter);
       for(auto it = types.begin(); it != types.end(); it++)
-	{
-	  filter = Gtk::FileFilter::create();
-	  filter->add_suffix(*it);
-	  f_list->append(filter);
-	}
+        {
+          filter = Gtk::FileFilter::create();
+          filter->add_suffix(*it);
+          f_list->append(filter);
+        }
       fd->set_filters(f_list);
     }
 
@@ -459,21 +454,19 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     case 1:
     case 2:
       {
-	fd->save(
-	    *win,
-	    std::bind(&TransferBookGui::path_choose_dialog_overwrite_slot, this,
-		      std::placeholders::_1, fd, win, variant),
-	    cncl);
-	break;
+        fd->save(*win,
+                 std::bind(&TransferBookGui::path_choose_dialog_overwrite_slot,
+                           this, std::placeholders::_1, fd, win, variant),
+                 cncl);
+        break;
       }
     case 3:
       {
-	fd->open(
-	    *win,
-	    std::bind(&TransferBookGui::path_choose_dialog_add_slot, this,
-		      std::placeholders::_1, fd, win),
-	    cncl);
-	break;
+        fd->open(*win,
+                 std::bind(&TransferBookGui::path_choose_dialog_add_slot, this,
+                           std::placeholders::_1, fd, win),
+                 cncl);
+        break;
       }
     default:
       break;
@@ -486,15 +479,15 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     case 1:
     case 2:
       {
-	fd = new Gtk::FileChooserDialog(*win, gettext("Path in collection"),
-					Gtk::FileChooser::Action::SAVE, true);
-	break;
+        fd = new Gtk::FileChooserDialog(*win, gettext("Path in collection"),
+                                        Gtk::FileChooser::Action::SAVE, true);
+        break;
       }
     case 3:
       {
-	fd = new Gtk::FileChooserDialog(*win, gettext("Path in collection"),
-					Gtk::FileChooser::Action::OPEN, true);
-	break;
+        fd = new Gtk::FileChooserDialog(*win, gettext("Path in collection"),
+                                        Gtk::FileChooser::Action::OPEN, true);
+        break;
       }
     default:
       return void();
@@ -502,12 +495,12 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
   fd->set_application(win->get_application());
   fd->set_modal(true);
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      books_path.u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(books_path.u8string());
   fd->set_current_folder(initial);
 
-  Gtk::Button *but = fd->add_button(gettext("Cancel"),
-				    Gtk::ResponseType::CANCEL);
+  Gtk::Button *but
+      = fd->add_button(gettext("Cancel"), Gtk::ResponseType::CANCEL);
   but->set_margin(5);
   but->set_name("cancelBut");
 
@@ -516,18 +509,18 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     case 1:
     case 2:
       {
-	but = fd->add_button(gettext("Save"), Gtk::ResponseType::ACCEPT);
-	break;
+        but = fd->add_button(gettext("Save"), Gtk::ResponseType::ACCEPT);
+        break;
       }
     case 3:
       {
-	but = fd->add_button(gettext("Open"), Gtk::ResponseType::ACCEPT);
-	break;
+        but = fd->add_button(gettext("Open"), Gtk::ResponseType::ACCEPT);
+        break;
       }
     default:
       {
-	delete fd;
-	return void();
+        delete fd;
+        return void();
       }
     }
   but->set_margin(5);
@@ -539,72 +532,75 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	if(bbe_from.bpe.book_path.empty())
-	  {
-	    std::string ext = af->get_extension(bbe_from.file_path);
-	    ext = "*" + ext;
-	    filter->add_pattern(Glib::ustring(ext));
-	    fd->set_current_name(
-		Glib::ustring(bbe_from.file_path.filename().u8string()));
-	  }
-	else
-	  {
-	    std::string bp = bbe_from.bpe.book_path;
-	    std::string::size_type n = bp.rfind("\n");
-	    if(n != std::string::npos)
-	      {
-		bp.erase(0, n + std::string("\n").size());
-	      }
-	    std::filesystem::path p = std::filesystem::u8path(bp);
-	    std::string ext = af->get_extension(p);
-	    ext = "*" + ext;
-	    filter->add_pattern(Glib::ustring(ext));
-	    fd->set_current_name(p.filename().u8string());
-	  }
-	break;
+        if(bbe_from.bpe.book_path.empty())
+          {
+            std::string ext = af->get_extension(bbe_from.file_path);
+            ext = "*" + ext;
+            filter->add_pattern(Glib::ustring(ext));
+            fd->set_current_name(
+                Glib::ustring(bbe_from.file_path.filename().u8string()));
+          }
+        else
+          {
+            std::string bp = bbe_from.bpe.book_path;
+            std::string::size_type n = bp.rfind("\n");
+            if(n != std::string::npos)
+              {
+                bp.erase(0, n + std::string("\n").size());
+              }
+            std::filesystem::path p = std::filesystem::u8path(bp);
+            std::string ext = af->get_extension(p);
+            ext = "*" + ext;
+            filter->add_pattern(Glib::ustring(ext));
+            fd->set_current_name(p.filename().u8string());
+          }
+        break;
       }
     case 2:
       {
-	std::filesystem::path p;
-	if(bbe_from.bpe.book_path.empty())
-	  {
-	    p = bbe_from.file_path;
-	  }
-	else
-	  {
-	    std::string bp = bbe_from.bpe.book_path;
-	    std::string::size_type n = bp.rfind("\n");
-	    if(n != std::string::npos)
-	      {
-		bp.erase(0, n + std::string("\n").size());
-	      }
-	    p = std::filesystem::u8path(bp);
-	  }
-	Glib::RefPtr<Gtk::StringObject> type = std::dynamic_pointer_cast<
-	    Gtk::StringObject>(arch_types->get_selected_item());
-	if(type)
-	  {
-	    std::string suffix(type->get_string());
-	    filter->add_suffix(suffix);
-	    fd->set_current_name(p.stem().u8string() + "." + suffix);
-	  }
-	else
-	  {
-	    std::cout << "TransferBookGui::path_choose_dialog_overwrite error: "
-		"archive type is null" << std::endl;
-	    return void();
-	  }
-	break;
+        std::filesystem::path p;
+        if(bbe_from.bpe.book_path.empty())
+          {
+            p = bbe_from.file_path;
+          }
+        else
+          {
+            std::string bp = bbe_from.bpe.book_path;
+            std::string::size_type n = bp.rfind("\n");
+            if(n != std::string::npos)
+              {
+                bp.erase(0, n + std::string("\n").size());
+              }
+            p = std::filesystem::u8path(bp);
+          }
+        Glib::RefPtr<Gtk::StringObject> type
+            = std::dynamic_pointer_cast<Gtk::StringObject>(
+                arch_types->get_selected_item());
+        if(type)
+          {
+            std::string suffix(type->get_string());
+            filter->add_suffix(suffix);
+            fd->set_current_name(p.stem().u8string() + "." + suffix);
+          }
+        else
+          {
+            std::cout
+                << "TransferBookGui::path_choose_dialog_overwrite error: "
+                   "archive type is null"
+                << std::endl;
+            return void();
+          }
+        break;
       }
     case 3:
       {
-	types = af->get_supported_archive_types_packing();
-	for(auto it = types.begin(); it != types.end(); it++)
-	  {
-	    filter->add_suffix(*it);
-	  }
-	filter->set_name(gettext("All supported"));
-	break;
+        types = af->get_supported_archive_types_packing();
+        for(auto it = types.begin(); it != types.end(); it++)
+          {
+            filter->add_suffix(*it);
+          }
+        filter->set_name(gettext("All supported"));
+        break;
       }
     default:
       return void();
@@ -616,12 +612,12 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
       fd->set_filter(filter);
 
       for(auto it = types.begin(); it != types.end(); it++)
-	{
-	  filter = Gtk::FileFilter::create();
-	  filter->add_suffix(*it);
-	  filter->set_name(Glib::ustring("*.") + *it);
-	  fd->add_filter(filter);
-	}
+        {
+          filter = Gtk::FileFilter::create();
+          filter->add_suffix(*it);
+          filter->set_name(Glib::ustring("*.") + *it);
+          fd->add_filter(filter);
+        }
     }
   else
     {
@@ -633,32 +629,32 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     case 1:
     case 2:
       {
-	fd->signal_response().connect(
-	    std::bind(&TransferBookGui::path_choose_dialog_overwrite_slot, this,
-		      std::placeholders::_1, fd, win, variant));
-	break;
+        fd->signal_response().connect(
+            std::bind(&TransferBookGui::path_choose_dialog_overwrite_slot,
+                      this, std::placeholders::_1, fd, win, variant));
+        break;
       }
     case 3:
       {
-	fd->signal_response().connect(
-	    std::bind(&TransferBookGui::path_choose_dialog_add_slot, this,
-		      std::placeholders::_1, fd, win));
-	break;
+        fd->signal_response().connect(
+            std::bind(&TransferBookGui::path_choose_dialog_add_slot, this,
+                      std::placeholders::_1, fd, win));
+        break;
       }
     default:
       {
-	delete fd;
-	return void();
+        delete fd;
+        return void();
       }
     }
 
-  fd->signal_close_request().connect([fd]
-  {
-    std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
-    fdl->set_visible(false);
-    return true;
-  },
-				     false);
+  fd->signal_close_request().connect(
+      [fd] {
+        std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
+        fdl->set_visible(false);
+        return true;
+      },
+      false);
 
   fd->present();
 #endif
@@ -679,61 +675,59 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::FAILED)
-	{
-	  std::cout
-	      << "TransferBookGui::path_choose_dialog_overwrite_slot error: "
-	      << er.what() << std::endl;
-	}
+        {
+          std::cout
+              << "TransferBookGui::path_choose_dialog_overwrite_slot error: "
+              << er.what() << std::endl;
+        }
     }
   if(fl)
     {
       out_file_path = std::filesystem::u8path(fl->get_path());
       switch(variant)
-	{
-	case 1:
-	  {
-	    copy_process_window(win);
+        {
+        case 1:
+          {
+            copy_process_window(win);
 
-	    std::shared_ptr<int> res_var = std::make_shared<int>(0);
+            std::shared_ptr<int> res_var = std::make_shared<int>(0);
 
-	    copy_result_disp = std::make_shared<Glib::Dispatcher>();
-	    copy_result_disp->connect([this, res_var, win]
-	    {
-	      this->finish_window(win, *res_var);
-	      if(*res_var == 3)
-		{
-		  if(success_signal)
-		    {
-		      success_signal(this->bbe_from, this->collection_from);
-		    }
-		}
-	    });
+            copy_result_disp = std::make_shared<Glib::Dispatcher>();
+            copy_result_disp->connect([this, res_var, win] {
+              this->finish_window(win, *res_var);
+              if(*res_var == 3)
+                {
+                  if(success_signal)
+                    {
+                      success_signal(this->bbe_from, this->collection_from);
+                    }
+                }
+            });
 
-	    std::thread *thr = new std::thread([variant, res_var, this]
-	    {
-	      try
-		{
-		  copy_overwrite(variant, res_var);
-		}
-	      catch(MLException &er)
-		{
-		  std::cout << er.what() << std::endl;
-		  *res_var = 1;
-		  this->copy_result_disp->emit();
-		}
-	    });
-	    thr->detach();
-	    delete thr;
-	    break;
-	  }
-	case 2:
-	  {
-	    path_in_archive_window(win, variant);
-	    break;
-	  }
-	default:
-	  break;
-	}
+            std::thread *thr = new std::thread([variant, res_var, this] {
+              try
+                {
+                  copy_overwrite(variant, res_var);
+                }
+              catch(MLException &er)
+                {
+                  std::cout << er.what() << std::endl;
+                  *res_var = 1;
+                  this->copy_result_disp->emit();
+                }
+            });
+            thr->detach();
+            delete thr;
+            break;
+          }
+        case 2:
+          {
+            path_in_archive_window(win, variant);
+            break;
+          }
+        default:
+          break;
+        }
     }
 }
 #endif
@@ -762,14 +756,14 @@ TransferBookGui::copy_process_window(Gtk::Window *win)
 
 void
 TransferBookGui::copy_overwrite(const int &variant,
-				const std::shared_ptr<int> &res_var)
+                                const std::shared_ptr<int> &res_var)
 {
   std::filesystem::path tmp = af->temp_path();
   tmp /= std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath tmp_p(tmp);
   OpenBook ob(af);
-  std::filesystem::path sbp = ob.open_book(bbe_from, false, tmp_p.path, true,
-					   nullptr);
+  std::filesystem::path sbp
+      = ob.open_book(bbe_from, false, tmp_p.path, true, nullptr);
   BookBaseEntry bbe_out = bbe_from;
   bbe_out.file_path = out_file_path;
   bbe_out.bpe.book_path.clear();
@@ -777,121 +771,120 @@ TransferBookGui::copy_overwrite(const int &variant,
   if(std::filesystem::exists(sbp))
     {
       AddBook ab(af, collection_to, false, bookmarks);
-      std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> books;
+      std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
+          books;
       if(!_transfer_fbd)
-	{
-	  switch(variant)
-	    {
-	    case 1:
-	      {
-		books.push_back(std::make_tuple(sbp, out_file_path));
-		bbe_out.bpe.book_path.clear();
-		try
-		  {
-		    ab.simple_add(books);
-		  }
-		catch(MLException &er)
-		  {
-		    std::cout << er.what() << std::endl;
-		    *res_var = 1;
-		    copy_result_disp->emit();
-		    return void();
-		  }
-		break;
-	      }
-	    case 2:
-	      {
-		books.push_back(
-		    std::make_tuple(sbp,
-				    std::filesystem::u8path(path_in_arch)));
-		bbe_out.bpe.book_path = path_in_arch;
-		try
-		  {
-		    ab.overwrite_archive(out_file_path, books);
-		  }
-		catch(MLException &er)
-		  {
-		    std::cout << er.what() << std::endl;
-		    *res_var = 1;
-		    copy_result_disp->emit();
-		    return void();
-		  }
-		break;
-	      }
-	    case 3:
-	      {
-		books.push_back(
-		    std::make_tuple(sbp,
-				    std::filesystem::u8path(path_in_arch)));
-		bbe_out.bpe.book_path = path_in_arch;
-		try
-		  {
-		    ab.add_to_existing_archive(out_file_path, books);
-		  }
-		catch(MLException &er)
-		  {
-		    std::cout << er.what() << std::endl;
-		    *res_var = 1;
-		    copy_result_disp->emit();
-		    return void();
-		  }
-		break;
-	      }
-	    default:
-	      break;
-	    }
-	}
+        {
+          switch(variant)
+            {
+            case 1:
+              {
+                books.push_back(std::make_tuple(sbp, out_file_path));
+                bbe_out.bpe.book_path.clear();
+                try
+                  {
+                    ab.simple_add(books);
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    *res_var = 1;
+                    copy_result_disp->emit();
+                    return void();
+                  }
+                break;
+              }
+            case 2:
+              {
+                books.push_back(std::make_tuple(
+                    sbp, std::filesystem::u8path(path_in_arch)));
+                bbe_out.bpe.book_path = path_in_arch;
+                try
+                  {
+                    ab.overwrite_archive(out_file_path, books);
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    *res_var = 1;
+                    copy_result_disp->emit();
+                    return void();
+                  }
+                break;
+              }
+            case 3:
+              {
+                books.push_back(std::make_tuple(
+                    sbp, std::filesystem::u8path(path_in_arch)));
+                bbe_out.bpe.book_path = path_in_arch;
+                try
+                  {
+                    ab.add_to_existing_archive(out_file_path, books);
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    *res_var = 1;
+                    copy_result_disp->emit();
+                    return void();
+                  }
+                break;
+              }
+            default:
+              break;
+            }
+        }
       else
-	{
-	  books.push_back(
-	      std::make_tuple(sbp, std::filesystem::u8path(path_in_arch)));
-	  bbe_out.bpe.book_path = path_in_arch;
-	  std::filesystem::path fbd_p_arch = std::filesystem::u8path(
-	      path_in_arch);
+        {
+          books.push_back(
+              std::make_tuple(sbp, std::filesystem::u8path(path_in_arch)));
+          bbe_out.bpe.book_path = path_in_arch;
+          std::filesystem::path fbd_p_arch
+              = std::filesystem::u8path(path_in_arch);
 
-	  std::string sstr = sbp.stem().u8string();
-	  std::string ext;
-	  for(auto &dirit : std::filesystem::recursive_directory_iterator(
-	      sbp.parent_path()))
-	    {
-	      std::filesystem::path p = dirit.path();
-	      ext = p.extension().u8string();
-	      ext = af->stringToLower(ext);
-	      if(!std::filesystem::is_directory(p)
-		  && p.stem().u8string() == sstr && ext == ".fbd")
-		{
-		  fbd_p_arch.replace_extension(p.extension());
-		  books.push_back(std::make_tuple(p, fbd_p_arch));
-		  break;
-		}
-	    }
-	  ab.overwrite_archive(out_file_path, books);
-	}
+          std::string sstr = sbp.stem().u8string();
+          std::string ext;
+          for(auto &dirit :
+              std::filesystem::recursive_directory_iterator(sbp.parent_path()))
+            {
+              std::filesystem::path p = dirit.path();
+              ext = p.extension().u8string();
+              ext = af->stringToLower(ext);
+              if(!std::filesystem::is_directory(p)
+                 && p.stem().u8string() == sstr && ext == ".fbd")
+                {
+                  fbd_p_arch.replace_extension(p.extension());
+                  books.push_back(std::make_tuple(p, fbd_p_arch));
+                  break;
+                }
+            }
+          ab.overwrite_archive(out_file_path, books);
+        }
     }
 
   if(std::filesystem::exists(out_file_path))
     {
       std::atomic<bool> cancel;
       cancel.store(false);
-      std::shared_ptr<RefreshCollection> rfr = std::make_shared<
-	  RefreshCollection>(af, collection_to,
-			     std::thread::hardware_concurrency(), &cancel,
-			     false, true, false, bookmarks);
+      std::shared_ptr<RefreshCollection> rfr
+          = std::make_shared<RefreshCollection>(
+              af, collection_to, std::thread::hardware_concurrency(), &cancel,
+              false, true, false, bookmarks);
 
       if(rfr->refreshBook(bbe_out))
-	{
-	  rfr.reset();
-	  std::shared_ptr<RemoveBook> rmb = std::make_shared<RemoveBook>(
-	      af, bbe_from, collection_from, bookmarks);
-	  rmb->removeBook();
-	  *res_var = 3;
-	  copy_result_disp->emit();
-	}
+        {
+          rfr.reset();
+          std::shared_ptr<RemoveBook> rmb = std::make_shared<RemoveBook>(
+              af, bbe_from, collection_from, bookmarks);
+          rmb->removeBook();
+          *res_var = 3;
+          copy_result_disp->emit();
+        }
       else
-	{
-	  *res_var = 2;
-	  copy_result_disp->emit();
-	}
+        {
+          *res_var = 2;
+          copy_result_disp->emit();
+        }
     }
 }
 
@@ -921,19 +914,19 @@ TransferBookGui::finish_window(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	lab->set_text(gettext("Error! See system log for details."));
-	break;
+        lab->set_text(gettext("Error! See system log for details."));
+        break;
       }
     case 2:
       {
-	lab->set_text(
-	    gettext("Error! Book has not been found in new location!"));
-	break;
+        lab->set_text(
+            gettext("Error! Book has not been found in new location!"));
+        break;
       }
     default:
       {
-	lab->set_text(gettext("Book has been successfully moved!"));
-	break;
+        lab->set_text(gettext("Book has been successfully moved!"));
+        break;
       }
     }
 
@@ -999,9 +992,9 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
       std::string sstr = "\n";
       std::string::size_type n = bp.rfind(sstr);
       if(n != std::string::npos)
-	{
-	  bp.erase(0, n + sstr.size());
-	}
+        {
+          bp.erase(0, n + sstr.size());
+        }
       p = std::filesystem::u8path(bp);
     }
   path_in_archive_ent->set_text(p.filename().u8string());
@@ -1012,9 +1005,9 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
   move->set_halign(Gtk::Align::CENTER);
   move->set_name("applyBut");
   move->set_label(gettext("Move"));
-  move->signal_clicked().connect(
-      std::bind(&TransferBookGui::copy_archive, this, win, window,
-		path_in_archive_ent, variant));
+  move->signal_clicked().connect(std::bind(&TransferBookGui::copy_archive,
+                                           this, win, window,
+                                           path_in_archive_ent, variant));
   grid->attach(*move, 0, 4, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -1025,20 +1018,20 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*cancel, 1, 4, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::shared_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }
 
 void
 TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
-			      Gtk::Entry *p_in_arch, const int &variant)
+                              Gtk::Entry *p_in_arch, const int &variant)
 {
   path_in_arch = std::string(p_in_arch->get_text());
   if(path_in_arch.empty())
@@ -1051,29 +1044,29 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       std::string sstr = "\\";
       std::string::size_type n = 0;
       for(;;)
-	{
-	  n = path_in_arch.find(sstr, n);
-	  if(n != std::string::npos)
-	    {
-	      path_in_arch.erase(n, sstr.size());
-	      path_in_arch.insert(n, "/");
-	    }
-	  else
-	    {
-	      break;
-	    }
-	}
+        {
+          n = path_in_arch.find(sstr, n);
+          if(n != std::string::npos)
+            {
+              path_in_arch.erase(n, sstr.size());
+              path_in_arch.insert(n, "/");
+            }
+          else
+            {
+              break;
+            }
+        }
     }
 
   if(variant == 3)
     {
       auto itinarch = std::find(arch_filelist.begin(), arch_filelist.end(),
-				path_in_arch);
+                                path_in_arch);
       if(itinarch != arch_filelist.end())
-	{
-	  alert_dialog(win, 2);
-	  return void();
-	}
+        {
+          alert_dialog(win, 2);
+          return void();
+        }
     }
 
   win->close();
@@ -1083,29 +1076,27 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
   std::shared_ptr<int> res_var = std::make_shared<int>(0);
 
   copy_result_disp = std::make_shared<Glib::Dispatcher>();
-  copy_result_disp->connect([this, res_var, parent_win]
-  {
+  copy_result_disp->connect([this, res_var, parent_win] {
     this->finish_window(parent_win, *res_var);
     if(*res_var == 3)
       {
-	if(success_signal)
-	  {
-	    success_signal(this->bbe_from, this->collection_from);
-	  }
+        if(success_signal)
+          {
+            success_signal(this->bbe_from, this->collection_from);
+          }
       }
   });
 
-  std::thread *thr = new std::thread([res_var, this, variant]
-  {
+  std::thread *thr = new std::thread([res_var, this, variant] {
     try
       {
-	copy_overwrite(variant, res_var);
+        copy_overwrite(variant, res_var);
       }
     catch(MLException &er)
       {
-	std::cout << er.what() << std::endl;
-	*res_var = 1;
-	this->copy_result_disp->emit();
+        std::cout << er.what() << std::endl;
+        *res_var = 1;
+        this->copy_result_disp->emit();
       }
   });
   thr->detach();
@@ -1126,10 +1117,10 @@ TransferBookGui::path_choose_dialog_add_slot(
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::FAILED)
-	{
-	  std::cout << "TransferBookGui::path_choose_dialog_add_slot error: "
-	      << er.what() << std::endl;
-	}
+        {
+          std::cout << "TransferBookGui::path_choose_dialog_add_slot error: "
+                    << er.what() << std::endl;
+        }
     }
   if(fl)
     {
@@ -1142,29 +1133,27 @@ TransferBookGui::path_choose_dialog_add_slot(
       window->set_modal(true);
       window->set_deletable(false);
 
-      window->signal_close_request().connect([window]
-      {
-	std::shared_ptr<Gtk::Window> win(window);
-	win->set_visible(false);
-	return true;
-      },
-					     false);
+      window->signal_close_request().connect(
+          [window] {
+            std::shared_ptr<Gtk::Window> win(window);
+            win->set_visible(false);
+            return true;
+          },
+          false);
 
       window->present();
 
       copy_process_window(window);
 
       form_arch_filelist_disp = std::make_shared<Glib::Dispatcher>();
-      form_arch_filelist_disp->connect([window, win, this]
-      {
-	window->close();
-	this->path_in_archive_window(win, 3);
+      form_arch_filelist_disp->connect([window, win, this] {
+        window->close();
+        this->path_in_archive_window(win, 3);
       });
 
-      std::thread *thr = new std::thread([this]
-      {
-	this->arch_filelist = AddBook::archive_filenames(out_file_path);
-	this->form_arch_filelist_disp->emit();
+      std::thread *thr = new std::thread([this] {
+        this->arch_filelist = AddBook::archive_filenames(out_file_path);
+        this->form_arch_filelist_disp->emit();
       });
       thr->detach();
       delete thr;
@@ -1175,114 +1164,111 @@ TransferBookGui::path_choose_dialog_add_slot(
 #ifdef ML_GTK_OLD
 void
 TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
-						   Gtk::FileChooserDialog *fd,
-						   Gtk::Window *win,
-						   const int &variant)
+                                                   Gtk::FileChooserDialog *fd,
+                                                   Gtk::Window *win,
+                                                   const int &variant)
 {
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  out_file_path = std::filesystem::u8path(fl->get_path());
-	  switch(variant)
-	    {
-	    case 1:
-	      {
-		copy_process_window(win);
+        {
+          out_file_path = std::filesystem::u8path(fl->get_path());
+          switch(variant)
+            {
+            case 1:
+              {
+                copy_process_window(win);
 
-		std::shared_ptr<int> res_var = std::make_shared<int>(0);
+                std::shared_ptr<int> res_var = std::make_shared<int>(0);
 
-		copy_result_disp = std::make_shared<Glib::Dispatcher>();
-		copy_result_disp->connect([this, res_var, win]
-		{
-		  this->finish_window(win, *res_var);
-		  if(*res_var == 3)
-		    {
-		      if(success_signal)
-			{
-			  success_signal(this->bbe_from, this->collection_from);
-			}
-		    }
-		});
+                copy_result_disp = std::make_shared<Glib::Dispatcher>();
+                copy_result_disp->connect([this, res_var, win] {
+                  this->finish_window(win, *res_var);
+                  if(*res_var == 3)
+                    {
+                      if(success_signal)
+                        {
+                          success_signal(this->bbe_from,
+                                         this->collection_from);
+                        }
+                    }
+                });
 
-		std::thread *thr = new std::thread([variant, res_var, this]
-		{
-		  try
-		    {
-		      copy_overwrite(variant, res_var);
-		    }
-		  catch(MLException &er)
-		    {
-		      std::cout << er.what() << std::endl;
-		      *res_var = 1;
-		      this->copy_result_disp->emit();
-		    }
-		});
-		thr->detach();
-		delete thr;
-		break;
-	      }
-	    case 2:
-	      {
-		path_in_archive_window(win, variant);
-		break;
-	      }
-	    default:
-	      break;
-	    }
-	}
+                std::thread *thr = new std::thread([variant, res_var, this] {
+                  try
+                    {
+                      copy_overwrite(variant, res_var);
+                    }
+                  catch(MLException &er)
+                    {
+                      std::cout << er.what() << std::endl;
+                      *res_var = 1;
+                      this->copy_result_disp->emit();
+                    }
+                });
+                thr->detach();
+                delete thr;
+                break;
+              }
+            case 2:
+              {
+                path_in_archive_window(win, variant);
+                break;
+              }
+            default:
+              break;
+            }
+        }
     }
   fd->close();
 }
 
 void
 TransferBookGui::path_choose_dialog_add_slot(int resp,
-					     Gtk::FileChooserDialog *fd,
-					     Gtk::Window *win)
+                                             Gtk::FileChooserDialog *fd,
+                                             Gtk::Window *win)
 {
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
 
       if(fl)
-	{
-	  out_file_path = std::filesystem::u8path(fl->get_path());
+        {
+          out_file_path = std::filesystem::u8path(fl->get_path());
 
-	  Gtk::Window *window = new Gtk::Window;
-	  window->set_application(win->get_application());
-	  window->set_title(gettext("Wait..."));
-	  window->set_transient_for(*win);
-	  window->set_modal(true);
-	  window->set_deletable(false);
+          Gtk::Window *window = new Gtk::Window;
+          window->set_application(win->get_application());
+          window->set_title(gettext("Wait..."));
+          window->set_transient_for(*win);
+          window->set_modal(true);
+          window->set_deletable(false);
 
-	  window->signal_close_request().connect([window]
-	  {
-	    std::shared_ptr<Gtk::Window> win(window);
-	    win->set_visible(false);
-	    return true;
-	  },
-						 false);
+          window->signal_close_request().connect(
+              [window] {
+                std::shared_ptr<Gtk::Window> win(window);
+                win->set_visible(false);
+                return true;
+              },
+              false);
 
-	  window->present();
+          window->present();
 
-	  copy_process_window(window);
+          copy_process_window(window);
 
-	  form_arch_filelist_disp = std::make_shared<Glib::Dispatcher>();
-	  form_arch_filelist_disp->connect([window, win, this]
-	  {
-	    window->close();
-	    this->path_in_archive_window(win, 3);
-	  });
+          form_arch_filelist_disp = std::make_shared<Glib::Dispatcher>();
+          form_arch_filelist_disp->connect([window, win, this] {
+            window->close();
+            this->path_in_archive_window(win, 3);
+          });
 
-	  std::thread *thr = new std::thread([this]
-	  {
-	    this->arch_filelist = AddBook::archive_filenames(out_file_path);
-	    this->form_arch_filelist_disp->emit();
-	  });
-	  thr->detach();
-	  delete thr;
-	}
+          std::thread *thr = new std::thread([this] {
+            this->arch_filelist = AddBook::archive_filenames(out_file_path);
+            this->form_arch_filelist_disp->emit();
+          });
+          thr->detach();
+          delete thr;
+        }
     }
 
   fd->close();
@@ -1312,19 +1298,19 @@ TransferBookGui::alert_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	lab->set_text(gettext("Error! Path in archive cannot be empty!"));
-	break;
+        lab->set_text(gettext("Error! Path in archive cannot be empty!"));
+        break;
       }
     case 2:
       {
-	lab->set_text(
-	    gettext("Error! File with such name is already in archive!"));
-	break;
+        lab->set_text(
+            gettext("Error! File with such name is already in archive!"));
+        break;
       }
     default:
       {
-	delete window;
-	return void();
+        delete window;
+        return void();
       }
     }
   grid->attach(*lab, 0, 0, 1, 1);
@@ -1337,13 +1323,13 @@ TransferBookGui::alert_dialog(Gtk::Window *win, const int &variant)
   close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*close, 0, 1, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::shared_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }

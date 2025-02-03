@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_SEARCHRESULTSHOW_H_
-#define INCLUDE_SEARCHRESULTSHOW_H_
+#ifndef SEARCHRESULTSHOW_H
+#define SEARCHRESULTSHOW_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
+#include <GenreGroup.h>
+#include <SearchResultModelItem.h>
+#include <SearchResultModelItemFL.h>
 #include <giomm-2.68/giomm/liststore.h>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
+#include <gtkmm-4.0/gtkmm/filterlistmodel.h>
 #include <gtkmm-4.0/gtkmm/listitem.h>
 #include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
-#include <GenreGroup.h>
-#include <SearchResultModelItem.h>
+#include <gtkmm-4.0/gtkmm/stringfilter.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,9 +39,7 @@ class SearchResultShow
 {
 public:
   SearchResultShow(const std::shared_ptr<AuxFunc> &af,
-		   Gtk::ColumnView *search_res);
-  virtual
-  ~SearchResultShow();
+                   Gtk::ColumnView *search_res);
 
   void
   clearSearchResult();
@@ -47,10 +48,19 @@ public:
   searchResultShow(const std::vector<BookBaseEntry> &result);
 
   void
+  searchResultShow(const std::vector<FileParseEntry> &result);
+
+  void
   select_item(const Glib::RefPtr<SearchResultModelItem> &item);
+
+  void
+  select_item(const Glib::RefPtr<SearchResultModelItemFL> &item);
 
   Glib::RefPtr<SearchResultModelItem>
   get_selected_item();
+
+  Glib::RefPtr<SearchResultModelItemFL>
+  get_selected_item_file();
 
   void
   removeItem(const Glib::RefPtr<SearchResultModelItem> &item);
@@ -60,6 +70,12 @@ public:
 
   Glib::RefPtr<Gio::ListStore<SearchResultModelItem>>
   get_model();
+
+  void
+  filterFiles(const Glib::ustring &filter_val);
+
+  void
+  filterBooks(const Glib::ustring &filter_val, const guint &variant);
 
 private:
   Glib::RefPtr<Gtk::SignalListItemFactory>
@@ -86,11 +102,14 @@ private:
       const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
 
   void
+  formFilesColumn(
+      const Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> &model);
+
+  void
   itemSetup(const Glib::RefPtr<Gtk::ListItem> &list_item);
 
   void
-  itemBind(const Glib::RefPtr<Gtk::ListItem> &list_item,
-	   const int &variant);
+  itemBind(const Glib::RefPtr<Gtk::ListItem> &list_item, const int &variant);
 
   Glib::ustring
   translate_genres(const std::string &genres);
@@ -100,7 +119,7 @@ private:
 
   Glib::ustring
   expression_slot(const Glib::RefPtr<Glib::ObjectBase> &list_item,
-		  const int &variant);
+                  const int &variant);
 
   std::shared_ptr<AuxFunc> af;
   Gtk::ColumnView *search_res = nullptr;
@@ -108,8 +127,20 @@ private:
   std::vector<GenreGroup> genre_list;
 
   Glib::RefPtr<SearchResultModelItem> selected_item;
+  Glib::RefPtr<SearchResultModelItemFL> selected_item_file;
 
   Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> model;
+  Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> model_files;
+
+  Glib::RefPtr<Gtk::StringFilter> str_filter;
+
+  Glib::RefPtr<Gtk::FilterListModel> filter_model;
+
+  Glib::RefPtr<Gtk::StringFilter> author_filter;
+  Glib::RefPtr<Gtk::StringFilter> book_filter;
+  Glib::RefPtr<Gtk::StringFilter> series_filter;
+  Glib::RefPtr<Gtk::StringFilter> genre_filter;
+  Glib::RefPtr<Gtk::StringFilter> date_filter;
 };
 
-#endif /* INCLUDE_SEARCHRESULTSHOW_H_ */
+#endif // SEARCHRESULTSHOW_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "AddBookModelItem.h"
+#include <AddBookModelItem.h>
 
 AddBookModelItem::AddBookModelItem(const std::string &source_path)
 {
   this->source_path = source_path;
-}
-
-AddBookModelItem::~AddBookModelItem()
-{
-
 }
 
 Glib::RefPtr<AddBookModelItem>

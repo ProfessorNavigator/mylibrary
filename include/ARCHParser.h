@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_ARCHPARSER_H_
-#define INCLUDE_ARCHPARSER_H_
+#ifndef ARCHPARSER_H
+#define ARCHPARSER_H
 
-#include <archive.h>
 #include <AuxFunc.h>
 #include <BookParseEntry.h>
 #include <LibArchive.h>
+#include <archive.h>
 #include <atomic>
 #include <filesystem>
 #include <memory>
+#include <thread>
 #include <vector>
 
 class ARCHParser : public LibArchive
 {
 public:
   ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support,
-	     std::atomic<bool> *cancel);
-  virtual
-  ~ARCHParser();
+             std::atomic<bool> *cancel);
+
+  virtual ~ARCHParser();
 
   std::vector<BookParseEntry>
   arch_parser(const std::filesystem::path &filepath);
@@ -44,11 +45,14 @@ private:
 
   void
   unpack_entry(const std::filesystem::path &ch_p,
-	       const std::shared_ptr<archive> &a,
-	       const std::shared_ptr<archive_entry> &e);
+               const std::shared_ptr<archive> &a,
+               const std::shared_ptr<archive_entry> &e);
 
   void
   check_for_fbd();
+
+  static void
+  signalHandler(int sig);
 
   std::shared_ptr<AuxFunc> af;
   bool rar_support = false;
@@ -56,6 +60,8 @@ private:
 
   std::vector<BookParseEntry> result;
   std::vector<BookParseEntry> fbd;
+
+  std::thread parse_thr;
 };
 
-#endif /* INCLUDE_ARCHPARSER_H_ */
+#endif // ARCHPARSER_H

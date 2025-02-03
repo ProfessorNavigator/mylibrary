@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_ADDBOOK_H_
-#define INCLUDE_ADDBOOK_H_
+#ifndef ADDBOOK_H
+#define ADDBOOK_H
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
@@ -30,46 +30,48 @@ class AddBook
 {
 public:
   AddBook(const std::shared_ptr<AuxFunc> &af,
-	  const std::string &collection_name, const bool &remove_sources,
-	  const std::shared_ptr<BookMarks> &bookmarks);
-  virtual
-  ~AddBook();
+          const std::string &collection_name, const bool &remove_sources,
+          const std::shared_ptr<BookMarks> &bookmarks);
 
   void
-  simple_add(
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+  simple_add(const std::vector<
+             std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   void
-  simple_add_dir(
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+  simple_add_dir(const std::vector<std::tuple<std::filesystem::path,
+                                              std::filesystem::path>> &books);
 
   void
   overwrite_archive(
       const std::filesystem::path &archive_path,
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+      const std::vector<
+          std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   void
   overwrite_archive_dir(
       const std::filesystem::path &archive_path,
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+      const std::vector<
+          std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   void
   add_to_existing_archive(
       const std::filesystem::path &archive_path,
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+      const std::vector<
+          std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   void
   add_to_existing_archive_dir(
       const std::filesystem::path &archive_path,
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+      const std::vector<
+          std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   static std::vector<std::string>
   archive_filenames(const std::filesystem::path &archive_path);
 
 private:
   void
-  remove_src(
-      const std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> &books);
+  remove_src(const std::vector<
+             std::tuple<std::filesystem::path, std::filesystem::path>> &books);
 
   std::shared_ptr<AuxFunc> af;
   std::string collection_name;
@@ -77,4 +79,4 @@ private:
   std::shared_ptr<BookMarks> bookmarks;
 };
 
-#endif /* INCLUDE_ADDBOOK_H_ */
+#endif // ADDBOOK_H

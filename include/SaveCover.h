@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_SAVECOVER_H_
-#define INCLUDE_SAVECOVER_H_
+#ifndef SAVECOVER_H
+#define SAVECOVER_H
 
 #include <BookInfoEntry.h>
 #include <giomm-2.68/giomm/asyncresult.h>
@@ -38,9 +38,7 @@ class SaveCover
 {
 public:
   SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
-	    Gtk::Window *parent_window);
-  virtual
-  ~SaveCover();
+            Gtk::Window *parent_window);
 
   void
   createWindow();
@@ -55,7 +53,8 @@ private:
 #ifndef ML_GTK_OLD
   void
   save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
-		     const Glib::RefPtr<Gtk::FileDialog> &fd, Gtk::Window *win);
+                     const Glib::RefPtr<Gtk::FileDialog> &fd,
+                     Gtk::Window *win);
 #endif
 
 #ifdef ML_GTK_OLD
@@ -72,4 +71,4 @@ private:
   Gtk::DropDown *format = nullptr;
 };
 
-#endif /* INCLUDE_SAVECOVER_H_ */
+#endif // SAVECOVER_H

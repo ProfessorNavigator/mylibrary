@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,29 +15,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BOOKMARKSGUI_H_
-#define INCLUDE_BOOKMARKSGUI_H_
+#ifndef BOOKMARKSGUI_H
+#define BOOKMARKSGUI_H
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <OpenBook.h>
+#include <SearchResultShow.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <glib-2.0/glib/gtypes.h>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <OpenBook.h>
-#include <SearchResultShow.h>
 #include <memory>
 
 class BookMarksGui
 {
 public:
   BookMarksGui(const std::shared_ptr<AuxFunc> &af,
-	       const std::shared_ptr<BookMarks> &bookmarks,
-	       Gtk::Window *main_window);
-  virtual
-  ~BookMarksGui();
+               const std::shared_ptr<BookMarks> &bookmarks,
+               Gtk::Window *main_window);
+
+  virtual ~BookMarksGui();
 
   void
   createWindow();
@@ -79,4 +79,4 @@ private:
   OpenBook *open_book = nullptr;
 };
 
-#endif /* INCLUDE_BOOKMARKSGUI_H_ */
+#endif // BOOKMARKSGUI_H

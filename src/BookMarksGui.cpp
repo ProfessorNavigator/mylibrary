@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,11 @@
 #include <BookInfoGui.h>
 #include <BookMarksGui.h>
 #include <CopyBookGui.h>
+#include <MLException.h>
+#include <SearchResultModelItem.h>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <gdkmm/display.h>
 #include <gdkmm/monitor.h>
 #include <gdkmm/rectangle.h>
@@ -40,21 +45,14 @@
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/singleselection.h>
 #include <gtkmm/sortlistmodel.h>
-#include <libintl.h>
-#include <MLException.h>
-#include <sigc++/connection.h>
-#include <stddef.h>
-#include <SearchResultModelItem.h>
-#include <filesystem>
-#include <fstream>
-#include <functional>
 #include <iostream>
-#include <string>
+#include <libintl.h>
+#include <sigc++/connection.h>
 #include <vector>
 
 BookMarksGui::BookMarksGui(const std::shared_ptr<AuxFunc> &af,
-			   const std::shared_ptr<BookMarks> &bookmarks,
-			   Gtk::Window *main_window)
+                           const std::shared_ptr<BookMarks> &bookmarks,
+                           Gtk::Window *main_window)
 {
   this->af = af;
   this->bookmarks = bookmarks;
@@ -88,10 +86,10 @@ BookMarksGui::createWindow()
   grid->set_expand(true);
   window->set_child(*grid);
 
-  Gtk::ScrolledWindow *book_marks_scrl =
-      Gtk::make_managed<Gtk::ScrolledWindow>();
+  Gtk::ScrolledWindow *book_marks_scrl
+      = Gtk::make_managed<Gtk::ScrolledWindow>();
   book_marks_scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
-			      Gtk::PolicyType::AUTOMATIC);
+                              Gtk::PolicyType::AUTOMATIC);
   book_marks_scrl->set_halign(Gtk::Align::FILL);
   book_marks_scrl->set_valign(Gtk::Align::FILL);
   book_marks_scrl->set_margin(5);
@@ -103,15 +101,14 @@ BookMarksGui::createWindow()
   book_marks->set_valign(Gtk::Align::FILL);
   book_marks->set_reorderable(true);
   book_marks->set_single_click_activate(true);
-  Glib::PropertyProxy<bool> row_sep =
-      book_marks->property_show_row_separators();
+  Glib::PropertyProxy<bool> row_sep
+      = book_marks->property_show_row_separators();
   row_sep.set_value(true);
-  Glib::PropertyProxy<bool> column_sep =
-      book_marks->property_show_column_separators();
+  Glib::PropertyProxy<bool> column_sep
+      = book_marks->property_show_column_separators();
   column_sep.set_value(true);
-  book_marks->signal_activate().connect(
-      std::bind(&BookMarksGui::slot_row_activated, this,
-		std::placeholders::_1));
+  book_marks->signal_activate().connect(std::bind(
+      &BookMarksGui::slot_row_activated, this, std::placeholders::_1));
   book_marks_scrl->set_child(*book_marks);
 
   srs = new SearchResultShow(af, book_marks);
@@ -123,8 +120,7 @@ BookMarksGui::createWindow()
   Gtk::PopoverMenu *pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu);
   pop_menu->set_parent(*book_marks);
-  book_marks->signal_unrealize().connect([pop_menu]
-  {
+  book_marks->signal_unrealize().connect([pop_menu] {
     pop_menu->unparent();
   });
 
@@ -132,7 +128,7 @@ BookMarksGui::createWindow()
   clck->set_button(3);
   clck->signal_pressed().connect(
       std::bind(&BookMarksGui::show_popup_menu, this, std::placeholders::_1,
-		std::placeholders::_2, std::placeholders::_3, pop_menu));
+                std::placeholders::_2, std::placeholders::_3, pop_menu));
   book_marks->add_controller(clck);
 
   Gtk::MenuButton *book_ops = Gtk::make_managed<Gtk::MenuButton>();
@@ -143,15 +139,15 @@ BookMarksGui::createWindow()
   book_ops->set_name("menBut");
   grid->attach(*book_ops, 0, 1, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    saveWindowSizes(win.get());
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        saveWindowSizes(win.get());
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -172,23 +168,23 @@ BookMarksGui::loadWindowSizes()
       f.seekg(0, std::ios_base::beg);
       int32_t val;
       if(fsz >= 2 * sizeof(val))
-	{
-	  f.read(reinterpret_cast<char*>(&val), sizeof(val));
-	  window_width = static_cast<int>(val);
-	  f.read(reinterpret_cast<char*>(&val), sizeof(val));
-	  window_height = static_cast<int>(val);
-	}
+        {
+          f.read(reinterpret_cast<char *>(&val), sizeof(val));
+          window_width = static_cast<int>(val);
+          f.read(reinterpret_cast<char *>(&val), sizeof(val));
+          window_height = static_cast<int>(val);
+        }
       else
-	{
-	  remove = true;
-	  setWindowSizesByMonitor();
-	}
+        {
+          remove = true;
+          setWindowSizesByMonitor();
+        }
       f.close();
 
       if(remove)
-	{
-	  std::filesystem::remove_all(bmp);
-	}
+        {
+          std::filesystem::remove_all(bmp);
+        }
     }
   else
     {
@@ -225,9 +221,9 @@ BookMarksGui::saveWindowSizes(Gtk::Window *win)
   if(f.is_open())
     {
       int32_t val = static_cast<int32_t>(window_width);
-      f.write(reinterpret_cast<char*>(&val), sizeof(val));
+      f.write(reinterpret_cast<char *>(&val), sizeof(val));
       val = static_cast<int32_t>(window_height);
-      f.write(reinterpret_cast<char*>(&val), sizeof(val));
+      f.write(reinterpret_cast<char *>(&val), sizeof(val));
       f.close();
     }
 }
@@ -235,77 +231,71 @@ BookMarksGui::saveWindowSizes(Gtk::Window *win)
 void
 BookMarksGui::slot_row_activated(guint pos)
 {
-  Glib::RefPtr<Gtk::SingleSelection> model = std::dynamic_pointer_cast<
-      Gtk::SingleSelection>(book_marks->get_model());
+  Glib::RefPtr<Gtk::SingleSelection> model
+      = std::dynamic_pointer_cast<Gtk::SingleSelection>(
+          book_marks->get_model());
   if(model && pos != GTK_INVALID_LIST_POSITION)
     {
-      Glib::RefPtr<Gtk::SortListModel> sort_model = std::dynamic_pointer_cast<
-	  Gtk::SortListModel>(model->get_model());
+      Glib::RefPtr<Gtk::SortListModel> sort_model
+          = std::dynamic_pointer_cast<Gtk::SortListModel>(model->get_model());
       if(sort_model)
-	{
-	  Glib::RefPtr<SearchResultModelItem> item = std::dynamic_pointer_cast<
-	      SearchResultModelItem>(sort_model->get_object(pos));
-	  if(item)
-	    {
-	      srs->select_item(item);
-	    }
-	}
+        {
+          Glib::RefPtr<SearchResultModelItem> item
+              = std::dynamic_pointer_cast<SearchResultModelItem>(
+                  sort_model->get_object(pos));
+          if(item)
+            {
+              srs->select_item(item);
+            }
+        }
     }
 }
 
 void
 BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
 {
-  Glib::RefPtr<Gio::SimpleActionGroup> bookmark_actions =
-      Gio::SimpleActionGroup::create();
+  Glib::RefPtr<Gio::SimpleActionGroup> bookmark_actions
+      = Gio::SimpleActionGroup::create();
 
-  bookmark_actions->add_action(
-      "open_book",
-      [this]
-      {
-	auto item = this->srs->get_selected_item();
-	if(item)
-	  {
-	    try
-	      {
-		std::filesystem::path tmp = af->temp_path();
-		tmp /= std::filesystem::u8path("MyLibraryReading");
-		this->open_book->open_book(
-		    item->bbe,
-		    false,
-		    tmp, false,
-		    std::bind(&AuxFunc::open_book_callback, af.get(),
-			      std::placeholders::_1));
-	      }
-	    catch(MLException &er)
-	      {
-		std::cout << er.what() << std::endl;
-	      }
-	  }
-      });
-
-  bookmark_actions->add_action("book_info", [this, win]
-  {
+  bookmark_actions->add_action("open_book", [this] {
     auto item = this->srs->get_selected_item();
     if(item)
       {
-	BookInfoGui *big = new BookInfoGui(this->af, win);
-	big->creatWindow(item->bbe);
+        try
+          {
+            std::filesystem::path tmp = af->temp_path();
+            tmp /= std::filesystem::u8path("MyLibraryReading");
+            this->open_book->open_book(item->bbe, false, tmp, false,
+                                       std::bind(&AuxFunc::open_book_callback,
+                                                 af.get(),
+                                                 std::placeholders::_1));
+          }
+        catch(MLException &er)
+          {
+            std::cout << er.what() << std::endl;
+          }
       }
   });
 
-  bookmark_actions->add_action("copy_book", [this, win]
-  {
+  bookmark_actions->add_action("book_info", [this, win] {
     auto item = this->srs->get_selected_item();
     if(item)
       {
-	CopyBookGui *cbg = new CopyBookGui(this->af, win, item->bbe);
-	cbg->createWindow();
+        BookInfoGui *big = new BookInfoGui(this->af, win);
+        big->creatWindow(item->bbe);
       }
   });
 
-  bookmark_actions->add_action("remove_book", [this, win]
-  {
+  bookmark_actions->add_action("copy_book", [this, win] {
+    auto item = this->srs->get_selected_item();
+    if(item)
+      {
+        CopyBookGui *cbg = new CopyBookGui(this->af, win, item->bbe);
+        cbg->createWindow();
+      }
+  });
+
+  bookmark_actions->add_action("remove_book", [this, win] {
     this->confirmationDialog(win);
   });
 
@@ -342,15 +332,14 @@ BookMarksGui::confirmationDialog(Gtk::Window *win)
       yes->set_halign(Gtk::Align::CENTER);
       yes->set_label(gettext("Yes"));
       yes->set_name("removeBut");
-      yes->signal_clicked().connect([this, window]
-      {
-	auto item = this->srs->get_selected_item();
-	if(item)
-	  {
-	    this->srs->removeItem(item);
-	    this->bookmarks->removeBookMark(item->bbe);
-	  }
-	window->close();
+      yes->signal_clicked().connect([this, window] {
+        auto item = this->srs->get_selected_item();
+        if(item)
+          {
+            this->srs->removeItem(item);
+            this->bookmarks->removeBookMark(item->bbe);
+          }
+        window->close();
       });
       grid->attach(*yes, 0, 1, 1, 1);
 
@@ -362,13 +351,13 @@ BookMarksGui::confirmationDialog(Gtk::Window *win)
       no->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
       grid->attach(*no, 1, 1, 1, 1);
 
-      window->signal_close_request().connect([window]
-      {
-	std::shared_ptr<Gtk::Window> win(window);
-	win->set_visible(false);
-	return true;
-      },
-					     false);
+      window->signal_close_request().connect(
+          [window] {
+            std::unique_ptr<Gtk::Window> win(window);
+            win->set_visible(false);
+            return true;
+          },
+          false);
 
       window->present();
     }
@@ -379,40 +368,42 @@ BookMarksGui::bookmark_menu()
 {
   Glib::RefPtr<Gio::Menu> result = Gio::Menu::create();
 
-  Glib::RefPtr<Gio::MenuItem> item = Gio::MenuItem::create(
-      gettext("Open book"), "book_mark_ag.open_book");
+  Glib::RefPtr<Gio::MenuItem> item
+      = Gio::MenuItem::create(gettext("Open book"), "book_mark_ag.open_book");
   result->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Book info"), "book_mark_ag.book_info");
   result->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Save book as..."),
-			       "book_mark_ag.copy_book");
+                               "book_mark_ag.copy_book");
   result->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Remove bookmark"),
-			       "book_mark_ag.remove_book");
+                               "book_mark_ag.remove_book");
   result->append_item(item);
 
   return result;
 }
 
 void
-BookMarksGui::show_popup_menu(int num, double x, double y,
-			      Gtk::PopoverMenu *pop_menu)
+BookMarksGui::show_popup_menu(int, double x, double y,
+                              Gtk::PopoverMenu *pop_menu)
 {
   Gdk::Rectangle rec(static_cast<int>(x), static_cast<int>(y), 1, 1);
   pop_menu->set_pointing_to(rec);
   pop_menu->popup();
-  Glib::RefPtr<Gtk::SingleSelection> sing_sel = std::dynamic_pointer_cast<
-      Gtk::SingleSelection>(book_marks->get_model());
+  Glib::RefPtr<Gtk::SingleSelection> sing_sel
+      = std::dynamic_pointer_cast<Gtk::SingleSelection>(
+          book_marks->get_model());
   if(sing_sel)
     {
-      Glib::RefPtr<SearchResultModelItem> item = std::dynamic_pointer_cast<
-	  SearchResultModelItem>(sing_sel->get_selected_item());
+      Glib::RefPtr<SearchResultModelItem> item
+          = std::dynamic_pointer_cast<SearchResultModelItem>(
+              sing_sel->get_selected_item());
       if(item)
-	{
-	  srs->select_item(item);
-	}
+        {
+          srs->select_item(item);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_HASHER_H_
-#define INCLUDE_HASHER_H_
+#ifndef HASHER_H
+#define HASHER_H
 
 #include <AuxFunc.h>
 #include <atomic>
@@ -28,18 +28,16 @@ class Hasher
 {
 public:
   Hasher(const std::shared_ptr<AuxFunc> &af);
-  virtual
-  ~Hasher();
 
   std::string
   buf_hashing(const std::string &buf);
 
   std::string
   file_hashing(const std::filesystem::path &filepath,
-	       std::atomic<bool> *cancel);
+               std::atomic<bool> *cancel);
 
 private:
   std::shared_ptr<AuxFunc> af;
 };
 
-#endif /* INCLUDE_HASHER_H_ */
+#endif // HASHER_H

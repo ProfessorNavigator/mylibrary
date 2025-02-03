@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_EXPORTCOLLECTIONGUI_H_
-#define INCLUDE_EXPORTCOLLECTIONGUI_H_
+#ifndef EXPORTCOLLECTIONGUI_H
+#define EXPORTCOLLECTIONGUI_H
 
 #include <AuxFunc.h>
 #include <giomm-2.68/giomm/asyncresult.h>
@@ -37,9 +37,7 @@ class ExportCollectionGui
 {
 public:
   ExportCollectionGui(const std::shared_ptr<AuxFunc> &af,
-		      Gtk::Window *parent_window);
-  virtual
-  ~ExportCollectionGui();
+                      Gtk::Window *parent_window);
 
   void
   createWindow();
@@ -54,14 +52,14 @@ private:
 #ifndef ML_GTK_OLD
   void
   export_file_dialog_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-			  const Glib::RefPtr<Gtk::FileDialog> &fd,
-			  Gtk::Window *win);
+                          const Glib::RefPtr<Gtk::FileDialog> &fd,
+                          Gtk::Window *win);
 #endif
 
 #ifdef ML_GTK_OLD
   void
   export_file_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
-  			  Gtk::Window *win);
+                          Gtk::Window *win);
 #endif
 
   void
@@ -76,4 +74,4 @@ private:
   Gtk::DropDown *collection = nullptr;
 };
 
-#endif /* INCLUDE_EXPORTCOLLECTIONGUI_H_ */
+#endif // EXPORTCOLLECTIONGUI_H

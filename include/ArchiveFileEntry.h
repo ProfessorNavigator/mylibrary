@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_ARCHIVEFILEENTRY_H_
-#define INCLUDE_ARCHIVEFILEENTRY_H_
+#ifndef ARCHIVEFILEENTRY_H
+#define ARCHIVEFILEENTRY_H
 
 #include <archive_entry.h>
 #include <filesystem>
@@ -37,4 +37,4 @@ public:
   char *read_buf = nullptr;
 };
 
-#endif /* INCLUDE_ARCHIVEFILEENTRY_H_ */
+#endif // ARCHIVEFILEENTRY_H

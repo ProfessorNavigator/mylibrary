@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2023-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +16,10 @@
  */
 
 #include <ByteOrder.h>
+#include <typeinfo>
 
 ByteOrder::ByteOrder()
 {
-
-}
-
-ByteOrder::~ByteOrder()
-{
-
 }
 
 ByteOrder::ByteOrder(const ByteOrder &other)
@@ -89,8 +84,8 @@ ByteOrder::ByteOrder(double val)
   form_inner(val);
 }
 
-ByteOrder&
-ByteOrder::operator =(const ByteOrder &other)
+ByteOrder &
+ByteOrder::operator=(const ByteOrder &other)
 {
   bomtx.lock();
   inner = other.inner;
@@ -99,8 +94,8 @@ ByteOrder::operator =(const ByteOrder &other)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const uint64_t &val)
+ByteOrder &
+ByteOrder::operator=(const uint64_t &val)
 {
   uint64_t control = 506097522914230528;
   bomtx.lock();
@@ -110,8 +105,8 @@ ByteOrder::operator =(const uint64_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const uint32_t &val)
+ByteOrder &
+ByteOrder::operator=(const uint32_t &val)
 {
   uint32_t control = 50462976;
   bomtx.lock();
@@ -121,8 +116,8 @@ ByteOrder::operator =(const uint32_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const uint16_t &val)
+ByteOrder &
+ByteOrder::operator=(const uint16_t &val)
 {
   uint16_t control = 256;
   bomtx.lock();
@@ -132,8 +127,8 @@ ByteOrder::operator =(const uint16_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const int64_t &val)
+ByteOrder &
+ByteOrder::operator=(const int64_t &val)
 {
   int64_t control = 506097522914230528;
   bomtx.lock();
@@ -143,8 +138,8 @@ ByteOrder::operator =(const int64_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const int32_t &val)
+ByteOrder &
+ByteOrder::operator=(const int32_t &val)
 {
   int32_t control = 50462976;
   bomtx.lock();
@@ -154,8 +149,8 @@ ByteOrder::operator =(const int32_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const int16_t &val)
+ByteOrder &
+ByteOrder::operator=(const int16_t &val)
 {
   int16_t control = 256;
   bomtx.lock();
@@ -165,8 +160,8 @@ ByteOrder::operator =(const int16_t &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const float &val)
+ByteOrder &
+ByteOrder::operator=(const float &val)
 {
   float control = 3.82047e-37;
   bomtx.lock();
@@ -176,8 +171,8 @@ ByteOrder::operator =(const float &val)
   return *this;
 }
 
-ByteOrder&
-ByteOrder::operator =(const double &val)
+ByteOrder &
+ByteOrder::operator=(const double &val)
 {
   double control = 7.949928895127363e-275;
   bomtx.lock();
@@ -243,346 +238,314 @@ ByteOrder::operator double()
   return result;
 }
 
-template<typename T>
-  void
-  ByteOrder::form_native_order(T &control)
-  {
-    size_t sz = sizeof(control);
-    uint8_t arr[sz];
-    std::memcpy(&arr, &control, sz);
-    native_order.clear();
-    native_order.resize(sz);
-    for(uint8_t i = 0; i < static_cast<uint8_t>(sz); i++)
-      {
-	for(size_t j = 0; j < sz; j++)
-	  {
-	    if(arr[j] == i)
-	      {
-		native_order[static_cast<size_t>(i)] = j;
-		break;
-	      }
-	  }
-      }
-  }
+template <typename T>
+void
+ByteOrder::form_native_order(T &control)
+{
+  size_t sz = sizeof(control);
+  uint8_t arr[sz];
+  std::memcpy(&arr, &control, sz);
+  native_order.clear();
+  native_order.resize(sz);
+  for(uint8_t i = 0; i < static_cast<uint8_t>(sz); i++)
+    {
+      for(size_t j = 0; j < sz; j++)
+        {
+          if(arr[j] == i)
+            {
+              native_order[static_cast<size_t>(i)] = j;
+              break;
+            }
+        }
+    }
+}
 
-template<typename T>
-  void
-  ByteOrder::form_inner(T &val)
-  {
-    inner.clear();
-    size_t sz = sizeof(val);
-    uint8_t arr[sz];
-    std::memcpy(&arr, &val, sz);
-    inner.resize(sz);
-    for(size_t i = 0; i < sz; i++)
-      {
-	size_t v = native_order[i];
-	inner[v] = arr[i];
-      }
-  }
+template <typename T>
+void
+ByteOrder::form_inner(T &val)
+{
+  inner.clear();
+  size_t sz = sizeof(val);
+  uint8_t arr[sz];
+  std::memcpy(&arr, &val, sz);
+  inner.resize(sz);
+  for(size_t i = 0; i < sz; i++)
+    {
+      size_t v = native_order[i];
+      inner[v] = arr[i];
+    }
+}
 
-template<typename T>
-  void
-  ByteOrder::get_native(T &result)
-  {
+template <typename T>
+void
+ByteOrder::get_native(T &result)
+{
 
-    size_t sz = sizeof(T);
-    uint8_t arr[sz];
-    bomtx.lock();
-    if(sz > inner.size())
-      {
-	sz = inner.size();
-      }
-    for(size_t i = 0; i < sz; i++)
-      {
-	size_t j = native_order[i];
-	arr[j] = inner[i];
-      }
-    bomtx.unlock();
-    std::memcpy(&result, &arr, sz);
-  }
-
-template void
-ByteOrder::get_native<uint64_t>(uint64_t&);
-template void
-ByteOrder::get_native<uint32_t>(uint32_t&);
-template void
-ByteOrder::get_native<uint16_t>(uint16_t&);
+  size_t sz = sizeof(T);
+  uint8_t arr[sz];
+  bomtx.lock();
+  if(sz > inner.size())
+    {
+      sz = inner.size();
+    }
+  for(size_t i = 0; i < sz; i++)
+    {
+      size_t j = native_order[i];
+      arr[j] = inner[i];
+    }
+  bomtx.unlock();
+  std::memcpy(&result, &arr, sz);
+}
 
 template void
-ByteOrder::get_native<int64_t>(int64_t&);
+ByteOrder::get_native<uint64_t>(uint64_t &);
 template void
-ByteOrder::get_native<int32_t>(int32_t&);
+ByteOrder::get_native<uint32_t>(uint32_t &);
 template void
-ByteOrder::get_native<int16_t>(int16_t&);
+ByteOrder::get_native<uint16_t>(uint16_t &);
 
 template void
-ByteOrder::get_native<float>(float&);
+ByteOrder::get_native<int64_t>(int64_t &);
 template void
-ByteOrder::get_native<double>(double&);
+ByteOrder::get_native<int32_t>(int32_t &);
+template void
+ByteOrder::get_native<int16_t>(int16_t &);
 
-template<typename T>
-  void
-  ByteOrder::get_big(T &result)
-  {
-    size_t sz = sizeof(T);
-    uint8_t arr[sz];
-    bomtx.lock();
-    if(sz > inner.size())
+template void
+ByteOrder::get_native<float>(float &);
+template void
+ByteOrder::get_native<double>(double &);
+
+template <typename T>
+void
+ByteOrder::get_big(T &result)
+{
+  size_t sz = sizeof(T);
+  uint8_t arr[sz];
+  bomtx.lock();
+  if(sz > inner.size())
+    {
+      sz = inner.size();
+    }
+  for(size_t i = 0; i < sz; i++)
+    {
+      arr[sz - 1 - i] = inner[i];
+    }
+  bomtx.unlock();
+  std::memcpy(&result, &arr, sz);
+}
+
+template void
+ByteOrder::get_big<uint64_t>(uint64_t &);
+template void
+ByteOrder::get_big<uint32_t>(uint32_t &);
+template void
+ByteOrder::get_big<uint16_t>(uint16_t &);
+
+template void
+ByteOrder::get_big<int64_t>(int64_t &);
+template void
+ByteOrder::get_big<int32_t>(int32_t &);
+template void
+ByteOrder::get_big<int16_t>(int16_t &);
+
+template void
+ByteOrder::get_big<float>(float &);
+template void
+ByteOrder::get_big<double>(double &);
+
+template <typename T>
+void
+ByteOrder::get_little(T &result)
+{
+  size_t sz = sizeof(T);
+  bomtx.lock();
+  if(sz > inner.size())
+    {
+      sz = inner.size();
+    }
+  std::memcpy(&result, inner.data(), sz);
+  bomtx.unlock();
+}
+
+template void
+ByteOrder::get_little<uint64_t>(uint64_t &);
+template void
+ByteOrder::get_little<uint32_t>(uint32_t &);
+template void
+ByteOrder::get_little<uint16_t>(uint16_t &);
+
+template void
+ByteOrder::get_little<int64_t>(int64_t &);
+template void
+ByteOrder::get_little<int32_t>(int32_t &);
+template void
+ByteOrder::get_little<int16_t>(int16_t &);
+
+template void
+ByteOrder::get_little<float>(float &);
+template void
+ByteOrder::get_little<double>(double &);
+
+template <typename T>
+void
+ByteOrder::set_big(T val)
+{
+  bomtx.lock();
+  inner.clear();
+  native_order.clear();
+  size_t sz = sizeof(T);
+  T control;
+  switch(sz)
+    {
+    case 8:
       {
-	sz = inner.size();
+        if(typeid(val) == typeid(double))
+          {
+            control = T(7.949928895127363e-275);
+          }
+        else
+          {
+            control = T(506097522914230528);
+          }
+        break;
       }
-    for(size_t i = 0; i < sz; i++)
+    case 4:
       {
-	arr[sz - 1 - i] = inner[i];
+        if(typeid(val) == typeid(float))
+          {
+            control = T(3.82047e-37);
+          }
+        else
+          {
+            control = T(50462976);
+          }
+        break;
       }
-    bomtx.unlock();
-    std::memcpy(&result, &arr, sz);
-  }
-
-template
-void
-ByteOrder::get_big<uint64_t>(uint64_t&);
-template
-void
-ByteOrder::get_big<uint32_t>(uint32_t&);
-template
-void
-ByteOrder::get_big<uint16_t>(uint16_t&);
-
-template
-void
-ByteOrder::get_big<int64_t>(int64_t&);
-template
-void
-ByteOrder::get_big<int32_t>(int32_t&);
-template
-void
-ByteOrder::get_big<int16_t>(int16_t&);
-
-template
-void
-ByteOrder::get_big<float>(float&);
-template
-void
-ByteOrder::get_big<double>(double&);
-
-template<typename T>
-  void
-  ByteOrder::get_little(T &result)
-  {
-    size_t sz = sizeof(T);
-    bomtx.lock();
-    if(sz > inner.size())
+    case 2:
       {
-	sz = inner.size();
+        control = T(256);
+        break;
       }
-    std::memcpy(&result, inner.data(), sz);
-    bomtx.unlock();
-  }
-
-template
-void
-ByteOrder::get_little<uint64_t>(uint64_t&);
-template
-void
-ByteOrder::get_little<uint32_t>(uint32_t&);
-template
-void
-ByteOrder::get_little<uint16_t>(uint16_t&);
-
-template
-void
-ByteOrder::get_little<int64_t>(int64_t&);
-template
-void
-ByteOrder::get_little<int32_t>(int32_t&);
-template
-void
-ByteOrder::get_little<int16_t>(int16_t&);
-
-template
-void
-ByteOrder::get_little<float>(float&);
-template
-void
-ByteOrder::get_little<double>(double&);
-
-template<typename T>
-  void
-  ByteOrder::set_big(T val)
-  {
-    bomtx.lock();
-    inner.clear();
-    native_order.clear();
-    size_t sz = sizeof(T);
-    T control;
-    switch (sz)
+    default:
       {
-      case 8:
-	{
-	  if(typeid(val) == typeid(double))
-	    {
-	      control = T(7.949928895127363e-275);
-	    }
-	  else
-	    {
-	      control = T(506097522914230528);
-	    }
-	  break;
-	}
-      case 4:
-	{
-	  if(typeid(val) == typeid(float))
-	    {
-	      control = T(3.82047e-37);
-	    }
-	  else
-	    {
-	      control = T(50462976);
-	    }
-	  break;
-	}
-      case 2:
-	{
-	  control = T(256);
-	  break;
-	}
-      default:
-	{
-	  sz = 0;
-	  break;
-	}
+        sz = 0;
+        break;
       }
-    if(sz == 0)
-      {
-	bomtx.unlock();
-	return void();
-      }
-    else
-      {
-	form_native_order(control);
-	uint8_t arr[sz];
-	std::memcpy(&arr, &val, sz);
-	inner.resize(sz);
-	for(size_t i = 0; i < sz; i++)
-	  {
-	    inner[sz - 1 - i] = arr[i];
-	  }
-      }
-    bomtx.unlock();
-  }
+    }
+  if(sz == 0)
+    {
+      bomtx.unlock();
+      return void();
+    }
+  else
+    {
+      form_native_order(control);
+      uint8_t arr[sz];
+      std::memcpy(&arr, &val, sz);
+      inner.resize(sz);
+      for(size_t i = 0; i < sz; i++)
+        {
+          inner[sz - 1 - i] = arr[i];
+        }
+    }
+  bomtx.unlock();
+}
 
-template
-void
+template void
 ByteOrder::set_big<uint64_t>(uint64_t);
-template
-void
+template void
 ByteOrder::set_big<uint32_t>(uint32_t);
-template
-void
+template void
 ByteOrder::set_big<uint16_t>(uint16_t);
 
-template
-void
+template void
 ByteOrder::set_big<int64_t>(int64_t);
-template
-void
+template void
 ByteOrder::set_big<int32_t>(int32_t);
-template
-void
+template void
 ByteOrder::set_big<int16_t>(int16_t);
 
-template
-void
+template void
 ByteOrder::set_big<float>(float);
-template
-void
+template void
 ByteOrder::set_big<double>(double);
 
-template<typename T>
-  void
-  ByteOrder::set_little(T val)
-  {
-    bomtx.lock();
-    inner.clear();
-    native_order.clear();
-    size_t sz = sizeof(T);
-    T control;
-    switch (sz)
+template <typename T>
+void
+ByteOrder::set_little(T val)
+{
+  bomtx.lock();
+  inner.clear();
+  native_order.clear();
+  size_t sz = sizeof(T);
+  T control;
+  switch(sz)
+    {
+    case 8:
       {
-      case 8:
-	{
-	  if(typeid(val) == typeid(double))
-	    {
-	      control = T(7.949928895127363e-275);
-	    }
-	  else
-	    {
-	      control = T(506097522914230528);
-	    }
-	  break;
-	}
-      case 4:
-	{
-	  if(typeid(val) == typeid(float))
-	    {
-	      control = T(3.82047e-37);
-	    }
-	  else
-	    {
-	      control = T(50462976);
-	    }
-	  break;
-	}
-      case 2:
-	{
-	  control = T(256);
-	  break;
-	}
-      default:
-	{
-	  sz = 0;
-	  break;
-	}
+        if(typeid(val) == typeid(double))
+          {
+            control = T(7.949928895127363e-275);
+          }
+        else
+          {
+            control = T(506097522914230528);
+          }
+        break;
       }
-    if(sz == 0)
+    case 4:
       {
-	bomtx.unlock();
-	return void();
+        if(typeid(val) == typeid(float))
+          {
+            control = T(3.82047e-37);
+          }
+        else
+          {
+            control = T(50462976);
+          }
+        break;
       }
-    else
+    case 2:
       {
-	form_native_order(control);
-	inner.resize(sz);
-	std::memcpy(inner.data(), &val, sz);
+        control = T(256);
+        break;
       }
-    bomtx.unlock();
-  }
+    default:
+      {
+        sz = 0;
+        break;
+      }
+    }
+  if(sz == 0)
+    {
+      bomtx.unlock();
+      return void();
+    }
+  else
+    {
+      form_native_order(control);
+      inner.resize(sz);
+      std::memcpy(inner.data(), &val, sz);
+    }
+  bomtx.unlock();
+}
 
-template
-void
+template void
 ByteOrder::set_little<uint64_t>(uint64_t);
-template
-void
+template void
 ByteOrder::set_little<uint32_t>(uint32_t);
-template
-void
+template void
 ByteOrder::set_little<uint16_t>(uint16_t);
 
-template
-void
+template void
 ByteOrder::set_little<int64_t>(int64_t);
-template
-void
+template void
 ByteOrder::set_little<int32_t>(int32_t);
-template
-void
+template void
 ByteOrder::set_little<int16_t>(int16_t);
 
-template
-void
+template void
 ByteOrder::set_little<float>(float);
-template
-void
+template void
 ByteOrder::set_little<double>(double);

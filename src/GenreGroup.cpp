@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +19,17 @@
 
 GenreGroup::GenreGroup()
 {
-
-}
-
-GenreGroup::~GenreGroup()
-{
-
 }
 
 GenreGroup::GenreGroup(const GenreGroup &other)
 {
-  if(this != &other)
-    {
-      group_code = other.group_code;
-      group_name = other.group_name;
-      genres = other.genres;
-    }
+  group_code = other.group_code;
+  group_name = other.group_name;
+  genres = other.genres;
 }
 
-GenreGroup&
-GenreGroup::operator =(const GenreGroup &other)
+GenreGroup &
+GenreGroup::operator=(const GenreGroup &other)
 {
   if(this != &other)
     {
@@ -51,16 +42,13 @@ GenreGroup::operator =(const GenreGroup &other)
 
 GenreGroup::GenreGroup(GenreGroup &&other)
 {
-  if(this != &other)
-    {
-      group_code = other.group_code;
-      group_name = other.group_name;
-      genres = other.genres;
-    }
+  group_code = other.group_code;
+  group_name = other.group_name;
+  genres = other.genres;
 }
 
-GenreGroup&
-GenreGroup::operator =(GenreGroup &&other)
+GenreGroup &
+GenreGroup::operator=(GenreGroup &&other)
 {
   if(this != &other)
     {

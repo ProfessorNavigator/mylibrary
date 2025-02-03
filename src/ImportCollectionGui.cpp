@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,26 +26,21 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm/error.h>
 #endif
+#include <ImportCollectionGui.h>
+#include <fstream>
 #include <gtkmm/grid.h>
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
-#include <ImportCollectionGui.h>
+#include <iostream>
 #include <libintl.h>
 #include <sigc++/connection.h>
 #include <stddef.h>
-#include <fstream>
-#include <iostream>
 
 ImportCollectionGui::ImportCollectionGui(const std::shared_ptr<AuxFunc> &af,
-					 Gtk::Window *parent_window)
+                                         Gtk::Window *parent_window)
 {
   this->af = af;
   this->parent_window = parent_window;
-}
-
-ImportCollectionGui::~ImportCollectionGui()
-{
-
 }
 
 void
@@ -92,9 +87,8 @@ ImportCollectionGui::createWindow()
   open->set_halign(Gtk::Align::END);
   open->set_name("operationBut");
   open->set_label(gettext("Open"));
-  open->signal_clicked().connect(
-      std::bind(&ImportCollectionGui::open_file_dialog, this, window, base_path,
-		1));
+  open->signal_clicked().connect(std::bind(
+      &ImportCollectionGui::open_file_dialog, this, window, base_path, 1));
   grid->attach(*open, 1, 4, 1, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
@@ -113,9 +107,8 @@ ImportCollectionGui::createWindow()
   open->set_halign(Gtk::Align::END);
   open->set_name("operationBut");
   open->set_label(gettext("Open"));
-  open->signal_clicked().connect(
-      std::bind(&ImportCollectionGui::open_file_dialog, this, window,
-		books_path, 2));
+  open->signal_clicked().connect(std::bind(
+      &ImportCollectionGui::open_file_dialog, this, window, books_path, 2));
   grid->attach(*open, 1, 7, 1, 1);
 
   Gtk::Button *import = Gtk::make_managed<Gtk::Button>();
@@ -135,21 +128,21 @@ ImportCollectionGui::createWindow()
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*cancel, 1, 8, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
 
 void
 ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
-				      const int &variant)
+                                      const int &variant)
 {
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gtk::FileDialog> fd = Gtk::FileDialog::create();
@@ -158,20 +151,20 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
     {
     case 1:
       {
-	fd->set_title(gettext("Open base"));
-	break;
+        fd->set_title(gettext("Open base"));
+        break;
       }
     case 2:
       {
-	fd->set_title(gettext("Books path"));
-	break;
+        fd->set_title(gettext("Books path"));
+        break;
       }
     default:
       break;
     }
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      af->homePath().u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(af->homePath().u8string());
 
   fd->set_initial_folder(initial);
 
@@ -181,21 +174,20 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
     {
     case 1:
       {
-	fd->open(
-	    *win,
-	    std::bind(&ImportCollectionGui::open_file_dialog_slot_base, this,
-		      std::placeholders::_1, fd, ent),
-	    cncl);
-	break;
+        fd->open(*win,
+                 std::bind(&ImportCollectionGui::open_file_dialog_slot_base,
+                           this, std::placeholders::_1, fd, ent),
+                 cncl);
+        break;
       }
     case 2:
       {
-	fd->select_folder(
-	    *win,
-	    std::bind(&ImportCollectionGui::open_file_dialog_slot_books, this,
-		      std::placeholders::_1, fd, ent),
-	    cncl);
-	break;
+        fd->select_folder(
+            *win,
+            std::bind(&ImportCollectionGui::open_file_dialog_slot_books, this,
+                      std::placeholders::_1, fd, ent),
+            cncl);
+        break;
       }
     default:
       break;
@@ -207,16 +199,16 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
     {
     case 1:
       {
-	fd = new Gtk::FileChooserDialog(*win, gettext("Open base"),
-					Gtk::FileChooser::Action::OPEN, true);
-	break;
+        fd = new Gtk::FileChooserDialog(*win, gettext("Open base"),
+                                        Gtk::FileChooser::Action::OPEN, true);
+        break;
       }
     case 2:
       {
-	fd = new Gtk::FileChooserDialog(*win, gettext("Books path"),
-					Gtk::FileChooser::Action::SELECT_FOLDER,
-					true);
-	break;
+        fd = new Gtk::FileChooserDialog(
+            *win, gettext("Books path"),
+            Gtk::FileChooser::Action::SELECT_FOLDER, true);
+        break;
       }
     default:
       return void();
@@ -226,12 +218,12 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      af->homePath().u8string());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_current_folder(initial);
 
-  Gtk::Button *but = fd->add_button(gettext("Cancel"),
-				    Gtk::ResponseType::CANCEL);
+  Gtk::Button *but
+      = fd->add_button(gettext("Cancel"), Gtk::ResponseType::CANCEL);
   but->set_margin(5);
   but->set_name("cancelBut");
 
@@ -239,36 +231,36 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
     {
     case 1:
       {
-	but = fd->add_button(gettext("Open"), Gtk::ResponseType::ACCEPT);
-	fd->signal_response().connect(
-	    std::bind(&ImportCollectionGui::open_file_dialog_slot_base, this,
-		      std::placeholders::_1, fd, ent));
-	break;
+        but = fd->add_button(gettext("Open"), Gtk::ResponseType::ACCEPT);
+        fd->signal_response().connect(
+            std::bind(&ImportCollectionGui::open_file_dialog_slot_base, this,
+                      std::placeholders::_1, fd, ent));
+        break;
       }
     case 2:
       {
-	but = fd->add_button(gettext("Select"), Gtk::ResponseType::ACCEPT);
-	fd->signal_response().connect(
-	    std::bind(&ImportCollectionGui::open_file_dialog_slot_books, this,
-		      std::placeholders::_1, fd, ent));
-	break;
+        but = fd->add_button(gettext("Select"), Gtk::ResponseType::ACCEPT);
+        fd->signal_response().connect(
+            std::bind(&ImportCollectionGui::open_file_dialog_slot_books, this,
+                      std::placeholders::_1, fd, ent));
+        break;
       }
     default:
       {
-	delete fd;
-	return void();
+        delete fd;
+        return void();
       }
     }
   but->set_margin(5);
   but->set_name("applyBut");
 
-  fd->signal_close_request().connect([fd]
-  {
-    std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
-    fdl->set_visible(false);
-    return true;
-  },
-				     false);
+  fd->signal_close_request().connect(
+      [fd] {
+        std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
+        fdl->set_visible(false);
+        return true;
+      },
+      false);
 
   fd->present();
 #endif
@@ -288,10 +280,11 @@ ImportCollectionGui::open_file_dialog_slot_base(
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::FAILED)
-	{
-	  std::cout << "ImportCollectionGui::open_file_dialog_slot_base error: "
-	      << er.what() << std::endl;
-	}
+        {
+          std::cout
+              << "ImportCollectionGui::open_file_dialog_slot_base error: "
+              << er.what() << std::endl;
+        }
     }
 
   if(fl)
@@ -313,11 +306,11 @@ ImportCollectionGui::open_file_dialog_slot_books(
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::FAILED)
-	{
-	  std::cout
-	      << "ImportCollectionGui::open_file_dialog_slot_books error: "
-	      << er.what() << std::endl;
-	}
+        {
+          std::cout
+              << "ImportCollectionGui::open_file_dialog_slot_books error: "
+              << er.what() << std::endl;
+        }
     }
 
   if(fl)
@@ -351,50 +344,50 @@ ImportCollectionGui::error_dialog(Gtk::Window *win, const int &variant)
     {
     case 1:
       {
-	lab->set_text(gettext("Error! Collection name cannot be empty!"));
-	break;
+        lab->set_text(gettext("Error! Collection name cannot be empty!"));
+        break;
       }
     case 2:
       {
-	lab->set_text(gettext("Error! Collection already exists!"));
-	break;
+        lab->set_text(gettext("Error! Collection already exists!"));
+        break;
       }
     case 3:
       {
-	lab->set_text(gettext("Error! Base file not found!"));
-	break;
+        lab->set_text(gettext("Error! Base file not found!"));
+        break;
       }
     case 4:
       {
-	lab->set_text(gettext("Error! Books directory not found!"));
-	break;
+        lab->set_text(gettext("Error! Books directory not found!"));
+        break;
       }
     case 5:
       {
-	lab->set_text(
-	    gettext("Error! Base file has not been opened for reading!"));
-	break;
+        lab->set_text(
+            gettext("Error! Base file has not been opened for reading!"));
+        break;
       }
     case 6:
       {
-	lab->set_text(
-	    gettext("Error! Base file has not been opened for writing!"));
-	break;
+        lab->set_text(
+            gettext("Error! Base file has not been opened for writing!"));
+        break;
       }
     case 7:
       {
-	lab->set_text(gettext("Error! Bad base file!"));
-	break;
+        lab->set_text(gettext("Error! Bad base file!"));
+        break;
       }
     case 8:
       {
-	lab->set_text(gettext("Error! Bad base file (2)!"));
-	break;
+        lab->set_text(gettext("Error! Bad base file (2)!"));
+        break;
       }
     default:
       {
-	delete window;
-	return void();
+        delete window;
+        return void();
       }
     }
   grid->attach(*lab, 0, 0, 1, 1);
@@ -407,13 +400,13 @@ ImportCollectionGui::error_dialog(Gtk::Window *win, const int &variant)
   close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*close, 0, 1, 1, 1);
 
-  window->signal_close_request().connect([window]
-  {
-    std::shared_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -429,8 +422,8 @@ ImportCollectionGui::check_function(Gtk::Window *win)
       return void();
     }
   std::filesystem::path col_base_path = af->homePath();
-  col_base_path /= std::filesystem::u8path(
-      ".local/share/MyLibrary/Collections");
+  col_base_path
+      /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
   col_base_path /= std::filesystem::u8path(collection_name);
   if(std::filesystem::exists(col_base_path))
     {
@@ -438,16 +431,16 @@ ImportCollectionGui::check_function(Gtk::Window *win)
       return void();
     }
 
-  std::filesystem::path source_base_path = std::filesystem::u8path(
-      std::string(base_path->get_text()));
+  std::filesystem::path source_base_path
+      = std::filesystem::u8path(std::string(base_path->get_text()));
   if(!std::filesystem::exists(source_base_path))
     {
       error_dialog(win, 3);
       return void();
     }
 
-  std::filesystem::path books_p = std::filesystem::u8path(
-      std::string(books_path->get_text()));
+  std::filesystem::path books_p
+      = std::filesystem::u8path(std::string(books_path->get_text()));
   if(!std::filesystem::exists(books_p))
     {
       error_dialog(win, 4);
@@ -459,9 +452,9 @@ ImportCollectionGui::check_function(Gtk::Window *win)
 
 void
 ImportCollectionGui::import_collection(Gtk::Window *win,
-				       std::filesystem::path &col_base_path,
-				       const std::filesystem::path &base_p,
-				       const std::filesystem::path &books_p)
+                                       std::filesystem::path &col_base_path,
+                                       const std::filesystem::path &base_p,
+                                       const std::filesystem::path &books_p)
 {
   bool success = false;
   std::filesystem::create_directories(col_base_path);
@@ -480,75 +473,75 @@ ImportCollectionGui::import_collection(Gtk::Window *win,
       out.open(col_base_path, std::ios_base::out | std::ios_base::binary);
 
       if(out.is_open())
-	{
-	  uint16_t val16;
-	  size_t sz = sizeof(val16);
+        {
+          uint16_t val16;
+          size_t sz = sizeof(val16);
 
-	  if(fsz < sz)
-	    {
-	      error_dialog(win, 7);
-	      out.close();
-	      f.close();
-	      std::filesystem::remove_all(col_base_path.parent_path());
-	      return void();
-	    }
+          if(fsz < sz)
+            {
+              error_dialog(win, 7);
+              out.close();
+              f.close();
+              std::filesystem::remove_all(col_base_path.parent_path());
+              return void();
+            }
 
-	  f.read(reinterpret_cast<char*>(&val16), sz);
-	  ByteOrder bo;
-	  bo.set_little(val16);
-	  val16 = bo;
+          f.read(reinterpret_cast<char *>(&val16), sz);
+          ByteOrder bo;
+          bo.set_little(val16);
+          val16 = bo;
 
-	  if(fsz < sz + static_cast<size_t>(val16))
-	    {
-	      error_dialog(win, 8);
-	      out.close();
-	      f.close();
-	      std::filesystem::remove_all(col_base_path.parent_path());
-	      return void();
-	    }
+          if(fsz < sz + static_cast<size_t>(val16))
+            {
+              error_dialog(win, 8);
+              out.close();
+              f.close();
+              std::filesystem::remove_all(col_base_path.parent_path());
+              return void();
+            }
 
-	  f.seekg(val16, std::ios_base::cur);
+          f.seekg(val16, std::ios_base::cur);
 
-	  std::string buf = books_p.u8string();
-	  if(buf.size() > 0)
-	    {
-	      std::string sstr("\\");
-	      std::string::size_type n = 0;
-	      for(;;)
-		{
-		  n = buf.find(sstr, n);
-		  if(n != std::string::npos)
-		    {
-		      buf.erase(n, sstr.size());
-		      buf.insert(n, "/");
-		    }
-		  else
-		    {
-		      break;
-		    }
-		}
-	    }
-	  val16 = static_cast<uint16_t>(buf.size());
-	  bo = val16;
-	  bo.get_little(val16);
-	  out.write(reinterpret_cast<char*>(&val16), sz);
+          std::string buf = books_p.u8string();
+          if(buf.size() > 0)
+            {
+              std::string sstr("\\");
+              std::string::size_type n = 0;
+              for(;;)
+                {
+                  n = buf.find(sstr, n);
+                  if(n != std::string::npos)
+                    {
+                      buf.erase(n, sstr.size());
+                      buf.insert(n, "/");
+                    }
+                  else
+                    {
+                      break;
+                    }
+                }
+            }
+          val16 = static_cast<uint16_t>(buf.size());
+          bo = val16;
+          bo.get_little(val16);
+          out.write(reinterpret_cast<char *>(&val16), sz);
 
-	  out.write(buf.c_str(), buf.size());
+          out.write(buf.c_str(), buf.size());
 
-	  buf.clear();
+          buf.clear();
 
-	  buf.resize(fsz - static_cast<size_t>(f.tellg()));
-	  f.read(buf.data(), buf.size());
+          buf.resize(fsz - static_cast<size_t>(f.tellg()));
+          f.read(buf.data(), buf.size());
 
-	  out.write(buf.c_str(), buf.size());
+          out.write(buf.c_str(), buf.size());
 
-	  out.close();
-	  success = true;
-	}
+          out.close();
+          success = true;
+        }
       else
-	{
-	  error_dialog(win, 6);
-	}
+        {
+          error_dialog(win, 6);
+        }
       f.close();
     }
   else
@@ -560,42 +553,42 @@ ImportCollectionGui::import_collection(Gtk::Window *win,
     {
       final_dialog(win);
       if(signal_success)
-	{
-	  signal_success(col_base_path.parent_path().filename().u8string());
-	}
+        {
+          signal_success(col_base_path.parent_path().filename().u8string());
+        }
     }
 }
 
 #ifdef ML_GTK_OLD
 void
 ImportCollectionGui::open_file_dialog_slot_base(int resp,
-						Gtk::FileChooserDialog *fd,
-						Gtk::Entry *ent)
+                                                Gtk::FileChooserDialog *fd,
+                                                Gtk::Entry *ent)
 {
 
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  ent->set_text(Glib::ustring(fl->get_path()));
-	}
+        {
+          ent->set_text(Glib::ustring(fl->get_path()));
+        }
     }
   fd->close();
 }
 
 void
 ImportCollectionGui::open_file_dialog_slot_books(int resp,
-						 Gtk::FileChooserDialog *fd,
-						 Gtk::Entry *ent)
+                                                 Gtk::FileChooserDialog *fd,
+                                                 Gtk::Entry *ent)
 {
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  ent->set_text(Glib::ustring(fl->get_path()));
-	}
+        {
+          ent->set_text(Glib::ustring(fl->get_path()));
+        }
     }
 
   fd->close();

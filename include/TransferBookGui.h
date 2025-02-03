@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_TRANSFERBOOKGUI_H_
-#define INCLUDE_TRANSFERBOOKGUI_H_
+#ifndef TRANSFERBOOKGUI_H
+#define TRANSFERBOOKGUI_H
 
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
@@ -30,11 +30,11 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #endif
-#include <gtkmm-4.0/gtkmm/stringlist.h>
-#include <gtkmm-4.0/gtkmm/window.h>
 #include <LibArchive.h>
 #include <filesystem>
 #include <functional>
+#include <gtkmm-4.0/gtkmm/stringlist.h>
+#include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -47,18 +47,16 @@ class TransferBookGui
 {
 public:
   TransferBookGui(const std::shared_ptr<AuxFunc> &af,
-		  const std::shared_ptr<BookMarks> &bookmarks,
-		  const BookBaseEntry &bbe_from,
-		  const std::string &collection_from,
-		  Gtk::Window *parent_window);
-  virtual
-  ~TransferBookGui();
+                  const std::shared_ptr<BookMarks> &bookmarks,
+                  const BookBaseEntry &bbe_from,
+                  const std::string &collection_from,
+                  Gtk::Window *parent_window);
 
   void
   createWindow();
 
-  std::function<void
-  (const BookBaseEntry &remove, const std::string &col_name)> success_signal;
+  std::function<void(const BookBaseEntry &remove, const std::string &col_name)>
+      success_signal;
 
 private:
   Glib::RefPtr<Gtk::StringList>
@@ -82,17 +80,17 @@ private:
 
   void
   path_choose_dialog_add_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-			      const Glib::RefPtr<Gtk::FileDialog> &fd,
-			      Gtk::Window *win);
+                              const Glib::RefPtr<Gtk::FileDialog> &fd,
+                              Gtk::Window *win);
 #endif
 #ifdef ML_GTK_OLD
   void
   path_choose_dialog_overwrite_slot(int resp, Gtk::FileChooserDialog *fd,
-				    Gtk::Window *win, const int &variant);
+                                    Gtk::Window *win, const int &variant);
 
   void
   path_choose_dialog_add_slot(int resp, Gtk::FileChooserDialog *fd,
-  			      Gtk::Window *win);
+                              Gtk::Window *win);
 #endif
 
   void
@@ -109,7 +107,7 @@ private:
 
   void
   copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
-	       Gtk::Entry *path_in_arch, const int &variant);
+               Gtk::Entry *path_in_arch, const int &variant);
 
   void
   alert_dialog(Gtk::Window *win, const int &variant);
@@ -141,4 +139,4 @@ private:
   bool _transfer_fbd = false;
 };
 
-#endif /* INCLUDE_TRANSFERBOOKGUI_H_ */
+#endif // TRANSFERBOOKGUI_H

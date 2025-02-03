@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,9 +16,21 @@
  */
 
 #include <AuxFunc.h>
-#include <gpg-error.h>
 #include <MLException.h>
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <gpg-error.h>
+#include <iostream>
+#include <iterator>
+#include <locale>
+#include <memory>
+#include <random>
+#include <sstream>
 #include <stddef.h>
+#include <system_error>
 #include <unicode/ucnv.h>
 #include <unicode/ucsdet.h>
 #include <unicode/umachine.h>
@@ -26,18 +38,6 @@
 #include <unicode/urename.h>
 #include <unicode/utypes.h>
 #include <unicode/uversion.h>
-#include <algorithm>
-#include <chrono>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <locale>
-#include <memory>
-#include <sstream>
-#include <system_error>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -45,12 +45,6 @@
 
 AuxFunc::AuxFunc()
 {
-
-}
-
-AuxFunc::~AuxFunc()
-{
-
 }
 
 std::string
@@ -59,21 +53,18 @@ AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
   std::string result;
   int32_t srclen = static_cast<int32_t>(input.size());
   UChar *buf = new UChar[srclen];
-  std::shared_ptr<UChar> resbuf(buf, []
-  (UChar *arr)
-    {
-      delete[] arr;
-    });
+  std::shared_ptr<UChar> resbuf(buf, [](UChar *arr) {
+    delete[] arr;
+  });
   UErrorCode status = U_ZERO_ERROR;
-  std::shared_ptr<UConverter> conv(ucnv_open(conv_name, &status), []
-  (UConverter *c)
-    {
-      ucnv_close(c);
-    });
+  std::shared_ptr<UConverter> conv(ucnv_open(conv_name, &status),
+                                   [](UConverter *c) {
+                                     ucnv_close(c);
+                                   });
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::to_utf_8 converter " << conv_name
-	  << " open error: " << u_errorName(status) << std::endl;
+                << " open error: " << u_errorName(status) << std::endl;
       result = input;
       return result;
     }
@@ -83,27 +74,25 @@ AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
     {
       status = U_ZERO_ERROR;
       len = ucnv_toUChars(conv.get(), resbuf.get(), srclen, input.c_str(),
-			  static_cast<int32_t>(input.size()), &status);
+                          static_cast<int32_t>(input.size()), &status);
       if(status != U_BUFFER_OVERFLOW_ERROR)
-	{
-	  break;
-	}
+        {
+          break;
+        }
       else
-	{
-	  int32_t newsrclen = srclen * 1.2;
-	  buf = new UChar[newsrclen];
-	  resbuf = std::shared_ptr<UChar>(buf, []
-	  (UChar *arr)
-	    {
-	      delete[] arr;
-	    });
-	  srclen = newsrclen;
-	}
+        {
+          int32_t newsrclen = srclen * 1.2;
+          buf = new UChar[newsrclen];
+          resbuf = std::shared_ptr<UChar>(buf, [](UChar *arr) {
+            delete[] arr;
+          });
+          srclen = newsrclen;
+        }
     }
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::to_utf_8 error: " << u_errorName(status)
-	  << std::endl;
+                << std::endl;
       result = input;
       return result;
     }
@@ -129,39 +118,39 @@ AuxFunc::homePath()
     {
       fnm = getenv("HOMEDRIVE");
       if(fnm)
-	{
-	  result = fnm;
-	}
+        {
+          result = fnm;
+        }
       else
-	{
-	  fnm = getenv("HOMEPATH");
-	  if(fnm)
-	    {
-	      result = fnm;
-	    }
-	  else
-	    {
-	      fnm = getenv("HOME");
-	      if(fnm)
-		{
-		  result = fnm;
-		}
-	      else
-		{
-		  fnm = getenv("SystemDrive");
-		  if(fnm)
-		    {
-		      result = fnm;
-		    }
-		  else
-		    {
-		      std::cout << "MyLibrary: cannot find user home directory"
-			  << std::endl;
-		      exit(1);
-		    }
-		}
-	    }
-	}
+        {
+          fnm = getenv("HOMEPATH");
+          if(fnm)
+            {
+              result = fnm;
+            }
+          else
+            {
+              fnm = getenv("HOME");
+              if(fnm)
+                {
+                  result = fnm;
+                }
+              else
+                {
+                  fnm = getenv("SystemDrive");
+                  if(fnm)
+                    {
+                      result = fnm;
+                    }
+                  else
+                    {
+                      std::cout << "MyLibrary: cannot find user home directory"
+                                << std::endl;
+                      exit(1);
+                    }
+                }
+            }
+        }
     }
   std::string path = to_utf_8(result, nullptr);
   std::string::size_type n = 0;
@@ -170,14 +159,14 @@ AuxFunc::homePath()
     {
       n = path.find(sstr, n);
       if(n != std::string::npos)
-	{
-	  path.erase(n, sstr.size());
-	  path.insert(n, "/");
-	}
+        {
+          path.erase(n, sstr.size());
+          path.insert(n, "/");
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
   return std::filesystem::u8path(path);
 }
@@ -191,7 +180,7 @@ AuxFunc::get_selfpath()
   return std::filesystem::read_symlink(p);
 #endif
 #ifdef __WIN32
-  char pth [MAX_PATH];
+  char pth[MAX_PATH];
   GetModuleFileNameA(NULL, pth, MAX_PATH);
   p = std::filesystem::path(pth);
   return p;
@@ -238,7 +227,7 @@ AuxFunc::get_genre_list()
   catch(std::exception &e)
     {
       std::cout << "AuxFunc::get_genre_list get locale: " << e.what()
-	  << std::endl;
+                << std::endl;
       wrong_loc = true;
     }
   std::string::size_type n;
@@ -247,24 +236,28 @@ AuxFunc::get_genre_list()
     {
       locname = locname.substr(0, n);
     }
+  if(locname.empty() || locname == "C")
+    {
+      locname = "en_EN";
+      wrong_loc = true;
+    }
 
   result = read_genre_groups(wrong_loc, locname);
 
-  std::vector<std::tuple<std::string, Genre>> gv = read_genres(wrong_loc,
-							       locname);
+  std::vector<std::tuple<std::string, Genre>> gv
+      = read_genres(wrong_loc, locname);
 
   for(auto it = gv.begin(); it != gv.end(); it++)
     {
       std::string g_code = std::get<0>(*it);
-      auto itr = std::find_if(result.begin(), result.end(), [g_code]
-      (auto &el)
-	{
-	  return el.group_code == g_code;
-	});
+      auto itr = std::find_if(result.begin(), result.end(),
+                              [g_code](GenreGroup &el) {
+                                return el.group_code == g_code;
+                              });
       if(itr != result.end())
-	{
-	  itr->genres.push_back(std::get<1>(*it));
-	}
+        {
+          itr->genres.push_back(std::get<1>(*it));
+        }
     }
 
   return result;
@@ -285,89 +278,89 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
       getline(f, line);
       int count = 0;
       if(!line.empty())
-	{
-	  if(!wrong_loc)
-	    {
-	      std::string sstr = ";";
-	      for(;;)
-		{
-		  n = line.find(sstr);
-		  if(n != std::string::npos)
-		    {
-		      std::string locl = line.substr(0, n);
-		      line.erase(0, n + sstr.size());
-		      n = locl.find(locname);
-		      if(n != std::string::npos)
-			{
-			  break;
-			}
-		    }
-		  else
-		    {
-		      n = line.find(locname);
-		      if(n == std::string::npos)
-			{
-			  count = 2;
-			}
-		      break;
-		    }
-		  count++;
-		}
-	    }
-	  else
-	    {
-	      count = 2;
-	    }
-	  while(!f.eof())
-	    {
-	      line.clear();
-	      getline(f, line);
-	      if(!line.empty())
-		{
-		  int fcount = 0;
-		  std::tuple<std::string, Genre> gen;
-		  std::string sstr = ";";
-		  for(;;)
-		    {
-		      n = line.find(sstr);
-		      if(n != std::string::npos)
-			{
-			  std::string locl = line.substr(0, n);
-			  line.erase(0, n + sstr.size());
-			  if(fcount == 0)
-			    {
-			      std::get<1>(gen).genre_code = locl;
-			    }
-			  else
-			    {
-			      if(fcount == 1)
-				{
-				  std::get<0>(gen) = locl;
-				}
-			      else if(fcount == count)
-				{
-				  std::get<1>(gen).genre_name = locl;
-				  break;
-				}
-			    }
-			}
-		      else
-			{
-			  if(fcount == count)
-			    {
-			      std::get<1>(gen).genre_name = line;
-			    }
-			  break;
-			}
-		      fcount++;
-		    }
-		  if(!std::get<1>(gen).genre_code.empty())
-		    {
-		      result.push_back(gen);
-		    }
-		}
-	    }
-	}
+        {
+          if(!wrong_loc)
+            {
+              std::string sstr = ";";
+              for(;;)
+                {
+                  n = line.find(sstr);
+                  if(n != std::string::npos)
+                    {
+                      std::string locl = line.substr(0, n);
+                      line.erase(0, n + sstr.size());
+                      n = locl.find(locname);
+                      if(n != std::string::npos)
+                        {
+                          break;
+                        }
+                    }
+                  else
+                    {
+                      n = line.find(locname);
+                      if(n == std::string::npos)
+                        {
+                          count = 2;
+                        }
+                      break;
+                    }
+                  count++;
+                }
+            }
+          else
+            {
+              count = 2;
+            }
+          while(!f.eof())
+            {
+              line.clear();
+              getline(f, line);
+              if(!line.empty())
+                {
+                  int fcount = 0;
+                  std::tuple<std::string, Genre> gen;
+                  std::string sstr = ";";
+                  for(;;)
+                    {
+                      n = line.find(sstr);
+                      if(n != std::string::npos)
+                        {
+                          std::string locl = line.substr(0, n);
+                          line.erase(0, n + sstr.size());
+                          if(fcount == 0)
+                            {
+                              std::get<1>(gen).genre_code = locl;
+                            }
+                          else
+                            {
+                              if(fcount == 1)
+                                {
+                                  std::get<0>(gen) = locl;
+                                }
+                              else if(fcount == count)
+                                {
+                                  std::get<1>(gen).genre_name = locl;
+                                  break;
+                                }
+                            }
+                        }
+                      else
+                        {
+                          if(fcount == count)
+                            {
+                              std::get<1>(gen).genre_name = line;
+                            }
+                          break;
+                        }
+                      fcount++;
+                    }
+                  if(!std::get<1>(gen).genre_code.empty())
+                    {
+                      result.push_back(gen);
+                    }
+                }
+            }
+        }
       f.close();
     }
 
@@ -426,13 +419,13 @@ AuxFunc::if_supported_type(const std::filesystem::path &ch_p)
   for(auto it = ext.begin(); it != ext.end();)
     {
       if(*it == '.')
-	{
-	  ext.erase(it);
-	}
+        {
+          ext.erase(it);
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 
   std::vector<std::string> types = get_supported_types();
@@ -457,22 +450,20 @@ AuxFunc::detect_encoding(const std::string &buf)
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::detect_encoding detector initialization error: "
-	  << u_errorName(status) << std::endl;
+                << u_errorName(status) << std::endl;
       return result;
     }
 
-  std::shared_ptr<UCharsetDetector> detector(det, []
-  (UCharsetDetector *det)
-    {
-      ucsdet_close(det);
-    });
+  std::shared_ptr<UCharsetDetector> detector(det, [](UCharsetDetector *det) {
+    ucsdet_close(det);
+  });
 
   ucsdet_setText(det, buf.c_str(), static_cast<int32_t>(buf.size()), &status);
 
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::detect_encoding set text error: "
-	  << u_errorName(status) << std::endl;
+                << u_errorName(status) << std::endl;
       return result;
     }
 
@@ -481,7 +472,7 @@ AuxFunc::detect_encoding(const std::string &buf)
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::detect_encoding detecting error: "
-	  << u_errorName(status) << std::endl;
+                << u_errorName(status) << std::endl;
       return result;
     }
   const char *nm = ucsdet_getName(match, &status);
@@ -489,15 +480,15 @@ AuxFunc::detect_encoding(const std::string &buf)
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::detect_encoding get name error: "
-	  << u_errorName(status) << std::endl;
+                << u_errorName(status) << std::endl;
       return result;
     }
   else
     {
       if(nm)
-	{
-	  result = nm;
-	}
+        {
+          result = nm;
+        }
     }
 
   return result;
@@ -517,32 +508,32 @@ AuxFunc::html_to_utf8(std::string &result)
     {
       n = result.find(sstr1, n);
       if(n != std::string::npos)
-	{
-	  n_end = result.find(sstr2, n);
-	  if(n_end != std::string::npos)
-	    {
-	      std::string val(result.begin() + n, result.begin() + n_end);
-	      result.erase(n, val.size() + sstr2.size());
-	      n_end = val.find(sstr1);
-	      val.erase(0, n_end + sstr1.size());
-	      strm.clear();
-	      strm.str(val);
-	      int32_t ch;
-	      strm >> ch;
-	      ustr = ch;
-	      val.clear();
-	      ustr.toUTF8String(val);
-	      result.insert(n, val);
-	    }
-	  else
-	    {
-	      break;
-	    }
-	}
+        {
+          n_end = result.find(sstr2, n);
+          if(n_end != std::string::npos)
+            {
+              std::string val(result.begin() + n, result.begin() + n_end);
+              result.erase(n, val.size() + sstr2.size());
+              n_end = val.find(sstr1);
+              val.erase(0, n_end + sstr1.size());
+              strm.clear();
+              strm.str(val);
+              int32_t ch;
+              strm >> ch;
+              ustr = ch;
+              val.clear();
+              ustr.toUTF8String(val);
+              result.insert(n, val);
+            }
+          else
+            {
+              break;
+            }
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
 }
 
@@ -555,15 +546,15 @@ AuxFunc::open_book_callback(const std::filesystem::path &path)
   for(auto it = command.begin(); it != command.end();)
     {
       if(*it == '\"' || *it == '$')
-	{
-	  it = command.insert(it, '\\');
-	  it++;
-	  it++;
-	}
+        {
+          it = command.insert(it, '\\');
+          it++;
+          it++;
+        }
       else
-	{
-	  it++;
-	}
+        {
+          it++;
+        }
     }
   command = "xdg-open \"" + command + "\"";
   command = utf8_to_system(command);
@@ -571,19 +562,18 @@ AuxFunc::open_book_callback(const std::filesystem::path &path)
   std::cout << "Book open command result code: " << check << std::endl;
 #endif
 #ifdef _WIN32
-  HINSTANCE hin = ShellExecuteA (0, utf8_to_system("open").c_str (),
-				  utf8_to_system(command).c_str (),
-				  0, 0, 0);
-     intptr_t err = reinterpret_cast<intptr_t> (hin);
-   if (err <= 32)
-     {
-       std::cout << "Book open command error code: " << err << std::endl;
-     }
+  HINSTANCE hin = ShellExecuteA(0, utf8_to_system("open").c_str(),
+                                utf8_to_system(command).c_str(), 0, 0, 0);
+  intptr_t err = reinterpret_cast<intptr_t>(hin);
+  if(err <= 32)
+    {
+      std::cout << "Book open command error code: " << err << std::endl;
+    }
 #endif
 }
 
 int32_t
-AuxFunc::get_charset_conv_quntity()
+AuxFunc::get_charset_conv_quantity()
 {
   return ucnv_countAvailable();
 }
@@ -597,15 +587,13 @@ AuxFunc::utf_8_to(const std::string &input, const char *conv_name)
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::utf_8_to converter open error: "
-	  << u_errorName(status) << std::endl;
+                << u_errorName(status) << std::endl;
       return result;
     }
 
-  std::shared_ptr<UConverter> conv(c, []
-  (UConverter *c)
-    {
-      ucnv_close(c);
-    });
+  std::shared_ptr<UConverter> conv(c, [](UConverter *c) {
+    ucnv_close(c);
+  });
 
   status = U_ZERO_ERROR;
   std::vector<char> target;
@@ -617,29 +605,29 @@ AuxFunc::utf_8_to(const std::string &input, const char *conv_name)
       data[i] = ustr.charAt(i);
     }
   size_t cb = ucnv_fromUChars(conv.get(), target.data(), ustr.length(), data,
-			      ustr.length(), &status);
+                              ustr.length(), &status);
   if(!U_SUCCESS(status))
     {
       if(status == U_BUFFER_OVERFLOW_ERROR)
-	{
-	  status = U_ZERO_ERROR;
-	  target.clear();
-	  target.resize(cb);
-	  ucnv_fromUChars(conv.get(), target.data(), cb, data, ustr.length(),
-			  &status);
-	  if(!U_SUCCESS(status))
-	    {
-	      std::cout << "AuxFunc::utf_8_to conversion error: "
-		  << u_errorName(status) << std::endl;
-	      return result;
-	    }
-	}
+        {
+          status = U_ZERO_ERROR;
+          target.clear();
+          target.resize(cb);
+          ucnv_fromUChars(conv.get(), target.data(), cb, data, ustr.length(),
+                          &status);
+          if(!U_SUCCESS(status))
+            {
+              std::cout << "AuxFunc::utf_8_to conversion error: "
+                        << u_errorName(status) << std::endl;
+              return result;
+            }
+        }
       else
-	{
-	  std::cout << "AuxFunc::utf_8_to conversion error: "
-	      << u_errorName(status) << std::endl;
-	  return result;
-	}
+        {
+          std::cout << "AuxFunc::utf_8_to conversion error: "
+                    << u_errorName(status) << std::endl;
+          return result;
+        }
     }
 
   result = std::string(target.begin(), target.end());
@@ -647,7 +635,7 @@ AuxFunc::utf_8_to(const std::string &input, const char *conv_name)
   return result;
 }
 
-const char*
+const char *
 AuxFunc::get_converter_by_number(const int32_t &num)
 {
   return ucnv_getAvailableName(num);
@@ -667,80 +655,81 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
       std::string line;
       getline(f, line);
       if(!line.empty())
-	{
-	  if(!wrong_loc)
-	    {
-	      std::string::size_type n;
-	      std::string sstr = ";";
-	      for(;;)
-		{
-		  n = line.find(sstr);
-		  if(n != std::string::npos)
-		    {
-		      std::string locl = line.substr(0, n);
-		      line.erase(0, n + sstr.size());
-		      n = locl.find(locname);
-		      if(n != std::string::npos)
-			{
-			  break;
-			}
-		    }
-		  else
-		    {
-		      n = line.find(locname);
-		      if(n == std::string::npos)
-			{
-			  genre_group_trans = 0;
-			}
-		      break;
-		    }
-		  genre_group_trans++;
-		}
-	    }
-	  else
-	    {
-	      genre_group_trans = 0;
-	    }
-	}
+        {
+          if(!wrong_loc)
+            {
+              std::string::size_type n;
+              std::string sstr = ";";
+              for(;;)
+                {
+                  n = line.find(sstr);
+                  if(n != std::string::npos)
+                    {
+                      std::string locl = line.substr(0, n);
+                      line.erase(0, n + sstr.size());
+                      n = locl.find(locname);
+                      if(n != std::string::npos)
+                        {
+                          break;
+                        }
+                    }
+                  else
+                    {
+                      n = line.find(locname);
+                      if(n == std::string::npos)
+                        {
+                          genre_group_trans = 0;
+                        }
+                      break;
+                    }
+                  genre_group_trans++;
+                }
+            }
+          else
+            {
+              genre_group_trans = 0;
+            }
+        }
 
       while(!f.eof())
-	{
-	  line.clear();
-	  getline(f, line);
-	  if(!line.empty())
-	    {
-	      GenreGroup g;
-	      std::string::size_type n;
-	      int trans_count = 0;
-	      std::string sstr = ";";
-	      for(;;)
-		{
-		  n = line.find(sstr);
-		  if(n != std::string::npos)
-		    {
-		      if(trans_count == 0)
-			{
-			  g.group_code = line.substr(0, n);
-			}
-		      else if(trans_count == genre_group_trans)
-			{
-			  g.group_name = line.substr(0, n);
-			}
-		      line.erase(0, n + sstr.size());
-		    }
-		  else
-		    {
-		      if(!line.empty() && trans_count == genre_group_trans)
-			{
-			  g.group_name = line.substr(0, n);
-			}
-		      break;
-		    }
-		  trans_count++;
-		}
-	      gg.push_back(g);
-	    }
-	}
+        {
+          line.clear();
+          getline(f, line);
+          if(!line.empty())
+            {
+              GenreGroup g;
+              std::string::size_type n;
+              int trans_count = 0;
+              std::string sstr = ";";
+              for(;;)
+                {
+                  n = line.find(sstr);
+                  if(n != std::string::npos)
+                    {
+                      if(trans_count == 0)
+                        {
+                          g.group_code = line.substr(0, n);
+                          g.group_name = g.group_code;
+                        }
+                      else if(trans_count == genre_group_trans)
+                        {
+                          g.group_name = line.substr(0, n);
+                        }
+                      line.erase(0, n + sstr.size());
+                    }
+                  else
+                    {
+                      if(!line.empty() && trans_count == genre_group_trans)
+                        {
+                          g.group_name = line.substr(0, n);
+                        }
+                      break;
+                    }
+                  trans_count++;
+                }
+              gg.push_back(g);
+            }
+        }
       f.close();
     }
 
@@ -756,20 +745,20 @@ AuxFunc::libgcrypt_error_handling(const gcry_error_t &err)
   for(;;)
     {
       if(error.rbegin() != error.rend())
-	{
-	  if(!*(error.rbegin()))
-	    {
-	      error.pop_back();
-	    }
-	  else
-	    {
-	      break;
-	    }
-	}
+        {
+          if(!*(error.rbegin()))
+            {
+              error.pop_back();
+            }
+          else
+            {
+              break;
+            }
+        }
       else
-	{
-	  break;
-	}
+        {
+          break;
+        }
     }
   return error;
 }
@@ -781,26 +770,25 @@ AuxFunc::to_hex(std::string *source)
   result.resize(source->size() * 2);
   size_t count = 0;
   std::locale loc("C");
-  std::for_each(source->begin(), source->end(), [&result, &count, loc]
-  (auto &el)
-    {
-      uint8_t val8;
-      std::memcpy(&val8, &el, sizeof(el));
-      std::stringstream strm;
-      strm.imbue(loc);
-      strm << std::hex << static_cast<int>(val8);
-      if(val8 <= 15)
-	{
-	  result[count] = '0';
-	  result[count + 1] = strm.str()[0];
-	}
-      else
-	{
-	  result[count] = strm.str()[0];
-	  result[count + 1] = strm.str()[1];
-	}
-      count += 2;
-    });
+  std::for_each(source->begin(), source->end(),
+                [&result, &count, loc](char &el) {
+                  uint8_t val8;
+                  std::memcpy(&val8, &el, sizeof(el));
+                  std::stringstream strm;
+                  strm.imbue(loc);
+                  strm << std::hex << static_cast<int>(val8);
+                  if(val8 <= 15)
+                    {
+                      result[count] = '0';
+                      result[count + 1] = strm.str()[0];
+                    }
+                  else
+                    {
+                      result[count] = strm.str()[0];
+                      result[count + 1] = strm.str()[1];
+                    }
+                  count += 2;
+                });
   return result;
 }
 
@@ -817,17 +805,20 @@ AuxFunc::stringToLower(const std::string &line)
 std::string
 AuxFunc::randomFileName()
 {
+  std::chrono::time_point<std::chrono::high_resolution_clock> ctm_p
+      = std::chrono::high_resolution_clock::now();
+  uint64_t ctm = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                     ctm_p.time_since_epoch())
+                     .count();
+  std::mt19937 rng(ctm);
+  std::numeric_limits<uint64_t> lim;
+  std::uniform_int_distribution<uint64_t> dist(lim.min() + 1, lim.max());
+  ctm = dist(rng);
   std::string result;
-  std::chrono::time_point<std::chrono::system_clock> now =
-      std::chrono::system_clock::now();
-  auto duration = now.time_since_epoch();
-  uint64_t t = duration.count();
-  std::srand(t);
-  int rnd = std::rand();
   std::stringstream strm;
   std::locale loc("C");
   strm.imbue(loc);
-  strm << std::hex << rnd;
+  strm << std::hex << ctm;
   result = strm.str() + "mylibrary";
   return result;
 }
@@ -840,7 +831,7 @@ AuxFunc::utf8_to_system(const std::string &input)
 
 void
 AuxFunc::copy_book_callback(const std::filesystem::path &source,
-			    const std::filesystem::path &out)
+                            const std::filesystem::path &out)
 {
   std::filesystem::remove_all(out);
   std::error_code ec;
@@ -921,29 +912,29 @@ AuxFunc::get_extension(const std::filesystem::path &p)
     {
       std::string ext;
       for(;;)
-	{
-	  if(lp.has_extension())
-	    {
-	      if(result.empty())
-		{
-		  result = lp.extension().u8string();
-		  lp.replace_extension("");
-		}
-	      else
-		{
-		  ext = lp.extension().u8string();
-		  if(stringToLower(ext) == ".tar")
-		    {
-		      result = ext + result;
-		    }
-		  break;
-		}
-	    }
-	  else
-	    {
-	      break;
-	    }
-	}
+        {
+          if(lp.has_extension())
+            {
+              if(result.empty())
+                {
+                  result = lp.extension().u8string();
+                  lp.replace_extension("");
+                }
+              else
+                {
+                  ext = lp.extension().u8string();
+                  if(stringToLower(ext) == ".tar")
+                    {
+                      result = ext + result;
+                    }
+                  break;
+                }
+            }
+          else
+            {
+              break;
+            }
+        }
     }
   return result;
 }

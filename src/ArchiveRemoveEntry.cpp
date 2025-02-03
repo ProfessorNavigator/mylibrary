@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 ArchiveRemoveEntry::ArchiveRemoveEntry()
 {
-
 }
 
 ArchiveRemoveEntry::~ArchiveRemoveEntry()
@@ -28,8 +27,7 @@ ArchiveRemoveEntry::~ArchiveRemoveEntry()
   a_write.reset();
 }
 
-ArchiveRemoveEntry::ArchiveRemoveEntry(
-    const ArchiveRemoveEntry &other)
+ArchiveRemoveEntry::ArchiveRemoveEntry(const ArchiveRemoveEntry &other)
 {
   if(this != &other)
     {
@@ -49,7 +47,7 @@ ArchiveRemoveEntry::ArchiveRemoveEntry(ArchiveRemoveEntry &&other)
     }
 }
 
-ArchiveRemoveEntry&
+ArchiveRemoveEntry &
 ArchiveRemoveEntry::operator=(const ArchiveRemoveEntry &other)
 {
   if(this != &other)
@@ -61,7 +59,7 @@ ArchiveRemoveEntry::operator=(const ArchiveRemoveEntry &other)
   return *this;
 }
 
-ArchiveRemoveEntry&
+ArchiveRemoveEntry &
 ArchiveRemoveEntry::operator=(ArchiveRemoveEntry &&other)
 {
   if(this != &other)
@@ -72,4 +70,3 @@ ArchiveRemoveEntry::operator=(ArchiveRemoveEntry &&other)
     }
   return *this;
 }
-

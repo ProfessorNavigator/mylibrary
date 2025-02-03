@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_CREATECOLLECTION_H_
-#define INCLUDE_CREATECOLLECTION_H_
+#ifndef CREATECOLLECTION_H
+#define CREATECOLLECTION_H
 
 #include <AuxFunc.h>
 #include <FileParseEntry.h>
 #include <Hasher.h>
 #include <atomic>
+#ifndef USE_OPENMP
 #include <condition_variable>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -36,28 +38,25 @@ class CreateCollection : public Hasher
 {
 public:
   CreateCollection(const std::shared_ptr<AuxFunc> &af,
-		   const std::filesystem::path &collection_path,
-		   const std::filesystem::path &books_path,
-		   const bool &rar_support, const int &num_threads,
-		   std::atomic<bool> *cancel);
-  virtual
-  ~CreateCollection();
+                   const std::filesystem::path &collection_path,
+                   const std::filesystem::path &books_path,
+                   const bool &rar_support, const int &num_threads,
+                   std::atomic<bool> *cancel);
+
+  virtual ~CreateCollection();
 
   void
   createCollection();
 
-  std::function<void
-  ()> pulse;
+  std::function<void()> pulse;
 
-  std::function<void
-  (const double &file_number)> total_file_number;
+  std::function<void(const double &file_number)> total_file_number;
 
-  std::function<void
-  (const double &progress)> progress;
+  std::function<void(const double &progress)> progress;
 
 protected:
   CreateCollection(const std::shared_ptr<AuxFunc> &af, const int &num_threads,
-		   std::atomic<bool> *cancel);
+                   std::atomic<bool> *cancel);
 
   void
   threadRegulator();
@@ -71,36 +70,37 @@ protected:
   void
   write_file_to_base(const FileParseEntry &fe);
 
-  std::vector<std::filesystem::path> need_to_parse;
   std::filesystem::path base_path;
   std::filesystem::path books_path;
   bool rar_support = false;
   std::vector<std::tuple<std::filesystem::path, std::string>> already_hashed;
 
+  std::vector<std::filesystem::path> need_to_parse;
+
 private:
   void
   fb2_thread(const std::filesystem::path &file_col_path,
-	     const std::filesystem::path &resolved);
+             const std::filesystem::path &resolved);
 
   void
   epub_thread(const std::filesystem::path &file_col_path,
-	      const std::filesystem::path &resolved);
+              const std::filesystem::path &resolved);
 
   void
   pdf_thread(const std::filesystem::path &file_col_path,
-	     const std::filesystem::path &resolved);
+             const std::filesystem::path &resolved);
 
   void
   djvu_thread(const std::filesystem::path &file_col_path,
-	      const std::filesystem::path &resolved);
+              const std::filesystem::path &resolved);
 
   void
   arch_thread(const std::filesystem::path &file_col_path,
-	      const std::filesystem::path &resolved);
+              const std::filesystem::path &resolved);
 
   void
   book_entry_to_file_entry(std::string &file_entry,
-			   const std::string &book_entry);
+                           const std::string &book_entry);
 
   std::shared_ptr<AuxFunc> af;
   int num_threads = 1;
@@ -109,9 +109,11 @@ private:
   std::fstream base_strm;
   std::mutex base_strm_mtx;
 
+#ifndef USE_OPENMP
   std::mutex newthrmtx;
   std::condition_variable add_thread;
   int run_threads = 0;
+#endif
 };
 
-#endif /* INCLUDE_CREATECOLLECTION_H_ */
+#endif // CREATECOLLECTION_H

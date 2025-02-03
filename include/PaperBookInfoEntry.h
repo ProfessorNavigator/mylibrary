@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_PAPERBOOKINFOENTRY_H_
-#define INCLUDE_PAPERBOOKINFOENTRY_H_
+#ifndef PAPERBOOKINFOENTRY_H
+#define PAPERBOOKINFOENTRY_H
 
 #include <string>
 
@@ -24,17 +24,15 @@ class PaperBookInfoEntry
 {
 public:
   PaperBookInfoEntry();
-  virtual
-  ~PaperBookInfoEntry();
 
   PaperBookInfoEntry(const PaperBookInfoEntry &other);
 
   PaperBookInfoEntry(PaperBookInfoEntry &&other);
 
-  PaperBookInfoEntry&
+  PaperBookInfoEntry &
   operator=(const PaperBookInfoEntry &other);
 
-  PaperBookInfoEntry&
+  PaperBookInfoEntry &
   operator=(PaperBookInfoEntry &&other);
 
   bool available = false;
@@ -45,4 +43,4 @@ public:
   std::string isbn;
 };
 
-#endif /* INCLUDE_PAPERBOOKINFOENTRY_H_ */
+#endif // PAPERBOOKINFOENTRY_H

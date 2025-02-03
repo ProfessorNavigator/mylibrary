@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_BOOKINFOENTRY_H_
-#define INCLUDE_BOOKINFOENTRY_H_
+#ifndef BOOKINFOENTRY_H
+#define BOOKINFOENTRY_H
 
 #include <ElectroBookInfoEntry.h>
 #include <PaperBookInfoEntry.h>
@@ -26,17 +26,17 @@ class BookInfoEntry
 {
 public:
   BookInfoEntry();
-  virtual
-  ~BookInfoEntry();
+
+  virtual ~BookInfoEntry();
 
   BookInfoEntry(const BookInfoEntry &other);
 
   BookInfoEntry(BookInfoEntry &&other);
 
-  BookInfoEntry&
+  BookInfoEntry &
   operator=(const BookInfoEntry &other);
 
-  BookInfoEntry&
+  BookInfoEntry &
   operator=(BookInfoEntry &&other);
 
   std::string annotation;
@@ -52,4 +52,4 @@ public:
   int bytes_per_row = 0;
 };
 
-#endif /* INCLUDE_BOOKINFOENTRY_H_ */
+#endif // BOOKINFOENTRY_H

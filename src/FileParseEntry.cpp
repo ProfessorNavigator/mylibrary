@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,25 +19,16 @@
 
 FileParseEntry::FileParseEntry()
 {
-
-}
-
-FileParseEntry::~FileParseEntry()
-{
-
 }
 
 FileParseEntry::FileParseEntry(const FileParseEntry &other)
 {
-  if(this != &other)
-    {
-      file_rel_path = other.file_rel_path;
-      file_hash = other.file_hash;
-      books = other.books;
-    }
+  file_rel_path = other.file_rel_path;
+  file_hash = other.file_hash;
+  books = other.books;
 }
 
-FileParseEntry&
+FileParseEntry &
 FileParseEntry::operator=(const FileParseEntry &other)
 {
   if(this != &other)
@@ -51,16 +42,13 @@ FileParseEntry::operator=(const FileParseEntry &other)
 
 FileParseEntry::FileParseEntry(FileParseEntry &&other)
 {
-  if(this != &other)
-    {
-      file_rel_path = other.file_rel_path;
-      file_hash = other.file_hash;
-      books = other.books;
-    }
+  file_rel_path = other.file_rel_path;
+  file_hash = other.file_hash;
+  books = other.books;
 }
 
-FileParseEntry&
-FileParseEntry::operator =(FileParseEntry &&other)
+FileParseEntry &
+FileParseEntry::operator=(FileParseEntry &&other)
 {
   if(this != &other)
     {
