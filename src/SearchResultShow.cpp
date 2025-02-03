@@ -49,6 +49,11 @@ SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
 void
 SearchResultShow::clearSearchResult()
 {
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
   selected_item.reset();
   selected_item_file.reset();
   if(model)

@@ -32,6 +32,7 @@
 #include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
 #include <gtkmm-4.0/gtkmm/stringfilter.h>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
