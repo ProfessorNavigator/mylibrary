@@ -281,7 +281,7 @@ RightGrid::createGrid()
   clck = Gtk::GestureClick::create();
   clck->set_button(1);
   clck->signal_pressed().connect([this](int, double, double) {
-    this->cover_full_size();
+    cover_full_size();
   });
   cover_area->add_controller(clck);
 
@@ -405,7 +405,7 @@ RightGrid::set_annotation_n_cover(
 
       buffer->insert_markup(buffer->begin(), Glib::ustring(bie->annotation));
     }
-  this->annotation->set_buffer(buffer);
+  annotation->set_buffer(buffer);
   annotation_parse_http(buffer);
 
   cover_area->queue_draw();
@@ -544,30 +544,28 @@ RightGrid::book_operations_action_group()
                            std::bind(&RightGrid::open_book_action, this));
 
   book_actions->add_action("create_bookmark", [this] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        int variant = this->bookmarks->createBookMark(item->bbe);
+        int variant = bookmarks->createBookMark(item->bbe);
         bookmarks_save_result_dialog(variant);
       }
   });
 
   book_actions->add_action("book_info", [this] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        BookInfoGui *big
-            = new BookInfoGui(this->af, this->main_window, this->bie);
+        BookInfoGui *big = new BookInfoGui(af, main_window, bie);
         big->creatWindow(item->bbe);
       }
   });
 
   book_actions->add_action("copy_book", [this] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        CopyBookGui *cbg
-            = new CopyBookGui(this->af, this->main_window, item->bbe);
+        CopyBookGui *cbg = new CopyBookGui(af, main_window, item->bbe);
         cbg->createWindow();
       }
   });
@@ -576,12 +574,11 @@ RightGrid::book_operations_action_group()
                            std::bind(&RightGrid::book_remove_action, this));
 
   book_actions->add_action("edit_book", [this] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        EditBookGui *ebg
-            = new EditBookGui(this->af, this->main_window, this->bookmarks,
-                              this->current_collection, item->bbe);
+        EditBookGui *ebg = new EditBookGui(af, main_window, bookmarks,
+                                           current_collection, item->bbe);
         ebg->successfully_edited_signal = std::bind(
             &RightGrid::edit_book_success_slot, this, std::placeholders::_1,
             std::placeholders::_2, std::placeholders::_3);
@@ -791,14 +788,14 @@ RightGrid::book_remove_action()
                                                  col_name, bookmarks);
           rbg->remove_callback = [this, item,
                                   col_name](const BookBaseEntry &) {
-            this->bie.reset();
+            bie.reset();
             Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
-            this->annotation->set_buffer(buf);
-            this->cover_area->queue_draw();
+            annotation->set_buffer(buf);
+            cover_area->queue_draw();
             srs->removeBook(item);
-            if(this->reload_collection_base)
+            if(reload_collection_base)
               {
-                this->reload_collection_base(col_name);
+                reload_collection_base(col_name);
               }
           };
           rbg->createWindow();
@@ -927,14 +924,14 @@ RightGrid::transfer_book_action()
           af, bookmarks, item->bbe, current_collection, main_window);
       tbg->success_signal
           = [this, item](const BookBaseEntry &, const std::string &col_name) {
-              this->bie.reset();
+              bie.reset();
               Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
-              this->annotation->set_buffer(buf);
-              this->cover_area->queue_draw();
+              annotation->set_buffer(buf);
+              cover_area->queue_draw();
               srs->removeBook(item);
-              if(this->reload_collection_base)
+              if(reload_collection_base)
                 {
-                  this->reload_collection_base(col_name);
+                  reload_collection_base(col_name);
                 }
             };
       tbg->createWindow();

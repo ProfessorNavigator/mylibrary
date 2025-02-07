@@ -258,17 +258,16 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
       = Gio::SimpleActionGroup::create();
 
   bookmark_actions->add_action("open_book", [this] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
         try
           {
             std::filesystem::path tmp = af->temp_path();
             tmp /= std::filesystem::u8path("MyLibraryReading");
-            this->open_book->open_book(item->bbe, false, tmp, false,
-                                       std::bind(&AuxFunc::open_book_callback,
-                                                 af.get(),
-                                                 std::placeholders::_1));
+            open_book->open_book(item->bbe, false, tmp, false,
+                                 std::bind(&AuxFunc::open_book_callback,
+                                           af.get(), std::placeholders::_1));
           }
         catch(MLException &er)
           {
@@ -278,25 +277,25 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
   });
 
   bookmark_actions->add_action("book_info", [this, win] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        BookInfoGui *big = new BookInfoGui(this->af, win);
+        BookInfoGui *big = new BookInfoGui(af, win);
         big->creatWindow(item->bbe);
       }
   });
 
   bookmark_actions->add_action("copy_book", [this, win] {
-    auto item = this->srs->get_selected_item();
+    auto item = srs->get_selected_item();
     if(item)
       {
-        CopyBookGui *cbg = new CopyBookGui(this->af, win, item->bbe);
+        CopyBookGui *cbg = new CopyBookGui(af, win, item->bbe);
         cbg->createWindow();
       }
   });
 
   bookmark_actions->add_action("remove_book", [this, win] {
-    this->confirmationDialog(win);
+    confirmationDialog(win);
   });
 
   win->insert_action_group("book_mark_ag", bookmark_actions);
@@ -333,11 +332,11 @@ BookMarksGui::confirmationDialog(Gtk::Window *win)
       yes->set_label(gettext("Yes"));
       yes->set_name("removeBut");
       yes->signal_clicked().connect([this, window] {
-        auto item = this->srs->get_selected_item();
+        auto item = srs->get_selected_item();
         if(item)
           {
-            this->srs->removeItem(item);
-            this->bookmarks->removeBookMark(item->bbe);
+            srs->removeItem(item);
+            bookmarks->removeBookMark(item->bbe);
           }
         window->close();
       });

@@ -38,7 +38,6 @@
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/signallistitemfactory.h>
 #include <iostream>
-#include <iterator>
 #include <libintl.h>
 #include <sigc++/connection.h>
 #include <stddef.h>
@@ -76,7 +75,7 @@ EditBookGui::createWindow()
   restore_disp = new Glib::Dispatcher;
   restore_disp->connect([this, window] {
     window->unset_child();
-    this->form_window_grid(window);
+    form_window_grid(window);
   });
 
   form_window_grid(window);
@@ -382,7 +381,7 @@ EditBookGui::slot_genre_select(int, double, double, const Genre &g,
     }
   else
     {
-      nm = group_name + ", " + this->af->stringToLower(g.genre_name);
+      nm = group_name + ", " + af->stringToLower(g.genre_name);
     }
   Glib::RefPtr<EditBookGenreModelItem> item
       = EditBookGenreModelItem::create(g.genre_code, nm);
@@ -600,10 +599,10 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   restore->set_name("operationBut");
   restore->set_label(gettext("Restore"));
   restore->signal_clicked().connect([this] {
-    this->refresh_thr = std::make_shared<std::thread>([this] {
-      this->restore_disp->emit();
+    refresh_thr = std::make_shared<std::thread>([this] {
+      restore_disp->emit();
     });
-    this->refresh_thr->detach();
+    refresh_thr->detach();
   });
   grid->attach(*restore, 1, row_num, 1, 1);
 
@@ -681,8 +680,8 @@ EditBookGui::confirmationDialog(Gtk::Window *win)
   yes->set_name("applyBut");
   yes->set_label(gettext("Yes"));
   yes->signal_clicked().connect([window, this] {
-    this->wait_window(window);
-    this->edit_book(window);
+    wait_window(window);
+    edit_book(window);
   });
   grid->attach(*yes, 0, 1, 1, 1);
 

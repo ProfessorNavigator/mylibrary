@@ -24,15 +24,12 @@ BookParseEntry::BookParseEntry()
 
 BookParseEntry::BookParseEntry(const BookParseEntry &other)
 {
-  if(this != &other)
-    {
-      book_path = other.book_path;
-      book_author = other.book_author;
-      book_name = other.book_name;
-      book_series = other.book_series;
-      book_genre = other.book_genre;
-      book_date = other.book_date;
-    }
+  book_path = other.book_path;
+  book_author = other.book_author;
+  book_name = other.book_name;
+  book_series = other.book_series;
+  book_genre = other.book_genre;
+  book_date = other.book_date;
 }
 
 BookParseEntry&
@@ -65,15 +62,12 @@ BookParseEntry::operator ==(const BookParseEntry &other)
 
 BookParseEntry::BookParseEntry(BookParseEntry &&other)
 {
-  if(this != &other)
-    {
-      book_path = other.book_path;
-      book_author = other.book_author;
-      book_name = other.book_name;
-      book_series = other.book_series;
-      book_genre = other.book_genre;
-      book_date = other.book_date;
-    }
+  book_path = std::move(other.book_path);
+  book_author = std::move(other.book_author);
+  book_name = std::move(other.book_name);
+  book_series = std::move(other.book_series);
+  book_genre = std::move(other.book_genre);
+  book_date = std::move(other.book_date);
 }
 
 BookParseEntry&
@@ -81,12 +75,12 @@ BookParseEntry::operator =(BookParseEntry &&other)
 {
   if(this != &other)
     {
-      book_path = other.book_path;
-      book_author = other.book_author;
-      book_name = other.book_name;
-      book_series = other.book_series;
-      book_genre = other.book_genre;
-      book_date = other.book_date;
+      book_path = std::move(other.book_path);
+      book_author = std::move(other.book_author);
+      book_name = std::move(other.book_name);
+      book_series = std::move(other.book_series);
+      book_genre = std::move(other.book_genre);
+      book_date = std::move(other.book_date);
     }
   return *this;
 }

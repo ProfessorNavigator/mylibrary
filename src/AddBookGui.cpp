@@ -134,7 +134,7 @@ AddBookGui::createWindow()
   remove_src->set_active(false);
   Glib::PropertyProxy<bool> r_src_prop = remove_src->property_active();
   r_src_prop.signal_changed().connect([this, remove_src] {
-    this->remove_sources = remove_src->get_active();
+    remove_sources = remove_src->get_active();
   });
   grid->attach(*remove_src, 0, 2, 2, 1);
 
@@ -219,7 +219,7 @@ AddBookGui::createWindow()
           {
             add_to_arch->set_visible(true);
             lab->set_visible(true);
-            this->arch_t_dd->set_visible(true);
+            arch_t_dd->set_visible(true);
             apply->set_label(gettext("Archive path"));
           }
         else
@@ -227,8 +227,8 @@ AddBookGui::createWindow()
             add_to_arch->set_visible(false);
             add_to_arch->set_active(false);
             lab->set_visible(false);
-            this->arch_t_dd->set_visible(false);
-            if(this->directory_add)
+            arch_t_dd->set_visible(false);
+            if(directory_add)
               {
                 apply->set_label(gettext("Add directories"));
               }
@@ -246,7 +246,7 @@ AddBookGui::createWindow()
         if(add_to_arch->get_active())
           {
             lab->set_visible(false);
-            this->arch_t_dd->set_visible(false);
+            arch_t_dd->set_visible(false);
             window->set_default_size(1, 1);
             apply->set_label(gettext("Select archive"));
           }
@@ -256,7 +256,7 @@ AddBookGui::createWindow()
             if(pack_in_arch->get_active())
               {
                 lab->set_visible(true);
-                this->arch_t_dd->set_visible(true);
+                arch_t_dd->set_visible(true);
               }
           }
       });
@@ -533,7 +533,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   warn_lab->set_use_markup(true);
   Glib::PropertyProxy<bool> vis_warn = warn_lab->property_visible();
   vis_warn.signal_changed().connect([this, window] {
-    if(!this->warn_lab->is_visible())
+    if(!warn_lab->is_visible())
       {
         window->set_default_size(1, 1);
       }
@@ -550,7 +550,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   error_lab->set_use_markup(true);
   Glib::PropertyProxy<bool> vis_err = error_lab->property_visible();
   vis_err.signal_changed().connect([this, window] {
-    if(!this->error_lab->is_visible())
+    if(!error_lab->is_visible())
       {
         window->set_default_size(1, 1);
       }
@@ -564,7 +564,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   add_books_col->set_label(gettext("Add"));
   add_books_col->set_sensitive(false);
   add_books_col->signal_clicked().connect([this, variant, win, window] {
-    bool conflict = this->add_books(win, variant);
+    bool conflict = add_books(win, variant);
     if(!conflict)
       {
         window->close();
@@ -577,21 +577,21 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   grid->attach(*add_books_col, 0, row_num, 1, 1);
 
   books_list->signal_items_changed().connect([this](guint, guint, guint) {
-    if(this->books_list->get_n_items() == 0)
+    if(books_list->get_n_items() == 0)
       {
-        this->error_lab->set_visible(false);
-        this->name_conflicts.clear();
+        error_lab->set_visible(false);
+        name_conflicts.clear();
       }
-    if(this->books_list->get_n_items() > 0 && !this->error_lab->is_visible()
-       && this->name_conflicts.size() == 0)
+    if(books_list->get_n_items() > 0 && !error_lab->is_visible()
+       && name_conflicts.size() == 0)
       {
-        this->add_books_col->set_sensitive(true);
-        this->add_books_col->set_name("applyBut");
+        add_books_col->set_sensitive(true);
+        add_books_col->set_name("applyBut");
       }
     else
       {
-        this->add_books_col->set_sensitive(false);
-        this->add_books_col->set_name("");
+        add_books_col->set_sensitive(false);
+        add_books_col->set_name("");
       }
   });
 
@@ -1377,7 +1377,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
   if(conflict)
     {
       add_books_col->set_sensitive(false);
-      this->add_books_col->set_name("");
+      add_books_col->set_name("");
       return conflict;
     }
   Glib::RefPtr<Gtk::StringObject> item
@@ -1402,12 +1402,11 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
         {
         case 1:
           {
-            std::thread *thr = new std::thread([this, result] {
-              AddBook ab(this->af, this->collection_name, this->remove_sources,
-                         this->bookmarks);
+            std::thread thr([this, result] {
+              AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
                 {
-                  if(this->directory_add)
+                  if(directory_add)
                     {
                       ab.simple_add_dir(result);
                     }
@@ -1415,73 +1414,66 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                     {
                       ab.simple_add(result);
                     }
-                  this->finish_add_disp->emit();
+                  finish_add_disp->emit();
                 }
               catch(MLException &er)
                 {
                   std::cout << er.what() << std::endl;
-                  this->finish_add_err_disp->emit();
+                  finish_add_err_disp->emit();
                 }
             });
-            thr->detach();
-            delete thr;
+            thr.detach();
             break;
           }
         case 2:
           {
-            std::thread *thr = new std::thread([this, result] {
-              AddBook ab(this->af, this->collection_name, this->remove_sources,
-                         this->bookmarks);
+            std::thread thr([this, result] {
+              AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
                 {
-                  if(this->directory_add)
+                  if(directory_add)
                     {
-                      ab.overwrite_archive_dir(this->result_archive_path,
-                                               result);
+                      ab.overwrite_archive_dir(result_archive_path, result);
                     }
                   else
                     {
-                      ab.overwrite_archive(this->result_archive_path, result);
+                      ab.overwrite_archive(result_archive_path, result);
                     }
-                  this->finish_add_disp->emit();
+                  finish_add_disp->emit();
                 }
               catch(MLException &er)
                 {
                   std::cout << er.what() << std::endl;
-                  this->finish_add_err_disp->emit();
+                  finish_add_err_disp->emit();
                 }
             });
-            thr->detach();
-            delete thr;
+            thr.detach();
             break;
           }
         case 3:
           {
-            std::thread *thr = new std::thread([this, result] {
-              AddBook ab(this->af, this->collection_name, this->remove_sources,
-                         this->bookmarks);
+            std::thread thr([this, result] {
+              AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
                 {
-                  if(this->directory_add)
+                  if(directory_add)
                     {
-                      ab.add_to_existing_archive_dir(this->result_archive_path,
+                      ab.add_to_existing_archive_dir(result_archive_path,
                                                      result);
                     }
                   else
                     {
-                      ab.add_to_existing_archive(this->result_archive_path,
-                                                 result);
+                      ab.add_to_existing_archive(result_archive_path, result);
                     }
-                  this->finish_add_disp->emit();
+                  finish_add_disp->emit();
                 }
               catch(MLException &er)
                 {
                   std::cout << er.what() << std::endl;
-                  this->finish_add_err_disp->emit();
+                  finish_add_err_disp->emit();
                 }
             });
-            thr->detach();
-            delete thr;
+            thr.detach();
             break;
           }
         default:
@@ -1736,7 +1728,7 @@ AddBookGui::check_conflict_names(const Glib::RefPtr<AddBookModelItem> &item)
   if(name_conflicts.size() == 0 && !error_lab->get_visible())
     {
       add_books_col->set_sensitive(true);
-      this->add_books_col->set_name("applyBut");
+      add_books_col->set_name("applyBut");
     }
 }
 
@@ -2152,15 +2144,14 @@ AddBookGui::archive_selection_dialog_add_slot(
 
           finish_wait_disp->connect([win, w_win, this] {
             w_win->close();
-            this->bookSelectionWindow(win, 3);
+            bookSelectionWindow(win, 3);
           });
 
-          std::thread *thr = new std::thread([this, p] {
-            this->archive_filenames = AddBook::archive_filenames(p);
-            this->finish_wait_disp->emit();
+          std::thread thr([this, p] {
+            archive_filenames = AddBook::archive_filenames(p);
+            finish_wait_disp->emit();
           });
-          thr->detach();
-          delete thr;
+          thr.detach();
         }
     }
 }
@@ -2320,15 +2311,14 @@ AddBookGui::archive_selection_dialog_add_slot(int resp,
 
               finish_wait_disp->connect([win, w_win, this] {
                 w_win->close();
-                this->bookSelectionWindow(win, 3);
+                bookSelectionWindow(win, 3);
               });
 
-              std::thread *thr = new std::thread([this, p] {
-                this->archive_filenames = AddBook::archive_filenames(p);
-                this->finish_wait_disp->emit();
+              std::thread thr([this, p] {
+                archive_filenames = AddBook::archive_filenames(p);
+                finish_wait_disp->emit();
               });
-              thr->detach();
-              delete thr;
+              thr.detach();
             }
         }
     }

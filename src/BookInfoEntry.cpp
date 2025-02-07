@@ -31,40 +31,34 @@ BookInfoEntry::~BookInfoEntry()
 
 BookInfoEntry::BookInfoEntry(BookInfoEntry &&other)
 {
-  if(this != &other)
-    {
-      annotation = other.annotation;
-      cover = other.cover;
-      cover_type = other.cover_type;
-      language = other.language;
-      src_language = other.src_language;
-      translator = other.translator;
-      paper = other.paper;
-      other.paper = nullptr;
-      electro = other.electro;
-      other.electro = nullptr;
-      bytes_per_row = other.bytes_per_row;
-    }
+  annotation = std::move(other.annotation);
+  cover = std::move(other.cover);
+  cover_type = std::move(other.cover_type);
+  language = std::move(other.language);
+  src_language = std::move(other.src_language);
+  translator = std::move(other.translator);
+  paper = other.paper;
+  other.paper = nullptr;
+  electro = other.electro;
+  other.electro = nullptr;
+  bytes_per_row = std::move(other.bytes_per_row);
 }
 
 BookInfoEntry::BookInfoEntry(const BookInfoEntry &other)
 {
-  if(this != &other)
-    {
-      annotation = other.annotation;
-      cover = other.cover;
-      cover_type = other.cover_type;
-      language = other.language;
-      src_language = other.src_language;
-      translator = other.translator;
-      paper = other.paper;
-      electro = other.electro;
-      bytes_per_row = other.bytes_per_row;
-    }
+  annotation = other.annotation;
+  cover = other.cover;
+  cover_type = other.cover_type;
+  language = other.language;
+  src_language = other.src_language;
+  translator = other.translator;
+  paper = other.paper;
+  electro = other.electro;
+  bytes_per_row = other.bytes_per_row;
 }
 
-BookInfoEntry&
-BookInfoEntry::operator =(const BookInfoEntry &other)
+BookInfoEntry &
+BookInfoEntry::operator=(const BookInfoEntry &other)
 {
   if(this != &other)
     {
@@ -81,23 +75,22 @@ BookInfoEntry::operator =(const BookInfoEntry &other)
   return *this;
 }
 
-BookInfoEntry&
+BookInfoEntry &
 BookInfoEntry::operator=(BookInfoEntry &&other)
 {
   if(this != &other)
     {
-      annotation = other.annotation;
-      cover = other.cover;
-      cover_type = other.cover_type;
-      language = other.language;
-      src_language = other.src_language;
-      translator = other.translator;
+      annotation = std::move(other.annotation);
+      cover = std::move(other.cover);
+      cover_type = std::move(other.cover_type);
+      language = std::move(other.language);
+      src_language = std::move(other.src_language);
+      translator = std::move(other.translator);
       paper = other.paper;
       other.paper = nullptr;
       electro = other.electro;
       other.electro = nullptr;
-      bytes_per_row = other.bytes_per_row;
+      bytes_per_row = std::move(other.bytes_per_row);
     }
   return *this;
 }
-

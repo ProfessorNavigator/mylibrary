@@ -133,10 +133,10 @@ CollectionCrProcessGui::createWindow(const int &variant)
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
   cancel->signal_clicked().connect([this] {
-    this->cancel_proc.store(true);
-    this->cancel->hide();
-    this->creation_progress->hide();
-    this->process_name->set_text(gettext("Interruption..."));
+    cancel_proc.store(true);
+    cancel->hide();
+    creation_progress->hide();
+    process_name->set_text(gettext("Interruption..."));
   });
   grid->attach(*cancel, 0, 2, 1, 1);
 
@@ -186,68 +186,66 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
 
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this] {
-    this->creation_progress->pulse();
+    creation_progress->pulse();
   });
   cc->pulse = [this] {
-    this->pulse_disp->emit();
+    pulse_disp->emit();
   };
 
   total_files_disp = new Glib::Dispatcher;
   total_files_disp->connect([this] {
-    this->process_name->set_text(gettext("Collection creation progress:"));
-    this->creation_progress->set_show_text(true);
-    this->creation_progress->set_fraction(0.0);
+    process_name->set_text(gettext("Collection creation progress:"));
+    creation_progress->set_show_text(true);
+    creation_progress->set_fraction(0.0);
   });
   cc->total_file_number = [this](const double &tot) {
-    this->total_files = tot;
-    if(this->total_files == 0.0)
+    total_files = tot;
+    if(total_files == 0.0)
       {
-        this->total_files = 1.0;
+        total_files = 1.0;
       }
-    this->total_files_disp->emit();
+    total_files_disp->emit();
   };
 
   progress_disp = new Glib::Dispatcher;
   progress_disp->connect([this] {
-    this->creation_progress->set_fraction(this->progress_count
-                                          / this->total_files);
+    creation_progress->set_fraction(progress_count / total_files);
   });
   cc->progress = [this](const double &prog) {
-    if(prog > this->progress_count.load())
+    if(prog > progress_count.load())
       {
-        this->progress_count.store(prog);
+        progress_count.store(prog);
       }
-    this->progress_disp->emit();
+    progress_disp->emit();
   };
 
   creation_finished_disp = new Glib::Dispatcher;
   creation_finished_disp->connect([win, this] {
-    this->finishInfo(win, 1);
+    finishInfo(win, 1);
   });
 
   new_collection_name_disp = new Glib::Dispatcher;
   new_collection_name_disp->connect([this] {
-    if(this->add_new_collection)
+    if(add_new_collection)
       {
-        this->add_new_collection(this->collection_path.filename().u8string());
+        add_new_collection(collection_path.filename().u8string());
       }
   });
 
-  std::thread *thr = new std::thread([cc, this] {
+  std::thread thr([cc, this] {
     try
       {
         cc->createCollection();
-        this->new_collection_name_disp->emit();
+        new_collection_name_disp->emit();
       }
     catch(MLException &e)
       {
         std::cout << e.what() << std::endl;
       }
-    this->creation_finished_disp->emit();
+    creation_finished_disp->emit();
     delete cc;
   });
-  thr->detach();
-  delete thr;
+  thr.detach();
 }
 
 void
@@ -265,81 +263,79 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
   rfr->set_rar_support(rar_support);
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this] {
-    this->creation_progress->pulse();
+    creation_progress->pulse();
   });
   rfr->pulse = [this] {
-    this->pulse_disp->emit();
+    pulse_disp->emit();
   };
 
   total_bytes_to_hash_disp = new Glib::Dispatcher;
   total_bytes_to_hash_disp->connect([this] {
-    this->process_name->set_text(gettext("Collection hashing progress:"));
-    this->creation_progress->set_show_text(true);
-    this->creation_progress->set_fraction(0.0);
+    process_name->set_text(gettext("Collection hashing progress:"));
+    creation_progress->set_show_text(true);
+    creation_progress->set_fraction(0.0);
   });
 
   rfr->total_bytes_to_hash = [this](const double &tot) {
     if(tot == 0.0)
       {
-        this->total_bytes_to_hash = 1.0;
+        total_bytes_to_hash = 1.0;
       }
     else
       {
-        this->total_bytes_to_hash = tot;
+        total_bytes_to_hash = tot;
       }
-    this->total_bytes_to_hash_disp->emit();
+    total_bytes_to_hash_disp->emit();
   };
 
   bytes_hashed_disp = new Glib::Dispatcher;
   bytes_hashed_disp->connect([this] {
-    this->creation_progress->set_fraction(this->bytes_hashed
-                                          / this->total_bytes_to_hash);
+    creation_progress->set_fraction(bytes_hashed / total_bytes_to_hash);
   });
 
   rfr->bytes_hashed = [this](const double &hashed) {
-    this->bytes_hashed = hashed;
-    this->bytes_hashed_disp->emit();
+    bytes_hashed = hashed;
+    bytes_hashed_disp->emit();
   };
 
   total_files_disp = new Glib::Dispatcher;
   total_files_disp->connect([this] {
-    this->process_name->set_text(gettext("Collection refreshing progress:"));
-    this->creation_progress->set_show_text(true);
-    this->creation_progress->set_fraction(0.0);
+    process_name->set_text(gettext("Collection refreshing progress:"));
+    creation_progress->set_show_text(true);
+    creation_progress->set_fraction(0.0);
   });
 
   rfr->total_file_number = [this](const double &tot) {
-    this->total_files = tot;
-    if(this->total_files == 0.0)
+    total_files = tot;
+    if(total_files == 0.0)
       {
-        this->total_files = 1.0;
+        total_files = 1.0;
       }
-    this->total_files_disp->emit();
+    total_files_disp->emit();
   };
 
   progress_disp = new Glib::Dispatcher;
   progress_disp->connect([this] {
-    this->creation_progress->set_fraction(this->progress_count
-                                          / this->total_files);
+    creation_progress->set_fraction(progress_count / total_files);
   });
   rfr->progress = [this](const double &prog) {
-    if(prog > this->progress_count.load())
+    if(prog > progress_count.load())
       {
-        this->progress_count.store(prog);
+        progress_count.store(prog);
       }
-    this->progress_disp->emit();
+    progress_disp->emit();
   };
 
   creation_finished_disp = new Glib::Dispatcher;
   creation_finished_disp->connect([win, this] {
-    this->finishInfo(win, 2);
-    if(this->collection_refreshed)
+    finishInfo(win, 2);
+    if(collection_refreshed)
       {
-        this->collection_refreshed(this->coll_name);
+        collection_refreshed(coll_name);
       }
   });
 
-  std::thread *thr = new std::thread([rfr, this] {
+  std::thread thr([rfr, this] {
     try
       {
         rfr->refreshCollection();
@@ -348,10 +344,9 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
       {
         std::cout << e.what() << std::endl;
       }
-    this->creation_finished_disp->emit();
+    creation_finished_disp->emit();
   });
-  thr->detach();
-  delete thr;
+  thr.detach();
 }
 
 void

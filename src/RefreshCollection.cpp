@@ -191,7 +191,7 @@ RefreshCollection::refreshCollection()
               std::remove_if(books_files.begin(), books_files.end(),
                              [sstr, this](std::filesystem::path &el) {
                                std::string ext = el.extension().u8string();
-                               ext = this->af->stringToLower(ext);
+                               ext = af->stringToLower(ext);
                                return ext == sstr;
                              }),
               books_files.end());
@@ -367,13 +367,13 @@ RefreshCollection::check_hashes(
           std::bind(&RefreshCollection::hash_thread, this, *it, base));
       thr.detach();
       continue_hashing.wait(lk, [this] {
-        return this->run_threads < this->num_threads;
+        return run_threads < num_threads;
       });
     }
 
   std::unique_lock<std::mutex> lk(newthrmtx);
   continue_hashing.wait(lk, [this] {
-    return this->run_threads <= 0;
+    return run_threads <= 0;
   });
 #endif
 }

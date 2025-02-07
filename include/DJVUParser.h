@@ -41,6 +41,9 @@ private:
   handle_djvu_msgs(const std::shared_ptr<ddjvu_context_t> &ctx,
                    const bool &wait);
 
+  void
+  getTag(const std::string &exp, const std::string &tag, std::string &line);
+
   std::shared_ptr<AuxFunc> af;
 };
 

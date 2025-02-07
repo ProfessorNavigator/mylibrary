@@ -45,7 +45,6 @@
 #include <gtkmm/object.h>
 #include <gtkmm/stringobject.h>
 #include <iostream>
-#include <iterator>
 #include <libintl.h>
 #include <sigc++/connection.h>
 #include <thread>
@@ -176,15 +175,15 @@ TransferBookGui::createWindow()
       Glib::PropertyProxy<bool> prop_compress_active
           = compress->property_active();
       prop_compress_active.signal_changed().connect([window, this, arch_t_gr] {
-        if(this->compress->get_active())
+        if(compress->get_active())
           {
-            this->add_to_arch->set_visible(true);
+            add_to_arch->set_visible(true);
             arch_t_gr->set_visible(true);
           }
         else
           {
-            this->add_to_arch->set_visible(false);
-            this->add_to_arch->set_active(false);
+            add_to_arch->set_visible(false);
+            add_to_arch->set_active(false);
             arch_t_gr->set_visible(false);
             window->set_default_size(1, 1);
           }
@@ -193,14 +192,14 @@ TransferBookGui::createWindow()
       Glib::PropertyProxy<bool> prop_add_arch_active
           = add_to_arch->property_active();
       prop_add_arch_active.signal_changed().connect([window, this, arch_t_gr] {
-        if(this->add_to_arch->get_active())
+        if(add_to_arch->get_active())
           {
             arch_t_gr->set_visible(false);
             window->set_default_size(1, 1);
           }
         else
           {
-            if(this->compress->get_active())
+            if(compress->get_active())
               {
                 arch_t_gr->set_visible(true);
               }
@@ -213,20 +212,20 @@ TransferBookGui::createWindow()
 
       Glib::PropertyProxy<bool> prop_tr_fbd = transfer_fbd->property_active();
       prop_tr_fbd.signal_changed().connect([this, window] {
-        this->_transfer_fbd = this->transfer_fbd->get_active();
-        if(this->_transfer_fbd)
+        _transfer_fbd = transfer_fbd->get_active();
+        if(_transfer_fbd)
           {
-            this->compress->set_active(true);
-            this->compress->set_sensitive(false);
-            this->add_to_arch->set_active(false);
-            this->add_to_arch->set_visible(false);
+            compress->set_active(true);
+            compress->set_sensitive(false);
+            add_to_arch->set_active(false);
+            add_to_arch->set_visible(false);
             window->set_default_size(1, 1);
           }
         else
           {
-            this->compress->set_sensitive(true);
-            this->add_to_arch->set_active(false);
-            this->add_to_arch->set_visible(true);
+            compress->set_sensitive(true);
+            add_to_arch->set_active(false);
+            add_to_arch->set_visible(true);
           }
       });
 
@@ -694,17 +693,17 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
 
             copy_result_disp = std::make_shared<Glib::Dispatcher>();
             copy_result_disp->connect([this, res_var, win] {
-              this->finish_window(win, *res_var);
+              finish_window(win, *res_var);
               if(*res_var == 3)
                 {
                   if(success_signal)
                     {
-                      success_signal(this->bbe_from, this->collection_from);
+                      success_signal(bbe_from, collection_from);
                     }
                 }
             });
 
-            std::thread *thr = new std::thread([variant, res_var, this] {
+            std::thread thr([variant, res_var, this] {
               try
                 {
                   copy_overwrite(variant, res_var);
@@ -713,11 +712,10 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                 {
                   std::cout << er.what() << std::endl;
                   *res_var = 1;
-                  this->copy_result_disp->emit();
+                  copy_result_disp->emit();
                 }
             });
-            thr->detach();
-            delete thr;
+            thr.detach();
             break;
           }
         case 2:
@@ -1077,17 +1075,17 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
 
   copy_result_disp = std::make_shared<Glib::Dispatcher>();
   copy_result_disp->connect([this, res_var, parent_win] {
-    this->finish_window(parent_win, *res_var);
+    finish_window(parent_win, *res_var);
     if(*res_var == 3)
       {
         if(success_signal)
           {
-            success_signal(this->bbe_from, this->collection_from);
+            success_signal(bbe_from, collection_from);
           }
       }
   });
 
-  std::thread *thr = new std::thread([res_var, this, variant] {
+  std::thread thr([res_var, this, variant] {
     try
       {
         copy_overwrite(variant, res_var);
@@ -1096,11 +1094,10 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       {
         std::cout << er.what() << std::endl;
         *res_var = 1;
-        this->copy_result_disp->emit();
+        copy_result_disp->emit();
       }
   });
-  thr->detach();
-  delete thr;
+  thr.detach();
 }
 
 #ifndef ML_GTK_OLD
@@ -1148,15 +1145,14 @@ TransferBookGui::path_choose_dialog_add_slot(
       form_arch_filelist_disp = std::make_shared<Glib::Dispatcher>();
       form_arch_filelist_disp->connect([window, win, this] {
         window->close();
-        this->path_in_archive_window(win, 3);
+        path_in_archive_window(win, 3);
       });
 
-      std::thread *thr = new std::thread([this] {
-        this->arch_filelist = AddBook::archive_filenames(out_file_path);
-        this->form_arch_filelist_disp->emit();
+      std::thread thr([this] {
+        arch_filelist = AddBook::archive_filenames(out_file_path);
+        form_arch_filelist_disp->emit();
       });
-      thr->detach();
-      delete thr;
+      thr.detach();
     }
 }
 #endif
@@ -1184,18 +1180,17 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
 
                 copy_result_disp = std::make_shared<Glib::Dispatcher>();
                 copy_result_disp->connect([this, res_var, win] {
-                  this->finish_window(win, *res_var);
+                  finish_window(win, *res_var);
                   if(*res_var == 3)
                     {
                       if(success_signal)
                         {
-                          success_signal(this->bbe_from,
-                                         this->collection_from);
+                          success_signal(bbe_from, collection_from);
                         }
                     }
                 });
 
-                std::thread *thr = new std::thread([variant, res_var, this] {
+                std::thread thr([variant, res_var, this] {
                   try
                     {
                       copy_overwrite(variant, res_var);
@@ -1204,11 +1199,10 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
                     {
                       std::cout << er.what() << std::endl;
                       *res_var = 1;
-                      this->copy_result_disp->emit();
+                      copy_result_disp->emit();
                     }
                 });
-                thr->detach();
-                delete thr;
+                thr.detach();
                 break;
               }
             case 2:
@@ -1259,15 +1253,14 @@ TransferBookGui::path_choose_dialog_add_slot(int resp,
           form_arch_filelist_disp = std::make_shared<Glib::Dispatcher>();
           form_arch_filelist_disp->connect([window, win, this] {
             window->close();
-            this->path_in_archive_window(win, 3);
+            path_in_archive_window(win, 3);
           });
 
-          std::thread *thr = new std::thread([this] {
-            this->arch_filelist = AddBook::archive_filenames(out_file_path);
-            this->form_arch_filelist_disp->emit();
+          std::thread thr([this] {
+            arch_filelist = AddBook::archive_filenames(out_file_path);
+            form_arch_filelist_disp->emit();
           });
-          thr->detach();
-          delete thr;
+          thr.detach();
         }
     }
 

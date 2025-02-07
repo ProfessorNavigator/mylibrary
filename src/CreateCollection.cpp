@@ -118,7 +118,7 @@ CreateCollection::createCollection()
           std::remove_if(need_to_parse.begin(), need_to_parse.end(),
                          [sstr, this](std::filesystem::path &el) {
                            std::string ext = el.extension().u8string();
-                           ext = this->af->stringToLower(ext);
+                           ext = af->stringToLower(ext);
                            return ext == sstr;
                          }),
           need_to_parse.end());
@@ -280,20 +280,20 @@ CreateCollection::threadRegulator()
             std::cout << "Parse file: " << p.u8string() << std::endl;
             try
               {
-                this->fb2_thread(p, resolved);
+                fb2_thread(p, resolved);
               }
             catch(MLException &er)
               {
                 std::cout << er.what() << std::endl;
               }
-            if(this->progress)
+            if(progress)
               {
-                this->progress(static_cast<double>(i + 1));
+                progress(static_cast<double>(i + 1));
               }
-            std::lock_guard<std::mutex> lk(this->newthrmtx);
+            std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
-            this->run_threads--;
-            this->add_thread.notify_one();
+            run_threads--;
+            add_thread.notify_one();
           });
           thr.detach();
         }
@@ -304,20 +304,20 @@ CreateCollection::threadRegulator()
             std::cout << "Parse file: " << p.u8string() << std::endl;
             try
               {
-                this->epub_thread(p, resolved);
+                epub_thread(p, resolved);
               }
             catch(MLException &er)
               {
                 std::cout << er.what() << std::endl;
               }
-            if(this->progress)
+            if(progress)
               {
-                this->progress(static_cast<double>(i + 1));
+                progress(static_cast<double>(i + 1));
               }
-            std::lock_guard<std::mutex> lk(this->newthrmtx);
+            std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
-            this->run_threads--;
-            this->add_thread.notify_one();
+            run_threads--;
+            add_thread.notify_one();
           });
           thr.detach();
         }
@@ -328,20 +328,20 @@ CreateCollection::threadRegulator()
             std::cout << "Parse file: " << p.u8string() << std::endl;
             try
               {
-                this->pdf_thread(p, resolved);
+                pdf_thread(p, resolved);
               }
             catch(MLException &er)
               {
                 std::cout << er.what() << std::endl;
               }
-            if(this->progress)
+            if(progress)
               {
-                this->progress(static_cast<double>(i + 1));
+                progress(static_cast<double>(i + 1));
               }
-            std::lock_guard<std::mutex> lk(this->newthrmtx);
+            std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
-            this->run_threads--;
-            this->add_thread.notify_one();
+            run_threads--;
+            add_thread.notify_one();
           });
           thr.detach();
         }
@@ -352,20 +352,20 @@ CreateCollection::threadRegulator()
             std::cout << "Parse file: " << p.u8string() << std::endl;
             try
               {
-                this->djvu_thread(p, resolved);
+                djvu_thread(p, resolved);
               }
             catch(MLException &er)
               {
                 std::cout << er.what() << std::endl;
               }
-            if(this->progress)
+            if(progress)
               {
-                this->progress(static_cast<double>(i + 1));
+                progress(static_cast<double>(i + 1));
               }
-            std::lock_guard<std::mutex> lk(this->newthrmtx);
+            std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
-            this->run_threads--;
-            this->add_thread.notify_one();
+            run_threads--;
+            add_thread.notify_one();
           });
           thr.detach();
         }
@@ -376,31 +376,31 @@ CreateCollection::threadRegulator()
             std::cout << "Parse file: " << p.u8string() << std::endl;
             try
               {
-                this->arch_thread(p, resolved);
+                arch_thread(p, resolved);
               }
             catch(MLException &er)
               {
                 std::cout << er.what() << std::endl;
               }
-            if(this->progress)
+            if(progress)
               {
-                this->progress(static_cast<double>(i + 1));
+                progress(static_cast<double>(i + 1));
               }
-            std::lock_guard<std::mutex> lk(this->newthrmtx);
+            std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
-            this->run_threads--;
-            this->add_thread.notify_one();
+            run_threads--;
+            add_thread.notify_one();
           });
           thr.detach();
         }
       add_thread.wait(lk, [this] {
-        return this->run_threads < this->num_threads;
+        return run_threads < num_threads;
       });
     }
 
   std::unique_lock<std::mutex> lk(newthrmtx);
   add_thread.wait(lk, [this] {
-    return this->run_threads <= 0;
+    return run_threads <= 0;
   });
 #endif
   if(base_strm.is_open())

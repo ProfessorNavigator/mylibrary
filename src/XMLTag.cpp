@@ -40,8 +40,8 @@ XMLTag::operator=(const XMLTag &other)
 
 XMLTag::XMLTag(XMLTag &&other)
 {
-  element = other.element;
-  content = other.content;
+  element = std::move(other.element);
+  content = std::move(other.content);
 }
 
 XMLTag &
@@ -49,8 +49,8 @@ XMLTag::operator=(XMLTag &&other)
 {
   if(this != &other)
     {
-      element = other.element;
-      content = other.content;
+      element = std::move(other.element);
+      content = std::move(other.content);
     }
   return *this;
 }

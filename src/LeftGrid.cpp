@@ -252,8 +252,8 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   clear_genre->set_label(gettext("Clear genre"));
   clear_genre->set_name("cancelBut");
   clear_genre->signal_clicked().connect([this] {
-    this->genre_button->set_label(gettext("<No>"));
-    this->selected_genre = Genre();
+    genre_button->set_label(gettext("<No>"));
+    selected_genre = Genre();
   });
   genre_grid->attach(*clear_genre, 1, 0, 1, 1);
 }
@@ -447,18 +447,17 @@ LeftGrid::loadCollection(const guint &sel)
   if(list && sel != GTK_INVALID_LIST_POSITION)
     {
       std::string col(list->get_string(sel));
-      std::thread *thr = new std::thread([this, col] {
+      std::thread thr([this, col] {
         try
           {
-            this->base_keeper->loadCollection(col);
+            base_keeper->loadCollection(col);
           }
         catch(MLException &e)
           {
             std::cout << e.what() << std::endl;
           }
       });
-      thr->detach();
-      delete thr;
+      thr.detach();
     }
 }
 
@@ -518,10 +517,9 @@ LeftGrid::reloadCollection(const std::string &col_name)
           if(std::string(list->get_string(selected)) == col_name)
             {
               base_keeper->clearBase();
-              std::thread *thr = new std::thread(std::bind(
-                  &BaseKeeper::loadCollection, base_keeper, col_name));
-              thr->detach();
-              delete thr;
+              std::thread thr(std::bind(&BaseKeeper::loadCollection,
+                                        base_keeper, col_name));
+              thr.detach();
               result = true;
             }
         }
@@ -552,8 +550,8 @@ LeftGrid::formGenreExpanderGrid(const std::vector<Genre> &genre,
       clck = Gtk::GestureClick::create();
       clck->set_button(1);
       clck->signal_pressed().connect([this, pop, g](int, double, double) {
-        this->selected_genre = g;
-        this->genre_button->set_label(g.genre_name);
+        selected_genre = g;
+        genre_button->set_label(g.genre_name);
         pop->popdown();
       });
       lab->add_controller(clck);

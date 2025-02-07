@@ -16,6 +16,10 @@
  */
 
 #include <BookParseEntry.h>
+#include <MLException.h>
+#include <RemoveBook.h>
+#include <RemoveBookGui.h>
+#include <filesystem>
 #include <glibmm/signalproxy.h>
 #include <glibmm/ustring.h>
 #include <gtkmm/application.h>
@@ -24,20 +28,16 @@
 #include <gtkmm/grid.h>
 #include <gtkmm/label.h>
 #include <gtkmm/object.h>
-#include <libintl.h>
-#include <MLException.h>
-#include <RemoveBook.h>
-#include <RemoveBookGui.h>
-#include <sigc++/connection.h>
-#include <filesystem>
 #include <iostream>
+#include <libintl.h>
+#include <sigc++/connection.h>
 #include <thread>
 
 RemoveBookGui::RemoveBookGui(const std::shared_ptr<AuxFunc> &af,
-			     Gtk::Window *parent_window,
-			     const BookBaseEntry &bbe,
-			     const std::string &col_name,
-			     const std::shared_ptr<BookMarks> &bookmarks)
+                             Gtk::Window *parent_window,
+                             const BookBaseEntry &bbe,
+                             const std::string &col_name,
+                             const std::shared_ptr<BookMarks> &bookmarks)
 {
   this->af = af;
   this->parent_window = parent_window;
@@ -91,7 +91,7 @@ RemoveBookGui::createWindow()
   if(!bbe.bpe.book_author.empty())
     {
       text = Glib::ustring(bbe.bpe.book_author) + " - "
-	  + Glib::ustring(bbe.bpe.book_name);
+             + Glib::ustring(bbe.bpe.book_name);
     }
   else
     {
@@ -111,31 +111,31 @@ RemoveBookGui::createWindow()
     {
       n = ch_str.find(sstr);
       if(n != std::string::npos)
-	{
-	  ch_p = std::filesystem::u8path(ch_str.substr(0, n));
-	  ext = ch_p.extension().u8string();
-	  ext = af->stringToLower(ext);
-	  if(ext == ".rar")
-	    {
-	      ch_rar = true;
-	      ch_str.clear();
-	    }
-	  else
-	    {
-	      ch_str.erase(0, n + sstr.size());
-	    }
-	}
+        {
+          ch_p = std::filesystem::u8path(ch_str.substr(0, n));
+          ext = ch_p.extension().u8string();
+          ext = af->stringToLower(ext);
+          if(ext == ".rar")
+            {
+              ch_rar = true;
+              ch_str.clear();
+            }
+          else
+            {
+              ch_str.erase(0, n + sstr.size());
+            }
+        }
       else
-	{
-	  ch_p = std::filesystem::u8path(ch_str);
-	  ext = ch_p.extension().u8string();
-	  ext = af->stringToLower(ext);
-	  if(ext == ".rar")
-	    {
-	      ch_rar = true;
-	    }
-	  ch_str.clear();
-	}
+        {
+          ch_p = std::filesystem::u8path(ch_str);
+          ext = ch_p.extension().u8string();
+          ext = af->stringToLower(ext);
+          if(ext == ".rar")
+            {
+              ch_rar = true;
+            }
+          ch_str.clear();
+        }
     }
 
   if(bbe.file_path.extension() == ".rar" || ch_rar)
@@ -149,9 +149,10 @@ RemoveBookGui::createWindow()
       lab->set_expand(true);
       lab->set_use_markup(true);
       text = Glib::ustring("<b><span color=\"red\">")
-	  + gettext("Warning! Book is packed in rar archive.") + "\n"
-	  + gettext("Books removing from rar archive is impossible.") + "\n"
-	  + gettext("This action will remove whole archive.") + "</span></b>";
+             + gettext("Warning! Book is packed in rar archive.") + "\n"
+             + gettext("Books removing from rar archive is impossible.") + "\n"
+             + gettext("This action will remove whole archive.")
+             + "</span></b>";
       lab->set_markup(text);
       grid->attach(*lab, 0, row_numb, 2, 1);
       row_numb++;
@@ -192,24 +193,23 @@ RemoveBookGui::createWindow()
   no->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   action_group_grid->attach(*no, 1, 0, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::unique_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 
-  remove_callback_disp->connect([this, window]
-  {
-    if(this->remove_callback)
+  remove_callback_disp->connect([this, window] {
+    if(remove_callback)
       {
-	this->remove_callback(this->bbe);
+        remove_callback(bbe);
       }
-    this->removeFinished(window);
+    removeFinished(window);
   });
 }
 
@@ -238,26 +238,22 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
   lab->set_text(gettext("Removing in progress..."));
   grid->attach(*lab, 0, 0, 1, 1);
 
-  std::thread *thr = new std::thread(
-      [this]
+  std::thread thr([this] {
+    RemoveBook *rb = new RemoveBook(af, bbe, col_name, bookmarks);
+    try
       {
-	RemoveBook *rb = new RemoveBook(this->af, this->bbe, this->col_name,
-					this->bookmarks);
-	try
-	  {
-	    rb->removeBook();
-	    this->remove_result = 1;
-	  }
-	catch(MLException &er)
-	  {
-	    std::cout << er.what() << std::endl;
-	    this->remove_result = -1;
-	  }
-	delete rb;
-	remove_callback_disp->emit();
-      });
-  thr->detach();
-  delete thr;
+        rb->removeBook();
+        remove_result = 1;
+      }
+    catch(MLException &er)
+      {
+        std::cout << er.what() << std::endl;
+        remove_result = -1;
+      }
+    delete rb;
+    remove_callback_disp->emit();
+  });
+  thr.detach();
 }
 
 void

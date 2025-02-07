@@ -216,44 +216,12 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
 
       BookParseEntry bpe;
       size_t lrb = 0;
-      for(int i = 1; i <= 6; i++)
-        {
-          switch(i)
-            {
-            case 1:
-              {
-                parseBookEntry(book_e, bpe.book_path, lrb);
-                break;
-              }
-            case 2:
-              {
-                parseBookEntry(book_e, bpe.book_author, lrb);
-                break;
-              }
-            case 3:
-              {
-                parseBookEntry(book_e, bpe.book_name, lrb);
-                break;
-              }
-            case 4:
-              {
-                parseBookEntry(book_e, bpe.book_series, lrb);
-                break;
-              }
-            case 5:
-              {
-                parseBookEntry(book_e, bpe.book_genre, lrb);
-                break;
-              }
-            case 6:
-              {
-                parseBookEntry(book_e, bpe.book_date, lrb);
-                break;
-              }
-            default:
-              break;
-            }
-        }
+      parseBookEntry(book_e, bpe.book_path, lrb);
+      parseBookEntry(book_e, bpe.book_author, lrb);
+      parseBookEntry(book_e, bpe.book_name, lrb);
+      parseBookEntry(book_e, bpe.book_series, lrb);
+      parseBookEntry(book_e, bpe.book_genre, lrb);
+      parseBookEntry(book_e, bpe.book_date, lrb);
       result.push_back(bpe);
     }
 
@@ -574,20 +542,20 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
     }
   else
     {
-      result.erase(
-          std::remove_if(std::execution::par, result.begin(), result.end(),
-                         [search, this](BookBaseEntry &el) {
-                           if(this->searchLineFunc(search.bpe.book_name,
-                                                   el.bpe.book_name))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(std::execution::par, result.begin(),
+                                  result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_name,
+                                                      el.bpe.book_name))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
     }
 }
 
@@ -656,20 +624,20 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
     }
   else
     {
-      result.erase(
-          std::remove_if(std::execution::par, result.begin(), result.end(),
-                         [search, this](BookBaseEntry &el) {
-                           if(this->searchLineFunc(search.bpe.book_series,
-                                                   el.bpe.book_series))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(std::execution::par, result.begin(),
+                                  result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_series,
+                                                      el.bpe.book_series))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
     }
 }
 
@@ -808,20 +776,20 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
     }
   else
     {
-      result.erase(
-          std::remove_if(std::execution::par, result.begin(), result.end(),
-                         [search, this](BookBaseEntry &el) {
-                           if(this->searchLineFunc(search.bpe.book_genre,
-                                                   el.bpe.book_genre))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(std::execution::par, result.begin(),
+                                  result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_genre,
+                                                      el.bpe.book_genre))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
     }
 }
 
@@ -918,19 +886,18 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
               else
                 {
                   result.erase(
-                      std::remove_if(std::execution::par, result.begin(),
-                                     result.end(),
-                                     [last_name, this](BookBaseEntry &el) {
-                                       if(this->searchLineFunc(
-                                              last_name, el.bpe.book_author))
-                                         {
-                                           return false;
-                                         }
-                                       else
-                                         {
-                                           return true;
-                                         }
-                                     }),
+                      std::remove_if(
+                          std::execution::par, result.begin(), result.end(),
+                          [last_name, this](BookBaseEntry &el) {
+                            if(searchLineFunc(last_name, el.bpe.book_author))
+                              {
+                                return false;
+                              }
+                            else
+                              {
+                                return true;
+                              }
+                          }),
                       result.end());
                 }
             }
@@ -1018,19 +985,18 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
               else
                 {
                   result.erase(
-                      std::remove_if(std::execution::par, result.begin(),
-                                     result.end(),
-                                     [first_name, this](BookBaseEntry &el) {
-                                       if(this->searchLineFunc(
-                                              first_name, el.bpe.book_author))
-                                         {
-                                           return false;
-                                         }
-                                       else
-                                         {
-                                           return true;
-                                         }
-                                     }),
+                      std::remove_if(
+                          std::execution::par, result.begin(), result.end(),
+                          [first_name, this](BookBaseEntry &el) {
+                            if(searchLineFunc(first_name, el.bpe.book_author))
+                              {
+                                return false;
+                              }
+                            else
+                              {
+                                return true;
+                              }
+                          }),
                       result.end());
                 }
             }

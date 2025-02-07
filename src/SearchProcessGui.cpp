@@ -65,7 +65,7 @@ SearchProcessGui::createWindow(const BookBaseEntry &search)
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
   cancel->signal_clicked().connect([this, lab, cancel] {
-    this->bk->stopSearch();
+    bk->stopSearch();
     cancel->set_visible(false);
     lab->set_text(gettext("Search interrupting..."));
   });
@@ -116,7 +116,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
   cancel->signal_clicked().connect([this, lab, cancel] {
-    this->bk->stopSearch();
+    bk->stopSearch();
     cancel->set_visible(false);
     lab->set_text(gettext("Reading interrupting..."));
   });
@@ -145,7 +145,7 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
     std::unique_ptr<Glib::Dispatcher> disp(search_finished);
     if(search_result_show)
       {
-        search_result_show(this->search_result);
+        search_result_show(search_result);
       }
     win->close();
   });

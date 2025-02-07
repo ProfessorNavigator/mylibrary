@@ -24,11 +24,8 @@ BookBaseEntry::BookBaseEntry()
 
 BookBaseEntry::BookBaseEntry(const BookBaseEntry &other)
 {
-  if(this != &other)
-    {
-      file_path = other.file_path;
-      bpe = other.bpe;
-    }
+  file_path = other.file_path;
+  bpe = other.bpe;
 }
 
 BookBaseEntry&
@@ -44,11 +41,8 @@ BookBaseEntry::operator =(const BookBaseEntry &other)
 
 BookBaseEntry::BookBaseEntry(BookBaseEntry &&other)
 {
-  if(this != &other)
-    {
-      file_path = other.file_path;
-      bpe = other.bpe;
-    }
+  file_path = std::move(other.file_path);
+  bpe = std::move(other.bpe);
 }
 
 BookBaseEntry&
@@ -56,8 +50,8 @@ BookBaseEntry::operator =(BookBaseEntry &&other)
 {
   if(this != &other)
     {
-      file_path = other.file_path;
-      bpe = other.bpe;
+      file_path = std::move(other.file_path);
+      bpe = std::move(other.bpe);
     }
   return *this;
 }

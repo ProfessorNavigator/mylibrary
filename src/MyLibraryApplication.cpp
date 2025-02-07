@@ -39,16 +39,16 @@ MainWindow*
 MyLibraryApplication::create_appwindow()
 {
   mw = new MainWindow(af);
-  this->add_window(*mw);
+  add_window(*mw);
   mw->signal_hide().connect([this]
   {
     std::vector<Gtk::Window*> wv;
-    wv = this->get_windows();
+    wv = get_windows();
     for(size_t i = 0; i < wv.size(); i++)
       {
 	Gtk::Window *win = wv[i];
-	if(win != this->mw)
-	  {
+        if(win != mw)
+          {
 	    win->set_visible(false);
 	    delete win;
 	  }
@@ -62,7 +62,7 @@ void
 MyLibraryApplication::on_activate()
 {
   std::vector<Gtk::Window*> winv;
-  winv = this->get_windows();
+  winv = get_windows();
   if(winv.size() == 0)
     {
       auto appwin = create_appwindow();

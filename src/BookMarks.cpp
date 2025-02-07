@@ -35,8 +35,7 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
   bookmp = af->homePath();
   bookmp /= std::filesystem::u8path(
       ".local/share/MyLibrary/BookMarks/bookmarks");
-  std::thread *thr = new std::thread([this]
-  {
+  std::thread thr([this] {
     try
       {
 	loadBookMarks();
@@ -46,8 +45,7 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
 	std::cout << e.what() << std::endl;
       };
   });
-  thr->detach();
-  delete thr;
+  thr.detach();
 }
 
 BookMarks::~BookMarks()

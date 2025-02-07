@@ -54,7 +54,6 @@
 #include <gtkmm/stringlist.h>
 #include <libintl.h>
 #include <sigc++/connection.h>
-#include <stddef.h>
 
 MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
@@ -63,7 +62,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
   share_path /= std::filesystem::u8path("MLStyles.css");
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
   css_provider->load_from_path(share_path.u8string());
-  Glib::RefPtr<Gdk::Display> disp = this->get_display();
+  Glib::RefPtr<Gdk::Display> disp = get_display();
 #ifndef ML_GTK_OLD
   Gtk::StyleProvider::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -85,14 +84,14 @@ MainWindow::~MainWindow()
 void
 MainWindow::formMainWindow()
 {
-  this->set_title("MyLibrary");
-  this->set_name("MLwindow");
+  set_title("MyLibrary");
+  set_name("MLwindow");
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
   grid->set_expand(true);
-  this->set_child(*grid);
+  set_child(*grid);
 
   createMainMenuActionGroup();
 
@@ -124,13 +123,12 @@ MainWindow::formMainWindow()
       = std::bind(&MainWindow::get_current_collection_name, this);
 
   rg->reload_collection_base = [this](const std::string &col_name) {
-    this->lg->reloadCollection(col_name);
+    lg->reloadCollection(col_name);
   };
 
-  this->signal_realize().connect(
-      std::bind(&MainWindow::setMainWindowSizes, this));
+  signal_realize().connect(std::bind(&MainWindow::setMainWindowSizes, this));
 
-  this->signal_close_request().connect(
+  signal_close_request().connect(
       std::bind(&MainWindow::mainWindowCloseFunc, this), false);
 }
 
@@ -234,8 +232,7 @@ MainWindow::setMainWindowSizes()
           height = -1;
           pos = 0.35;
         }
-      this->set_default_size(static_cast<int>(width),
-                             static_cast<int>(height));
+      set_default_size(static_cast<int>(width), static_cast<int>(height));
       if(width > 0)
         {
           main_pane->set_position(static_cast<int>(width) * pos);
@@ -243,8 +240,8 @@ MainWindow::setMainWindowSizes()
     }
   else
     {
-      Glib::RefPtr<Gdk::Surface> surf = this->get_surface();
-      Glib::RefPtr<Gdk::Display> disp = this->get_display();
+      Glib::RefPtr<Gdk::Surface> surf = get_surface();
+      Glib::RefPtr<Gdk::Display> disp = get_display();
       Glib::RefPtr<Gdk::Monitor> mon = disp->get_monitor_at_surface(surf);
       Gdk::Rectangle req;
       mon->get_geometry(req);
@@ -255,7 +252,7 @@ MainWindow::setMainWindowSizes()
       width = static_cast<int32_t>(req.get_width());
       height = static_cast<int32_t>(req.get_height());
       int w = static_cast<int>(width * 0.75);
-      this->set_default_size(w, static_cast<int>(height * 0.75));
+      set_default_size(w, static_cast<int>(height * 0.75));
       main_pane->set_position(w * 0.35);
     }
 }
@@ -267,67 +264,66 @@ MainWindow::createMainMenuActionGroup()
       = Gio::SimpleActionGroup::create();
 
   main_menu_actions->add_action("create_collection", [this] {
-    CreateCollectionGui *ccg = new CreateCollectionGui(this->af, this);
-    ccg->add_new_collection = std::bind(&LeftGrid::add_new_collection,
-                                        this->lg, std::placeholders::_1);
+    CreateCollectionGui *ccg = new CreateCollectionGui(af, this);
+    ccg->add_new_collection
+        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
     ccg->createWindow();
   });
 
   main_menu_actions->add_action("remove_collection", [this] {
-    RemoveCollectionGui *rcg = new RemoveCollectionGui(this->af, this);
+    RemoveCollectionGui *rcg = new RemoveCollectionGui(af, this);
     rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot,
                                         this, std::placeholders::_1);
     rcg->createWindow();
   });
 
   main_menu_actions->add_action("refresh_collection", [this] {
-    RefreshCollectionGui *rfcg
-        = new RefreshCollectionGui(this->af, this, this->bookmarks);
+    RefreshCollectionGui *rfcg = new RefreshCollectionGui(af, this, bookmarks);
     rfcg->collection_refreshed = [this](const std::string &col_name) {
-      if(this->lg->reloadCollection(col_name))
+      if(lg->reloadCollection(col_name))
         {
-          this->rg->clearSearchResult();
+          rg->clearSearchResult();
         }
     };
     rfcg->createWindow();
   });
 
   main_menu_actions->add_action("book_marks", [this] {
-    BookMarksGui *bmg = new BookMarksGui(this->af, this->bookmarks, this);
+    BookMarksGui *bmg = new BookMarksGui(af, bookmarks, this);
     bmg->createWindow();
   });
 
   main_menu_actions->add_action("add_book", [this] {
-    AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, false);
+    AddBookGui *abg = new AddBookGui(af, this, bookmarks, false);
     abg->books_added = [this](const std::string &col_name) {
-      this->lg->reloadCollection(col_name);
+      lg->reloadCollection(col_name);
     };
     abg->createWindow();
   });
 
   main_menu_actions->add_action("export_collection", [this] {
-    ExportCollectionGui *ecg = new ExportCollectionGui(this->af, this);
+    ExportCollectionGui *ecg = new ExportCollectionGui(af, this);
     ecg->createWindow();
   });
 
   main_menu_actions->add_action("import_collection", [this] {
-    ImportCollectionGui *icg = new ImportCollectionGui(this->af, this);
-    icg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg,
-                                    std::placeholders::_1);
+    ImportCollectionGui *icg = new ImportCollectionGui(af, this);
+    icg->signal_success
+        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
     icg->createWindow();
   });
 
   main_menu_actions->add_action("empty_collection", [this] {
-    EmptyCollectionGui *ecg = new EmptyCollectionGui(this->af, this);
-    ecg->signal_success = std::bind(&LeftGrid::add_new_collection, this->lg,
-                                    std::placeholders::_1);
+    EmptyCollectionGui *ecg = new EmptyCollectionGui(af, this);
+    ecg->signal_success
+        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
     ecg->createWindow();
   });
 
   main_menu_actions->add_action("add_directory", [this] {
-    AddBookGui *abg = new AddBookGui(this->af, this, this->bookmarks, true);
+    AddBookGui *abg = new AddBookGui(af, this, bookmarks, true);
     abg->books_added = [this](const std::string &col_name) {
-      this->lg->reloadCollection(col_name);
+      lg->reloadCollection(col_name);
     };
     abg->createWindow();
   });
@@ -335,15 +331,15 @@ MainWindow::createMainMenuActionGroup()
   main_menu_actions->add_action("about_dialog",
                                 std::bind(&MainWindow::about_dialog, this));
 
-  this->insert_action_group("main_menu", main_menu_actions);
+  insert_action_group("main_menu", main_menu_actions);
 }
 
 bool
 MainWindow::mainWindowCloseFunc()
 {
   int32_t width, height;
-  width = static_cast<int32_t>(this->get_width());
-  height = static_cast<int32_t>(this->get_height());
+  width = static_cast<int32_t>(get_width());
+  height = static_cast<int32_t>(get_height());
 
   int pane_pos = main_pane->get_position();
   double pos = static_cast<double>(pane_pos) / static_cast<double>(width);
@@ -363,7 +359,7 @@ MainWindow::mainWindowCloseFunc()
 
       f.close();
     }
-  this->set_visible(false);
+  set_visible(false);
 
   return true;
 }
@@ -416,7 +412,7 @@ void
 MainWindow::about_dialog()
 {
   Gtk::AboutDialog *about = new Gtk::AboutDialog;
-  about->set_application(this->get_application());
+  about->set_application(get_application());
   about->set_transient_for(*this);
   about->set_modal(true);
   about->set_name("MLwindow");
@@ -433,7 +429,7 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("3.1.1");
+  about->set_version("3.1.2");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 

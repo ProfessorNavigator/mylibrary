@@ -25,6 +25,10 @@ if(POPPLER_VERSION VERSION_LESS "22.05")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_OLDPOPPLER")
 endif()
 
+if(GTKMM_VERSION VERSION_LESS "4.10")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
+endif()
+
 if(USE_OPENMP)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
   add_link_options("-fopenmp")
@@ -40,19 +44,17 @@ add_subdirectory(src)
 
 target_include_directories(mylibrary PRIVATE include)
 
-target_link_libraries(mylibrary PUBLIC
-  PkgConfig::GTKMM
-  PkgConfig::POPPLER
-  PkgConfig::ICU
-  PkgConfig::LIBARCHIVE
-  ${DJVU}
-  PkgConfig::Gcrypt
-  PkgConfig::GPG-ERROR
-  atomic)
+target_link_libraries(mylibrary PRIVATE PkgConfig::GTKMM
+                                PRIVATE PkgConfig::POPPLER
+                                PRIVATE PkgConfig::ICU
+                                PRIVATE PkgConfig::LIBARCHIVE
+                                PRIVATE ${DJVU}
+                                PRIVATE PkgConfig::Gcrypt
+                                PRIVATE PkgConfig::GPG-ERROR
+                                PRIVATE atomic)
 
 if(USE_TBB)
-  target_link_libraries(mylibrary PUBLIC
-  TBB::tbb)
+  target_link_libraries(mylibrary PRIVATE TBB::tbb)
 endif()
 
 include(GNUInstallDirs)

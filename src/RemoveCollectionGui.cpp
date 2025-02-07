@@ -170,7 +170,7 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       yes->set_label(gettext("Yes"));
       yes->set_name("removeBut");
       yes->signal_clicked().connect([window, win, filename, this] {
-        this->successDialog(win, filename);
+        successDialog(win, filename);
         window->close();
       });
       grid->attach(*yes, 0, 2, 1, 1);

@@ -30,9 +30,9 @@ XMLTagId::XMLTagId(const XMLTagId &other)
 
 XMLTagId::XMLTagId(XMLTagId &&other)
 {
-  end_tag = other.end_tag;
-  single_tag = other.single_tag;
-  tag_id = other.tag_id;
+  end_tag = std::move(other.end_tag);
+  single_tag = std::move(other.single_tag);
+  tag_id = std::move(other.tag_id);
 }
 
 XMLTagId &
@@ -52,9 +52,9 @@ XMLTagId::operator=(XMLTagId &&other)
 {
   if(this != &other)
     {
-      end_tag = other.end_tag;
-      single_tag = other.single_tag;
-      tag_id = other.tag_id;
+      end_tag = std::move(other.end_tag);
+      single_tag = std::move(other.single_tag);
+      tag_id = std::move(other.tag_id);
     }
   return *this;
 }
