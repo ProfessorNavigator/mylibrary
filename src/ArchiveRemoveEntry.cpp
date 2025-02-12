@@ -29,22 +29,16 @@ ArchiveRemoveEntry::~ArchiveRemoveEntry()
 
 ArchiveRemoveEntry::ArchiveRemoveEntry(const ArchiveRemoveEntry &other)
 {
-  if(this != &other)
-    {
-      a_read = other.a_read;
-      a_write = other.a_write;
-      fl = other.fl;
-    }
+  a_read = other.a_read;
+  a_write = other.a_write;
+  fl = other.fl;
 }
 
 ArchiveRemoveEntry::ArchiveRemoveEntry(ArchiveRemoveEntry &&other)
 {
-  if(this != &other)
-    {
-      a_read = other.a_read;
-      a_write = other.a_write;
-      fl = other.fl;
-    }
+  a_read = std::move(other.a_read);
+  a_write = std::move(other.a_write);
+  fl = std::move(other.fl);
 }
 
 ArchiveRemoveEntry &
@@ -64,9 +58,9 @@ ArchiveRemoveEntry::operator=(ArchiveRemoveEntry &&other)
 {
   if(this != &other)
     {
-      a_read = other.a_read;
-      a_write = other.a_write;
-      fl = other.fl;
+      a_read = std::move(other.a_read);
+      a_write = std::move(other.a_write);
+      fl = std::move(other.fl);
     }
   return *this;
 }

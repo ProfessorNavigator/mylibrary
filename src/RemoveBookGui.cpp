@@ -71,6 +71,7 @@ RemoveBookGui::createWindow()
   lab->set_expand(true);
   lab->set_text(
       gettext("This action will remove book from base and from filesystem."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_numb, 2, 1);
   row_numb++;
 
@@ -81,12 +82,14 @@ RemoveBookGui::createWindow()
   lab->set_halign(Gtk::Align::START);
   lab->set_expand(true);
   lab->set_text(gettext("For removing:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_numb, 1, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_expand(true);
+  lab->set_name("windowLabel");
   Glib::ustring text;
   if(!bbe.bpe.book_author.empty())
     {
@@ -154,6 +157,7 @@ RemoveBookGui::createWindow()
              + gettext("This action will remove whole archive.")
              + "</span></b>";
       lab->set_markup(text);
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_numb, 2, 1);
       row_numb++;
     }
@@ -166,6 +170,7 @@ RemoveBookGui::createWindow()
   lab->set_expand(true);
   lab->set_use_markup(true);
   lab->set_markup("<b>" + Glib::ustring(gettext("Are you sure?")) + "</b>");
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_numb, 2, 1);
   row_numb++;
 
@@ -236,6 +241,7 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Removing in progress..."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   std::thread thr([this] {
@@ -278,6 +284,7 @@ RemoveBookGui::removeFinished(Gtk::Window *win)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
+  lab->set_name("windowLabel");
   if(remove_result > 0)
     {
       lab->set_text(gettext("Book successfully removed."));

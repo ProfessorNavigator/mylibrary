@@ -44,6 +44,7 @@ RefreshCollection::RefreshCollection(
     }
   this->cancel = cancel;
   base_path = get_base_path(collection_name);
+  this->collection_name = collection_name;
   books_path = get_books_path();
   this->remove_empty = remove_empty;
   this->fast_refresh = fast_refresh;
@@ -135,7 +136,7 @@ RefreshCollection::refreshCollection()
             {
               if(std::filesystem::is_empty(p))
                 {
-                  empty_paths.push_back(p);
+                  empty_paths.emplace_back(p);
                 }
               else
                 {
@@ -153,7 +154,7 @@ RefreshCollection::refreshCollection()
                         }
                       if(af->if_supported_type(check_type))
                         {
-                          books_files.push_back(p);
+                          books_files.emplace_back(p);
                         }
                     }
                 }
@@ -174,7 +175,7 @@ RefreshCollection::refreshCollection()
                     }
                   if(af->if_supported_type(check_type))
                     {
-                      books_files.push_back(p);
+                      books_files.emplace_back(p);
                     }
                 }
             }
@@ -397,7 +398,7 @@ RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
 #endif
     }
   already_hashedmtx.lock();
-  already_hashed.push_back(std::make_tuple(file_to_hash, hash));
+  already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
   basemtx.lock();
   auto itbase
       = std::find_if(base->begin(), base->end(),
@@ -483,15 +484,28 @@ RefreshCollection::editBook(const BookBaseEntry &bbe_old,
       closeBaseFile();
       if(refresh_bookmarks)
         {
-          std::vector<BookBaseEntry> bmv = bookmarks->getBookMarks();
-          auto itbmv = std::find_if(bmv.begin(), bmv.end(),
-                                    [bbe_old](BookBaseEntry &el) {
-                                      return el == bbe_old;
-                                    });
+          std::vector<std::tuple<std::string, BookBaseEntry>> bmv
+              = bookmarks->getBookMarks();
+          std::tuple<std::string, BookBaseEntry> s_tup
+              = std::make_tuple(collection_name, bbe_old);
+          auto itbmv = std::find_if(
+              bmv.begin(), bmv.end(),
+              [s_tup](std::tuple<std::string, BookBaseEntry> &el) {
+                if(std::get<0>(el) == std::get<0>(s_tup)
+                   && std::get<1>(el) == std::get<1>(s_tup))
+                  {
+                    return true;
+                  }
+                else
+                  {
+                    return false;
+                  }
+              });
           if(itbmv != bmv.end())
             {
-              bookmarks->removeBookMark(bbe_old);
-              bookmarks->createBookMark(bbe_new);
+              bookmarks->removeBookMark(std::get<0>(*itbmv),
+                                        std::get<1>(*itbmv));
+              bookmarks->createBookMark(collection_name, bbe_new);
             }
         }
     }
@@ -547,27 +561,28 @@ RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
   bk->loadCollection(base_path.parent_path().filename().u8string());
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
-  std::vector<BookBaseEntry> bmv = bookmarks->getBookMarks();
+  std::vector<std::tuple<std::string, BookBaseEntry>> bmv
+      = bookmarks->getBookMarks();
   for(auto it = bmv.begin(); it != bmv.end(); it++)
     {
-      auto itbase
-          = std::find_if(base.begin(), base.end(),
-                         std::bind(&RefreshCollection::compare_function2, this,
-                                   std::placeholders::_1, it->file_path));
+      auto itbase = std::find_if(
+          base.begin(), base.end(),
+          std::bind(&RefreshCollection::compare_function2, this,
+                    std::placeholders::_1, std::get<1>(*it).file_path));
       if(itbase != base.end())
         {
           auto itbpe = std::find_if(itbase->books.begin(), itbase->books.end(),
                                     [it](BookParseEntry &el) {
-                                      return el == it->bpe;
+                                      return el == std::get<1>(*it).bpe;
                                     });
           if(itbpe == itbase->books.end())
             {
-              bookmarks->removeBookMark(*it);
+              bookmarks->removeBookMark(collection_name, std::get<1>(*it));
             }
         }
       else
         {
-          bookmarks->removeBookMark(*it);
+          bookmarks->removeBookMark(collection_name, std::get<1>(*it));
         }
     }
 }

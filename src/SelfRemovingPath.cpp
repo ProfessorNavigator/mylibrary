@@ -38,7 +38,7 @@ SelfRemovingPath::SelfRemovingPath(SelfRemovingPath &&other)
 {
   count = other.count;
   other.count = nullptr;
-  path = other.path;
+  path = std::move(other.path);
 }
 
 SelfRemovingPath &
@@ -67,7 +67,7 @@ SelfRemovingPath::operator=(SelfRemovingPath &&other)
           deleter();
           count = other.count;
           other.count = nullptr;
-          path = other.path;
+          path = std::move(other.path);
         }
     }
   return *this;

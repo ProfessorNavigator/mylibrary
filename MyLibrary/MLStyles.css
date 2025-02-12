@@ -1,8 +1,59 @@
 #MLwindow {
-	color: black;
 	background-color: rgb(181, 176, 213);
 	border-bottom-left-radius: 10px;
 	border-bottom-right-radius: 10px;
+	background-image: none;
+	background-size: cover;
+}
+
+#aboutDialog {
+	background-color: rgb(181, 176, 213);
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+	background-image: none;
+	background-size: cover;
+}
+
+#aboutDialog label {
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#mainMenu {
+	color: black;
+	background-color: rgb(181, 176, 213);
+}
+
+#windowEntry {
+	color: black;
+	background-color: white;
+	border-color: grey;
+}
+
+#windowLabel {
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#tablesView {
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#tablesView listview {
+	background-color: white;
+}
+
+#tablesView button {
+	color: black;
+	background-image: none;
+	background-color: white;
+	box-shadow: inset rgba(0, 0, 0, .6) 0 -3px 8px, inset
+		rgba(252, 255, 255, .7) 0 3px 8px, rgba(0, 0, 0, .8) 0 3px 8px -3px;
+}
+
+#textField {
+	color: black;
+	background-color: white;
 }
 
 #applyBut {
@@ -60,6 +111,7 @@
 }
 
 #comboBox button:hover {
+	color: black;
 	background-image: none;
 	background-color: rgb(154, 177, 177);
 }
@@ -77,6 +129,7 @@
 #menBut button.toggle:hover {
 	background-image: none;
 	background-color: rgb(154, 177, 177);
+	color: black;
 }
 
 #operationBut {
@@ -101,11 +154,6 @@
 	color: white;
 }
 
-#unselectedLab {
-	background-color: white;
-	color: black;
-}
-
 #selectedLab {
 	background-color: green;
 	color: white;
@@ -113,6 +161,16 @@
 
 #progressBars {
 	color: black;
+}
+
+#progressBars trough {
+	background-color: white;
+	min-height: 20px;
+}
+
+#progressBars trough progress {
+	background-color: blue;
+	min-height: 20px;
 }
 
 #removeBut {

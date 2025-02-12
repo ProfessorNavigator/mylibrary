@@ -32,32 +32,36 @@ public:
   virtual ~BookMarks();
 
   int
-  createBookMark(const BookBaseEntry &bbe);
+  createBookMark(const std::string &col_name, const BookBaseEntry &bbe);
 
-  std::vector<BookBaseEntry>
+  std::vector<std::tuple<std::string, BookBaseEntry>>
   getBookMarks();
 
   void
-  removeBookMark(const BookBaseEntry &bbe);
+  removeBookMark(const std::string &col_name, const BookBaseEntry &bbe);
 
 private:
   void
   loadBookMarks();
 
-  BookBaseEntry
-  parse_entry(std::string &buf);
+  std::tuple<std::string, BookBaseEntry>
+  parse_entry(const std::string &buf);
+
+  // TODO remove legacy code in next releases
+  std::tuple<std::string, BookBaseEntry>
+  parse_entry_legacy(const std::string &buf);
 
   bool
   saveBookMarks();
 
   std::string
-  form_entry(const BookBaseEntry &bbe);
+  form_entry(const std::string &col_name, const BookBaseEntry &bbe);
 
   std::shared_ptr<AuxFunc> af;
 
   std::filesystem::path bookmp;
 
-  std::vector<BookBaseEntry> bookmarks;
+  std::vector<std::tuple<std::string, BookBaseEntry>> bookmarks;
   std::mutex bookmarksmtx;
 };
 

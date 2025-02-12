@@ -56,9 +56,7 @@ class AddBookGui
 public:
   AddBookGui(const std::shared_ptr<AuxFunc> &af, Gtk::Window *parent_window,
 	     const std::shared_ptr<BookMarks> &bookmarks,
-	     const bool &directory_add);
-  virtual
-  ~AddBookGui();
+	     const bool &directory_add);  
 
   void
   createWindow();

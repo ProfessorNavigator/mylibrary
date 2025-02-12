@@ -174,7 +174,7 @@ DJVUParser::djvu_cover(const std::filesystem::path &filepath)
                   if(val)
                     {
                       std::string exp_str(val);
-                      getTag(exp_str, "annote", result->annotation);
+                      getTag(exp_str, "annote", result->annotation);                      
                     }
                 }
               ddjvu_miniexp_release(doc.get(), r);

@@ -67,6 +67,7 @@ LeftGrid::createGrid()
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_margin(5);
   lab->set_text(gettext("Collection"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -130,6 +131,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_text(gettext("Author"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -137,6 +139,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Surname:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -145,6 +148,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   surname->set_margin(5);
   surname->set_width_chars(30);
   surname->set_activates_default(true);
+  surname->set_name("windowEntry");
   grid->attach(*surname, 0, row, 1, 1);
   row++;
 
@@ -152,6 +156,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -160,6 +165,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   name->set_margin(5);
   name->set_width_chars(30);
   name->set_activates_default(true);
+  name->set_name("windowEntry");
   grid->attach(*name, 0, row, 1, 1);
   row++;
 
@@ -167,6 +173,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Second name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -175,6 +182,7 @@ LeftGrid::formAuthorSection(Gtk::Grid *grid, int &row)
   sec_name->set_margin(5);
   sec_name->set_width_chars(30);
   sec_name->set_activates_default(true);
+  sec_name->set_name("windowEntry");
   grid->attach(*sec_name, 0, row, 1, 1);
   row++;
 }
@@ -186,6 +194,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_text(gettext("Book"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -193,6 +202,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Book name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -201,6 +211,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   book_name->set_margin(5);
   book_name->set_width_chars(30);
   book_name->set_activates_default(true);
+  book_name->set_name("windowEntry");
   grid->attach(*book_name, 0, row, 1, 1);
   row++;
 
@@ -208,6 +219,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Series:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
@@ -216,6 +228,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   series->set_margin(5);
   series->set_width_chars(30);
   series->set_activates_default(true);
+  series->set_name("windowEntry");
   grid->attach(*series, 0, row, 1, 1);
   row++;
 
@@ -223,6 +236,7 @@ LeftGrid::formBookSection(Gtk::Grid *grid, int &row)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Genre:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 

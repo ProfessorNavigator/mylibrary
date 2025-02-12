@@ -159,31 +159,70 @@ XMLParser::get_element_attribute(const std::string &element,
     {
       return result;
     }
+  std::string l_element;
+  l_element.reserve(element.size());
 
-  std::string::size_type n = element.find(attr_name);
+  std::for_each(element.begin(), element.end(), [&l_element](const char &el) {
+    switch(el)
+      {
+      case 0 ... 8:
+      case 11 ... 31:
+        {
+          break;
+        }
+      case 9:
+      case 10:
+      case 32:
+        {
+          if(l_element.size() > 0)
+            {
+              if(l_element[l_element.size() - 1] != 61)
+                {
+                  l_element.push_back(32);
+                }
+            }
+          break;
+        }
+      default:
+        {
+          l_element.push_back(el);
+          break;
+        }
+      }
+  });
+  std::string find_str = " " + attr_name + "='";
+  std::string::size_type n = l_element.find(find_str);
   if(n != std::string::npos)
     {
-      std::string::size_type n2 = element.find("\"", n);
+      n += find_str.size();
+      find_str = "'";
+      std::string::size_type n2 = l_element.find(find_str, n);
       if(n2 != std::string::npos)
         {
-          n2 = n2 + std::string("\"").size();
-          std::string::size_type n3 = element.find("\"", n2);
-          if(n3 != std::string::npos)
+          result = l_element.substr(n, n2 - n);
+          n = result.find(find_str);
+          if(n != std::string::npos)
             {
-              result = std::string(element.begin() + n2, element.begin() + n3);
+              result.clear();
             }
         }
-      else
+    }
+  else
+    {
+      find_str = " " + attr_name + "=\"";
+      n = l_element.find(find_str);
+      if(n != std::string::npos)
         {
-          n2 = element.find("'", n);
+          n += find_str.size();
+          find_str = "\"";
+          std::string::size_type n2 = l_element.find(find_str, n);
           if(n2 != std::string::npos)
             {
-              n2 = n2 + std::string("'").size();
-              std::string::size_type n3 = element.find("'", n2);
-              if(n3 != std::string::npos)
+              result = l_element.substr(n, n2 - n);
+              n = result.find(find_str);
+              if(n != std::string::npos)
                 {
-                  result = std::string(element.begin() + n2,
-                                       element.begin() + n3);
+                  result.clear();
                 }
             }
         }

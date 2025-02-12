@@ -63,23 +63,27 @@ EmptyCollectionGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Collection name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   col_name_ent = Gtk::make_managed<Gtk::Entry>();
   col_name_ent->set_margin(5);
   col_name_ent->set_halign(Gtk::Align::START);
   col_name_ent->set_width_chars(50);
+  col_name_ent->set_name("windowEntry");
   grid->attach(*col_name_ent, 0, 1, 2, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Path to books directory:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 2, 2, 1);
 
   books_path_ent = Gtk::make_managed<Gtk::Entry>();
   books_path_ent->set_margin(5);
   books_path_ent->set_halign(Gtk::Align::FILL);
+  books_path_ent->set_name("windowEntry");
   grid->attach(*books_path_ent, 0, 3, 2, 1);
 
   Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
@@ -225,6 +229,7 @@ EmptyCollectionGui::error_dialog(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:
@@ -379,6 +384,7 @@ EmptyCollectionGui::final_dialog(Gtk::Window *win)
   lab->set_valign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Collection has been successfully created."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();

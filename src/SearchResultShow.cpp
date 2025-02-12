@@ -86,7 +86,7 @@ SearchResultShow::clearSearchResult()
                   list->get_object(i));
           if(col)
             {
-              lv.push_back(col);
+              lv.emplace_back(col);
             }
         }
       for(auto it = lv.begin(); it != lv.end(); it++)
@@ -204,11 +204,11 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
 
   search_res->set_model(select);
 
-  formAuthorColumn(model);
-  formBookColumn(model);
-  formSeriesColumn(model);
-  formGenreColumn(model);
-  formDateColumn(model);
+  formAuthorColumn();
+  formBookColumn();
+  formSeriesColumn();
+  formGenreColumn();
+  formDateColumn();
 
   Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
   while(mc->pending())
@@ -218,6 +218,11 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
 
   Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
   adj->set_value(0.0);
+
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
 }
 
 void
@@ -254,14 +259,13 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
 
   Glib::RefPtr<Gtk::SortListModel> sort_model
       = Gtk::SortListModel::create(filer_list_model, search_res->get_sorter());
-  sort_model->set_sorter(search_res->get_sorter());
 
   Glib::RefPtr<Gtk::SingleSelection> select
       = Gtk::SingleSelection::create(sort_model);
 
   search_res->set_model(select);
 
-  formFilesColumn(model_files);
+  formFilesColumn();
 
   Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
   while(mc->pending())
@@ -271,11 +275,15 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
 
   Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
   adj->set_value(0.0);
+
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
 }
 
 void
-SearchResultShow::formAuthorColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
+SearchResultShow::formAuthorColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(1);
 
@@ -291,8 +299,6 @@ SearchResultShow::formAuthorColumn(
           &SearchResultShow::expression_slot, this, std::placeholders::_1, 1));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   search_res->append_column(column);
@@ -313,8 +319,7 @@ SearchResultShow::itemSetup(const Glib::RefPtr<Gtk::ListItem> &list_item)
 }
 
 void
-SearchResultShow::formBookColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
+SearchResultShow::formBookColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(2);
 
@@ -326,8 +331,6 @@ SearchResultShow::formBookColumn(
           &SearchResultShow::expression_slot, this, std::placeholders::_1, 2));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.25 * search_res->get_width());
@@ -338,8 +341,7 @@ SearchResultShow::formBookColumn(
 }
 
 void
-SearchResultShow::formSeriesColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
+SearchResultShow::formSeriesColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(3);
 
@@ -351,8 +353,6 @@ SearchResultShow::formSeriesColumn(
           &SearchResultShow::expression_slot, this, std::placeholders::_1, 3));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.2 * search_res->get_width());
@@ -363,8 +363,7 @@ SearchResultShow::formSeriesColumn(
 }
 
 void
-SearchResultShow::formGenreColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
+SearchResultShow::formGenreColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(4);
 
@@ -376,8 +375,6 @@ SearchResultShow::formGenreColumn(
           &SearchResultShow::expression_slot, this, std::placeholders::_1, 4));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_fixed_width(0.2 * search_res->get_width());
@@ -419,7 +416,7 @@ SearchResultShow::itemBind(const Glib::RefPtr<Gtk::ListItem> &list_item,
             }
           else
             {
-              lab->set_name("unselectedLab");
+              lab->set_name("windowLabel");
             }
           switch(variant)
             {
@@ -484,8 +481,7 @@ SearchResultShow::translate_genres(const std::string &genres)
 }
 
 void
-SearchResultShow::formDateColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model)
+SearchResultShow::formDateColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory = createFactory(5);
 
@@ -497,8 +493,6 @@ SearchResultShow::formDateColumn(
           &SearchResultShow::expression_slot, this, std::placeholders::_1, 5));
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_resizable(true);
@@ -508,8 +502,7 @@ SearchResultShow::formDateColumn(
 }
 
 void
-SearchResultShow::formFilesColumn(
-    const Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> &model)
+SearchResultShow::formFilesColumn()
 {
   Glib::RefPtr<Gtk::SignalListItemFactory> factory
       = Gtk::SignalListItemFactory::create();
@@ -539,7 +532,7 @@ SearchResultShow::formFilesColumn(
                   }
                 else
                   {
-                    lab->set_name("unselectedLab");
+                    lab->set_name("windowLabel");
                   }
               }
           }
@@ -563,8 +556,6 @@ SearchResultShow::formFilesColumn(
           });
 
   Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
-  Glib::RefPtr<Gtk::SortListModel> sort_model
-      = Gtk::SortListModel::create(model, sorter);
   column->set_sorter(sorter);
 
   column->set_resizable(true);

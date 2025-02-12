@@ -189,7 +189,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               {
                 bpe.book_name = ch_p.stem().u8string();
               }
-            result.push_back(bpe);
+            result.emplace_back(bpe);
           });
         }
       else if(ext == ".epub")
@@ -222,7 +222,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   {
                     bpe.book_name = ch_p.stem().u8string();
                   }
-                result.push_back(bpe);
+                result.emplace_back(bpe);
               });
             }
           else
@@ -254,7 +254,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               {
                 bpe.book_name = ch_p.stem().u8string();
               }
-            result.push_back(bpe);
+            result.emplace_back(bpe);
           });
         }
       else if(ext == ".djvu")
@@ -289,7 +289,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   {
                     bpe.book_name = ch_p.stem().u8string();
                   }
-                result.push_back(bpe);
+                result.emplace_back(bpe);
               });
             }
           else
@@ -321,7 +321,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               {
                 bpe.book_name = ch_p.stem().u8string();
               }
-            fbd.push_back(bpe);
+            fbd.emplace_back(bpe);
           });
         }
       else

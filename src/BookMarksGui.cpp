@@ -34,6 +34,12 @@
 #include <glibmm/propertyproxy.h>
 #include <glibmm/signalproxy.h>
 #include <gtk/gtktypes.h>
+#include <gtkmm-4.0/gtkmm/box.h>
+#include <gtkmm-4.0/gtkmm/dropdown.h>
+#include <gtkmm-4.0/gtkmm/entry.h>
+#include <gtkmm-4.0/gtkmm/eventcontrollerkey.h>
+#include <gtkmm-4.0/gtkmm/separator.h>
+#include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm/application.h>
 #include <gtkmm/button.h>
 #include <gtkmm/enums.h>
@@ -63,7 +69,7 @@ BookMarksGui::BookMarksGui(const std::shared_ptr<AuxFunc> &af,
 
 BookMarksGui::~BookMarksGui()
 {
-  delete srs;
+  delete bms;
   delete open_book;
 }
 
@@ -101,6 +107,7 @@ BookMarksGui::createWindow()
   book_marks->set_valign(Gtk::Align::FILL);
   book_marks->set_reorderable(true);
   book_marks->set_single_click_activate(true);
+  book_marks->set_name("tablesView");
   Glib::PropertyProxy<bool> row_sep
       = book_marks->property_show_row_separators();
   row_sep.set_value(true);
@@ -111,9 +118,16 @@ BookMarksGui::createWindow()
       &BookMarksGui::slot_row_activated, this, std::placeholders::_1));
   book_marks_scrl->set_child(*book_marks);
 
-  srs = new SearchResultShow(af, book_marks);
-  std::vector<BookBaseEntry> book_marks_v = bookmarks->getBookMarks();
-  srs->searchResultShow(book_marks_v);
+  bms = new BookMarksShow(af, book_marks);
+  book_marks->signal_realize().connect([this] {
+    bms->setWidth();
+  });
+  bms->signal_legacy_bookmarks = [this, window] {
+    legacyWarning(window);
+  };
+  std::vector<std::tuple<std::string, BookBaseEntry>> book_marks_v
+      = bookmarks->getBookMarks();
+  bms->showBookMarks(book_marks_v);
 
   Glib::RefPtr<Gio::Menu> menu = bookmark_menu();
 
@@ -131,13 +145,84 @@ BookMarksGui::createWindow()
                 std::placeholders::_2, std::placeholders::_3, pop_menu));
   book_marks->add_controller(clck);
 
+  Gtk::Box *box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
+  grid->attach(*box, 0, 1, 1, 1);
+
   Gtk::MenuButton *book_ops = Gtk::make_managed<Gtk::MenuButton>();
   book_ops->set_margin(5);
   book_ops->set_halign(Gtk::Align::CENTER);
   book_ops->set_label(gettext("Bookmark operations"));
   book_ops->set_menu_model(menu);
   book_ops->set_name("menBut");
-  grid->attach(*book_ops, 0, 1, 1, 1);
+  box->append(*book_ops);
+
+  Gtk::Separator *sep
+      = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::VERTICAL);
+  sep->set_halign(Gtk::Align::START);
+  box->append(*sep);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_margin_start(10);
+  lab->set_text(gettext("Filtering:"));
+  lab->set_name("windowLabel");
+  box->append(*lab);
+
+  Gtk::Entry *filter_entry = Gtk::make_managed<Gtk::Entry>();
+  filter_entry->set_margin(5);
+  filter_entry->set_name("windowEntry");
+  box->append(*filter_entry);
+
+  Glib::RefPtr<Gtk::StringList> col_names
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
+  col_names->append(gettext("Collection"));
+  col_names->append(gettext("Author"));
+  col_names->append(gettext("Book"));
+  col_names->append(gettext("Series"));
+  col_names->append(gettext("Genre"));
+  col_names->append(gettext("Date"));
+
+  Gtk::DropDown *filter_sel = Gtk::make_managed<Gtk::DropDown>();
+  filter_sel->set_margin(5);
+  filter_sel->set_name("comboBox");
+  filter_sel->set_model(col_names);
+  box->append(*filter_sel);
+
+  Gtk::Button *filter_but = Gtk::make_managed<Gtk::Button>();
+  filter_but->set_margin(5);
+  filter_but->set_label(gettext("Filter"));
+  filter_but->set_name("operationBut");
+  filter_but->signal_clicked().connect([filter_entry, filter_sel, this] {
+    bms->filterBookmarks(filter_entry->get_text(), filter_sel->get_selected());
+  });
+  box->append(*filter_but);
+
+  Glib::RefPtr<Gtk::EventControllerKey> key
+      = Gtk::EventControllerKey::create();
+  key->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
+  key->signal_key_pressed().connect(
+      [filter_entry, filter_sel, this](guint keyval, guint,
+                                       Gdk::ModifierType) {
+        if(keyval == GDK_KEY_Return)
+          {
+            bms->filterBookmarks(filter_entry->get_text(),
+                                 filter_sel->get_selected());
+            return true;
+          }
+        return false;
+      },
+      false);
+  filter_entry->add_controller(key);
+
+  Gtk::Button *clear_filter_but = Gtk::make_managed<Gtk::Button>();
+  clear_filter_but->set_margin(5);
+  clear_filter_but->set_label(gettext("Clear filter"));
+  clear_filter_but->set_name("cancelBut");
+  clear_filter_but->signal_clicked().connect([filter_entry, this] {
+    filter_entry->set_text("");
+    bms->filterBookmarks("", 0);
+  });
+  box->append(*clear_filter_but);
 
   window->signal_close_request().connect(
       [window, this] {
@@ -240,12 +325,12 @@ BookMarksGui::slot_row_activated(guint pos)
           = std::dynamic_pointer_cast<Gtk::SortListModel>(model->get_model());
       if(sort_model)
         {
-          Glib::RefPtr<SearchResultModelItem> item
-              = std::dynamic_pointer_cast<SearchResultModelItem>(
+          Glib::RefPtr<BookMarksModelItem> item
+              = std::dynamic_pointer_cast<BookMarksModelItem>(
                   sort_model->get_object(pos));
           if(item)
             {
-              srs->select_item(item);
+              bms->selectItem(item);
             }
         }
     }
@@ -258,14 +343,14 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
       = Gio::SimpleActionGroup::create();
 
   bookmark_actions->add_action("open_book", [this] {
-    auto item = srs->get_selected_item();
+    Glib::RefPtr<BookMarksModelItem> item = bms->getSelectedItem();
     if(item)
       {
         try
           {
             std::filesystem::path tmp = af->temp_path();
             tmp /= std::filesystem::u8path("MyLibraryReading");
-            open_book->open_book(item->bbe, false, tmp, false,
+            open_book->open_book(std::get<1>(item->element), false, tmp, false,
                                  std::bind(&AuxFunc::open_book_callback,
                                            af.get(), std::placeholders::_1));
           }
@@ -277,19 +362,20 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
   });
 
   bookmark_actions->add_action("book_info", [this, win] {
-    auto item = srs->get_selected_item();
+    Glib::RefPtr<BookMarksModelItem> item = bms->getSelectedItem();
     if(item)
       {
         BookInfoGui *big = new BookInfoGui(af, win);
-        big->creatWindow(item->bbe);
+        big->creatWindow(std::get<1>(item->element));
       }
   });
 
   bookmark_actions->add_action("copy_book", [this, win] {
-    auto item = srs->get_selected_item();
+    Glib::RefPtr<BookMarksModelItem> item = bms->getSelectedItem();
     if(item)
       {
-        CopyBookGui *cbg = new CopyBookGui(af, win, item->bbe);
+        CopyBookGui *cbg
+            = new CopyBookGui(af, win, std::get<1>(item->element));
         cbg->createWindow();
       }
   });
@@ -304,7 +390,7 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
 void
 BookMarksGui::confirmationDialog(Gtk::Window *win)
 {
-  if(srs->get_selected_item())
+  if(bms->getSelectedItem())
     {
       Gtk::Window *window = new Gtk::Window;
       window->set_application(win->get_application());
@@ -324,6 +410,7 @@ BookMarksGui::confirmationDialog(Gtk::Window *win)
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_expand(true);
       lab->set_text(gettext("Are you sure?"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, 0, 2, 1);
 
       Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
@@ -332,11 +419,12 @@ BookMarksGui::confirmationDialog(Gtk::Window *win)
       yes->set_label(gettext("Yes"));
       yes->set_name("removeBut");
       yes->signal_clicked().connect([this, window] {
-        auto item = srs->get_selected_item();
+        Glib::RefPtr<BookMarksModelItem> item = bms->getSelectedItem();
         if(item)
           {
-            srs->removeItem(item);
-            bookmarks->removeBookMark(item->bbe);
+            bms->removeItem(item);
+            bookmarks->removeBookMark(std::get<0>(item->element),
+                                      std::get<1>(item->element));
           }
         window->close();
       });
@@ -397,12 +485,60 @@ BookMarksGui::show_popup_menu(int, double x, double y,
           book_marks->get_model());
   if(sing_sel)
     {
-      Glib::RefPtr<SearchResultModelItem> item
-          = std::dynamic_pointer_cast<SearchResultModelItem>(
+      Glib::RefPtr<BookMarksModelItem> item
+          = std::dynamic_pointer_cast<BookMarksModelItem>(
               sing_sel->get_selected_item());
       if(item)
         {
-          srs->select_item(item);
+          bms->selectItem(item);
         }
     }
+}
+
+void
+BookMarksGui::legacyWarning(Gtk::Window *win)
+{
+  Gtk::Window *window = new Gtk::Window;
+  window->set_application(win->get_application());
+  window->set_title(gettext("Warning"));
+  window->set_transient_for(*win);
+  window->set_modal(true);
+  window->set_name("MLwindow");
+  window->set_default_size(1, 1);
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::CENTER);
+  grid->set_valign(Gtk::Align::CENTER);
+  window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_wrap(true);
+  lab->set_wrap_mode(Pango::WrapMode::WORD);
+  lab->set_max_width_chars(50);
+  lab->set_width_chars(50);
+  lab->set_text(gettext("It seems, that your version of bookmarks base is "
+                        "old. Please, recreate all bookmarks manually to "
+                        "avoid possible bookmarks loss in the future."));
+  lab->set_justify(Gtk::Justification::CENTER);
+  lab->set_name("windowLabel");
+  grid->attach(*lab, 0, 0, 1, 1);
+
+  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+  close->set_margin(5);
+  close->set_halign(Gtk::Align::CENTER);
+  close->set_label(gettext("Close"));
+  close->set_name("operationBut");
+  close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
+  grid->attach(*close, 0, 1, 1, 1);
+
+  window->signal_close_request().connect(
+      [window] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->hide();
+        return true;
+      },
+      false);
+
+  window->present();
 }

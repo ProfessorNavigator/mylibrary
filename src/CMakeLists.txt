@@ -13,6 +13,8 @@ target_sources(mylibrary PRIVATE
     BookInfoGui.cpp
     BookMarks.cpp
     BookMarksGui.cpp
+    BookMarksModelItem.cpp
+    BookMarksShow.cpp
     BookParseEntry.cpp
     ByteOrder.cpp
     CollectionCrProcessGui.cpp
@@ -56,6 +58,7 @@ target_sources(mylibrary PRIVATE
     SearchResultModelItemFL.cpp
     SearchResultShow.cpp
     SelfRemovingPath.cpp
+    SettingsWindow.cpp
     TransferBookGui.cpp
     XMLParser.cpp
     XMLTag.cpp

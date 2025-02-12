@@ -24,7 +24,7 @@
 #include <string>
 
 CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
-			 const int &width, const int &height)
+                         const int &width, const int &height)
 {
   this->bie = bie;
   this->width = width;
@@ -48,15 +48,13 @@ CoverPixBuf::CoverPixBuf(const CoverPixBuf &other)
 
 CoverPixBuf::CoverPixBuf(CoverPixBuf &&other)
 {
-  bie = other.bie;
-  other.bie.reset();
-  buffer = other.buffer;
-  other.buffer.reset();
-  width = other.width;
-  height = other.height;
+  bie = std::move(other.bie);
+  buffer = std::move(other.buffer);
+  width = std::move(other.width);
+  height = std::move(other.height);
 }
 
-CoverPixBuf&
+CoverPixBuf &
 CoverPixBuf::operator=(const CoverPixBuf &other)
 {
   bie = other.bie;
@@ -66,15 +64,16 @@ CoverPixBuf::operator=(const CoverPixBuf &other)
   return *this;
 }
 
-CoverPixBuf&
+CoverPixBuf &
 CoverPixBuf::operator=(CoverPixBuf &&other)
 {
-  bie = other.bie;
-  other.bie.reset();
-  buffer = other.buffer;
-  other.buffer.reset();
-  width = other.width;
-  height = other.height;
+  if(this != &other)
+    {
+      bie = std::move(other.bie);
+      buffer = std::move(other.buffer);
+      width = std::move(other.width);
+      height = std::move(other.height);
+    }
   return *this;
 }
 
@@ -84,26 +83,26 @@ CoverPixBuf::createBuffer()
   if(bie)
     {
       if(bie->cover_type == "base64")
-	{
-	  std::string base64 = Glib::Base64::decode(bie->cover);
-	  Glib::RefPtr<Glib::Bytes> bytes = Glib::Bytes::create(base64.c_str(),
-								base64.size());
-	  createFromStream(bytes);
-	}
+        {
+          std::string base64 = Glib::Base64::decode(bie->cover);
+          Glib::RefPtr<Glib::Bytes> bytes
+              = Glib::Bytes::create(base64.c_str(), base64.size());
+          createFromStream(bytes);
+        }
       else if(bie->cover_type == "file")
-	{
-	  Glib::RefPtr<Glib::Bytes> bytes = Glib::Bytes::create(
-	      bie->cover.c_str(), bie->cover.size());
-	  createFromStream(bytes);
-	}
+        {
+          Glib::RefPtr<Glib::Bytes> bytes
+              = Glib::Bytes::create(bie->cover.c_str(), bie->cover.size());
+          createFromStream(bytes);
+        }
       else if(bie->cover_type == "rgb")
-	{
-	  createFromRgba(false);
-	}
+        {
+          createFromRgba(false);
+        }
       else if(bie->cover_type == "rgba")
-	{
-	  createFromRgba(true);
-	}
+        {
+          createFromRgba(true);
+        }
     }
 }
 
@@ -116,19 +115,19 @@ CoverPixBuf::createFromStream(const Glib::RefPtr<Glib::Bytes> &bytes)
   try
     {
       if(width > 0 && height > 0)
-	{
-	  buffer = Gdk::Pixbuf::create_from_stream_at_scale(strm, width, height,
-							    true);
-	}
+        {
+          buffer = Gdk::Pixbuf::create_from_stream_at_scale(strm, width,
+                                                            height, true);
+        }
       else
-	{
-	  buffer = Gdk::Pixbuf::create_from_stream(strm);
-	  if(buffer)
-	    {
-	      width = buffer->get_width();
-	      height = buffer->get_height();
-	    }
-	}
+        {
+          buffer = Gdk::Pixbuf::create_from_stream(strm);
+          if(buffer)
+            {
+              width = buffer->get_width();
+              height = buffer->get_height();
+            }
+        }
     }
   catch(Glib::Error &er)
     {
@@ -170,36 +169,36 @@ CoverPixBuf::createFromRgba(const bool &alpha)
   try
     {
       buffer = Gdk::Pixbuf::create_from_data(
-	  reinterpret_cast<const guint8*>(bie->cover.c_str()),
-	  Gdk::Colorspace::RGB, alpha, 8, iw, ih, bie->bytes_per_row);
+          reinterpret_cast<const guint8 *>(bie->cover.c_str()),
+          Gdk::Colorspace::RGB, alpha, 8, iw, ih, bie->bytes_per_row);
     }
   catch(Glib::Error &er)
     {
       std::cout << "CoverPixBuf::createFromRgba(" << bie->cover_type
-	  << ") error: " << er.what() << std::endl;
+                << ") error: " << er.what() << std::endl;
     }
 
   if(buffer)
     {
       if(width > 0 && height > 0)
-	{
-	  if(width >= height)
-	    {
-	      height = width * ih / iw;
-	      width = height * iw / ih;
-	    }
-	  else
-	    {
-	      width = height * iw / ih;
-	      height = width * ih / iw;
-	    }
-	  buffer = buffer->scale_simple(width, height,
-					Gdk::InterpType::BILINEAR);
-	}
+        {
+          if(width >= height)
+            {
+              height = width * ih / iw;
+              width = height * iw / ih;
+            }
+          else
+            {
+              width = height * iw / ih;
+              height = width * ih / iw;
+            }
+          buffer
+              = buffer->scale_simple(width, height, Gdk::InterpType::BILINEAR);
+        }
       else
-	{
-	  width = buffer->get_width();
-	  height = buffer->get_height();
-	}
+        {
+          width = buffer->get_width();
+          height = buffer->get_height();
+        }
     }
 }

@@ -72,10 +72,6 @@ AddBookGui::AddBookGui(const std::shared_ptr<AuxFunc> &af,
   display_sizes();
 }
 
-AddBookGui::~AddBookGui()
-{
-}
-
 void
 AddBookGui::createWindow()
 {
@@ -105,6 +101,7 @@ AddBookGui::createWindow()
   lab->set_hexpand(true);
   lab->set_vexpand(false);
   lab->set_use_markup(true);
+  lab->set_name("windowLabel");
   if(directory_add)
     {
       lab->set_markup(Glib::ustring("<b>")
@@ -132,6 +129,7 @@ AddBookGui::createWindow()
   remove_src->set_halign(Gtk::Align::START);
   remove_src->set_label(gettext("Remove source files"));
   remove_src->set_active(false);
+  remove_src->set_name("windowLabel");
   Glib::PropertyProxy<bool> r_src_prop = remove_src->property_active();
   r_src_prop.signal_changed().connect([this, remove_src] {
     remove_sources = remove_src->get_active();
@@ -141,6 +139,7 @@ AddBookGui::createWindow()
   Gtk::CheckButton *pack_in_arch = Gtk::make_managed<Gtk::CheckButton>();
   pack_in_arch->set_margin(5);
   pack_in_arch->set_halign(Gtk::Align::START);
+  pack_in_arch->set_name("windowLabel");
   if(directory_add)
     {
       pack_in_arch->set_label(gettext("Pack directories in archive"));
@@ -155,6 +154,7 @@ AddBookGui::createWindow()
   Gtk::CheckButton *add_to_arch = Gtk::make_managed<Gtk::CheckButton>();
   add_to_arch->set_margin(5);
   add_to_arch->set_halign(Gtk::Align::START);
+  add_to_arch->set_name("windowLabel");
   if(directory_add)
     {
       add_to_arch->set_label(
@@ -176,6 +176,7 @@ AddBookGui::createWindow()
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Archive type:"));
   lab->set_visible(false);
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 5, 1, 1);
 
   Glib::RefPtr<Gtk::StringList> arch_types = form_archive_types_list();
@@ -399,6 +400,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
         lab->set_use_markup(true);
         lab->set_markup(Glib::ustring("<b>")
                         + gettext("Path of archive in collection:") + "</b>");
+        lab->set_name("windowLabel");
         arch_grid->attach(*lab, 0, 0, 1, 1);
 
         lab = Gtk::make_managed<Gtk::Label>();
@@ -407,6 +409,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
         lab->set_use_markup(true);
         lab->set_markup(Glib::ustring("<i>") + result_archive_path.u8string()
                         + "</i>");
+        lab->set_name("windowLabel");
         arch_grid->attach(*lab, 1, 0, 1, 1);
         break;
       }
@@ -418,6 +421,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_use_markup(true);
+  lab->set_name("windowLabel");
   if(directory_add)
     {
       lab->set_markup(Glib::ustring("<b>") + gettext("Directories") + "</b>");
@@ -425,7 +429,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   else
     {
       lab->set_markup(Glib::ustring("<b>") + gettext("Books") + "</b>");
-    }
+    }  
   grid->attach(*lab, 0, row_num, 2, 1);
   row_num++;
 
@@ -474,6 +478,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   books->set_single_click_activate(true);
   books->signal_activate().connect(
       std::bind(&AddBookGui::slot_select_book, this, std::placeholders::_1));
+  books->set_name("tablesView");
   books_scrl->set_child(*books);
 
   Glib::RefPtr<Gio::Menu> menu = create_menu(variant);
@@ -883,7 +888,7 @@ AddBookGui::slot_setup(const Glib::RefPtr<Gtk::ListItem> &list_item,
         Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
         lab->set_halign(Gtk::Align::FILL);
         lab->set_expand(true);
-        lab->set_ellipsize(Pango::EllipsizeMode::START);
+        lab->set_ellipsize(Pango::EllipsizeMode::START);        
         list_item->set_child(*lab);
         break;
       }
@@ -912,7 +917,7 @@ AddBookGui::slot_bind(const Glib::RefPtr<Gtk::ListItem> &list_item,
               }
             else
               {
-                lab->set_name("");
+                lab->set_name("windowLabel");
               }
             break;
           }
@@ -928,7 +933,7 @@ AddBookGui::slot_bind(const Glib::RefPtr<Gtk::ListItem> &list_item,
               {
                 if(item->correct)
                   {
-                    lab->set_name("");
+                    lab->set_name("windowLabel");
                   }
                 else
                   {
@@ -1329,13 +1334,13 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                   books_list->remove(j);
                   books_list->insert(i, item);
                   books_list->remove(i);
-                  conf_v.push_back(it);
+                  conf_v.emplace_back(it);
                 }
             }
         }
       if(conf_v.size() > 1)
         {
-          name_conflicts.push_back(conf_v);
+          name_conflicts.emplace_back(conf_v);
         }
     }
 
@@ -1370,7 +1375,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
       if(conf_v.size() > 0)
         {
           conflict = true;
-          name_conflicts.push_back(conf_v);
+          name_conflicts.emplace_back(conf_v);
         }
     }
 
@@ -1499,6 +1504,7 @@ AddBookGui::add_books_window(Gtk::Window *win)
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(20);
   lab->set_halign(Gtk::Align::FILL);
+  lab->set_name("windowLabel");
   if(directory_add)
     {
       lab->set_text(gettext("Directories adding in progress..."));
@@ -1532,6 +1538,7 @@ AddBookGui::finish(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:
@@ -1591,6 +1598,7 @@ AddBookGui::error_alert_dialog(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:
@@ -1687,7 +1695,7 @@ AddBookGui::check_conflict_names(const Glib::RefPtr<AddBookModelItem> &item)
                               });
                           if(itrch == recursive_check.end())
                             {
-                              recursive_check.push_back(loc);
+                              recursive_check.emplace_back(loc);
                             }
                         }
                     }
@@ -1871,6 +1879,7 @@ AddBookGui::action_chage_path_arch(Gtk::Window *win, const int &variant)
       lab->set_margin(5);
       lab->set_halign(Gtk::Align::START);
       lab->set_text(gettext("Path in archive:"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, 0, 2, 1);
 
       Gtk::Entry *path = Gtk::make_managed<Gtk::Entry>();
@@ -1879,6 +1888,7 @@ AddBookGui::action_chage_path_arch(Gtk::Window *win, const int &variant)
       path->set_width_chars(50);
       path->set_alignment(Gtk::Align::START);
       path->set_text(selected_book->collection_path);
+      path->set_name("windowEntry");
       grid->attach(*path, 0, 1, 2, 1);
 
       Gtk::Button *apply = Gtk::make_managed<Gtk::Button>();
@@ -2350,6 +2360,7 @@ AddBookGui::wait_window(Gtk::Window *win)
   lab->set_valign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Wait..."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   window->signal_close_request().connect(

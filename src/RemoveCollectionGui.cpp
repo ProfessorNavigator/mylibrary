@@ -57,6 +57,7 @@ RemoveCollectionGui::createWindow()
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Collection"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 2, 1);
   row++;
 
@@ -152,6 +153,7 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       lab->set_expand(true);
       lab->set_text(Glib::ustring(gettext("Collection for removing:")) + " "
                     + Glib::ustring(filename));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, 0, 2, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -161,6 +163,7 @@ RemoveCollectionGui::confirmationDialog(Gtk::Window *win)
       lab->set_margin_end(5);
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_text(gettext("Continue?"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, 1, 2, 1);
 
       Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
@@ -229,6 +232,7 @@ RemoveCollectionGui::successDialog(Gtk::Window *win,
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Collection has been removed."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();

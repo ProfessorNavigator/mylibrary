@@ -63,23 +63,27 @@ ImportCollectionGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("New collection name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   col_name = Gtk::make_managed<Gtk::Entry>();
   col_name->set_margin(5);
   col_name->set_halign(Gtk::Align::START);
   col_name->set_width_chars(50);
+  col_name->set_name("windowEntry");
   grid->attach(*col_name, 0, 1, 2, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Path to base to be imported:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 2, 2, 1);
 
   base_path = Gtk::make_managed<Gtk::Entry>();
   base_path->set_margin(5);
   base_path->set_hexpand(true);
+  base_path->set_name("windowEntry");
   grid->attach(*base_path, 0, 3, 2, 1);
 
   Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
@@ -95,11 +99,13 @@ ImportCollectionGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Path to books directory:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 5, 2, 1);
 
   books_path = Gtk::make_managed<Gtk::Entry>();
   books_path->set_margin(5);
   books_path->set_hexpand(true);
+  books_path->set_name("windowEntry");
   grid->attach(*books_path, 0, 6, 2, 1);
 
   open = Gtk::make_managed<Gtk::Button>();
@@ -340,6 +346,7 @@ ImportCollectionGui::error_dialog(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:
@@ -613,6 +620,7 @@ ImportCollectionGui::final_dialog(Gtk::Window *win)
   lab->set_valign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Collection has been successfully imported."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();

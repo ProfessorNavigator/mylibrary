@@ -24,6 +24,7 @@
 #include <MainWindow.h>
 #include <RefreshCollectionGui.h>
 #include <RemoveCollectionGui.h>
+#include <SettingsWindow.h>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -58,10 +59,16 @@
 MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
-  std::filesystem::path share_path = af->share_path();
-  share_path /= std::filesystem::u8path("MLStyles.css");
+  std::filesystem::path styles_path
+      = af->homePath()
+        / std::filesystem::u8path(".config/MyLibrary/MLStyles.css");
+  if(!std::filesystem::exists(styles_path))
+    {
+      styles_path = af->share_path();
+      styles_path /= std::filesystem::u8path("MLStyles.css");
+    }
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-  css_provider->load_from_path(share_path.u8string());
+  css_provider->load_from_path(styles_path.u8string());
   Glib::RefPtr<Gdk::Display> disp = get_display();
 #ifndef ML_GTK_OLD
   Gtk::StyleProvider::add_provider_for_display(
@@ -136,6 +143,7 @@ Gtk::PopoverMenuBar *
 MainWindow::createMainMenu()
 {
   Gtk::PopoverMenuBar *bar = Gtk::make_managed<Gtk::PopoverMenuBar>();
+  bar->set_name("mainMenu");
   bar->set_halign(Gtk::Align::START);
   bar->set_margin(5);
 
@@ -187,6 +195,14 @@ MainWindow::createMainMenu()
   item = Gio::MenuItem::create(gettext("Show bookmarks"),
                                "main_menu.book_marks");
   book_marks_menu->append_item(item);
+
+  Glib::RefPtr<Gio::Menu> settings_menu = Gio::Menu::create();
+  item = Gio::MenuItem::create(gettext("Settings"), settings_menu);
+  menu_model->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Color settings"),
+                               "main_menu.settings_win");
+  settings_menu->append_item(item);
 
   Glib::RefPtr<Gio::Menu> about_menu = Gio::Menu::create();
   item = Gio::MenuItem::create(gettext("About"), about_menu);
@@ -328,6 +344,11 @@ MainWindow::createMainMenuActionGroup()
     abg->createWindow();
   });
 
+  main_menu_actions->add_action("settings_win", [this] {
+    SettingsWindow *sw = new SettingsWindow(af, this);
+    sw->createWindow();
+  });
+
   main_menu_actions->add_action("about_dialog",
                                 std::bind(&MainWindow::about_dialog, this));
 
@@ -415,7 +436,7 @@ MainWindow::about_dialog()
   about->set_application(get_application());
   about->set_transient_for(*this);
   about->set_modal(true);
-  about->set_name("MLwindow");
+  about->set_name("aboutDialog");
 
   about->set_program_name("MyLibrary");
 
@@ -429,7 +450,7 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("3.1.2");
+  about->set_version("3.2");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 

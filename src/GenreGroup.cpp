@@ -42,9 +42,9 @@ GenreGroup::operator=(const GenreGroup &other)
 
 GenreGroup::GenreGroup(GenreGroup &&other)
 {
-  group_code = other.group_code;
-  group_name = other.group_name;
-  genres = other.genres;
+  group_code = std::move(other.group_code);
+  group_name = std::move(other.group_name);
+  genres = std::move(other.genres);
 }
 
 GenreGroup &
@@ -52,9 +52,9 @@ GenreGroup::operator=(GenreGroup &&other)
 {
   if(this != &other)
     {
-      group_code = other.group_code;
-      group_name = other.group_name;
-      genres = other.genres;
+      group_code = std::move(other.group_code);
+      group_name = std::move(other.group_name);
+      genres = std::move(other.genres);
     }
   return *this;
 }

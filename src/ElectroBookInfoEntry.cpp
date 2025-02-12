@@ -38,15 +38,15 @@ ElectroBookInfoEntry::ElectroBookInfoEntry(const ElectroBookInfoEntry &other)
 ElectroBookInfoEntry::ElectroBookInfoEntry(ElectroBookInfoEntry &&other)
 {
   available = other.available;
-  author = other.author;
-  program_used = other.program_used;
-  date = other.date;
-  src_url = other.src_url;
-  src_ocr = other.src_ocr;
-  id = other.id;
-  version = other.version;
-  history = other.version;
-  publisher = other.publisher;
+  author = std::move(other.author);
+  program_used = std::move(other.program_used);
+  date = std::move(other.date);
+  src_url = std::move(other.src_url);
+  src_ocr = std::move(other.src_ocr);
+  id = std::move(other.id);
+  version = std::move(other.version);
+  history = std::move(other.version);
+  publisher = std::move(other.publisher);
 }
 
 ElectroBookInfoEntry &
@@ -74,15 +74,15 @@ ElectroBookInfoEntry::operator=(ElectroBookInfoEntry &&other)
   if(this != &other)
     {
       available = other.available;
-      author = other.author;
-      program_used = other.program_used;
-      date = other.date;
-      src_url = other.src_url;
-      src_ocr = other.src_ocr;
-      id = other.id;
-      version = other.version;
-      history = other.version;
-      publisher = other.publisher;
+      author = std::move(other.author);
+      program_used = std::move(other.program_used);
+      date = std::move(other.date);
+      src_url = std::move(other.src_url);
+      src_ocr = std::move(other.src_ocr);
+      id = std::move(other.id);
+      version = std::move(other.version);
+      history = std::move(other.version);
+      publisher = std::move(other.publisher);
     }
   return *this;
 }

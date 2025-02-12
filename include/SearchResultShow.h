@@ -83,28 +83,22 @@ private:
   createFactory(const int &variant);
 
   void
-  formAuthorColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
+  formAuthorColumn();
 
   void
-  formBookColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
+  formBookColumn();
 
   void
-  formSeriesColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
+  formSeriesColumn();
 
   void
-  formGenreColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
+  formGenreColumn();
 
   void
-  formDateColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> &model);
+  formDateColumn();
 
   void
-  formFilesColumn(
-      const Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> &model);
+  formFilesColumn();
 
   void
   itemSetup(const Glib::RefPtr<Gtk::ListItem> &list_item);

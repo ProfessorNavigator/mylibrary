@@ -166,7 +166,7 @@ FB2Parser::fb2_author(const std::vector<XMLTag> &authors, const int &variant)
 
   std::string search_str("&quot;");
   std::string::size_type n;
-  std::string insert_str("\"");
+  std::string insert_str("'");
   for(;;)
     {
       n = elstr.find(search_str);
@@ -494,7 +494,11 @@ FB2Parser::fb2_cover_main(const std::string &book, std::string &cover)
               if(el.size() > 0)
                 {
                   std::string ref
-                      = get_element_attribute(el[0].element, "href");
+                      = get_element_attribute(el[0].element, "l:href");
+                  if(ref.empty())
+                    {
+                      ref = get_element_attribute(el[0].element, "href");
+                    }
                   if(!ref.empty())
                     {
                       std::string sstr = "#";
@@ -549,7 +553,11 @@ FB2Parser::fb2_cover_fallback(const std::string &book, std::string &cover)
               if(el.size() > 0)
                 {
                   std::string ref
-                      = get_element_attribute(el[0].element, "href");
+                      = get_element_attribute(el[0].element, "l:href");
+                  if(ref.empty())
+                    {
+                      ref = get_element_attribute(el[0].element, "href");
+                    }
                   if(!ref.empty())
                     {
                       std::string::size_type n = ref.find("#");

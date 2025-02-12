@@ -66,6 +66,7 @@ CreateCollectionGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Collection name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 2, 1);
   row++;
 
@@ -74,6 +75,7 @@ CreateCollectionGui::createWindow()
   collection_name->set_halign(Gtk::Align::FILL);
   collection_name->set_hexpand(true);
   collection_name->set_width_chars(30);
+  collection_name->set_name("windowEntry");
   grid->attach(*collection_name, 0, row, 2, 1);
   row++;
 
@@ -81,6 +83,7 @@ CreateCollectionGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Path to books directory:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row, 2, 1);
   row++;
 
@@ -89,6 +92,7 @@ CreateCollectionGui::createWindow()
   book_path->set_halign(Gtk::Align::FILL);
   book_path->set_hexpand(true);
   book_path->set_width_chars(50);
+  book_path->set_name("windowEntry");
   grid->attach(*book_path, 0, row, 2, 1);
   row++;
 
@@ -117,6 +121,7 @@ CreateCollectionGui::createWindow()
   strm << std::thread::hardware_concurrency();
   lab->set_text(gettext("Thread number (recommended max value: ")
                 + Glib::ustring(strm.str()) + ")");
+  lab->set_name("windowLabel");
   thread_grid->attach(*lab, 0, 0, 1, 1);
 
   thread_num = Gtk::make_managed<Gtk::Entry>();
@@ -126,6 +131,7 @@ CreateCollectionGui::createWindow()
   thread_num->set_width_chars(2);
   thread_num->set_alignment(Gtk::Align::CENTER);
   thread_num->set_text("1");
+  thread_num->set_name("windowEntry");
   thread_grid->attach(*thread_num, 1, 0, 1, 1);
 
   disable_rar = Gtk::make_managed<Gtk::CheckButton>();
@@ -133,6 +139,7 @@ CreateCollectionGui::createWindow()
   disable_rar->set_halign(Gtk::Align::START);
   disable_rar->set_active(false);
   disable_rar->set_label(gettext("Disable rar archives support"));
+  disable_rar->set_name("windowLabel");
   grid->attach(*disable_rar, 0, row, 2, 1);
   row++;
 
@@ -316,6 +323,7 @@ CreateCollectionGui::errorDialog(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:

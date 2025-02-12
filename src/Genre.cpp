@@ -19,7 +19,6 @@
 
 Genre::Genre()
 {
-
 }
 
 Genre::Genre(const Genre &other)
@@ -28,8 +27,8 @@ Genre::Genre(const Genre &other)
   genre_name = other.genre_name;
 }
 
-Genre&
-Genre::operator =(const Genre &other)
+Genre &
+Genre::operator=(const Genre &other)
 {
   if(this != &other)
     {
@@ -41,17 +40,17 @@ Genre::operator =(const Genre &other)
 
 Genre::Genre(Genre &&other)
 {
-  genre_code = other.genre_code;
-  genre_name = other.genre_name;
+  genre_code = std::move(other.genre_code);
+  genre_name = std::move(other.genre_name);
 }
 
-Genre&
-Genre::operator =(Genre &&other)
+Genre &
+Genre::operator=(Genre &&other)
 {
   if(this != &other)
     {
-      genre_code = other.genre_code;
-      genre_name = other.genre_name;
+      genre_code = std::move(other.genre_code);
+      genre_name = std::move(other.genre_name);
     }
   return *this;
 }

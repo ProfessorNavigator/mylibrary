@@ -29,21 +29,20 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm/error.h>
 #endif
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
-#include <libintl.h>
-#include <pangomm/layout.h>
-#include <sigc++/connection.h>
 #include <SaveCover.h>
 #include <filesystem>
 #include <functional>
+#include <gtkmm/grid.h>
+#include <gtkmm/label.h>
+#include <gtkmm/object.h>
 #include <iostream>
-#include <iterator>
+#include <libintl.h>
+#include <pangomm/layout.h>
+#include <sigc++/connection.h>
 #include <vector>
 
 SaveCover::SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
-		     Gtk::Window *parent_window)
+                     Gtk::Window *parent_window)
 {
   this->bie = bie;
   this->parent_window = parent_window;
@@ -71,6 +70,7 @@ SaveCover::createWindow()
   lab->set_expand(true);
   lab->set_use_markup(true);
   lab->set_markup("<b>" + Glib::ustring(gettext("Format")) + "</b>");
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   Glib::RefPtr<Gtk::StringList> format_list = create_model();
@@ -103,14 +103,14 @@ SaveCover::createWindow()
   cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*cancel, 1, 5, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::unique_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }
@@ -123,39 +123,39 @@ SaveCover::save_dialog(Gtk::Window *win)
   fd->set_title(gettext("Cover saving path"));
   fd->set_modal(true);
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      Glib::get_home_dir());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(Glib::get_home_dir());
   fd->set_initial_folder(initial);
 
   Glib::ustring name;
   guint pos = format->get_selected();
   if(pos != GTK_INVALID_LIST_POSITION)
     {
-      Glib::RefPtr<Gtk::StringList> model = std::dynamic_pointer_cast<
-	  Gtk::StringList>(format->get_model());
+      Glib::RefPtr<Gtk::StringList> model
+          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
       if(model)
-	{
-	  name = "Cover." + model->get_string(pos);
-	}
+        {
+          name = "Cover." + model->get_string(pos);
+        }
     }
   fd->set_initial_name(name);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fd->save(
-      *win,
-      std::bind(&SaveCover::save_dialog_result, this,
-		std::placeholders::_1, fd, win),
-      cncl);
+  fd->save(*win,
+           std::bind(&SaveCover::save_dialog_result, this,
+                     std::placeholders::_1, fd, win),
+           cncl);
 #endif
 #ifdef ML_GTK_OLD
-  Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
-      *win, gettext("Cover saving path"), Gtk::FileChooser::Action::SAVE, true);
+  Gtk::FileChooserDialog *fd
+      = new Gtk::FileChooserDialog(*win, gettext("Cover saving path"),
+                                   Gtk::FileChooser::Action::SAVE, true);
   fd->set_application(win->get_application());
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
-  Gtk::Button *but = fd->add_button(gettext("Cancel"),
-				    Gtk::ResponseType::CANCEL);
+  Gtk::Button *but
+      = fd->add_button(gettext("Cancel"), Gtk::ResponseType::CANCEL);
   but->set_margin(5);
   but->set_name("cancelBut");
 
@@ -163,34 +163,33 @@ SaveCover::save_dialog(Gtk::Window *win)
   but->set_margin(5);
   but->set_name("applyBut");
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      Glib::get_home_dir());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(Glib::get_home_dir());
   fd->set_current_folder(initial);
 
   Glib::ustring name;
   guint pos = format->get_selected();
   if(pos != GTK_INVALID_LIST_POSITION)
     {
-      Glib::RefPtr<Gtk::StringList> model = std::dynamic_pointer_cast<
-	  Gtk::StringList>(format->get_model());
+      Glib::RefPtr<Gtk::StringList> model
+          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
       if(model)
-	{
-	  name = "Cover." + model->get_string(pos);
-	}
+        {
+          name = "Cover." + model->get_string(pos);
+        }
     }
   fd->set_current_name(name);
 
-  fd->signal_response().connect(
-      std::bind(&SaveCover::save_dialog_result, this, std::placeholders::_1, fd,
-		win));
+  fd->signal_response().connect(std::bind(&SaveCover::save_dialog_result, this,
+                                          std::placeholders::_1, fd, win));
 
-  fd->signal_close_request().connect([fd]
-  {
-    std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
-    fdl->set_visible(false);
-    return true;
-  },
-				     false);
+  fd->signal_close_request().connect(
+      [fd] {
+        std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
+        fdl->set_visible(false);
+        return true;
+      },
+      false);
 
   fd->present();
 #endif
@@ -199,8 +198,8 @@ SaveCover::save_dialog(Gtk::Window *win)
 #ifndef ML_GTK_OLD
 void
 SaveCover::save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
-			      const Glib::RefPtr<Gtk::FileDialog> &fd,
-			      Gtk::Window *win)
+                              const Glib::RefPtr<Gtk::FileDialog> &fd,
+                              Gtk::Window *win)
 {
   Glib::RefPtr<Gio::File> fl;
   try
@@ -210,11 +209,10 @@ SaveCover::save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::Code::FAILED)
-	{
-	  std::cout << "SaveCover::save_dialog_result error: " << er.what()
-	      << std::endl;
-
-	}
+        {
+          std::cout << "SaveCover::save_dialog_result error: " << er.what()
+                    << std::endl;
+        }
     }
   if(fl)
     {
@@ -226,17 +224,17 @@ SaveCover::save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
 Glib::RefPtr<Gtk::StringList>
 SaveCover::create_model()
 {
-  Glib::RefPtr<Gtk::StringList> result = Gtk::StringList::create(
-      std::vector<Glib::ustring>());
+  Glib::RefPtr<Gtk::StringList> result
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::vector<Gdk::PixbufFormat> formats = Gdk::Pixbuf::get_formats();
 
   for(auto it = formats.begin(); it != formats.end(); it++)
     {
       if(it->is_writable())
-	{
-	  result->append(it->get_name());
-	}
+        {
+          result->append(it->get_name());
+        }
     }
 
   return result;
@@ -245,15 +243,15 @@ SaveCover::create_model()
 #ifdef ML_GTK_OLD
 void
 SaveCover::save_dialog_result(int resp, Gtk::FileChooserDialog *fd,
-			      Gtk::Window *win)
+                              Gtk::Window *win)
 {
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  saveFunc(win, fl);
-	}
+        {
+          saveFunc(win, fl);
+        }
     }
   fd->close();
 }
@@ -268,12 +266,12 @@ SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
   guint pos = format->get_selected();
   if(pos != GTK_INVALID_LIST_POSITION)
     {
-      Glib::RefPtr<Gtk::StringList> model = std::dynamic_pointer_cast<
-	  Gtk::StringList>(format->get_model());
+      Glib::RefPtr<Gtk::StringList> model
+          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
       if(model)
-	{
-	  name = model->get_string(pos);
-	}
+        {
+          name = model->get_string(pos);
+        }
     }
   CoverPixBuf cpb(bie);
   Glib::RefPtr<Gdk::Pixbuf> buf = cpb;
@@ -285,23 +283,23 @@ SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
   if(!name.empty() && buf)
     {
       try
-	{
-	  buf->save(save_path.u8string(), name);
-	  result = true;
-	}
+        {
+          buf->save(save_path.u8string(), name);
+          result = true;
+        }
       catch(Glib::Error &er)
-	{
-	  std::cout << "SaveCover::saveFunc error: " << er.what() << std::endl;
-	  name = er.what();
-	  result = false;
-	}
+        {
+          std::cout << "SaveCover::saveFunc error: " << er.what() << std::endl;
+          name = er.what();
+          result = false;
+        }
     }
   else
     {
       result = false;
       name = gettext("Format or gdk-pixbuf error.");
       std::cout << "SaveCover::saveFunc: format or gdk-pixbuf error."
-	  << std::endl;
+                << std::endl;
     }
 
   win->unset_child();
@@ -317,6 +315,7 @@ SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
+  lab->set_name("windowLabel");
   if(result)
     {
       lab->set_text(gettext("Cover successfully saved!"));

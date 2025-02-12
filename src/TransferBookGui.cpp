@@ -88,6 +88,7 @@ TransferBookGui::createWindow()
       lab->set_margin(5);
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_justify(Gtk::Justification::CENTER);
+      lab->set_name("windowLabel");
       lab->set_text(
           Glib::ustring(gettext("Book is packed in rar archive.")) + "\n"
           + gettext("This operation is not available for rar archives.") + "\n"
@@ -112,6 +113,7 @@ TransferBookGui::createWindow()
       lab->set_margin(5);
       lab->set_halign(Gtk::Align::CENTER);
       lab->set_text(gettext("Collection book to be moved to"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_num, 2, 1);
       row_num++;
 
@@ -131,6 +133,7 @@ TransferBookGui::createWindow()
       transfer_fbd->set_halign(Gtk::Align::START);
       transfer_fbd->set_active(false);
       transfer_fbd->set_label(gettext("Transfer also fbd file if available"));
+      transfer_fbd->set_name("windowLabel");
       grid->attach(*transfer_fbd, 0, row_num, 2, 1);
       row_num++;
 
@@ -139,6 +142,7 @@ TransferBookGui::createWindow()
       compress->set_halign(Gtk::Align::START);
       compress->set_active(false);
       compress->set_label(gettext("Pack book in archive"));
+      compress->set_name("windowLabel");
       grid->attach(*compress, 0, row_num, 2, 1);
       row_num++;
 
@@ -151,6 +155,7 @@ TransferBookGui::createWindow()
       lab->set_margin(5);
       lab->set_halign(Gtk::Align::START);
       lab->set_text(gettext("Archive type:"));
+      lab->set_name("windowLabel");
       arch_t_gr->attach(*lab, 0, 0, 1, 1);
 
       Glib::RefPtr<Gtk::StringList> arch_types_list
@@ -169,6 +174,7 @@ TransferBookGui::createWindow()
       add_to_arch->set_active(false);
       add_to_arch->set_label(gettext("Add to existing archive"));
       add_to_arch->set_visible(false);
+      add_to_arch->set_name("windowLabel");
       grid->attach(*add_to_arch, 0, row_num, 2, 1);
       row_num++;
 
@@ -749,6 +755,7 @@ TransferBookGui::copy_process_window(Gtk::Window *win)
   lab->set_valign(Gtk::Align::FILL);
   lab->set_expand(true);
   lab->set_text(gettext("Wait..."));
+  lab->set_name("windowLabel");
   win->set_child(*lab);
 }
 
@@ -777,7 +784,7 @@ TransferBookGui::copy_overwrite(const int &variant,
             {
             case 1:
               {
-                books.push_back(std::make_tuple(sbp, out_file_path));
+                books.emplace_back(std::make_tuple(sbp, out_file_path));
                 bbe_out.bpe.book_path.clear();
                 try
                   {
@@ -794,7 +801,7 @@ TransferBookGui::copy_overwrite(const int &variant,
               }
             case 2:
               {
-                books.push_back(std::make_tuple(
+                books.emplace_back(std::make_tuple(
                     sbp, std::filesystem::u8path(path_in_arch)));
                 bbe_out.bpe.book_path = path_in_arch;
                 try
@@ -812,7 +819,7 @@ TransferBookGui::copy_overwrite(const int &variant,
               }
             case 3:
               {
-                books.push_back(std::make_tuple(
+                books.emplace_back(std::make_tuple(
                     sbp, std::filesystem::u8path(path_in_arch)));
                 bbe_out.bpe.book_path = path_in_arch;
                 try
@@ -834,7 +841,7 @@ TransferBookGui::copy_overwrite(const int &variant,
         }
       else
         {
-          books.push_back(
+          books.emplace_back(
               std::make_tuple(sbp, std::filesystem::u8path(path_in_arch)));
           bbe_out.bpe.book_path = path_in_arch;
           std::filesystem::path fbd_p_arch
@@ -908,6 +915,7 @@ TransferBookGui::finish_window(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:
@@ -959,6 +967,7 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Archive file path:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
@@ -967,18 +976,21 @@ TransferBookGui::path_in_archive_window(Gtk::Window *win, const int &variant)
   lab->set_halign(Gtk::Align::START);
   lab->set_use_markup(true);
   lab->set_markup(Glib::ustring("<i>") + out_file_path.u8string() + "</i>");
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 1, 2, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Path in archive:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 2, 2, 1);
 
   Gtk::Entry *path_in_archive_ent = Gtk::make_managed<Gtk::Entry>();
   path_in_archive_ent->set_margin(5);
   path_in_archive_ent->set_halign(Gtk::Align::FILL);
   path_in_archive_ent->set_width_chars(50);
+  path_in_archive_ent->set_name("windowEntry");
   std::filesystem::path p;
   if(bbe_from.bpe.book_path.empty())
     {
@@ -1287,6 +1299,7 @@ TransferBookGui::alert_dialog(Gtk::Window *win, const int &variant)
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:

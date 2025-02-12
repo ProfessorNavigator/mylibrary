@@ -47,7 +47,7 @@ ZipFileEntry::ZipFileEntry(ZipFileEntry &&other)
   size = other.size;
   compressed_size = other.compressed_size;
   position = other.position;
-  filename = other.filename;
+  filename = std::move(other.filename);
 }
 
 ZipFileEntry &
@@ -58,7 +58,7 @@ ZipFileEntry::operator=(ZipFileEntry &&other)
       size = other.size;
       compressed_size = other.compressed_size;
       position = other.position;
-      filename = other.filename;
+      filename = std::move(other.filename);
     }
   return *this;
 }

@@ -20,8 +20,8 @@
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <BookMarksShow.h>
 #include <OpenBook.h>
-#include <SearchResultShow.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <glib-2.0/glib/gtypes.h>
 #include <glibmm-2.68/glibmm/refptr.h>
@@ -40,7 +40,7 @@ public:
   virtual ~BookMarksGui();
 
   void
-  createWindow();
+  createWindow();  
 
 private:
   void
@@ -67,6 +67,10 @@ private:
   void
   show_popup_menu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
+  // TODO remove legacy in future releases
+  void
+  legacyWarning(Gtk::Window *win);
+
   std::shared_ptr<AuxFunc> af;
   std::shared_ptr<BookMarks> bookmarks;
   Gtk::Window *main_window = nullptr;
@@ -74,7 +78,8 @@ private:
   int window_height = 0;
   int window_width = 0;
 
-  SearchResultShow *srs = nullptr;
+  BookMarksShow *bms = nullptr;
+
   Gtk::ColumnView *book_marks = nullptr;
   OpenBook *open_book = nullptr;
 };

@@ -33,12 +33,12 @@ PaperBookInfoEntry::PaperBookInfoEntry(const PaperBookInfoEntry &other)
 
 PaperBookInfoEntry::PaperBookInfoEntry(PaperBookInfoEntry &&other)
 {
-  available = other.available;
-  book_name = other.book_name;
-  publisher = other.publisher;
-  city = other.city;
-  year = other.year;
-  isbn = other.isbn;
+  available = std::move(other.available);
+  book_name = std::move(other.book_name);
+  publisher = std::move(other.publisher);
+  city = std::move(other.city);
+  year = std::move(other.year);
+  isbn = std::move(other.isbn);
 }
 
 PaperBookInfoEntry &
@@ -61,12 +61,12 @@ PaperBookInfoEntry::operator=(PaperBookInfoEntry &&other)
 {
   if(this != &other)
     {
-      available = other.available;
-      book_name = other.book_name;
-      publisher = other.publisher;
-      city = other.city;
-      year = other.year;
-      isbn = other.isbn;
+      available = std::move(other.available);
+      book_name = std::move(other.book_name);
+      publisher = std::move(other.publisher);
+      city = std::move(other.city);
+      year = std::move(other.year);
+      isbn = std::move(other.isbn);
     }
   return *this;
 }

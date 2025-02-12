@@ -98,7 +98,7 @@ BaseKeeper::loadCollection(const std::string &col_name)
         {
           try
             {
-              base.push_back(readFileEntry(base_str, rb));
+              base.emplace_back(readFileEntry(base_str, rb));
             }
           catch(MLException &er)
             {
@@ -222,7 +222,7 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
       parseBookEntry(book_e, bpe.book_series, lrb);
       parseBookEntry(book_e, bpe.book_genre, lrb);
       parseBookEntry(book_e, bpe.book_date, lrb);
-      result.push_back(bpe);
+      result.emplace_back(bpe);
     }
 
   return result;
@@ -373,7 +373,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search)
                 {
                   break;
                 }
-              result.push_back(BookBaseEntry(*itb, book_file_path));
+              result.emplace_back(BookBaseEntry(*itb, book_file_path));
             }
         }
     }
@@ -437,7 +437,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
                   if(searchLineFunc(surname, itb->book_author))
                     {
                       result_mtx.lock();
-                      result.push_back(BookBaseEntry(*itb, book_file_path));
+                      result.emplace_back(BookBaseEntry(*itb, book_file_path));
                       result_mtx.unlock();
                     }
                 }
@@ -455,21 +455,22 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
                 std::filesystem::path book_file_path
                     = collection_path
                       / std::filesystem::u8path(el.file_rel_path);
-                std::for_each(
-                    std::execution::par, el.books.begin(), el.books.end(),
-                    [this, surname, &result, &result_mtx,
-                     book_file_path](BookParseEntry &el) {
-                      if(cancel_search.load())
-                        {
-                          return void();
-                        }
-                      if(searchLineFunc(surname, el.book_author))
-                        {
-                          result_mtx.lock();
-                          result.push_back(BookBaseEntry(el, book_file_path));
-                          result_mtx.unlock();
-                        }
-                    });
+                std::for_each(std::execution::par, el.books.begin(),
+                              el.books.end(),
+                              [this, surname, &result, &result_mtx,
+                               book_file_path](BookParseEntry &el) {
+                                if(cancel_search.load())
+                                  {
+                                    return void();
+                                  }
+                                if(searchLineFunc(surname, el.book_author))
+                                  {
+                                    result_mtx.lock();
+                                    result.emplace_back(
+                                        BookBaseEntry(el, book_file_path));
+                                    result_mtx.unlock();
+                                  }
+                              });
               });
 #endif
         }
@@ -504,7 +505,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
               if(searchLineFunc(search.bpe.book_name, itb->book_name))
                 {
                   result_mtx.lock();
-                  result.push_back(BookBaseEntry(*itb, book_file_path));
+                  result.emplace_back(BookBaseEntry(*itb, book_file_path));
                   result_mtx.unlock();
                 }
             }
@@ -533,7 +534,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                   if(searchLineFunc(search.bpe.book_name, el.book_name))
                     {
                       result_mtx.lock();
-                      result.push_back(BookBaseEntry(el, book_file_path));
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
                       result_mtx.unlock();
                     }
                 });
@@ -586,7 +587,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
               if(searchLineFunc(search.bpe.book_series, itb->book_series))
                 {
                   result_mtx.lock();
-                  result.push_back(BookBaseEntry(*itb, book_file_path));
+                  result.emplace_back(BookBaseEntry(*itb, book_file_path));
                   result_mtx.unlock();
                 }
             }
@@ -615,7 +616,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                   if(searchLineFunc(search.bpe.book_series, el.book_series))
                     {
                       result_mtx.lock();
-                      result.push_back(BookBaseEntry(el, book_file_path));
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
                       result_mtx.unlock();
                     }
                 });
@@ -739,7 +740,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
               if(searchLineFunc(search.bpe.book_genre, itb->book_genre))
                 {
                   result_mtx.lock();
-                  result.push_back(BookBaseEntry(*itb, book_file_path));
+                  result.emplace_back(BookBaseEntry(*itb, book_file_path));
                   result_mtx.unlock();
                 }
             }
@@ -767,7 +768,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                   if(searchLineFunc(search.bpe.book_genre, el.book_genre))
                     {
                       result_mtx.lock();
-                      result.push_back(BookBaseEntry(el, book_file_path));
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
                       result_mtx.unlock();
                     }
                 });
@@ -842,7 +843,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                           if(searchLineFunc(last_name, itb->book_author))
                             {
                               result_mtx.lock();
-                              result.push_back(
+                              result.emplace_back(
                                   BookBaseEntry(*itb, book_file_path));
                               result_mtx.unlock();
                             }
@@ -875,7 +876,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                               if(searchLineFunc(last_name, el.book_author))
                                 {
                                   result_mtx.lock();
-                                  result.push_back(
+                                  result.emplace_back(
                                       BookBaseEntry(el, book_file_path));
                                   result_mtx.unlock();
                                 }
@@ -941,7 +942,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                           if(searchLineFunc(first_name, itb->book_author))
                             {
                               result_mtx.lock();
-                              result.push_back(
+                              result.emplace_back(
                                   BookBaseEntry(*itb, book_file_path));
                               result_mtx.unlock();
                             }
@@ -974,7 +975,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                               if(searchLineFunc(first_name, el.book_author))
                                 {
                                   result_mtx.lock();
-                                  result.push_back(
+                                  result.emplace_back(
                                       BookBaseEntry(el, book_file_path));
                                   result_mtx.unlock();
                                 }

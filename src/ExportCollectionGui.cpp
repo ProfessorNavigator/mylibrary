@@ -69,6 +69,7 @@ ExportCollectionGui::createWindow()
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
   lab->set_text(gettext("Collection to export"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   Glib::RefPtr<Gtk::StringList> col_list = create_collections_list();
@@ -357,6 +358,7 @@ ExportCollectionGui::result_window(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:

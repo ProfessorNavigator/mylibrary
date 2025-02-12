@@ -57,6 +57,7 @@ SearchProcessGui::createWindow(const BookBaseEntry &search)
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Search in progress..."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -108,6 +109,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Reading base..."));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();

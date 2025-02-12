@@ -356,7 +356,7 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
                     }
                   if(!std::get<1>(gen).genre_code.empty())
                     {
-                      result.push_back(gen);
+                      result.emplace_back(gen);
                     }
                 }
             }
@@ -727,7 +727,7 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
                     }
                   trans_count++;
                 }
-              gg.push_back(g);
+              gg.emplace_back(g);
             }
         }
       f.close();

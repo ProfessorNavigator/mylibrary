@@ -30,7 +30,7 @@ BookInfoEntry::~BookInfoEntry()
 }
 
 BookInfoEntry::BookInfoEntry(BookInfoEntry &&other)
-{
+{  
   annotation = std::move(other.annotation);
   cover = std::move(other.cover);
   cover_type = std::move(other.cover_type);
@@ -41,7 +41,7 @@ BookInfoEntry::BookInfoEntry(BookInfoEntry &&other)
   other.paper = nullptr;
   electro = other.electro;
   other.electro = nullptr;
-  bytes_per_row = std::move(other.bytes_per_row);
+  bytes_per_row = other.bytes_per_row;
 }
 
 BookInfoEntry::BookInfoEntry(const BookInfoEntry &other)
@@ -90,7 +90,7 @@ BookInfoEntry::operator=(BookInfoEntry &&other)
       other.paper = nullptr;
       electro = other.electro;
       other.electro = nullptr;
-      bytes_per_row = std::move(other.bytes_per_row);
+      bytes_per_row = other.bytes_per_row;
     }
   return *this;
 }

@@ -40,6 +40,7 @@
 #include <glibmm/signalproxy.h>
 #include <glibmm/ustring.h>
 #include <gtk/gtktypes.h>
+#include <gtkmm-4.0/gtkmm/eventcontrollerkey.h>
 #include <gtkmm-4.0/gtkmm/separator.h>
 #include <gtkmm/application.h>
 #include <gtkmm/box.h>
@@ -107,6 +108,7 @@ RightGrid::createGrid()
   search_res->set_valign(Gtk::Align::FILL);
   search_res->set_reorderable(true);
   search_res->set_single_click_activate(true);
+  search_res->set_name("tablesView");
   Glib::PropertyProxy<bool> row_sep
       = search_res->property_show_row_separators();
   row_sep.set_value(true);
@@ -162,25 +164,40 @@ RightGrid::createGrid()
   filter_lab->set_margin(5);
   filter_lab->set_halign(Gtk::Align::START);
   filter_lab->set_text(gettext("Filtering:"));
+  filter_lab->set_name("windowLabel");
   filter_box->append(*filter_lab);
 
   Gtk::Entry *filter_ent = Gtk::make_managed<Gtk::Entry>();
   filter_ent->set_margin(5);
   filter_ent->set_has_frame(true);
-  filter_ent->signal_activate().connect([this, filter_ent] {
-    Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
-    if(filter_selection->is_visible())
-      {
-        srs->filterBooks(buf->get_text(), filter_selection->get_selected());
-      }
-    else
-      {
-        srs->filterFiles(buf->get_text());
-      }
-  });
+  filter_ent->set_name("windowEntry");
+  Glib::RefPtr<Gtk::EventControllerKey> key
+      = Gtk::EventControllerKey::create();
+  key->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
+  key->signal_key_pressed().connect(
+      [this, filter_ent](guint keyval, guint, Gdk::ModifierType) {
+        if(keyval == GDK_KEY_Return)
+          {
+            Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
+            if(filter_selection->is_visible())
+              {
+                srs->filterBooks(buf->get_text(),
+                                 filter_selection->get_selected());
+              }
+            else
+              {
+                srs->filterFiles(buf->get_text());
+              }
+            return true;
+          }
+        return false;
+      },
+      false);
+  filter_ent->add_controller(key);
   filter_box->append(*filter_ent);
 
-  Glib::RefPtr<Gtk::StringList> filter_list = Gtk::StringList::create();
+  Glib::RefPtr<Gtk::StringList> filter_list
+      = Gtk::StringList::create(std::vector<Glib::ustring>());
   Glib::ustring col = gettext("Column");
   filter_list->append(col + ": \'" + gettext("Author") + "\'");
   filter_list->append(col + ": \'" + gettext("Book") + "\'");
@@ -258,6 +275,7 @@ RightGrid::createGrid()
   annotation->set_right_margin(5);
   annotation->set_bottom_margin(5);
   annotation->set_left_margin(5);
+  annotation->set_name("textField");
   annotation_scrl->set_child(*annotation);
 
   cover_area = Gtk::make_managed<Gtk::DrawingArea>();
@@ -547,7 +565,7 @@ RightGrid::book_operations_action_group()
     auto item = srs->get_selected_item();
     if(item)
       {
-        int variant = bookmarks->createBookMark(item->bbe);
+        int variant = bookmarks->createBookMark(current_collection, item->bbe);
         bookmarks_save_result_dialog(variant);
       }
   });
@@ -604,7 +622,7 @@ RightGrid::book_operations_action_group()
             it != f_item->entry.books.end(); it++)
           {
             BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
-            bbe_v.push_back(bbe);
+            bbe_v.emplace_back(bbe);
           }
         srs->searchResultShow(bbe_v);
         book_menu(menu_sr);
@@ -823,6 +841,7 @@ RightGrid::bookmarks_save_result_dialog(const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case -1:

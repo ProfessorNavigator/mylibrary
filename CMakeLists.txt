@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(MyLibrary VERSION 3.1 LANGUAGES CXX)
+project(MyLibrary VERSION 3.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,7 +42,13 @@ add_executable(mylibrary)
 
 add_subdirectory(src)
 
-target_include_directories(mylibrary PRIVATE include)
+target_include_directories(mylibrary PRIVATE include
+                                     PRIVATE PkgConfig::GTKMM
+                                     PRIVATE PkgConfig::POPPLER
+                                     PRIVATE PkgConfig::ICU
+                                     PRIVATE PkgConfig::LIBARCHIVE
+                                     PRIVATE PkgConfig::Gcrypt
+                                     PRIVATE PkgConfig::GPG-ERROR)
 
 target_link_libraries(mylibrary PRIVATE PkgConfig::GTKMM
                                 PRIVATE PkgConfig::POPPLER

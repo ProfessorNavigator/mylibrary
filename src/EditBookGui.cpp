@@ -258,7 +258,7 @@ EditBookGui::slot_genre_bind(const Glib::RefPtr<Gtk::ListItem> &list_item,
         }
       else
         {
-          lab->set_name("unselectedLab");
+          lab->set_name("windowLabel");
         }
       switch(variant)
         {
@@ -445,6 +445,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Book name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 3, 1);
   row_num++;
 
@@ -454,6 +455,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   book_ent->set_hexpand(true);
   book_ent->set_width_chars(70);
   book_ent->set_text(bbe.bpe.book_name);
+  book_ent->set_name("windowEntry");
   grid->attach(*book_ent, 0, row_num, 3, 1);
   row_num++;
 
@@ -461,6 +463,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Author:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 3, 1);
   row_num++;
 
@@ -470,6 +473,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   author_ent->set_hexpand(true);
   author_ent->set_width_chars(70);
   author_ent->set_text(bbe.bpe.book_author);
+  author_ent->set_name("windowEntry");
   grid->attach(*author_ent, 0, row_num, 3, 1);
   row_num++;
 
@@ -477,6 +481,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Series:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 2, 1);
   row_num++;
 
@@ -486,6 +491,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   series_ent->set_hexpand(true);
   series_ent->set_width_chars(70);
   series_ent->set_text(bbe.bpe.book_series);
+  series_ent->set_name("windowEntry");
   grid->attach(*series_ent, 0, row_num, 3, 1);
   row_num++;
 
@@ -493,6 +499,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Genre:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 3, 1);
   row_num++;
 
@@ -525,6 +532,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   genre_view->set_reorderable(false);
   genre_view->signal_activate().connect(
       std::bind(&EditBookGui::select_genre, this, std::placeholders::_1));
+  genre_view->set_name("tablesView");
   genre_scrl->set_child(*genre_view);
 
   Glib::RefPtr<Gio::Menu> menu = create_genre_menu();
@@ -572,6 +580,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_text(gettext("Date:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 3, 1);
   row_num++;
 
@@ -581,6 +590,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   date_ent->set_hexpand(true);
   date_ent->set_width_chars(70);
   date_ent->set_text(bbe.bpe.book_date);
+  date_ent->set_name("windowEntry");
   grid->attach(*date_ent, 0, row_num, 3, 1);
   row_num++;
 
@@ -672,6 +682,7 @@ EditBookGui::confirmationDialog(Gtk::Window *win)
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
   lab->set_text(gettext("Are you sure?"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();
@@ -717,6 +728,7 @@ EditBookGui::wait_window(Gtk::Window *win)
   lab->set_valign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Wait..."));
+  lab->set_name("windowLabel");
   win->set_child(*lab);
 }
 
@@ -796,6 +808,7 @@ EditBookGui::finish_dialog(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:

@@ -42,9 +42,9 @@ FileParseEntry::operator=(const FileParseEntry &other)
 
 FileParseEntry::FileParseEntry(FileParseEntry &&other)
 {
-  file_rel_path = other.file_rel_path;
-  file_hash = other.file_hash;
-  books = other.books;
+  file_rel_path = std::move(other.file_rel_path);
+  file_hash = std::move(other.file_hash);
+  books = std::move(other.books);
 }
 
 FileParseEntry &
@@ -52,9 +52,9 @@ FileParseEntry::operator=(FileParseEntry &&other)
 {
   if(this != &other)
     {
-      file_rel_path = other.file_rel_path;
-      file_hash = other.file_hash;
-      books = other.books;
+      file_rel_path = std::move(other.file_rel_path);
+      file_hash = std::move(other.file_hash);
+      books = std::move(other.books);
     }
   return *this;
 }

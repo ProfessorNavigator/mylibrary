@@ -119,6 +119,7 @@ CollectionCrProcessGui::createWindow(const int &variant)
   process_name->set_halign(Gtk::Align::CENTER);
   process_name->set_expand(true);
   process_name->set_text(gettext("Collecting files..."));
+  process_name->set_name("windowLabel");
   grid->attach(*process_name, 0, 0, 1, 1);
 
   creation_progress = Gtk::make_managed<Gtk::ProgressBar>();
@@ -381,6 +382,7 @@ CollectionCrProcessGui::finishInfo(Gtk::Window *win, const int &variant)
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
+  lab->set_name("windowLabel");
   switch(variant)
     {
     case 1:

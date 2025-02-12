@@ -266,6 +266,7 @@ CopyBookGui::result_dialog(const Glib::ustring &text)
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_hexpand(true);
   lab->set_text(text);
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
   Gtk::Button *close = Gtk::make_managed<Gtk::Button>();

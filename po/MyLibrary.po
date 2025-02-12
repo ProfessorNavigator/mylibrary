@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2025-01-26 20:00+0400\n"
-"PO-Revision-Date: 2025-01-26 20:00+0400\n"
+"POT-Creation-Date: 2025-02-11 13:28+0400\n"
+"PO-Revision-Date: 2025-02-11 13:33+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -16,31 +16,31 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: AddBookGui.cpp:86
+#: AddBookGui.cpp:82
 msgid "Directory adding"
 msgstr "Добавление папок"
 
-#: AddBookGui.cpp:90
+#: AddBookGui.cpp:86
 msgid "Books adding"
 msgstr "Добавление книг"
 
-#: AddBookGui.cpp:111
+#: AddBookGui.cpp:108
 msgid "Collection directories to be added to"
 msgstr "Коллекция для добавления папок"
 
-#: AddBookGui.cpp:117
+#: AddBookGui.cpp:114
 msgid "Collection books to be added to"
 msgstr "Коллекция для добавления книг"
 
-#: AddBookGui.cpp:133
+#: AddBookGui.cpp:130
 msgid "Remove source files"
 msgstr "Удалить исходные файлы"
 
-#: AddBookGui.cpp:146
+#: AddBookGui.cpp:145
 msgid "Pack directories in archive"
 msgstr "Упаковать папки в архив"
 
-#: AddBookGui.cpp:150
+#: AddBookGui.cpp:149
 msgid "Pack books in archive"
 msgstr "Упаковать книги в архив"
 
@@ -56,161 +56,163 @@ msgstr "(архив будет создан заново)"
 msgid "Add books to existing archive"
 msgstr "Добавить книги к существующему архиву"
 
-#: AddBookGui.cpp:177 TransferBookGui.cpp:154
+#: AddBookGui.cpp:177 TransferBookGui.cpp:157
 msgid "Archive type:"
 msgstr "Тип архива:"
 
-#: AddBookGui.cpp:197 AddBookGui.cpp:233 AddBookGui.cpp:501
+#: AddBookGui.cpp:198 AddBookGui.cpp:234 AddBookGui.cpp:506
 msgid "Add directories"
 msgstr "Добавить папки"
 
-#: AddBookGui.cpp:201 AddBookGui.cpp:237 AddBookGui.cpp:505
+#: AddBookGui.cpp:202 AddBookGui.cpp:238 AddBookGui.cpp:510
 msgid "Add books"
 msgstr "Добавить книги"
 
-#: AddBookGui.cpp:211 AddBookGui.cpp:602 AddBookGui.cpp:729 AddBookGui.cpp:1193
-#: AddBookGui.cpp:1787 AddBookGui.cpp:1906 AddBookGui.cpp:2033
-#: CollectionCrProcessGui.cpp:133 CopyBookGui.cpp:113
-#: CreateCollectionGui.cpp:151 CreateCollectionGui.cpp:195 EditBookGui.cpp:614
-#: EmptyCollectionGui.cpp:108 EmptyCollectionGui.cpp:152
-#: ExportCollectionGui.cpp:97 ExportCollectionGui.cpp:173
-#: ImportCollectionGui.cpp:127 ImportCollectionGui.cpp:226
-#: RefreshCollectionGui.cpp:152 RemoveCollectionGui.cpp:86 SaveCover.cpp:102
-#: SaveCover.cpp:157 SearchProcessGui.cpp:65 SearchProcessGui.cpp:116
-#: TransferBookGui.cpp:246 TransferBookGui.cpp:503 TransferBookGui.cpp:1017
+#: AddBookGui.cpp:212 AddBookGui.cpp:607 AddBookGui.cpp:734 AddBookGui.cpp:1198
+#: AddBookGui.cpp:1787 AddBookGui.cpp:1908 AddBookGui.cpp:2035
+#: CollectionCrProcessGui.cpp:134 CopyBookGui.cpp:113
+#: CreateCollectionGui.cpp:158 CreateCollectionGui.cpp:202 EditBookGui.cpp:623
+#: EmptyCollectionGui.cpp:112 EmptyCollectionGui.cpp:156
+#: ExportCollectionGui.cpp:98 ExportCollectionGui.cpp:174
+#: ImportCollectionGui.cpp:133 ImportCollectionGui.cpp:232
+#: RefreshCollectionGui.cpp:159 RemoveCollectionGui.cpp:87 SaveCover.cpp:102
+#: SaveCover.cpp:158 SearchProcessGui.cpp:66 SearchProcessGui.cpp:118
+#: SettingsWindow.cpp:122 TransferBookGui.cpp:251 TransferBookGui.cpp:508
+#: TransferBookGui.cpp:1027
 msgid "Cancel"
 msgstr "Отмена"
 
-#: AddBookGui.cpp:223 AddBookGui.cpp:255
+#: AddBookGui.cpp:224 AddBookGui.cpp:256
 msgid "Archive path"
 msgstr "Путь к архиву"
 
-#: AddBookGui.cpp:251
+#: AddBookGui.cpp:252
 msgid "Select archive"
 msgstr "Выбрать архив"
 
-#: AddBookGui.cpp:367
+#: AddBookGui.cpp:368
 msgid "Book selection"
 msgstr "Выбор книг"
 
-#: AddBookGui.cpp:401
+#: AddBookGui.cpp:402
 msgid "Path of archive in collection:"
 msgstr "Путь к архиву в коллекции:"
 
-#: AddBookGui.cpp:423 AddBookGui.cpp:625 AddBookGui.cpp:686
+#: AddBookGui.cpp:427 AddBookGui.cpp:630 AddBookGui.cpp:691
 msgid "Directories"
 msgstr "Папки"
 
-#: AddBookGui.cpp:427 AddBookGui.cpp:629 AddBookGui.cpp:692
+#: AddBookGui.cpp:431 AddBookGui.cpp:634 AddBookGui.cpp:697
 msgid "Books"
 msgstr "Книги"
 
-#: AddBookGui.cpp:517
+#: AddBookGui.cpp:522
 msgid "Directory operations"
 msgstr "Операции с папками"
 
-#: AddBookGui.cpp:521
+#: AddBookGui.cpp:526
 msgid "Books operations"
 msgstr "Операции с книгами"
 
-#: AddBookGui.cpp:564
+#: AddBookGui.cpp:569
 msgid "Add"
 msgstr "Добавить"
 
-#: AddBookGui.cpp:640 AddBookGui.cpp:696 TransferBookGui.cpp:427
-#: TransferBookGui.cpp:602
+#: AddBookGui.cpp:645 AddBookGui.cpp:701 TransferBookGui.cpp:432
+#: TransferBookGui.cpp:607
 msgid "All supported"
 msgstr "Все поддерживаемые"
 
-#: AddBookGui.cpp:735 AddBookGui.cpp:2037 CreateCollectionGui.cpp:98
-#: CreateCollectionGui.cpp:199 EmptyCollectionGui.cpp:89
-#: EmptyCollectionGui.cpp:157 ImportCollectionGui.cpp:89
-#: ImportCollectionGui.cpp:109 ImportCollectionGui.cpp:234
-#: TransferBookGui.cpp:517
+#: AddBookGui.cpp:740 AddBookGui.cpp:2039 CreateCollectionGui.cpp:102
+#: CreateCollectionGui.cpp:206 EmptyCollectionGui.cpp:93
+#: EmptyCollectionGui.cpp:161 ImportCollectionGui.cpp:93
+#: ImportCollectionGui.cpp:115 ImportCollectionGui.cpp:240
+#: SettingsWindow.cpp:281 TransferBookGui.cpp:522
 msgid "Open"
 msgstr "Открыть"
 
-#: AddBookGui.cpp:856
+#: AddBookGui.cpp:861
 msgid "Sources"
 msgstr "Источники"
 
-#: AddBookGui.cpp:973
+#: AddBookGui.cpp:978
 msgid "Collection paths"
 msgstr "Пути в коллекции"
 
-#: AddBookGui.cpp:1019
+#: AddBookGui.cpp:1024
 msgid "Warning! Some result paths are out of collection!"
 msgstr "Предупреждение! Некоторые конечные пути находятся вне коллекции!"
 
-#: AddBookGui.cpp:1039
+#: AddBookGui.cpp:1044
 msgid "Warning! Some result directories exist and will be overwritten!"
 msgstr ""
 "Предупреждение! Некоторые конечные папки уже существуют и будут перезаписаны!"
 
-#: AddBookGui.cpp:1046
+#: AddBookGui.cpp:1051
 msgid "Warning! Some result files exist and will be overwritten!"
 msgstr ""
 "Предупреждение! Некоторые конечные файлы уже существуют и будут перезаписаны!"
 
-#: AddBookGui.cpp:1120
+#: AddBookGui.cpp:1125
 msgid "Remove directory"
 msgstr "Удалить папку"
 
-#: AddBookGui.cpp:1125 RightGrid.cpp:648
+#: AddBookGui.cpp:1130 RightGrid.cpp:649
 msgid "Remove book"
 msgstr "Удалить книгу"
 
-#: AddBookGui.cpp:1134
+#: AddBookGui.cpp:1139
 msgid "Change collection path"
 msgstr "Изменить путь в коллекции"
 
-#: AddBookGui.cpp:1142
+#: AddBookGui.cpp:1147
 msgid "Change archive path"
 msgstr "Изменить путь в архиве"
 
-#: AddBookGui.cpp:1162 AddBookGui.cpp:1186
+#: AddBookGui.cpp:1167 AddBookGui.cpp:1191
 msgid "Collection path"
 msgstr "Путь в коллекции"
 
-#: AddBookGui.cpp:1197 AddBookGui.cpp:1791 CopyBookGui.cpp:118
-#: ExportCollectionGui.cpp:178 SaveCover.cpp:93 SaveCover.cpp:162
-#: TransferBookGui.cpp:512
+#: AddBookGui.cpp:1202 AddBookGui.cpp:1791 CopyBookGui.cpp:118
+#: ExportCollectionGui.cpp:179 SaveCover.cpp:93 SaveCover.cpp:162
+#: TransferBookGui.cpp:517
 msgid "Save"
 msgstr "Сохранить"
 
-#: AddBookGui.cpp:1512
+#: AddBookGui.cpp:1510
 msgid "Directories adding in progress..."
 msgstr "Идёт добавление папок..."
 
-#: AddBookGui.cpp:1516
+#: AddBookGui.cpp:1514
 msgid "Books adding in progress..."
 msgstr "Идёт добавление книг..."
 
-#: AddBookGui.cpp:1549
+#: AddBookGui.cpp:1548
 msgid "Directories were successfully added!"
 msgstr "Папки успешно добавлены!"
 
-#: AddBookGui.cpp:1553
+#: AddBookGui.cpp:1552
 msgid "Books were successfully added!"
 msgstr "Книги успешно добавлены!"
 
-#: AddBookGui.cpp:1559 RemoveBookGui.cpp:291 TransferBookGui.cpp:917
+#: AddBookGui.cpp:1558 RemoveBookGui.cpp:294 TransferBookGui.cpp:923
 msgid "Error! See system log for details."
 msgstr "Ошибка! См. системный журнал."
 
-#: AddBookGui.cpp:1572 AddBookGui.cpp:1629 CollectionCrProcessGui.cpp:409
-#: CopyBookGui.cpp:275 CreateCollectionGui.cpp:345 EditBookGui.cpp:827
-#: EmptyCollectionGui.cpp:263 EmptyCollectionGui.cpp:388
-#: ExportCollectionGui.cpp:403 ImportCollectionGui.cpp:399
-#: ImportCollectionGui.cpp:622 RemoveBookGui.cpp:299
-#: RemoveCollectionGui.cpp:237 RightGrid.cpp:858 SaveCover.cpp:339
-#: TransferBookGui.cpp:104 TransferBookGui.cpp:939 TransferBookGui.cpp:1322
+#: AddBookGui.cpp:1571 AddBookGui.cpp:1629 BookMarksGui.cpp:516
+#: CollectionCrProcessGui.cpp:406 CopyBookGui.cpp:276
+#: CreateCollectionGui.cpp:353 EditBookGui.cpp:839 EmptyCollectionGui.cpp:268
+#: EmptyCollectionGui.cpp:394 ExportCollectionGui.cpp:405
+#: ImportCollectionGui.cpp:406 ImportCollectionGui.cpp:630
+#: RemoveBookGui.cpp:302 RemoveCollectionGui.cpp:241 RightGrid.cpp:860
+#: SaveCover.cpp:338 TransferBookGui.cpp:104 TransferBookGui.cpp:945
+#: TransferBookGui.cpp:1328
 msgid "Close"
 msgstr "Закрыть"
 
-#: AddBookGui.cpp:1587 CopyBookGui.cpp:226 EmptyCollectionGui.cpp:213
-#: ExportCollectionGui.cpp:364 ImportCollectionGui.cpp:328 SaveCover.cpp:331
-#: TransferBookGui.cpp:1283
+#: AddBookGui.cpp:1586 CopyBookGui.cpp:226 EmptyCollectionGui.cpp:217
+#: ExportCollectionGui.cpp:366 ImportCollectionGui.cpp:334 SaveCover.cpp:330
+#: TransferBookGui.cpp:1288
 msgid "Error!"
 msgstr "Ошибка!"
 
@@ -226,8 +228,8 @@ msgstr "Ошибка: путь конечного архива вне колле
 msgid "Error: path cannot be empty"
 msgstr "Ошибка: путь не может быть пустым"
 
-#: AddBookGui.cpp:1749 AddBookGui.cpp:1781 AddBookGui.cpp:2000
-#: AddBookGui.cpp:2027
+#: AddBookGui.cpp:1749 AddBookGui.cpp:1781 AddBookGui.cpp:2002
+#: AddBookGui.cpp:2029
 msgid "Archive name"
 msgstr "Имя архива"
 
@@ -235,171 +237,220 @@ msgstr "Имя архива"
 msgid "Paths in archive"
 msgstr "Пути в архиве"
 
-#: AddBookGui.cpp:1867 TransferBookGui.cpp:949
+#: AddBookGui.cpp:1867 TransferBookGui.cpp:955
 msgid "Path in archive"
 msgstr "Путь в архиве"
 
-#: AddBookGui.cpp:1881 BookInfoGui.cpp:597 TransferBookGui.cpp:977
+#: AddBookGui.cpp:1881 BookInfoGui.cpp:615 TransferBookGui.cpp:985
 msgid "Path in archive:"
 msgstr "Путь в архиве:"
 
-#: AddBookGui.cpp:1896 EditBookGui.cpp:592
+#: AddBookGui.cpp:1898 EditBookGui.cpp:601 SettingsWindow.cpp:102
 msgid "Apply"
 msgstr "Применить"
 
-#: AddBookGui.cpp:2183
+#: AddBookGui.cpp:2184
 msgid "Warning! Some files are already in archive!"
 msgstr "Предупреждение! Некоторые файлы уже есть в архиве!"
 
-#: AddBookGui.cpp:2345 AddBookGui.cpp:2362 EditBookGui.cpp:720
-#: TransferBookGui.cpp:753 TransferBookGui.cpp:1131 TransferBookGui.cpp:1242
+#: AddBookGui.cpp:2345 AddBookGui.cpp:2362 EditBookGui.cpp:730
+#: TransferBookGui.cpp:757 TransferBookGui.cpp:1140 TransferBookGui.cpp:1248
 msgid "Wait..."
 msgstr "Подождите..."
 
-#: BookInfoGui.cpp:100 BookMarksGui.cpp:375 RightGrid.cpp:641
+#: BookInfoGui.cpp:100 BookMarksGui.cpp:448 RightGrid.cpp:642
 msgid "Book info"
 msgstr "Информация о книге"
 
-#: BookInfoGui.cpp:346 LeftGrid.cpp:188 RightGrid.cpp:186
-#: SearchResultShow.cpp:317
+#: BookInfoGui.cpp:346 BookMarksGui.cpp:179 BookMarksShow.cpp:362
+#: LeftGrid.cpp:196 RightGrid.cpp:189 SearchResultShow.cpp:327
 msgid "Book"
 msgstr "Книга"
 
-#: BookInfoGui.cpp:355 BookInfoGui.cpp:638 EditBookGui.cpp:448 LeftGrid.cpp:195
+#: BookInfoGui.cpp:356 BookInfoGui.cpp:659 EditBookGui.cpp:447 LeftGrid.cpp:204
 msgid "Book name:"
 msgstr "Название книги:"
 
-#: BookInfoGui.cpp:374 BookInfoGui.cpp:755
+#: BookInfoGui.cpp:377 BookInfoGui.cpp:786
 msgid "Author(s):"
 msgstr "Автор(ы):"
 
-#: BookInfoGui.cpp:397
+#: BookInfoGui.cpp:402
 msgid "Genre(s):"
 msgstr "Жанр(ы):"
 
-#: BookInfoGui.cpp:417 EditBookGui.cpp:480 LeftGrid.cpp:210
+#: BookInfoGui.cpp:424 EditBookGui.cpp:483 LeftGrid.cpp:221
 msgid "Series:"
 msgstr "Серия:"
 
-#: BookInfoGui.cpp:438
+#: BookInfoGui.cpp:447
 msgid "Language:"
 msgstr "Язык:"
 
-#: BookInfoGui.cpp:457
+#: BookInfoGui.cpp:468
 msgid "Source language:"
 msgstr "Язык оригинала:"
 
-#: BookInfoGui.cpp:477
+#: BookInfoGui.cpp:490
 msgid "Translator(s):"
 msgstr "Переводчик(и):"
 
-#: BookInfoGui.cpp:531
+#: BookInfoGui.cpp:546
 msgid "File"
 msgstr "Файл"
 
-#: BookInfoGui.cpp:541
+#: BookInfoGui.cpp:557
 msgid "File path:"
 msgstr "Путь:"
 
-#: BookInfoGui.cpp:558
+#: BookInfoGui.cpp:576
 msgid "file not found"
 msgstr "файл не найден"
 
-#: BookInfoGui.cpp:627
+#: BookInfoGui.cpp:647
 msgid "Paper book info"
 msgstr "Информация о бумажной книге"
 
-#: BookInfoGui.cpp:657 BookInfoGui.cpp:957
+#: BookInfoGui.cpp:679 BookInfoGui.cpp:1005
 msgid "Publisher:"
 msgstr "Издатель:"
 
-#: BookInfoGui.cpp:676
+#: BookInfoGui.cpp:700
 msgid "City:"
 msgstr "Город:"
 
-#: BookInfoGui.cpp:695
+#: BookInfoGui.cpp:721
 msgid "Year:"
 msgstr "Год:"
 
-#: BookInfoGui.cpp:743
+#: BookInfoGui.cpp:773
 msgid "E-Book info"
 msgstr "Информация о электронной книге"
 
-#: BookInfoGui.cpp:777
+#: BookInfoGui.cpp:810
 msgid "Software:"
 msgstr "Программа:"
 
-#: BookInfoGui.cpp:796 EditBookGui.cpp:575
+#: BookInfoGui.cpp:831 EditBookGui.cpp:582
 msgid "Date:"
 msgstr "Дата:"
 
-#: BookInfoGui.cpp:815
+#: BookInfoGui.cpp:852
 msgid "Source:"
 msgstr "Источник:"
 
-#: BookInfoGui.cpp:868
+#: BookInfoGui.cpp:907
 msgid "Author of original doc:"
 msgstr "Автор источника:"
 
-#: BookInfoGui.cpp:890
+#: BookInfoGui.cpp:931
 msgid "ID:"
 msgstr "Идентификатор:"
 
-#: BookInfoGui.cpp:909
+#: BookInfoGui.cpp:952
 msgid "Version:"
 msgstr "Версия:"
 
-#: BookInfoGui.cpp:929
+#: BookInfoGui.cpp:974
 msgid "History:"
 msgstr "История:"
 
-#: BookInfoGui.cpp:997 RightGrid.cpp:731
+#: BookInfoGui.cpp:1047 RightGrid.cpp:732
 msgid "Show full size"
 msgstr "Показать в натуральную величину"
 
-#: BookInfoGui.cpp:1000 RightGrid.cpp:734
+#: BookInfoGui.cpp:1050 RightGrid.cpp:735
 msgid "Save cover"
 msgstr "Сохранить обложку"
 
-#: BookMarksGui.cpp:75 MainWindow.cpp:186
+#: BookMarksGui.cpp:80 MainWindow.cpp:192
 msgid "Bookmarks"
 msgstr "Закладки"
 
-#: BookMarksGui.cpp:137
+#: BookMarksGui.cpp:153
 msgid "Bookmark operations"
 msgstr "Операции с закладками"
 
-#: BookMarksGui.cpp:312 EditBookGui.cpp:660 RefreshCollectionGui.cpp:197
-#: RemoveBookGui.cpp:55 RemoveCollectionGui.cpp:130
+#: BookMarksGui.cpp:166 RightGrid.cpp:165
+msgid "Filtering:"
+msgstr "Фильтр:"
+
+#: BookMarksGui.cpp:177 BookMarksShow.cpp:310 LeftGrid.cpp:69
+#: RemoveCollectionGui.cpp:59
+msgid "Collection"
+msgstr "Коллекция"
+
+#: BookMarksGui.cpp:178 BookMarksShow.cpp:336 LeftGrid.cpp:133
+#: RightGrid.cpp:188 SearchResultShow.cpp:291
+msgid "Author"
+msgstr "Автор"
+
+#: BookMarksGui.cpp:180 BookMarksShow.cpp:388 RightGrid.cpp:190
+#: SearchResultShow.cpp:349
+msgid "Series"
+msgstr "Серия"
+
+#: BookMarksGui.cpp:181 BookMarksShow.cpp:414 RightGrid.cpp:191
+#: SearchResultShow.cpp:371
+msgid "Genre"
+msgstr "Жанр"
+
+#: BookMarksGui.cpp:182 BookMarksShow.cpp:440 RightGrid.cpp:192
+#: SearchResultShow.cpp:489
+msgid "Date"
+msgstr "Дата"
+
+#: BookMarksGui.cpp:192 RightGrid.cpp:204
+msgid "Filter"
+msgstr "Фильтровать"
+
+#: BookMarksGui.cpp:205 RightGrid.cpp:222
+msgid "Clear filter"
+msgstr "Очистить фильтр"
+
+#: BookMarksGui.cpp:383 EditBookGui.cpp:669 RefreshCollectionGui.cpp:204
+#: RemoveBookGui.cpp:55 RemoveCollectionGui.cpp:131
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: BookMarksGui.cpp:327 EditBookGui.cpp:675 RefreshCollectionGui.cpp:212
-#: RemoveBookGui.cpp:167
+#: BookMarksGui.cpp:398 EditBookGui.cpp:684 RefreshCollectionGui.cpp:219
+#: RemoveBookGui.cpp:172
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: BookMarksGui.cpp:333 EditBookGui.cpp:682 RefreshCollectionGui.cpp:218
-#: RemoveBookGui.cpp:182 RemoveCollectionGui.cpp:170
+#: BookMarksGui.cpp:405 EditBookGui.cpp:692 RefreshCollectionGui.cpp:226
+#: RemoveBookGui.cpp:188 RemoveCollectionGui.cpp:173
 msgid "Yes"
 msgstr "Да"
 
-#: BookMarksGui.cpp:349 EditBookGui.cpp:693 RefreshCollectionGui.cpp:227
-#: RemoveBookGui.cpp:191 RemoveCollectionGui.cpp:182
+#: BookMarksGui.cpp:422 EditBookGui.cpp:703 RefreshCollectionGui.cpp:235
+#: RemoveBookGui.cpp:197 RemoveCollectionGui.cpp:185
 msgid "No"
 msgstr "Нет"
 
-#: BookMarksGui.cpp:372 RightGrid.cpp:634
+#: BookMarksGui.cpp:445 RightGrid.cpp:635
 msgid "Open book"
 msgstr "Открыть книгу"
 
-#: BookMarksGui.cpp:378 RightGrid.cpp:644
+#: BookMarksGui.cpp:451 RightGrid.cpp:645
 msgid "Save book as..."
 msgstr "Сохранить книгу как..."
 
-#: BookMarksGui.cpp:382
+#: BookMarksGui.cpp:455
 msgid "Remove bookmark"
 msgstr "Удалить закладку"
+
+#: BookMarksGui.cpp:489
+msgid "Warning"
+msgstr "Предупреждение"
+
+#: BookMarksGui.cpp:506
+msgid ""
+"It seems, that your version of bookmarks base is old. Please, recreate all "
+"bookmarks manually to avoid possible bookmarks loss in the future."
+msgstr ""
+"Похоже, что вы используете старую версию базы закладок. Пожалуйста, чтобы "
+"избежать возможной потери закладок в будущем, создайте их заново вручную."
 
 #: CollectionCrProcessGui.cpp:92
 msgid "Collection creation progress"
@@ -413,35 +464,35 @@ msgstr "Прогресс обновления коллекции"
 msgid "Collecting files..."
 msgstr "Сбор файлов..."
 
-#: CollectionCrProcessGui.cpp:139
+#: CollectionCrProcessGui.cpp:140
 msgid "Interruption..."
 msgstr "Прерывание..."
 
-#: CollectionCrProcessGui.cpp:197
+#: CollectionCrProcessGui.cpp:198
 msgid "Collection creation progress:"
 msgstr "Прогресс создания коллекции:"
 
-#: CollectionCrProcessGui.cpp:276
+#: CollectionCrProcessGui.cpp:275
 msgid "Collection hashing progress:"
 msgstr "Прогресс хеширования:"
 
-#: CollectionCrProcessGui.cpp:306
+#: CollectionCrProcessGui.cpp:304
 msgid "Collection refreshing progress:"
 msgstr "Прогресс обновления коллекции:"
 
-#: CollectionCrProcessGui.cpp:367
+#: CollectionCrProcessGui.cpp:363
 msgid "Collection created"
 msgstr "Коллекция создана"
 
-#: CollectionCrProcessGui.cpp:372
+#: CollectionCrProcessGui.cpp:368
 msgid "Collection refreshed"
 msgstr "Коллекция обновлена"
 
-#: CollectionCrProcessGui.cpp:393
+#: CollectionCrProcessGui.cpp:390
 msgid "Collection creation process finished."
 msgstr "Процесс создания коллекции завершён."
 
-#: CollectionCrProcessGui.cpp:398
+#: CollectionCrProcessGui.cpp:395
 msgid "Collection refresh process finished."
 msgstr "Процесс обновления коллекции завершён."
 
@@ -453,7 +504,7 @@ msgstr "Сохранить как..."
 msgid "Book successfully saved!"
 msgstr "Книга успешно сохранена!"
 
-#: CreateCollectionGui.cpp:54 MainWindow.cpp:153
+#: CreateCollectionGui.cpp:54 MainWindow.cpp:159
 msgid "Create collection"
 msgstr "Создать коллекцию"
 
@@ -461,110 +512,110 @@ msgstr "Создать коллекцию"
 msgid "Collection name:"
 msgstr "Название коллекции:"
 
-#: CreateCollectionGui.cpp:83 EmptyCollectionGui.cpp:77
-#: ImportCollectionGui.cpp:97
+#: CreateCollectionGui.cpp:85 EmptyCollectionGui.cpp:79
+#: ImportCollectionGui.cpp:101
 msgid "Path to books directory:"
 msgstr "Путь к директории с книгами:"
 
-#: CreateCollectionGui.cpp:118 RefreshCollectionGui.cpp:91
+#: CreateCollectionGui.cpp:122 RefreshCollectionGui.cpp:92
 msgid "Thread number (recommended max value: "
 msgstr "Количество потоков (рекомендованное максимальное значение: "
 
-#: CreateCollectionGui.cpp:135 RefreshCollectionGui.cpp:130
+#: CreateCollectionGui.cpp:141 RefreshCollectionGui.cpp:136
 msgid "Disable rar archives support"
 msgstr "Отключить поддержку rar архивов"
 
-#: CreateCollectionGui.cpp:142 EmptyCollectionGui.cpp:99
+#: CreateCollectionGui.cpp:149 EmptyCollectionGui.cpp:103
 msgid "Create"
 msgstr "Создать"
 
-#: CreateCollectionGui.cpp:173 CreateCollectionGui.cpp:188
-#: EmptyCollectionGui.cpp:130 EmptyCollectionGui.cpp:146
-#: ImportCollectionGui.cpp:159 ImportCollectionGui.cpp:209
+#: CreateCollectionGui.cpp:180 CreateCollectionGui.cpp:195
+#: EmptyCollectionGui.cpp:134 EmptyCollectionGui.cpp:150
+#: ImportCollectionGui.cpp:165 ImportCollectionGui.cpp:215
 msgid "Books path"
 msgstr "Путь к книгам"
 
-#: CreateCollectionGui.cpp:323
+#: CreateCollectionGui.cpp:331
 msgid "Collection name cannot be empty!"
 msgstr "Название коллекции не может быть пустым!"
 
-#: CreateCollectionGui.cpp:328
+#: CreateCollectionGui.cpp:336
 msgid "Collection already exists!"
 msgstr "Коллекция уже существует!"
 
-#: CreateCollectionGui.cpp:333
+#: CreateCollectionGui.cpp:341
 msgid "Books path does not exist!"
 msgstr "Путь к книгам не существует!"
 
-#: EditBookGui.cpp:70
+#: EditBookGui.cpp:69
 msgid "Book entry editor"
 msgstr "Редактор записи о книге"
 
-#: EditBookGui.cpp:199
+#: EditBookGui.cpp:198
 msgid "Genre name"
 msgstr "Имя жанра"
 
-#: EditBookGui.cpp:219
+#: EditBookGui.cpp:218
 msgid "Genre code"
 msgstr "Код жанра"
 
-#: EditBookGui.cpp:426 EditBookGui.cpp:567
+#: EditBookGui.cpp:425 EditBookGui.cpp:574
 msgid "Remove genre"
 msgstr "Удалить жанр"
 
-#: EditBookGui.cpp:464
+#: EditBookGui.cpp:465
 msgid "Author:"
 msgstr "Автор:"
 
-#: EditBookGui.cpp:496 LeftGrid.cpp:225
+#: EditBookGui.cpp:501 LeftGrid.cpp:238
 msgid "Genre:"
 msgstr "Жанр:"
 
-#: EditBookGui.cpp:558
+#: EditBookGui.cpp:565
 msgid "Add genre"
 msgstr "Добавить жанр"
 
-#: EditBookGui.cpp:601
+#: EditBookGui.cpp:610
 msgid "Restore"
 msgstr "Восстановить"
 
-#: EditBookGui.cpp:804
+#: EditBookGui.cpp:816
 msgid "Book entry was successfully edited!"
 msgstr "Запись о книге успешно отредактирована!"
 
-#: EditBookGui.cpp:810
+#: EditBookGui.cpp:822
 msgid "Error! Book entry was not found in collection."
 msgstr "Ошибка! Запись о книге не была найдена в коллекции."
 
-#: EditBookGui.cpp:815
+#: EditBookGui.cpp:827
 msgid "Critical error! See system log for details."
 msgstr "Критическая ошибка! См. системный журнал."
 
-#: EmptyCollectionGui.cpp:51 MainWindow.cpp:181
+#: EmptyCollectionGui.cpp:51 MainWindow.cpp:187
 msgid "Create empty collection"
 msgstr "Создать пустую коллекцию"
 
-#: EmptyCollectionGui.cpp:232 ImportCollectionGui.cpp:347
+#: EmptyCollectionGui.cpp:237 ImportCollectionGui.cpp:354
 msgid "Error! Collection name cannot be empty!"
 msgstr "Ошибка! Название коллекции не может быть пустым!"
 
-#: EmptyCollectionGui.cpp:237 ImportCollectionGui.cpp:352
+#: EmptyCollectionGui.cpp:242 ImportCollectionGui.cpp:359
 msgid "Error! Collection already exists!"
 msgstr "Ошибка! Коллекция уже существует!"
 
-#: EmptyCollectionGui.cpp:242 ImportCollectionGui.cpp:362
+#: EmptyCollectionGui.cpp:247 ImportCollectionGui.cpp:369
 msgid "Error! Books directory not found!"
 msgstr "Ошибка! Директория с книгами не найдена!"
 
-#: EmptyCollectionGui.cpp:248 ImportCollectionGui.cpp:374
+#: EmptyCollectionGui.cpp:253 ImportCollectionGui.cpp:381
 msgid "Error! Base file has not been opened for writing!"
 msgstr "Ошибка! Файл базы не был открыт для записи!"
 
-#: EmptyCollectionGui.cpp:381
+#: EmptyCollectionGui.cpp:386
 msgid "Collection has been successfully created."
 msgstr "Коллекция успешно создана."
 
-#: ExportCollectionGui.cpp:56 MainWindow.cpp:173
+#: ExportCollectionGui.cpp:56 MainWindow.cpp:179
 msgid "Export collection base"
 msgstr "Экспортировать базу коллекции"
 
@@ -572,31 +623,31 @@ msgstr "Экспортировать базу коллекции"
 msgid "Collection to export"
 msgstr "Коллекция для экспорта"
 
-#: ExportCollectionGui.cpp:88
+#: ExportCollectionGui.cpp:89
 msgid "Export"
 msgstr "Экспорт"
 
-#: ExportCollectionGui.cpp:143 ExportCollectionGui.cpp:168
+#: ExportCollectionGui.cpp:144 ExportCollectionGui.cpp:169
 msgid "Export path"
 msgstr "Путь для экспорта"
 
-#: ExportCollectionGui.cpp:369
+#: ExportCollectionGui.cpp:371
 msgid "Error! Base file has not been opened."
 msgstr "Ошибка! Файл базы не открыт."
 
-#: ExportCollectionGui.cpp:375
+#: ExportCollectionGui.cpp:377
 msgid "Error! Out path has not been opened for writing."
 msgstr "Ошибка! Файл не открыт для записи."
 
-#: ExportCollectionGui.cpp:380
+#: ExportCollectionGui.cpp:382
 msgid "Error! Wrong base file size."
 msgstr "Ошибка! Неверный размер файла базы."
 
-#: ExportCollectionGui.cpp:385
+#: ExportCollectionGui.cpp:387
 msgid "Error! Wrong base file size (2)."
 msgstr "Ошибка! Неверный размер файла базы (2)."
 
-#: ExportCollectionGui.cpp:391
+#: ExportCollectionGui.cpp:393
 msgid "Collection base has been exported successfully!"
 msgstr "База коллекции успешно экспортирована!"
 
@@ -604,7 +655,7 @@ msgstr "База коллекции успешно экспортирована!
 msgid "Cover"
 msgstr "Обложка"
 
-#: ImportCollectionGui.cpp:51 MainWindow.cpp:177
+#: ImportCollectionGui.cpp:51 MainWindow.cpp:183
 msgid "Import collection base"
 msgstr "Импортировать базу коллекции"
 
@@ -612,123 +663,123 @@ msgstr "Импортировать базу коллекции"
 msgid "New collection name:"
 msgstr "Название новой коллекции:"
 
-#: ImportCollectionGui.cpp:77
+#: ImportCollectionGui.cpp:79
 msgid "Path to base to be imported:"
 msgstr "Путь к базе для импорта:"
 
-#: ImportCollectionGui.cpp:118
+#: ImportCollectionGui.cpp:124
 msgid "Import"
 msgstr "Импорт"
 
-#: ImportCollectionGui.cpp:154 ImportCollectionGui.cpp:202
+#: ImportCollectionGui.cpp:160 ImportCollectionGui.cpp:208
 msgid "Open base"
 msgstr "Открыть файл базы"
 
-#: ImportCollectionGui.cpp:242
+#: ImportCollectionGui.cpp:248
 msgid "Select"
 msgstr "Выбрать"
 
-#: ImportCollectionGui.cpp:357
+#: ImportCollectionGui.cpp:364
 msgid "Error! Base file not found!"
 msgstr "Ошибка! Файл базы не найден!"
 
-#: ImportCollectionGui.cpp:368
+#: ImportCollectionGui.cpp:375
 msgid "Error! Base file has not been opened for reading!"
 msgstr "Ошибка! Файл базы не был открыт для чтения!"
 
-#: ImportCollectionGui.cpp:379
+#: ImportCollectionGui.cpp:386
 msgid "Error! Bad base file!"
 msgstr "Ошибка! Неверный файл базы!"
 
-#: ImportCollectionGui.cpp:384
+#: ImportCollectionGui.cpp:391
 msgid "Error! Bad base file (2)!"
 msgstr "Ошибка! Неверный файл базы (2)!"
 
-#: ImportCollectionGui.cpp:615
+#: ImportCollectionGui.cpp:622
 msgid "Collection has been successfully imported."
 msgstr "Коллекция успешно импортирована."
 
-#: LeftGrid.cpp:69 RemoveCollectionGui.cpp:59
-msgid "Collection"
-msgstr "Коллекция"
-
-#: LeftGrid.cpp:132 RightGrid.cpp:185 SearchResultShow.cpp:278
-msgid "Author"
-msgstr "Автор"
-
-#: LeftGrid.cpp:139
+#: LeftGrid.cpp:141
 msgid "Surname:"
 msgstr "Фамилия:"
 
-#: LeftGrid.cpp:154
+#: LeftGrid.cpp:158
 msgid "Name:"
 msgstr "Имя:"
 
-#: LeftGrid.cpp:169
+#: LeftGrid.cpp:175
 msgid "Second name:"
 msgstr "Отчество:"
 
-#: LeftGrid.cpp:243 LeftGrid.cpp:255 LeftGrid.cpp:371
+#: LeftGrid.cpp:257 LeftGrid.cpp:269 LeftGrid.cpp:385
 msgid "<No>"
 msgstr "<Нет>"
 
-#: LeftGrid.cpp:252
+#: LeftGrid.cpp:266
 msgid "Clear genre"
 msgstr "Очистить жанр"
 
-#: LeftGrid.cpp:319 SearchProcessGui.cpp:43 SearchProcessGui.cpp:94
+#: LeftGrid.cpp:333 SearchProcessGui.cpp:43 SearchProcessGui.cpp:95
 msgid "Search"
 msgstr "Поиск"
 
-#: LeftGrid.cpp:329
+#: LeftGrid.cpp:343
 msgid "Clear"
 msgstr "Очистить"
 
-#: LeftGrid.cpp:338
+#: LeftGrid.cpp:352
 msgid "Show collection files"
 msgstr "Показать файлы коллекции"
 
-#: MainWindow.cpp:150
+#: MainWindow.cpp:156
 msgid "Collections"
 msgstr "Коллекции"
 
-#: MainWindow.cpp:157
+#: MainWindow.cpp:163
 msgid "Remove collection"
 msgstr "Удалить коллекцию"
 
-#: MainWindow.cpp:161 RefreshCollectionGui.cpp:53
+#: MainWindow.cpp:167 RefreshCollectionGui.cpp:53
 msgid "Refresh collection"
 msgstr "Обновить коллекцию"
 
-#: MainWindow.cpp:165
+#: MainWindow.cpp:171
 msgid "Add books to collection"
 msgstr "Добавить книги в коллекцию"
 
-#: MainWindow.cpp:169
+#: MainWindow.cpp:175
 msgid "Add directories with books"
 msgstr "Добавить папки с книгами"
 
-#: MainWindow.cpp:189
+#: MainWindow.cpp:195
 msgid "Show bookmarks"
 msgstr "Показать закладки"
 
-#: MainWindow.cpp:194
+#: MainWindow.cpp:200 SettingsWindow.cpp:48
+msgid "Settings"
+msgstr "Настройки"
+
+#: MainWindow.cpp:203
+msgid "Color settings"
+msgstr "Настройки цвета"
+
+#: MainWindow.cpp:208
 msgid "About"
 msgstr "О программе"
 
-#: MainWindow.cpp:197
+#: MainWindow.cpp:211
 msgid "About MyLibrary"
 msgstr "О MyLibrary"
 
-#: MainWindow.cpp:446
+#: MainWindow.cpp:463
 msgid "MyLibrary is a home librarian"
 msgstr "MyLibrary - домашний библиотекарь"
 
-#: MainWindow.cpp:447
+#: MainWindow.cpp:464
 msgid "Author Yury Bobylev"
 msgstr "Автор Юрий Бобылев"
 
-#: MainWindow.cpp:449
+#: MainWindow.cpp:466
 msgid "Program uses next libraries:"
 msgstr "В программе используются следующие библиотеки:"
 
@@ -736,19 +787,19 @@ msgstr "В программе используются следующие биб
 msgid "Collection to refresh:"
 msgstr "Коллекция для обновления:"
 
-#: RefreshCollectionGui.cpp:109
+#: RefreshCollectionGui.cpp:112
 msgid "Remove empty files and directories from collection"
 msgstr "Удалить пустые файлы и папки из коллекции"
 
-#: RefreshCollectionGui.cpp:116
+#: RefreshCollectionGui.cpp:120
 msgid "Fast refreshing (without hashing)"
 msgstr "Быстрое обновление (без хеширования)"
 
-#: RefreshCollectionGui.cpp:123
+#: RefreshCollectionGui.cpp:128
 msgid "Remove absent books from bookmarks"
 msgstr "Удалить из закладок отсутствующие книги"
 
-#: RefreshCollectionGui.cpp:143
+#: RefreshCollectionGui.cpp:150
 msgid "Refresh"
 msgstr "Обновить"
 
@@ -756,27 +807,27 @@ msgstr "Обновить"
 msgid "This action will remove book from base and from filesystem."
 msgstr "Данное действие удалит книгу из базы и из файловой системы."
 
-#: RemoveBookGui.cpp:83
+#: RemoveBookGui.cpp:84
 msgid "For removing:"
 msgstr "Для удаления:"
 
-#: RemoveBookGui.cpp:152
+#: RemoveBookGui.cpp:155
 msgid "Warning! Book is packed in rar archive."
 msgstr "Предупреждение! Книга упакована в rar архив."
 
-#: RemoveBookGui.cpp:153
+#: RemoveBookGui.cpp:156
 msgid "Books removing from rar archive is impossible."
 msgstr "Удаление книг из rar архивов невозможно."
 
-#: RemoveBookGui.cpp:154
+#: RemoveBookGui.cpp:157
 msgid "This action will remove whole archive."
 msgstr "Данное действие удалит архив целиком."
 
-#: RemoveBookGui.cpp:238
+#: RemoveBookGui.cpp:243
 msgid "Removing in progress..."
 msgstr "Идёт удаление..."
 
-#: RemoveBookGui.cpp:287
+#: RemoveBookGui.cpp:290
 msgid "Book successfully removed."
 msgstr "Книга успешно удалена."
 
@@ -784,107 +835,83 @@ msgstr "Книга успешно удалена."
 msgid "Collection removing"
 msgstr "Удаление коллекции"
 
-#: RemoveCollectionGui.cpp:77
+#: RemoveCollectionGui.cpp:78
 msgid "Remove"
 msgstr "Удалить"
 
-#: RemoveCollectionGui.cpp:153
+#: RemoveCollectionGui.cpp:154
 msgid "Collection for removing:"
 msgstr "Коллекция для удаления:"
 
-#: RemoveCollectionGui.cpp:163
+#: RemoveCollectionGui.cpp:165
 msgid "Continue?"
 msgstr "Продолжить?"
 
-#: RemoveCollectionGui.cpp:231
+#: RemoveCollectionGui.cpp:234
 msgid "Collection has been removed."
 msgstr "Коллекция удалена."
 
-#: RightGrid.cpp:148 RightGrid.cpp:325
+#: RightGrid.cpp:149 RightGrid.cpp:329
 msgid "Book operations"
 msgstr "Операции с книгами"
 
-#: RightGrid.cpp:164
-msgid "Filtering:"
-msgstr "Фильтр:"
-
-#: RightGrid.cpp:184
+#: RightGrid.cpp:187
 msgid "Column"
 msgstr "Колонка"
 
-#: RightGrid.cpp:187 SearchResultShow.cpp:342
-msgid "Series"
-msgstr "Серия"
-
-#: RightGrid.cpp:188 SearchResultShow.cpp:367
-msgid "Genre"
-msgstr "Жанр"
-
-#: RightGrid.cpp:189 SearchResultShow.cpp:488
-msgid "Date"
-msgstr "Дата"
-
-#: RightGrid.cpp:201
-msgid "Filter"
-msgstr "Фильтровать"
-
-#: RightGrid.cpp:219
-msgid "Clear filter"
-msgstr "Очистить фильтр"
-
-#: RightGrid.cpp:338
+#: RightGrid.cpp:342
 msgid "File operations"
 msgstr "Операции с файлами"
 
-#: RightGrid.cpp:637
+#: RightGrid.cpp:638
 msgid "Create bookmark"
 msgstr "Создать закладку"
 
-#: RightGrid.cpp:651
+#: RightGrid.cpp:652
 msgid "Edit book entry"
 msgstr "Редактировать запись о книге"
 
-#: RightGrid.cpp:655
+#: RightGrid.cpp:656
 msgid "Move to another collection"
 msgstr "Переместить в другую коллекцию"
 
-#: RightGrid.cpp:672
+#: RightGrid.cpp:673
 msgid "Show books"
 msgstr "Показать книги"
 
-#: RightGrid.cpp:814
+#: RightGrid.cpp:815
 msgid "Message"
 msgstr "Сообщение"
 
-#: RightGrid.cpp:833
+#: RightGrid.cpp:835
 msgid "Error! Bookmark has not been saved!"
 msgstr "Ошибка! Закладка не была сохранена!"
 
-#: RightGrid.cpp:838
+#: RightGrid.cpp:840
 msgid "Book is already in bookmarks"
 msgstr "Книга уже в закладках"
 
-#: RightGrid.cpp:843
+#: RightGrid.cpp:845
 msgid "Bookmark successfully saved"
 msgstr "Закладка успешно сохранена"
 
-#: SaveCover.cpp:57
+#: SaveCover.cpp:56
 msgid "Cover saving"
 msgstr "Сохранение обложки"
 
-#: SaveCover.cpp:73
+#: SaveCover.cpp:72
 msgid "Format"
 msgstr "Формат"
 
-#: SaveCover.cpp:123 SaveCover.cpp:152
+#: SaveCover.cpp:123 SaveCover.cpp:151
 msgid "Cover saving path"
 msgstr "Путь"
 
-#: SaveCover.cpp:302
+#: SaveCover.cpp:300
 msgid "Format or gdk-pixbuf error."
 msgstr "Ошибка формата или gdk-pixbuf."
 
-#: SaveCover.cpp:322
+#: SaveCover.cpp:321
 msgid "Cover successfully saved!"
 msgstr "Обложка успешно сохранена!"
 
@@ -892,23 +919,143 @@ msgstr "Обложка успешно сохранена!"
 msgid "Search in progress..."
 msgstr "Идёт поиск..."
 
-#: SearchProcessGui.cpp:70
+#: SearchProcessGui.cpp:71
 msgid "Search interrupting..."
 msgstr "Остановка поиска..."
 
-#: SearchProcessGui.cpp:110
+#: SearchProcessGui.cpp:111
 msgid "Reading base..."
 msgstr "Чтение базы..."
 
-#: SearchProcessGui.cpp:121
+#: SearchProcessGui.cpp:123
 msgid "Reading interrupting..."
 msgstr "Остановка чтения..."
 
-#: SearchResultShow.cpp:544
+#: SearchResultShow.cpp:542
 msgid "File path"
 msgstr "Путь"
 
-#: TransferBookGui.cpp:73
+#: SettingsWindow.cpp:111
+msgid "Apply and close"
+msgstr "Применить и закрыть"
+
+#: SettingsWindow.cpp:163
+msgid "Windows"
+msgstr "Окна"
+
+#: SettingsWindow.cpp:189 SettingsWindow.cpp:459
+msgid "Background color:"
+msgstr "Цвет фона:"
+
+#: SettingsWindow.cpp:222
+msgid "Background image:"
+msgstr "Фоновое изображение:"
+
+#: SettingsWindow.cpp:309
+msgid "Apply buttons"
+msgstr "Кнопки \"применить\""
+
+#: SettingsWindow.cpp:315
+msgid "Cancel buttons"
+msgstr "Кнопки отмены"
+
+#: SettingsWindow.cpp:321
+msgid "Operations buttons"
+msgstr "Кнопки операций"
+
+#: SettingsWindow.cpp:327
+msgid "Remove buttons"
+msgstr "Кнопки удаления"
+
+#: SettingsWindow.cpp:333
+msgid "Combo box buttons"
+msgstr "Кнопки выпадающих списков"
+
+#: SettingsWindow.cpp:339
+msgid "Annotation"
+msgstr "Аннотация"
+
+#: SettingsWindow.cpp:345
+msgid "Entries"
+msgstr "Поля ввода"
+
+#: SettingsWindow.cpp:351
+msgid "Labels"
+msgstr "Надписи"
+
+#: SettingsWindow.cpp:357
+msgid "Main menu"
+msgstr "Главное меню"
+
+#: SettingsWindow.cpp:363
+msgid "Popup menu buttons"
+msgstr "Кнопки выпадающих меню"
+
+#: SettingsWindow.cpp:369
+msgid "Selected label"
+msgstr "Выбранное"
+
+#: SettingsWindow.cpp:375
+msgid "\"Error\" labels"
+msgstr "Надписи ощибок"
+
+#: SettingsWindow.cpp:381
+msgid "\"Warning\" labels"
+msgstr "Надписи предупреждений"
+
+#: SettingsWindow.cpp:387
+msgid "Progress bars"
+msgstr "Индикаторы прогресса"
+
+#: SettingsWindow.cpp:393
+msgid "Table views"
+msgstr "Таблицы"
+
+#: SettingsWindow.cpp:432
+msgid "Font color:"
+msgstr "Цвет шрифта:"
+
+#: SettingsWindow.cpp:487
+msgid "Border color:"
+msgstr "Цвет рамки:"
+
+#: SettingsWindow.cpp:521
+msgid "Font color (hover):"
+msgstr "Цвет шрифта (при наведении указателя):"
+
+#: SettingsWindow.cpp:548
+msgid "Background color (hover):"
+msgstr "Цвет фона (при наведении указателя):"
+
+#: SettingsWindow.cpp:584
+msgid "Font color (active):"
+msgstr "Цвет шрифта (при нажатии):"
+
+#: SettingsWindow.cpp:611
+msgid "Background color (active):"
+msgstr "Цвет фона (при  нажатии):"
+
+#: SettingsWindow.cpp:650
+msgid "Progress bar background color:"
+msgstr "Цвет фона индикатора прогресса:"
+
+#: SettingsWindow.cpp:684
+msgid "Progress bar color:"
+msgstr "Цвет заполнения индикатора прогресса:"
+
+#: SettingsWindow.cpp:721
+msgid "Header font color:"
+msgstr "Цвет шрифта заголовка:"
+
+#: SettingsWindow.cpp:748
+msgid "Header background color:"
+msgstr "Цвет фона заголовка:"
+
+#: SettingsWindow.cpp:1022
+msgid "Image"
+msgstr "Изображение"
+
+#: TransferBookGui.cpp:72
 msgid "Moving"
 msgstr "Перемещение"
 
@@ -928,46 +1075,46 @@ msgstr "Используйте функцию \"Добавить книги\" и
 msgid "Collection book to be moved to"
 msgstr "Коллекция для перемещения книги"
 
-#: TransferBookGui.cpp:134
+#: TransferBookGui.cpp:135
 msgid "Transfer also fbd file if available"
 msgstr "Переместить также fbd файл, если доступен"
 
-#: TransferBookGui.cpp:142
+#: TransferBookGui.cpp:144
 msgid "Pack book in archive"
 msgstr "Упаковать книгу в архив"
 
-#: TransferBookGui.cpp:171
+#: TransferBookGui.cpp:175
 msgid "Add to existing archive"
 msgstr "Добавить к существующему архиву"
 
-#: TransferBookGui.cpp:237
+#: TransferBookGui.cpp:242
 msgid "Choose path"
 msgstr "Выбрать путь"
 
-#: TransferBookGui.cpp:346 TransferBookGui.cpp:482 TransferBookGui.cpp:488
+#: TransferBookGui.cpp:351 TransferBookGui.cpp:487 TransferBookGui.cpp:493
 msgid "Path in collection"
 msgstr "Путь в коллекции"
 
-#: TransferBookGui.cpp:923
+#: TransferBookGui.cpp:929
 msgid "Error! Book has not been found in new location!"
 msgstr "Ошибка! Книга не была найдена в новом месте!"
 
-#: TransferBookGui.cpp:928
+#: TransferBookGui.cpp:934
 msgid "Book has been successfully moved!"
 msgstr "Книга успешно перемещена!"
 
-#: TransferBookGui.cpp:963
+#: TransferBookGui.cpp:969
 msgid "Archive file path:"
 msgstr "Путь к архиву:"
 
-#: TransferBookGui.cpp:1007
+#: TransferBookGui.cpp:1017
 msgid "Move"
 msgstr "Переместить"
 
-#: TransferBookGui.cpp:1301
+#: TransferBookGui.cpp:1307
 msgid "Error! Path in archive cannot be empty!"
 msgstr "Ошибка! Путь в архиве не может быть пустым!"
 
-#: TransferBookGui.cpp:1307
+#: TransferBookGui.cpp:1313
 msgid "Error! File with such name is already in archive!"
 msgstr "Ошибка! Файл с таким именем уже есть в архиве!"

@@ -1407,7 +1407,7 @@ LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
       std::filesystem::path p = dirit.path();
       std::filesystem::path p_in_a = append_to;
       p_in_a /= p.lexically_proximate(chp);
-      result.push_back(std::make_tuple(p, p_in_a));
+      result.emplace_back(std::make_tuple(p, p_in_a));
     }
 
   std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> add;
@@ -1425,7 +1425,7 @@ LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
               {
                 std::filesystem::path p_in_a = std::get<1>(*it);
                 p_in_a /= p.lexically_proximate(std::get<0>(*it));
-                add.push_back(std::make_tuple(p, p_in_a));
+                add.emplace_back(std::make_tuple(p, p_in_a));
                 break;
               }
             case std::filesystem::file_type::directory:
@@ -1799,7 +1799,7 @@ LibArchive::libarchive_packing(const std::shared_ptr<archive> &a,
                     std::get<1>(ttup) = std::filesystem::u8path(path);
                   }
               }
-            writev.push_back(ttup);
+            writev.emplace_back(ttup);
             for(auto &dirit :
                 std::filesystem::recursive_directory_iterator(sourcepath))
               {
@@ -1830,7 +1830,7 @@ LibArchive::libarchive_packing(const std::shared_ptr<archive> &a,
                                   = std::filesystem::u8path(path);
                             }
                         }
-                      writev.push_back(ttup);
+                      writev.emplace_back(ttup);
                       break;
                     }
                   default:
@@ -1857,7 +1857,7 @@ LibArchive::libarchive_packing(const std::shared_ptr<archive> &a,
                     std::get<1>(ttup) = std::filesystem::u8path(path);
                   }
               }
-            writev.push_back(ttup);
+            writev.emplace_back(ttup);
             break;
           }
         default:

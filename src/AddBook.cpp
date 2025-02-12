@@ -120,12 +120,11 @@ AddBook::archive_filenames(const std::filesystem::path &archive_path)
 
   la.fileNamesStream(archive_path, filenames);
 
-  std::string filename;
   std::string::size_type n;
   std::string sstr = "\\";
   for(auto it = filenames.begin(); it != filenames.end(); it++)
     {
-      filename = it->filename;
+      std::string filename = it->filename;
       if(filename.size() > 0)
         {
           n = 0;
@@ -143,7 +142,7 @@ AddBook::archive_filenames(const std::filesystem::path &archive_path)
                 }
             }
         }
-      result.push_back(filename);
+      result.emplace_back(filename);
     }
 
   return result;

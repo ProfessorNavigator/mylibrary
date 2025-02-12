@@ -345,6 +345,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_use_markup(true);
   lab->set_markup(Glib::ustring("<b>") + gettext("Book")
                   + Glib::ustring("</b>"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 2, 1);
   row_num++;
 
@@ -353,6 +354,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_halign(Gtk::Align::START);
   lab->set_expand(true);
   lab->set_text(gettext("Book name:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 1, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
@@ -361,6 +363,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_expand(true);
   lab->set_selectable(true);
   lab->set_text(bbe.bpe.book_name);
+  lab->set_name("windowLabel");
   grid->attach(*lab, 1, row_num, 1, 1);
   row_num++;
 
@@ -372,6 +375,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_valign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_text(gettext("Author(s):"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_num, 1, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -383,6 +387,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_wrap(true);
       lab->set_wrap_mode(Pango::WrapMode::WORD);
       lab->set_text(bbe.bpe.book_author);
+      lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
       row_num++;
     }
@@ -395,6 +400,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_valign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_text(gettext("Genre(s):"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_num, 1, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -403,6 +409,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_expand(true);
       lab->set_selectable(true);
       lab->set_text(translate_genre(bbe.bpe.book_genre));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
       row_num++;
     }
@@ -415,6 +422,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_valign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_text(gettext("Series:"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_num, 1, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -423,6 +431,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_expand(true);
       lab->set_selectable(true);
       lab->set_text(bbe.bpe.book_series);
+      lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
       row_num++;
     }
@@ -436,6 +445,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_halign(Gtk::Align::START);
           lab->set_expand(true);
           lab->set_text(gettext("Language:"));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 0, row_num, 1, 1);
 
           lab = Gtk::make_managed<Gtk::Label>();
@@ -444,6 +454,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_expand(true);
           lab->set_selectable(true);
           lab->set_text(Glib::ustring(bie->language));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 1, row_num, 1, 1);
           row_num++;
         }
@@ -455,6 +466,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_halign(Gtk::Align::START);
           lab->set_expand(true);
           lab->set_text(gettext("Source language:"));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 0, row_num, 1, 1);
 
           lab = Gtk::make_managed<Gtk::Label>();
@@ -463,6 +475,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_expand(true);
           lab->set_selectable(true);
           lab->set_text(Glib::ustring(bie->src_language));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 1, row_num, 1, 1);
           row_num++;
         }
@@ -475,6 +488,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_valign(Gtk::Align::START);
           lab->set_expand(true);
           lab->set_text(gettext("Translator(s):"));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 0, row_num, 1, 1);
 
           lab = Gtk::make_managed<Gtk::Label>();
@@ -483,6 +497,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_expand(true);
           lab->set_selectable(true);
           lab->set_text(Glib::ustring(bie->translator));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 1, row_num, 1, 1);
           row_num++;
         }
@@ -530,6 +545,7 @@ BookInfoGui::formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_use_markup(true);
   lab->set_markup(Glib::ustring("<b>") + gettext("File")
                   + Glib::ustring("</b>"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 2, 1);
   row_num++;
 
@@ -539,6 +555,7 @@ BookInfoGui::formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_valign(Gtk::Align::START);
   lab->set_expand(true);
   lab->set_text(gettext("File path:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, row_num, 1, 1);
 
   lab = Gtk::make_managed<Gtk::Label>();
@@ -549,6 +566,7 @@ BookInfoGui::formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
   lab->set_wrap_mode(Pango::WrapMode::WORD);
   lab->set_max_width_chars(50);
   lab->set_selectable(true);
+  lab->set_name("windowLabel");
   if(std::filesystem::exists(bbe.file_path))
     {
       lab->set_text(bbe.file_path.u8string());
@@ -595,6 +613,7 @@ BookInfoGui::formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_valign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_text(gettext("Path in archive:"));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 0, row_num, 1, 1);
 
       lab = Gtk::make_managed<Gtk::Label>();
@@ -606,6 +625,7 @@ BookInfoGui::formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_max_width_chars(50);
       lab->set_selectable(true);
       lab->set_text(Glib::ustring(bpth));
+      lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
     }
   row_num++;
@@ -626,6 +646,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
           lab->set_use_markup(true);
           lab->set_markup(Glib::ustring("<b>") + gettext("Paper book info")
                           + Glib::ustring("</b>"));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 0, row_num, 2, 1);
           row_num++;
 
@@ -636,6 +657,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Book name:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -644,6 +666,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->book_name));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -655,6 +678,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Publisher:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -663,6 +687,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->publisher));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -674,6 +699,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("City:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -682,6 +708,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->city));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -693,6 +720,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Year:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -701,6 +729,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->year));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -712,6 +741,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text("ISBN:");
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -720,6 +750,7 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->isbn));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -742,6 +773,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
           lab->set_use_markup(true);
           lab->set_markup(Glib::ustring("<b>") + gettext("E-Book info")
                           + Glib::ustring("</b>"));
+          lab->set_name("windowLabel");
           grid->attach(*lab, 0, row_num, 2, 1);
           row_num++;
 
@@ -753,6 +785,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_valign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Author(s):"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -764,6 +797,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_wrap(true);
               lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_text(Glib::ustring(bie->electro->author));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -775,6 +809,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Software:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -783,6 +818,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->electro->program_used));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -794,6 +830,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Date:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -802,6 +839,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->electro->date));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -813,6 +851,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Source:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               std::string::size_type n = bie->electro->src_url.find("http://");
@@ -853,6 +892,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
                   lab->set_expand(true);
                   lab->set_selectable(true);
                   lab->set_text(Glib::ustring(bie->electro->src_url));
+                  lab->set_name("windowLabel");
                   grid->attach(*lab, 1, row_num, 1, 1);
                   row_num++;
                 }
@@ -866,6 +906,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_valign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Author of original doc:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -877,6 +918,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_wrap_mode(Pango::WrapMode::WORD_CHAR);
               lab->set_max_width_chars(50);
               lab->set_text(Glib::ustring(bie->electro->src_ocr));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -888,6 +930,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("ID:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -896,6 +939,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->electro->id));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -907,6 +951,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Version:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -915,6 +960,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->electro->version));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -927,6 +973,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_valign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("History:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               std::string hist = bie->electro->history;
@@ -943,7 +990,9 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_wrap(true);
               lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_max_width_chars(50);
-              lab->set_text(Glib::ustring(hist));
+              lab->set_use_markup(true);
+              lab->set_markup(Glib::ustring(hist));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }
@@ -955,6 +1004,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_text(gettext("Publisher:"));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 0, row_num, 1, 1);
 
               lab = Gtk::make_managed<Gtk::Label>();
@@ -966,6 +1016,7 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_max_width_chars(50);
               lab->set_text(Glib::ustring(bie->electro->publisher));
+              lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
             }

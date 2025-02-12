@@ -107,7 +107,7 @@ CreateCollection::createCollection()
             }
           if(af->if_supported_type(check_type))
             {
-              need_to_parse.push_back(p);
+              need_to_parse.emplace_back(p);
             }
         }
     }
@@ -462,7 +462,7 @@ CreateCollection::fb2_thread(const std::filesystem::path &file_col_path,
         {
           fe.file_hash = buf_hashing(book);
         }
-      fe.books.push_back(be);
+      fe.books.emplace_back(be);
       write_file_to_base(fe);
     }
 }
@@ -583,7 +583,7 @@ CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
         {
           be.book_name = filepath.stem().u8string();
         }
-      fe.books.push_back(be);
+      fe.books.emplace_back(be);
 
       write_file_to_base(fe);
     }
@@ -643,7 +643,7 @@ CreateCollection::pdf_thread(const std::filesystem::path &file_col_path,
           fe.file_hash = buf_hashing(book);
         }
 
-      fe.books.push_back(be);
+      fe.books.emplace_back(be);
       write_file_to_base(fe);
     }
 }
@@ -743,44 +743,12 @@ CreateCollection::write_file_to_base(const FileParseEntry &fe)
       std::memcpy(&file_entry[sz], &val64, sizeof(val64));
 
       // Book entries
-      for(int i = 1; i <= 6; i++)
-        {
-          switch(i)
-            {
-            case 1:
-              {
-                book_entry_to_file_entry(file_entry, be.book_path);
-                break;
-              }
-            case 2:
-              {
-                book_entry_to_file_entry(file_entry, be.book_author);
-                break;
-              }
-            case 3:
-              {
-                book_entry_to_file_entry(file_entry, be.book_name);
-                break;
-              }
-            case 4:
-              {
-                book_entry_to_file_entry(file_entry, be.book_series);
-                break;
-              }
-            case 5:
-              {
-                book_entry_to_file_entry(file_entry, be.book_genre);
-                break;
-              }
-            case 6:
-              {
-                book_entry_to_file_entry(file_entry, be.book_date);
-                break;
-              }
-            default:
-              break;
-            }
-        }
+      book_entry_to_file_entry(file_entry, be.book_path);
+      book_entry_to_file_entry(file_entry, be.book_author);
+      book_entry_to_file_entry(file_entry, be.book_name);
+      book_entry_to_file_entry(file_entry, be.book_series);
+      book_entry_to_file_entry(file_entry, be.book_genre);
+      book_entry_to_file_entry(file_entry, be.book_date);
     }
   val64 = static_cast<uint64_t>(file_entry.size());
   bo = val64;
@@ -826,7 +794,7 @@ CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
     }
   if(!cancel->load())
     {
-      fe.books.push_back(be);
+      fe.books.emplace_back(be);
       write_file_to_base(fe);
     }
 }

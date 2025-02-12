@@ -66,6 +66,7 @@ RefreshCollectionGui::createWindow()
   lab->set_halign(Gtk::Align::START);
   lab->set_expand(true);
   lab->set_text(gettext("Collection to refresh:"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   Glib::RefPtr<Gtk::StringList> col_list = createCollectionsList();
@@ -90,6 +91,7 @@ RefreshCollectionGui::createWindow()
   strm << std::thread::hardware_concurrency();
   lab->set_text(gettext("Thread number (recommended max value: ")
                 + Glib::ustring(strm.str()) + ")");
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 2, 1, 1);
 
   num_threads = Gtk::make_managed<Gtk::Entry>();
@@ -99,6 +101,7 @@ RefreshCollectionGui::createWindow()
   num_threads->set_max_width_chars(2);
   num_threads->set_alignment(Gtk::Align::CENTER);
   num_threads->set_text("1");
+  num_threads->set_name("windowEntry");
   grid->attach(*num_threads, 1, 2, 1, 1);
 
   clean_empty = Gtk::make_managed<Gtk::CheckButton>();
@@ -107,6 +110,7 @@ RefreshCollectionGui::createWindow()
   clean_empty->set_active(false);
   clean_empty->set_label(
       gettext("Remove empty files and directories from collection"));
+  clean_empty->set_name("windowLabel");
   grid->attach(*clean_empty, 0, 3, 2, 1);
 
   fast_refreshing = Gtk::make_managed<Gtk::CheckButton>();
@@ -114,6 +118,7 @@ RefreshCollectionGui::createWindow()
   fast_refreshing->set_halign(Gtk::Align::START);
   fast_refreshing->set_active(false);
   fast_refreshing->set_label(gettext("Fast refreshing (without hashing)"));
+  fast_refreshing->set_name("windowLabel");
   grid->attach(*fast_refreshing, 0, 4, 2, 1);
 
   refresh_bookmarks = Gtk::make_managed<Gtk::CheckButton>();
@@ -121,6 +126,7 @@ RefreshCollectionGui::createWindow()
   refresh_bookmarks->set_halign(Gtk::Align::START);
   refresh_bookmarks->set_active(false);
   refresh_bookmarks->set_label(gettext("Remove absent books from bookmarks"));
+  refresh_bookmarks->set_name("windowLabel");
   grid->attach(*refresh_bookmarks, 0, 5, 2, 1);
 
   disable_rar = Gtk::make_managed<Gtk::CheckButton>();
@@ -128,6 +134,7 @@ RefreshCollectionGui::createWindow()
   disable_rar->set_halign(Gtk::Align::START);
   disable_rar->set_active(false);
   disable_rar->set_label(gettext("Disable rar archives support"));
+  disable_rar->set_name("windowLabel");
   grid->attach(*disable_rar, 0, 6, 2, 1);
 
   Gtk::Grid *action_group_grid = Gtk::make_managed<Gtk::Grid>();
@@ -210,6 +217,7 @@ RefreshCollectionGui::confirmationDialog(Gtk::Window *win)
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Are you sure?"));
+  lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
   Gtk::Button *yes = Gtk::make_managed<Gtk::Button>();

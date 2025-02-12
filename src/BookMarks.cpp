@@ -19,13 +19,13 @@
 #include <BookParseEntry.h>
 #include <ByteOrder.h>
 #include <MLException.h>
-#include <stddef.h>
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <stddef.h>
 #include <string>
 #include <thread>
 
@@ -33,16 +33,16 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
   bookmp = af->homePath();
-  bookmp /= std::filesystem::u8path(
-      ".local/share/MyLibrary/BookMarks/bookmarks");
+  bookmp
+      /= std::filesystem::u8path(".local/share/MyLibrary/BookMarks/bookmarks");
   std::thread thr([this] {
     try
       {
-	loadBookMarks();
+        loadBookMarks();
       }
     catch(MLException &e)
       {
-	std::cout << e.what() << std::endl;
+        std::cout << e.what() << std::endl;
       };
   });
   thr.detach();
@@ -73,122 +73,219 @@ BookMarks::loadBookMarks()
       ByteOrder bo;
       const size_t val64_sz = sizeof(val64);
       while(bytesr < fsz)
-	{
-	  if(val64_sz > fsz - bytesr)
-	    {
-	      f.close();
-	      throw MLException(
-		  "BookMarks::loadBookMarks: wrong entry");
-	    }
-	  else
-	    {
-	      f.read(reinterpret_cast<char*>(&val64), val64_sz);
-	      bytesr += val64_sz;
-	      bo.set_little(val64);
-	      val64 = bo;
-	    }
+        {
+          if(val64_sz > fsz - bytesr)
+            {
+              f.close();
+              throw MLException("BookMarks::loadBookMarks: wrong entry");
+            }
+          else
+            {
+              f.read(reinterpret_cast<char *>(&val64), val64_sz);
+              bytesr += val64_sz;
+              bo.set_little(val64);
+              val64 = bo;
+            }
 
-	  if(static_cast<size_t>(val64) > fsz - bytesr)
-	    {
-	      f.close();
-	      throw MLException(
-		  "BookMarks::loadBookMarks: wrong entry size");
-	    }
-	  else
-	    {
-	      buf.clear();
-	      buf.resize(static_cast<std::string::size_type>(val64));
-	      f.read(buf.data(), buf.size());
-	      bytesr += buf.size();
-	    }
-	  try
-	    {
-	      BookBaseEntry bbe = parse_entry(buf);
-	      bookmarks.emplace_back(bbe);
-	    }
-	  catch(MLException &e)
-	    {
-	      bookmarks.clear();
-	      std::cout << e.what() << std::endl;
-	      break;
-	    }
-	}
+          if(static_cast<size_t>(val64) > fsz - bytesr)
+            {
+              f.close();
+              throw MLException("BookMarks::loadBookMarks: wrong entry size");
+            }
+          else
+            {
+              buf.clear();
+              buf.resize(static_cast<std::string::size_type>(val64));
+              f.read(buf.data(), buf.size());
+              bytesr += buf.size();
+            }
+          try
+            {
+              std::tuple<std::string, BookBaseEntry> bm_tup = parse_entry(buf);
+              bookmarks.emplace_back(bm_tup);
+            }
+          catch(MLException &e)
+            {
+              bookmarks.clear();
+              std::cout << e.what() << std::endl;
+              break;
+            }
+        }
       f.close();
     }
 }
 
-BookBaseEntry
-BookMarks::parse_entry(std::string &buf)
+std::tuple<std::string, BookBaseEntry>
+BookMarks::parse_entry(const std::string &buf)
 {
-  BookBaseEntry result;
+  std::tuple<std::string, BookBaseEntry> result;
 
   uint16_t val16;
   ByteOrder bo;
   const size_t val16_sz = sizeof(val16);
   std::string readval;
+  size_t r_b = 0;
+  for(int i = 1; i <= 8; i++)
+    {
+      if(buf.size() < r_b + val16_sz)
+        {
+          if(i == 8)
+            {
+              std::get<0>(result).clear();
+              result = parse_entry_legacy(buf);
+              break;
+            }
+          else
+            {
+              throw MLException(
+                  "BookMarks::parse_entry: incorrect entry size");
+            }
+        }
+      else
+        {
+          std::memcpy(&val16, &buf[r_b], val16_sz);
+          r_b += val16_sz;
+          bo.set_little(val16);
+          val16 = bo;
+        }
+      if(buf.size() < r_b + static_cast<size_t>(val16))
+        {
+          throw MLException("BookMarks::parse_entry: wrong size(2)");
+        }
+      else
+        {
+          readval.clear();
+          readval
+              = std::string(buf.begin() + r_b,
+                            buf.begin() + r_b + static_cast<size_t>(val16));
+          r_b += static_cast<size_t>(val16);
+        }
+      switch(i)
+        {
+        case 1:
+          {
+            std::get<0>(result) = readval;
+            break;
+          }
+        case 2:
+          {
+            std::get<1>(result).file_path = std::filesystem::u8path(readval);
+            break;
+          }
+        case 3:
+          {
+            std::get<1>(result).bpe.book_path = readval;
+            break;
+          }
+        case 4:
+          {
+            std::get<1>(result).bpe.book_author = readval;
+            break;
+          }
+        case 5:
+          {
+            std::get<1>(result).bpe.book_name = readval;
+            break;
+          }
+        case 6:
+          {
+            std::get<1>(result).bpe.book_series = readval;
+            break;
+          }
+        case 7:
+          {
+            std::get<1>(result).bpe.book_genre = readval;
+            break;
+          }
+        case 8:
+          {
+            std::get<1>(result).bpe.book_date = readval;
+            break;
+          }
+        default:
+          break;
+        }
+    }
+
+  return result;
+}
+
+// TODO remove legacy code in next releases
+std::tuple<std::string, BookBaseEntry>
+BookMarks::parse_entry_legacy(const std::string &buf)
+{
+  std::tuple<std::string, BookBaseEntry> result;
+
+  uint16_t val16;
+  ByteOrder bo;
+  const size_t val16_sz = sizeof(val16);
+  std::string readval;
+  size_t r_b = 0;
   for(int i = 1; i <= 7; i++)
     {
       if(buf.size() < val16_sz)
-	{
-	  throw MLException("BookMarks::parse_entry: wrong size");
-	}
+        {
+          throw MLException("BookMarks::parse_entry_legacy: wrong size");
+        }
       else
-	{
-	  std::memcpy(&val16, &buf[0], val16_sz);
-	  buf.erase(0, val16_sz);
-	  bo.set_little(val16);
-	  val16 = bo;
-	}
+        {
+          std::memcpy(&val16, &buf[r_b], val16_sz);
+          r_b += val16_sz;
+          bo.set_little(val16);
+          val16 = bo;
+        }
       if(buf.size() < static_cast<size_t>(val16))
-	{
-	  throw MLException("BookMarks::parse_entry: wrong size(2)");
-	}
+        {
+          throw MLException("BookMarks::parse_entry_legacy: wrong size(2)");
+        }
       else
-	{
-	  readval.clear();
-	  readval = std::string(buf.begin(), buf.begin() + val16);
-	  buf.erase(buf.begin(), buf.begin() + val16);
-	}
+        {
+          readval.clear();
+          readval
+              = std::string(buf.begin() + r_b,
+                            buf.begin() + r_b + static_cast<size_t>(val16));
+          r_b += static_cast<size_t>(val16);
+        }
       switch(i)
-	{
-	case 1:
-	  {
-	    result.file_path = std::filesystem::u8path(readval);
-	    break;
-	  }
-	case 2:
-	  {
-	    result.bpe.book_path = readval;
-	    break;
-	  }
-	case 3:
-	  {
-	    result.bpe.book_author = readval;
-	    break;
-	  }
-	case 4:
-	  {
-	    result.bpe.book_name = readval;
-	    break;
-	  }
-	case 5:
-	  {
-	    result.bpe.book_series = readval;
-	    break;
-	  }
-	case 6:
-	  {
-	    result.bpe.book_genre = readval;
-	    break;
-	  }
-	case 7:
-	  {
-	    result.bpe.book_date = readval;
-	    break;
-	  }
-	default:
-	  break;
-	}
+        {
+        case 1:
+          {
+            std::get<1>(result).file_path = std::filesystem::u8path(readval);
+            break;
+          }
+        case 2:
+          {
+            std::get<1>(result).bpe.book_path = readval;
+            break;
+          }
+        case 3:
+          {
+            std::get<1>(result).bpe.book_author = readval;
+            break;
+          }
+        case 4:
+          {
+            std::get<1>(result).bpe.book_name = readval;
+            break;
+          }
+        case 5:
+          {
+            std::get<1>(result).bpe.book_series = readval;
+            break;
+          }
+        case 6:
+          {
+            std::get<1>(result).bpe.book_genre = readval;
+            break;
+          }
+        case 7:
+          {
+            std::get<1>(result).bpe.book_date = readval;
+            break;
+          }
+        default:
+          break;
+        }
     }
 
   return result;
@@ -206,25 +303,24 @@ BookMarks::saveBookMarks()
       std::fstream f;
       f.open(bookmp, std::ios_base::out | std::ios_base::binary);
       if(f.is_open())
-	{
-	  result = true;
-	  uint64_t val64;
-	  const size_t val64_sz = sizeof(val64);
-	  std::string entry;
-	  ByteOrder bo;
+        {
+          result = true;
+          uint64_t val64;
+          const size_t val64_sz = sizeof(val64);
+          std::string entry;
+          ByteOrder bo;
 
-	  for(auto it = bookmarks.begin(); it != bookmarks.end();
-	      it++)
-	    {
-	      entry = form_entry(*it);
-	      val64 = static_cast<uint64_t>(entry.size());
-	      bo = val64;
-	      bo.get_little(val64);
-	      f.write(reinterpret_cast<char*>(&val64), val64_sz);
-	      f.write(entry.c_str(), entry.size());
-	    }
-	  f.close();
-	}
+          for(auto it = bookmarks.begin(); it != bookmarks.end(); it++)
+            {
+              entry = form_entry(std::get<0>(*it), std::get<1>(*it));
+              val64 = static_cast<uint64_t>(entry.size());
+              bo = val64;
+              bo.get_little(val64);
+              f.write(reinterpret_cast<char *>(&val64), val64_sz);
+              f.write(entry.c_str(), entry.size());
+            }
+          f.close();
+        }
     }
   else
     {
@@ -236,17 +332,32 @@ BookMarks::saveBookMarks()
 }
 
 int
-BookMarks::createBookMark(const BookBaseEntry &bbe)
+BookMarks::createBookMark(const std::string &col_name,
+                          const BookBaseEntry &bbe)
 {
   int result = 0;
 
   bool save = false;
 
+  std::tuple<std::string, BookBaseEntry> bm_tup
+      = std::make_tuple(col_name, bbe);
   bookmarksmtx.lock();
-  auto itbm = std::find(bookmarks.begin(), bookmarks.end(), bbe);
+  auto itbm
+      = std::find_if(bookmarks.begin(), bookmarks.end(),
+                     [bm_tup](std::tuple<std::string, BookBaseEntry> &el) {
+                       if(std::get<0>(el) == std::get<0>(bm_tup)
+                          && std::get<1>(el) == std::get<1>(bm_tup))
+                         {
+                           return true;
+                         }
+                       else
+                         {
+                           return false;
+                         }
+                     });
   if(itbm == bookmarks.end())
     {
-      bookmarks.push_back(bbe);
+      bookmarks.emplace_back(bm_tup);
       save = true;
     }
   bookmarksmtx.unlock();
@@ -254,22 +365,22 @@ BookMarks::createBookMark(const BookBaseEntry &bbe)
   if(save)
     {
       if(saveBookMarks())
-	{
-	  result = 1;
-	}
+        {
+          result = 1;
+        }
       else
-	{
-	  result = -1;
-	}
+        {
+          result = -1;
+        }
     }
 
   return result;
 }
 
-std::vector<BookBaseEntry>
+std::vector<std::tuple<std::string, BookBaseEntry>>
 BookMarks::getBookMarks()
 {
-  std::vector<BookBaseEntry> result;
+  std::vector<std::tuple<std::string, BookBaseEntry>> result;
 
   bookmarksmtx.lock();
   result = bookmarks;
@@ -279,12 +390,28 @@ BookMarks::getBookMarks()
 }
 
 void
-BookMarks::removeBookMark(const BookBaseEntry &bbe)
+BookMarks::removeBookMark(const std::string &col_name,
+                          const BookBaseEntry &bbe)
 {
   bool save = false;
 
+  std::tuple<std::string, BookBaseEntry> bm_tup
+      = std::make_tuple(col_name, bbe);
+
   bookmarksmtx.lock();
-  auto itbm = std::find(bookmarks.begin(), bookmarks.end(), bbe);
+  auto itbm
+      = std::find_if(bookmarks.begin(), bookmarks.end(),
+                     [bm_tup](std::tuple<std::string, BookBaseEntry> &el) {
+                       if(std::get<0>(el) == std::get<0>(bm_tup)
+                          && std::get<1>(el) == std::get<1>(bm_tup))
+                         {
+                           return true;
+                         }
+                       else
+                         {
+                           return false;
+                         }
+                     });
   if(itbm != bookmarks.end())
     {
       bookmarks.erase(itbm);
@@ -299,7 +426,7 @@ BookMarks::removeBookMark(const BookBaseEntry &bbe)
 }
 
 std::string
-BookMarks::form_entry(const BookBaseEntry &bbe)
+BookMarks::form_entry(const std::string &col_name, const BookBaseEntry &bbe)
 {
   std::string result;
   uint16_t val16;
@@ -307,48 +434,53 @@ BookMarks::form_entry(const BookBaseEntry &bbe)
   size_t sz;
   std::string val;
   const size_t val16_sz = sizeof(val16);
-  for(int i = 1; i <= 7; i++)
+  for(int i = 1; i <= 8; i++)
     {
       switch(i)
-	{
-	case 1:
-	  {
-	    val = bbe.file_path.u8string();
-	    break;
-	  }
-	case 2:
-	  {
-	    val = bbe.bpe.book_path;
-	    break;
-	  }
-	case 3:
-	  {
-	    val = bbe.bpe.book_author;
-	    break;
-	  }
-	case 4:
-	  {
-	    val = bbe.bpe.book_name;
-	    break;
-	  }
-	case 5:
-	  {
-	    val = bbe.bpe.book_series;
-	    break;
-	  }
-	case 6:
-	  {
-	    val = bbe.bpe.book_genre;
-	    break;
-	  }
-	case 7:
-	  {
-	    val = bbe.bpe.book_date;
-	    break;
-	  }
-	default:
-	  break;
-	}
+        {
+        case 1:
+          {
+            val = col_name;
+            break;
+          }
+        case 2:
+          {
+            val = bbe.file_path.u8string();
+            break;
+          }
+        case 3:
+          {
+            val = bbe.bpe.book_path;
+            break;
+          }
+        case 4:
+          {
+            val = bbe.bpe.book_author;
+            break;
+          }
+        case 5:
+          {
+            val = bbe.bpe.book_name;
+            break;
+          }
+        case 6:
+          {
+            val = bbe.bpe.book_series;
+            break;
+          }
+        case 7:
+          {
+            val = bbe.bpe.book_genre;
+            break;
+          }
+        case 8:
+          {
+            val = bbe.bpe.book_date;
+            break;
+          }
+        default:
+          break;
+        }
 
       val16 = static_cast<uint16_t>(val.size());
       bo = val16;

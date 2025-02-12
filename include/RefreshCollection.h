@@ -105,6 +105,8 @@ private:
   std::mutex need_to_parsemtx;
   std::mutex basemtx;
 
+  std::string collection_name;
+
 #ifndef USE_OPENMP
   std::mutex newthrmtx;
   std::condition_variable continue_hashing;
