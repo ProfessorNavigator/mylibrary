@@ -27,6 +27,7 @@
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <iostream>
+#include <libintl.h>
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/colordialogbutton.h>
 #include <gtkmm-4.0/gtkmm/error.h>
@@ -251,7 +252,12 @@ SettingsWindow::windowsSection()
           image_path->set_name("windowEntry");
 
           Glib::ustring val = it_set->value;
+#ifdef __linux
           Glib::ustring find_str("file://");
+#endif
+#ifdef _WIN32
+          Glib::ustring find_str("file:///");
+#endif
           Glib::ustring::size_type n = val.find(find_str);
           if(n != Glib::ustring::npos)
             {
@@ -287,6 +293,28 @@ SettingsWindow::windowsSection()
                   val.insert(n, rp);
                 }
             }
+#ifdef _WIN32
+          find_str = ":";
+          n = val.find(find_str);
+          if(n != Glib::ustring::npos)
+            {
+              rp = val.substr(0, n);
+              val.erase(0, n);
+              val = rp.uppercase() + val;
+            }
+          n = 0;
+          find_str = "/";
+          rp = "\\";
+          while(n != Glib::ustring::npos)
+            {
+              n = val.find(find_str);
+              if(n != Glib::ustring::npos)
+                {
+                  val.erase(n, find_str.size());
+                  val.insert(n, rp);
+                }
+            }
+#endif
           image_path->set_text(val);
 
           Glib::PropertyProxy<Glib::ustring> prop
@@ -313,8 +341,35 @@ SettingsWindow::windowsSection()
                         p.insert(n, rp);
                       }
                   }
+#ifdef __linux
                 it_set->value = "url(file://" + std::string(p) + ")";
                 it_set2->value = "url(file://" + std::string(p) + ")";
+#endif
+#ifdef _WIN32
+                n = 0;
+                find_str = "\\";
+                rp = "/";
+                while(n != Glib::ustring::npos)
+                  {
+                    n = p.find(find_str);
+                    if(n != Glib::ustring::npos)
+                      {
+                        p.erase(n, find_str.size());
+                        p.insert(n, rp);
+                      }
+                  }
+                find_str = ":";
+
+                n = p.find(":");
+                if(n != Glib::ustring::npos)
+                  {
+                    Glib::ustring lower = p.substr(0, n);
+                    p.erase(0, n);
+                    p = lower.lowercase() + p;
+                  }
+                it_set->value = "url(file:///" + std::string(p) + ")";
+                it_set2->value = "url(file:///" + std::string(p) + ")";
+#endif
               }
           });
           grid->attach(*image_path, 1, row, 1, 1);
@@ -1212,7 +1267,8 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
   fd->set_title(gettext("Image"));
   fd->set_modal(true);
 
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(af->homePath());
+  Glib::RefPtr<Gio::File> fl
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_initial_folder(fl);
 
   std::vector<Gdk::PixbufFormat> format = Gdk::Pixbuf::get_formats();
@@ -1276,6 +1332,7 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
 #endif
 }
 
+#ifdef ML_GTK_OLD
 void
 SettingsWindow::fileDialogSlot(int respons_id, Gtk::FileChooserDialog *fd,
                                Gtk::Entry *ent)
@@ -1290,6 +1347,7 @@ SettingsWindow::fileDialogSlot(int respons_id, Gtk::FileChooserDialog *fd,
     }
   fd->close();
 }
+#endif
 
 #ifndef ML_GTK_OLD
 void
