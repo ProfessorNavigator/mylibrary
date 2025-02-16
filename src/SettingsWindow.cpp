@@ -85,7 +85,6 @@ SettingsWindow::createWindow()
   f_box->insert(*formSection(widget_type::label), -1);
   f_box->insert(*formSection(widget_type::entry), -1);
   f_box->insert(*formSection(widget_type::column_view), -1);
-  f_box->insert(*formSection(widget_type::selected_label), -1);
   f_box->insert(*formSection(widget_type::text_field), -1);
   f_box->insert(*formSection(widget_type::apply_button), -1);
   f_box->insert(*formSection(widget_type::cancel_button), -1);
@@ -460,12 +459,6 @@ SettingsWindow::formSection(const widget_type &wt)
       {
         search_str = "menBut button.toggle";
         sec_name = gettext("Popup menu buttons");
-        break;
-      }
-    case widget_type::selected_label:
-      {
-        search_str = "selectedLab";
-        sec_name = gettext("Selected label");
         break;
       }
     case widget_type::error_label:
@@ -976,6 +969,95 @@ SettingsWindow::formSection(const widget_type &wt)
                 lab->set_margin(5);
                 lab->set_halign(Gtk::Align::START);
                 lab->set_text(gettext("Header background color:"));
+                lab->set_name("windowLabel");
+                grid->attach(*lab, 0, row, 1, 1);
+
+#ifndef ML_GTK_OLD
+                Gtk::ColorDialogButton *color
+                    = Gtk::make_managed<Gtk::ColorDialogButton>(color_dialog);
+                color->set_rgba(Gdk::RGBA(Glib::ustring(it_set->value)));
+                color->set_margin(5);
+                color->set_halign(Gtk::Align::START);
+                Glib::PropertyProxy<Gdk::RGBA> prop = color->property_rgba();
+                prop.signal_changed().connect([prop, it_set] {
+                  Gdk::RGBA rgba = prop.get_value();
+                  it_set->value = std::string(rgba.to_string());
+                });
+#endif
+#ifdef ML_GTK_OLD
+                Gtk::ColorButton *color
+                    = Gtk::make_managed<Gtk::ColorButton>();
+                color->set_margin(5);
+                color->set_halign(Gtk::Align::START);
+                color->set_use_alpha(true);
+                color->set_rgba(Gdk::RGBA(Glib::ustring(it_set->value)));
+                color->signal_color_set().connect([color, it_set] {
+                  Gdk::RGBA rgba = color->get_rgba();
+                  it_set->value = std::string(rgba.to_string());
+                });
+#endif
+                grid->attach(*color, 1, row, 1, 1);
+                row++;
+              }
+          }
+
+        it = std::find_if(settings_v.begin(), settings_v.end(),
+                          [](section &el) {
+                            return el.section_id == "selectedLab";
+                          });
+        if(it != settings_v.end())
+          {
+            auto it_set = std::find_if(it->settings.begin(),
+                                       it->settings.end(), [](setting &el) {
+                                         return el.attribute_id == "color";
+                                       });
+            if(it_set != it->settings.end())
+              {
+                lab = Gtk::make_managed<Gtk::Label>();
+                lab->set_margin(5);
+                lab->set_halign(Gtk::Align::START);
+                lab->set_text(gettext("Selected line font color:"));
+                lab->set_name("windowLabel");
+                grid->attach(*lab, 0, row, 1, 1);
+
+#ifndef ML_GTK_OLD
+                Gtk::ColorDialogButton *color
+                    = Gtk::make_managed<Gtk::ColorDialogButton>(color_dialog);
+                color->set_rgba(Gdk::RGBA(Glib::ustring(it_set->value)));
+                color->set_margin(5);
+                color->set_halign(Gtk::Align::START);
+                Glib::PropertyProxy<Gdk::RGBA> prop = color->property_rgba();
+                prop.signal_changed().connect([prop, it_set] {
+                  Gdk::RGBA rgba = prop.get_value();
+                  it_set->value = std::string(rgba.to_string());
+                });
+#endif
+#ifdef ML_GTK_OLD
+                Gtk::ColorButton *color
+                    = Gtk::make_managed<Gtk::ColorButton>();
+                color->set_margin(5);
+                color->set_halign(Gtk::Align::START);
+                color->set_use_alpha(true);
+                color->set_rgba(Gdk::RGBA(Glib::ustring(it_set->value)));
+                color->signal_color_set().connect([color, it_set] {
+                  Gdk::RGBA rgba = color->get_rgba();
+                  it_set->value = std::string(rgba.to_string());
+                });
+#endif
+                grid->attach(*color, 1, row, 1, 1);
+                row++;
+              }
+
+            it_set = std::find_if(
+                it->settings.begin(), it->settings.end(), [](setting &el) {
+                  return el.attribute_id == "background-color";
+                });
+            if(it_set != it->settings.end())
+              {
+                lab = Gtk::make_managed<Gtk::Label>();
+                lab->set_margin(5);
+                lab->set_halign(Gtk::Align::START);
+                lab->set_text(gettext("Selected line background color:"));
                 lab->set_name("windowLabel");
                 grid->attach(*lab, 0, row, 1, 1);
 

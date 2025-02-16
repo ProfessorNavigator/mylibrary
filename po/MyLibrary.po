@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2025-02-11 13:28+0400\n"
-"PO-Revision-Date: 2025-02-11 13:33+0400\n"
+"POT-Creation-Date: 2025-02-16 14:54+0400\n"
+"PO-Revision-Date: 2025-02-16 14:54+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -77,8 +77,8 @@ msgstr "Добавить книги"
 #: ImportCollectionGui.cpp:133 ImportCollectionGui.cpp:232
 #: RefreshCollectionGui.cpp:159 RemoveCollectionGui.cpp:87 SaveCover.cpp:102
 #: SaveCover.cpp:158 SearchProcessGui.cpp:66 SearchProcessGui.cpp:118
-#: SettingsWindow.cpp:122 TransferBookGui.cpp:251 TransferBookGui.cpp:508
-#: TransferBookGui.cpp:1027
+#: SettingsWindow.cpp:127 SettingsWindow.cpp:1386 TransferBookGui.cpp:251
+#: TransferBookGui.cpp:508 TransferBookGui.cpp:1027
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -127,7 +127,7 @@ msgstr "Все поддерживаемые"
 #: CreateCollectionGui.cpp:206 EmptyCollectionGui.cpp:93
 #: EmptyCollectionGui.cpp:161 ImportCollectionGui.cpp:93
 #: ImportCollectionGui.cpp:115 ImportCollectionGui.cpp:240
-#: SettingsWindow.cpp:281 TransferBookGui.cpp:522
+#: SettingsWindow.cpp:379 SettingsWindow.cpp:1390 TransferBookGui.cpp:522
 msgid "Open"
 msgstr "Открыть"
 
@@ -157,7 +157,7 @@ msgstr ""
 msgid "Remove directory"
 msgstr "Удалить папку"
 
-#: AddBookGui.cpp:1130 RightGrid.cpp:649
+#: AddBookGui.cpp:1130 RightGrid.cpp:663
 msgid "Remove book"
 msgstr "Удалить книгу"
 
@@ -199,12 +199,12 @@ msgstr "Книги успешно добавлены!"
 msgid "Error! See system log for details."
 msgstr "Ошибка! См. системный журнал."
 
-#: AddBookGui.cpp:1571 AddBookGui.cpp:1629 BookMarksGui.cpp:516
+#: AddBookGui.cpp:1571 AddBookGui.cpp:1629 BookMarksGui.cpp:530
 #: CollectionCrProcessGui.cpp:406 CopyBookGui.cpp:276
 #: CreateCollectionGui.cpp:353 EditBookGui.cpp:839 EmptyCollectionGui.cpp:268
 #: EmptyCollectionGui.cpp:394 ExportCollectionGui.cpp:405
 #: ImportCollectionGui.cpp:406 ImportCollectionGui.cpp:630
-#: RemoveBookGui.cpp:302 RemoveCollectionGui.cpp:241 RightGrid.cpp:860
+#: RemoveBookGui.cpp:302 RemoveCollectionGui.cpp:241 RightGrid.cpp:874
 #: SaveCover.cpp:338 TransferBookGui.cpp:104 TransferBookGui.cpp:945
 #: TransferBookGui.cpp:1328
 msgid "Close"
@@ -245,7 +245,7 @@ msgstr "Путь в архиве"
 msgid "Path in archive:"
 msgstr "Путь в архиве:"
 
-#: AddBookGui.cpp:1898 EditBookGui.cpp:601 SettingsWindow.cpp:102
+#: AddBookGui.cpp:1898 EditBookGui.cpp:601 SettingsWindow.cpp:107
 msgid "Apply"
 msgstr "Применить"
 
@@ -258,12 +258,12 @@ msgstr "Предупреждение! Некоторые файлы уже ес�
 msgid "Wait..."
 msgstr "Подождите..."
 
-#: BookInfoGui.cpp:100 BookMarksGui.cpp:448 RightGrid.cpp:642
+#: BookInfoGui.cpp:100 BookMarksGui.cpp:462 RightGrid.cpp:656
 msgid "Book info"
 msgstr "Информация о книге"
 
-#: BookInfoGui.cpp:346 BookMarksGui.cpp:179 BookMarksShow.cpp:362
-#: LeftGrid.cpp:196 RightGrid.cpp:189 SearchResultShow.cpp:327
+#: BookInfoGui.cpp:346 BookMarksGui.cpp:180 BookMarksShow.cpp:362
+#: LeftGrid.cpp:196 RightGrid.cpp:203 SearchResultShow.cpp:327
 msgid "Book"
 msgstr "Книга"
 
@@ -271,7 +271,7 @@ msgstr "Книга"
 msgid "Book name:"
 msgstr "Название книги:"
 
-#: BookInfoGui.cpp:377 BookInfoGui.cpp:786
+#: BookInfoGui.cpp:377 BookInfoGui.cpp:787
 msgid "Author(s):"
 msgstr "Автор(ы):"
 
@@ -311,140 +311,140 @@ msgstr "файл не найден"
 msgid "Paper book info"
 msgstr "Информация о бумажной книге"
 
-#: BookInfoGui.cpp:679 BookInfoGui.cpp:1005
+#: BookInfoGui.cpp:680 BookInfoGui.cpp:1006
 msgid "Publisher:"
 msgstr "Издатель:"
 
-#: BookInfoGui.cpp:700
+#: BookInfoGui.cpp:701
 msgid "City:"
 msgstr "Город:"
 
-#: BookInfoGui.cpp:721
+#: BookInfoGui.cpp:722
 msgid "Year:"
 msgstr "Год:"
 
-#: BookInfoGui.cpp:773
+#: BookInfoGui.cpp:774
 msgid "E-Book info"
 msgstr "Информация о электронной книге"
 
-#: BookInfoGui.cpp:810
+#: BookInfoGui.cpp:811
 msgid "Software:"
 msgstr "Программа:"
 
-#: BookInfoGui.cpp:831 EditBookGui.cpp:582
+#: BookInfoGui.cpp:832 EditBookGui.cpp:582
 msgid "Date:"
 msgstr "Дата:"
 
-#: BookInfoGui.cpp:852
+#: BookInfoGui.cpp:853
 msgid "Source:"
 msgstr "Источник:"
 
-#: BookInfoGui.cpp:907
+#: BookInfoGui.cpp:908
 msgid "Author of original doc:"
 msgstr "Автор источника:"
 
-#: BookInfoGui.cpp:931
+#: BookInfoGui.cpp:932
 msgid "ID:"
 msgstr "Идентификатор:"
 
-#: BookInfoGui.cpp:952
+#: BookInfoGui.cpp:953
 msgid "Version:"
 msgstr "Версия:"
 
-#: BookInfoGui.cpp:974
+#: BookInfoGui.cpp:975
 msgid "History:"
 msgstr "История:"
 
-#: BookInfoGui.cpp:1047 RightGrid.cpp:732
+#: BookInfoGui.cpp:1048 RightGrid.cpp:746
 msgid "Show full size"
 msgstr "Показать в натуральную величину"
 
-#: BookInfoGui.cpp:1050 RightGrid.cpp:735
+#: BookInfoGui.cpp:1051 RightGrid.cpp:749
 msgid "Save cover"
 msgstr "Сохранить обложку"
 
-#: BookMarksGui.cpp:80 MainWindow.cpp:192
+#: BookMarksGui.cpp:81 MainWindow.cpp:192
 msgid "Bookmarks"
 msgstr "Закладки"
 
-#: BookMarksGui.cpp:153
+#: BookMarksGui.cpp:154
 msgid "Bookmark operations"
 msgstr "Операции с закладками"
 
-#: BookMarksGui.cpp:166 RightGrid.cpp:165
+#: BookMarksGui.cpp:167 RightGrid.cpp:166
 msgid "Filtering:"
 msgstr "Фильтр:"
 
-#: BookMarksGui.cpp:177 BookMarksShow.cpp:310 LeftGrid.cpp:69
+#: BookMarksGui.cpp:178 BookMarksShow.cpp:310 LeftGrid.cpp:69
 #: RemoveCollectionGui.cpp:59
 msgid "Collection"
 msgstr "Коллекция"
 
-#: BookMarksGui.cpp:178 BookMarksShow.cpp:336 LeftGrid.cpp:133
-#: RightGrid.cpp:188 SearchResultShow.cpp:291
+#: BookMarksGui.cpp:179 BookMarksShow.cpp:336 LeftGrid.cpp:133
+#: RightGrid.cpp:202 SearchResultShow.cpp:291
 msgid "Author"
 msgstr "Автор"
 
-#: BookMarksGui.cpp:180 BookMarksShow.cpp:388 RightGrid.cpp:190
+#: BookMarksGui.cpp:181 BookMarksShow.cpp:388 RightGrid.cpp:204
 #: SearchResultShow.cpp:349
 msgid "Series"
 msgstr "Серия"
 
-#: BookMarksGui.cpp:181 BookMarksShow.cpp:414 RightGrid.cpp:191
+#: BookMarksGui.cpp:182 BookMarksShow.cpp:414 RightGrid.cpp:205
 #: SearchResultShow.cpp:371
 msgid "Genre"
 msgstr "Жанр"
 
-#: BookMarksGui.cpp:182 BookMarksShow.cpp:440 RightGrid.cpp:192
+#: BookMarksGui.cpp:183 BookMarksShow.cpp:440 RightGrid.cpp:206
 #: SearchResultShow.cpp:489
 msgid "Date"
 msgstr "Дата"
 
-#: BookMarksGui.cpp:192 RightGrid.cpp:204
+#: BookMarksGui.cpp:193 RightGrid.cpp:218
 msgid "Filter"
 msgstr "Фильтровать"
 
-#: BookMarksGui.cpp:205 RightGrid.cpp:222
+#: BookMarksGui.cpp:219 RightGrid.cpp:236
 msgid "Clear filter"
 msgstr "Очистить фильтр"
 
-#: BookMarksGui.cpp:383 EditBookGui.cpp:669 RefreshCollectionGui.cpp:204
+#: BookMarksGui.cpp:397 EditBookGui.cpp:669 RefreshCollectionGui.cpp:204
 #: RemoveBookGui.cpp:55 RemoveCollectionGui.cpp:131
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: BookMarksGui.cpp:398 EditBookGui.cpp:684 RefreshCollectionGui.cpp:219
+#: BookMarksGui.cpp:412 EditBookGui.cpp:684 RefreshCollectionGui.cpp:219
 #: RemoveBookGui.cpp:172
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: BookMarksGui.cpp:405 EditBookGui.cpp:692 RefreshCollectionGui.cpp:226
+#: BookMarksGui.cpp:419 EditBookGui.cpp:692 RefreshCollectionGui.cpp:226
 #: RemoveBookGui.cpp:188 RemoveCollectionGui.cpp:173
 msgid "Yes"
 msgstr "Да"
 
-#: BookMarksGui.cpp:422 EditBookGui.cpp:703 RefreshCollectionGui.cpp:235
+#: BookMarksGui.cpp:436 EditBookGui.cpp:703 RefreshCollectionGui.cpp:235
 #: RemoveBookGui.cpp:197 RemoveCollectionGui.cpp:185
 msgid "No"
 msgstr "Нет"
 
-#: BookMarksGui.cpp:445 RightGrid.cpp:635
+#: BookMarksGui.cpp:459 RightGrid.cpp:649
 msgid "Open book"
 msgstr "Открыть книгу"
 
-#: BookMarksGui.cpp:451 RightGrid.cpp:645
+#: BookMarksGui.cpp:465 RightGrid.cpp:659
 msgid "Save book as..."
 msgstr "Сохранить книгу как..."
 
-#: BookMarksGui.cpp:455
+#: BookMarksGui.cpp:469
 msgid "Remove bookmark"
 msgstr "Удалить закладку"
 
-#: BookMarksGui.cpp:489
+#: BookMarksGui.cpp:503
 msgid "Warning"
 msgstr "Предупреждение"
 
-#: BookMarksGui.cpp:506
+#: BookMarksGui.cpp:520
 msgid ""
 "It seems, that your version of bookmarks base is old. Please, recreate all "
 "bookmarks manually to avoid possible bookmarks loss in the future."
@@ -755,7 +755,7 @@ msgstr "Добавить папки с книгами"
 msgid "Show bookmarks"
 msgstr "Показать закладки"
 
-#: MainWindow.cpp:200 SettingsWindow.cpp:48
+#: MainWindow.cpp:200 SettingsWindow.cpp:54
 msgid "Settings"
 msgstr "Настройки"
 
@@ -771,15 +771,19 @@ msgstr "О программе"
 msgid "About MyLibrary"
 msgstr "О MyLibrary"
 
-#: MainWindow.cpp:463
+#: MainWindow.cpp:453
+msgid "Icon designed by: "
+msgstr "Дизайн иконки: "
+
+#: MainWindow.cpp:467
 msgid "MyLibrary is a home librarian"
 msgstr "MyLibrary - домашний библиотекарь"
 
-#: MainWindow.cpp:464
+#: MainWindow.cpp:468
 msgid "Author Yury Bobylev"
 msgstr "Автор Юрий Бобылев"
 
-#: MainWindow.cpp:466
+#: MainWindow.cpp:470
 msgid "Program uses next libraries:"
 msgstr "В программе используются следующие библиотеки:"
 
@@ -851,47 +855,47 @@ msgstr "Продолжить?"
 msgid "Collection has been removed."
 msgstr "Коллекция удалена."
 
-#: RightGrid.cpp:149 RightGrid.cpp:329
+#: RightGrid.cpp:150 RightGrid.cpp:343
 msgid "Book operations"
 msgstr "Операции с книгами"
 
-#: RightGrid.cpp:187
+#: RightGrid.cpp:201
 msgid "Column"
 msgstr "Колонка"
 
-#: RightGrid.cpp:342
+#: RightGrid.cpp:356
 msgid "File operations"
 msgstr "Операции с файлами"
 
-#: RightGrid.cpp:638
+#: RightGrid.cpp:652
 msgid "Create bookmark"
 msgstr "Создать закладку"
 
-#: RightGrid.cpp:652
+#: RightGrid.cpp:666
 msgid "Edit book entry"
 msgstr "Редактировать запись о книге"
 
-#: RightGrid.cpp:656
+#: RightGrid.cpp:670
 msgid "Move to another collection"
 msgstr "Переместить в другую коллекцию"
 
-#: RightGrid.cpp:673
+#: RightGrid.cpp:687
 msgid "Show books"
 msgstr "Показать книги"
 
-#: RightGrid.cpp:815
+#: RightGrid.cpp:829
 msgid "Message"
 msgstr "Сообщение"
 
-#: RightGrid.cpp:835
+#: RightGrid.cpp:849
 msgid "Error! Bookmark has not been saved!"
 msgstr "Ошибка! Закладка не была сохранена!"
 
-#: RightGrid.cpp:840
+#: RightGrid.cpp:854
 msgid "Book is already in bookmarks"
 msgstr "Книга уже в закладках"
 
-#: RightGrid.cpp:845
+#: RightGrid.cpp:859
 msgid "Bookmark successfully saved"
 msgstr "Закладка успешно сохранена"
 
@@ -935,123 +939,127 @@ msgstr "Остановка чтения..."
 msgid "File path"
 msgstr "Путь"
 
-#: SettingsWindow.cpp:111
+#: SettingsWindow.cpp:116
 msgid "Apply and close"
 msgstr "Применить и закрыть"
 
-#: SettingsWindow.cpp:163
+#: SettingsWindow.cpp:168
 msgid "Windows"
 msgstr "Окна"
 
-#: SettingsWindow.cpp:189 SettingsWindow.cpp:459
+#: SettingsWindow.cpp:196 SettingsWindow.cpp:566
 msgid "Background color:"
 msgstr "Цвет фона:"
 
-#: SettingsWindow.cpp:222
+#: SettingsWindow.cpp:242
 msgid "Background image:"
 msgstr "Фоновое изображение:"
 
-#: SettingsWindow.cpp:309
+#: SettingsWindow.cpp:407
 msgid "Apply buttons"
 msgstr "Кнопки \"применить\""
 
-#: SettingsWindow.cpp:315
+#: SettingsWindow.cpp:413
 msgid "Cancel buttons"
 msgstr "Кнопки отмены"
 
-#: SettingsWindow.cpp:321
+#: SettingsWindow.cpp:419
 msgid "Operations buttons"
 msgstr "Кнопки операций"
 
-#: SettingsWindow.cpp:327
+#: SettingsWindow.cpp:425
 msgid "Remove buttons"
 msgstr "Кнопки удаления"
 
-#: SettingsWindow.cpp:333
+#: SettingsWindow.cpp:431
 msgid "Combo box buttons"
 msgstr "Кнопки выпадающих списков"
 
-#: SettingsWindow.cpp:339
+#: SettingsWindow.cpp:437
 msgid "Annotation"
 msgstr "Аннотация"
 
-#: SettingsWindow.cpp:345
+#: SettingsWindow.cpp:443
 msgid "Entries"
 msgstr "Поля ввода"
 
-#: SettingsWindow.cpp:351
+#: SettingsWindow.cpp:449
 msgid "Labels"
 msgstr "Надписи"
 
-#: SettingsWindow.cpp:357
+#: SettingsWindow.cpp:455
 msgid "Main menu"
 msgstr "Главное меню"
 
-#: SettingsWindow.cpp:363
+#: SettingsWindow.cpp:461
 msgid "Popup menu buttons"
 msgstr "Кнопки выпадающих меню"
 
-#: SettingsWindow.cpp:369
-msgid "Selected label"
-msgstr "Выбранное"
-
-#: SettingsWindow.cpp:375
+#: SettingsWindow.cpp:467
 msgid "\"Error\" labels"
 msgstr "Надписи ощибок"
 
-#: SettingsWindow.cpp:381
+#: SettingsWindow.cpp:473
 msgid "\"Warning\" labels"
 msgstr "Надписи предупреждений"
 
-#: SettingsWindow.cpp:387
+#: SettingsWindow.cpp:479
 msgid "Progress bars"
 msgstr "Индикаторы прогресса"
 
-#: SettingsWindow.cpp:393
+#: SettingsWindow.cpp:485
 msgid "Table views"
 msgstr "Таблицы"
 
-#: SettingsWindow.cpp:432
+#: SettingsWindow.cpp:526
 msgid "Font color:"
 msgstr "Цвет шрифта:"
 
-#: SettingsWindow.cpp:487
+#: SettingsWindow.cpp:606
 msgid "Border color:"
 msgstr "Цвет рамки:"
 
-#: SettingsWindow.cpp:521
+#: SettingsWindow.cpp:653
 msgid "Font color (hover):"
 msgstr "Цвет шрифта (при наведении указателя):"
 
-#: SettingsWindow.cpp:548
+#: SettingsWindow.cpp:693
 msgid "Background color (hover):"
 msgstr "Цвет фона (при наведении указателя):"
 
-#: SettingsWindow.cpp:584
+#: SettingsWindow.cpp:741
 msgid "Font color (active):"
 msgstr "Цвет шрифта (при нажатии):"
 
-#: SettingsWindow.cpp:611
+#: SettingsWindow.cpp:781
 msgid "Background color (active):"
 msgstr "Цвет фона (при  нажатии):"
 
-#: SettingsWindow.cpp:650
+#: SettingsWindow.cpp:832
 msgid "Progress bar background color:"
 msgstr "Цвет фона индикатора прогресса:"
 
-#: SettingsWindow.cpp:684
+#: SettingsWindow.cpp:879
 msgid "Progress bar color:"
 msgstr "Цвет заполнения индикатора прогресса:"
 
-#: SettingsWindow.cpp:721
+#: SettingsWindow.cpp:930
 msgid "Header font color:"
 msgstr "Цвет шрифта заголовка:"
 
-#: SettingsWindow.cpp:748
+#: SettingsWindow.cpp:971
 msgid "Header background color:"
 msgstr "Цвет фона заголовка:"
 
-#: SettingsWindow.cpp:1022
+#: SettingsWindow.cpp:1019
+msgid "Selected line font color:"
+msgstr "Цвет шрифта выбранной строки:"
+
+#: SettingsWindow.cpp:1060
+msgid "Selected line background color:"
+msgstr "Цвет фона выбранной строки:"
+
+#: SettingsWindow.cpp:1349 SettingsWindow.cpp:1380
 msgid "Image"
 msgstr "Изображение"
 

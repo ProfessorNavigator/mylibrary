@@ -53,7 +53,6 @@ private:
     label,
     main_menu,
     menu_button,
-    selected_label,
     error_label,
     warning_label,
     progress_bar,

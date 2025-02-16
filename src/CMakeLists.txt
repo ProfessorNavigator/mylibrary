@@ -1,67 +1,67 @@
-target_sources(mylibrary PRIVATE
-    AddBook.cpp
-    AddBookGui.cpp
-    AddBookModelItem.cpp
-    ArchiveFileEntry.cpp
-    ArchiveRemoveEntry.cpp
-    ARCHParser.cpp
-    AuxFunc.cpp
-    BaseKeeper.cpp
-    BookBaseEntry.cpp
-    BookInfo.cpp
-    BookInfoEntry.cpp
-    BookInfoGui.cpp
-    BookMarks.cpp
-    BookMarksGui.cpp
-    BookMarksModelItem.cpp
-    BookMarksShow.cpp
-    BookParseEntry.cpp
-    ByteOrder.cpp
-    CollectionCrProcessGui.cpp
-    CopyBookGui.cpp
-    CoverPixBuf.cpp
-    CreateCollection.cpp
-    CreateCollectionGui.cpp
-    DJVUParser.cpp
-    EditBookGenreModelItem.cpp
-    EditBookGui.cpp
-    ElectroBookInfoEntry.cpp
-    EmptyCollectionGui.cpp
-    EPUBParser.cpp
-    ExportCollectionGui.cpp
-    FB2Parser.cpp
-    FileParseEntry.cpp
-    FormatAnnotation.cpp
-    FullSizeCover.cpp
-    Genre.cpp
-    GenreGroup.cpp
-    Hasher.cpp
-    ImportCollectionGui.cpp
-    LeftGrid.cpp
-    LibArchive.cpp
-    main.cpp
-    MainWindow.cpp
-    MLException.cpp
-    MyLibraryApplication.cpp
-    OpenBook.cpp
-    PaperBookInfoEntry.cpp
-    PDFParser.cpp
-    RefreshCollection.cpp
-    RefreshCollectionGui.cpp
-    RemoveBook.cpp
-    RemoveBookGui.cpp
-    RemoveCollectionGui.cpp
-    RightGrid.cpp
-    SaveCover.cpp
-    SearchProcessGui.cpp
-    SearchResultModelItem.cpp
-    SearchResultModelItemFL.cpp
-    SearchResultShow.cpp
-    SelfRemovingPath.cpp
-    SettingsWindow.cpp
-    TransferBookGui.cpp
-    XMLParser.cpp
-    XMLTag.cpp
-    XMLTagId.cpp
-    ZipFileEntry.cpp
+target_sources(mylibrary
+    PRIVATE AddBook.cpp
+    PRIVATE AddBookGui.cpp
+    PRIVATE AddBookModelItem.cpp
+    PRIVATE ArchiveFileEntry.cpp
+    PRIVATE ArchiveRemoveEntry.cpp
+    PRIVATE ARCHParser.cpp
+    PRIVATE AuxFunc.cpp
+    PRIVATE BaseKeeper.cpp
+    PRIVATE BookBaseEntry.cpp
+    PRIVATE BookInfo.cpp
+    PRIVATE BookInfoEntry.cpp
+    PRIVATE BookInfoGui.cpp
+    PRIVATE BookMarks.cpp
+    PRIVATE BookMarksGui.cpp
+    PRIVATE BookMarksModelItem.cpp
+    PRIVATE BookMarksShow.cpp
+    PRIVATE BookParseEntry.cpp
+    PRIVATE ByteOrder.cpp
+    PRIVATE CollectionCrProcessGui.cpp
+    PRIVATE CopyBookGui.cpp
+    PRIVATE CoverPixBuf.cpp
+    PRIVATE CreateCollection.cpp
+    PRIVATE CreateCollectionGui.cpp
+    PRIVATE DJVUParser.cpp
+    PRIVATE EditBookGenreModelItem.cpp
+    PRIVATE EditBookGui.cpp
+    PRIVATE ElectroBookInfoEntry.cpp
+    PRIVATE EmptyCollectionGui.cpp
+    PRIVATE EPUBParser.cpp
+    PRIVATE ExportCollectionGui.cpp
+    PRIVATE FB2Parser.cpp
+    PRIVATE FileParseEntry.cpp
+    PRIVATE FormatAnnotation.cpp
+    PRIVATE FullSizeCover.cpp
+    PRIVATE Genre.cpp
+    PRIVATE GenreGroup.cpp
+    PRIVATE Hasher.cpp
+    PRIVATE ImportCollectionGui.cpp
+    PRIVATE LeftGrid.cpp
+    PRIVATE LibArchive.cpp
+    PRIVATE main.cpp
+    PRIVATE MainWindow.cpp
+    PRIVATE MLException.cpp
+    PRIVATE MyLibraryApplication.cpp
+    PRIVATE OpenBook.cpp
+    PRIVATE PaperBookInfoEntry.cpp
+    PRIVATE PDFParser.cpp
+    PRIVATE RefreshCollection.cpp
+    PRIVATE RefreshCollectionGui.cpp
+    PRIVATE RemoveBook.cpp
+    PRIVATE RemoveBookGui.cpp
+    PRIVATE RemoveCollectionGui.cpp
+    PRIVATE RightGrid.cpp
+    PRIVATE SaveCover.cpp
+    PRIVATE SearchProcessGui.cpp
+    PRIVATE SearchResultModelItem.cpp
+    PRIVATE SearchResultModelItemFL.cpp
+    PRIVATE SearchResultShow.cpp
+    PRIVATE SelfRemovingPath.cpp
+    PRIVATE SettingsWindow.cpp
+    PRIVATE TransferBookGui.cpp
+    PRIVATE XMLParser.cpp
+    PRIVATE XMLTag.cpp
+    PRIVATE XMLTagId.cpp
+    PRIVATE ZipFileEntry.cpp
 )

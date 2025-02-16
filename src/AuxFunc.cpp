@@ -203,7 +203,7 @@ AuxFunc::share_path()
 {
   std::filesystem::path result = get_selfpath();
   result = result.parent_path();
-  result += std::filesystem::u8path("/../share/MyLibrary");
+  result /= std::filesystem::u8path("../share/MyLibrary"); 
   std::error_code ec;
   result = std::filesystem::canonical(result, ec);
   if(ec)

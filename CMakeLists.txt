@@ -41,6 +41,7 @@ endif()
 add_executable(mylibrary)
 
 add_subdirectory(src)
+add_subdirectory(include)
 
 target_include_directories(mylibrary PRIVATE include
                                      PRIVATE PkgConfig::GTKMM
@@ -77,7 +78,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     ru.mail.bobilev_yury.MyLibrary.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
 
     install(FILES
-    mylibrary.png DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps")
+    mylibrary.svg DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")
 
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 

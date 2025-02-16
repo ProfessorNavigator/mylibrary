@@ -441,12 +441,16 @@ MainWindow::about_dialog()
   about->set_program_name("MyLibrary");
 
   std::filesystem::path icon_p = af->share_path();
-  icon_p /= std::filesystem::u8path("mylibrary.png");
+  icon_p /= std::filesystem::u8path("mylibrary.svg");
 
   Glib::RefPtr<Gdk::Pixbuf> icon
       = Gdk::Pixbuf::create_from_file(icon_p.u8string());
 
   Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_for_pixbuf(icon);
+
+  std::vector<Glib::ustring> credits_people;
+  credits_people.push_back("Felix <f11091877@gmail.com>");
+  about->add_credit_section(gettext("Icon designed by: "), credits_people);
 
   about->set_logo(icon_t);
 
