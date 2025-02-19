@@ -21,6 +21,10 @@ pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
 
 find_library(DJVU djvulibre REQUIRED)
 
+if(USE_TBB)
+  find_package(TBB REQUIRED)
+endif()
+
 if(POPPLER_VERSION VERSION_LESS "22.05")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_OLDPOPPLER")
 endif()
@@ -32,10 +36,6 @@ endif()
 if(USE_OPENMP)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
   add_link_options("-fopenmp")
-endif()
-
-if(USE_TBB)
-  find_package(TBB REQUIRED)
 endif()
 
 add_executable(mylibrary)
