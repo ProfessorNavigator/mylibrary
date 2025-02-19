@@ -155,11 +155,7 @@ SettingsWindow::windowsSection()
       = std::find_if(settings_v.begin(), settings_v.end(), [](section &el) {
           return el.section_id == "MLwindow";
         });
-  auto it_2
-      = std::find_if(settings_v.begin(), settings_v.end(), [](section &el) {
-          return el.section_id == "aboutDialog";
-        });
-  if(it != settings_v.end() && it_2 != settings_v.end())
+  if(it != settings_v.end())
     {
       Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
       lab->set_margin(5);
@@ -184,11 +180,7 @@ SettingsWindow::windowsSection()
           it->settings.begin(), it->settings.end(), [](setting &el) {
             return el.attribute_id == "background-color";
           });
-      auto it_set2 = std::find_if(
-          it_2->settings.begin(), it_2->settings.end(), [](setting &el) {
-            return el.attribute_id == "background-color";
-          });
-      if(it_set != it->settings.end() && it_set2 != it_2->settings.end())
+      if(it_set != it->settings.end())
         {
           lab = Gtk::make_managed<Gtk::Label>();
           lab->set_margin(5);
@@ -204,10 +196,9 @@ SettingsWindow::windowsSection()
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
           Glib::PropertyProxy<Gdk::RGBA> prop = color->property_rgba();
-          prop.signal_changed().connect([prop, it_set, it_set2] {
+          prop.signal_changed().connect([prop, it_set] {
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
-            it_set2->value = std::string(rgba.to_string());
           });
 #endif
 #ifdef ML_GTK_OLD
@@ -216,10 +207,9 @@ SettingsWindow::windowsSection()
           color->set_halign(Gtk::Align::START);
           color->set_use_alpha(true);
           color->set_rgba(Gdk::RGBA(Glib::ustring(it_set->value)));
-          color->signal_color_set().connect([color, it_set, it_set2] {
+          color->signal_color_set().connect([color, it_set] {
             Gdk::RGBA rgba = color->get_rgba();
             it_set->value = std::string(rgba.to_string());
-            it_set2->value = std::string(rgba.to_string());
           });
 #endif
           grid->attach(*color, 1, row, 1, 1);
@@ -230,11 +220,7 @@ SettingsWindow::windowsSection()
                             [](setting &el) {
                               return el.attribute_id == "background-image";
                             });
-      it_set2 = std::find_if(it_2->settings.begin(), it_2->settings.end(),
-                             [](setting &el) {
-                               return el.attribute_id == "background-image";
-                             });
-      if(it_set != it->settings.end() && it_set2 != it_2->settings.end())
+      if(it_set != it->settings.end())
         {
           lab = Gtk::make_managed<Gtk::Label>();
           lab->set_margin(5);
@@ -318,13 +304,12 @@ SettingsWindow::windowsSection()
 
           Glib::PropertyProxy<Glib::ustring> prop
               = image_path->property_text();
-          prop.signal_changed().connect([it_set, it_set2, image_path] {
+          prop.signal_changed().connect([it_set, image_path] {
             Glib::ustring p = image_path->get_text();
             if(p.empty())
               {
                 p = "none";
                 it_set->value = std::string(p);
-                it_set2->value = std::string(p);
               }
             else
               {
@@ -341,8 +326,7 @@ SettingsWindow::windowsSection()
                       }
                   }
 #ifdef __linux
-                it_set->value = "url(file://" + std::string(p) + ")";
-                it_set2->value = "url(file://" + std::string(p) + ")";
+                it_set->value = "url(file://" + std::string(p) + ")";                
 #endif
 #ifdef _WIN32
                 n = 0;
@@ -367,7 +351,6 @@ SettingsWindow::windowsSection()
                     p = lower.lowercase() + p;
                   }
                 it_set->value = "url(file:///" + std::string(p) + ")";
-                it_set2->value = "url(file:///" + std::string(p) + ")";
 #endif
               }
           });
@@ -1288,21 +1271,6 @@ SettingsWindow::parseSection(section &s, const std::string &section_str)
 void
 SettingsWindow::applySettings()
 {
-  auto it_ab
-      = std::find_if(settings_v.begin(), settings_v.end(), [](section &el) {
-          return el.section_id == "aboutDialog label";
-        });
-  if(it_ab != settings_v.end())
-    {
-      auto it = std::find_if(settings_v.begin(), settings_v.end(),
-                             [](section &el) {
-                               return el.section_id == "windowLabel";
-                             });
-      if(it != settings_v.end())
-        {
-          it_ab->settings = it->settings;
-        }
-    }
   std::filesystem::path sp
       = save_path / std::filesystem::u8path("MLStyles.css");
   std::filesystem::create_directories(save_path);
