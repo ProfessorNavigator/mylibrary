@@ -15,6 +15,7 @@ find_package(Gettext)
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 pkg_check_modules(POPPLER REQUIRED IMPORTED_TARGET poppler-cpp)
 pkg_check_modules(ICU REQUIRED IMPORTED_TARGET icu-i18n)
+pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 pkg_check_modules(Gcrypt REQUIRED IMPORTED_TARGET libgcrypt)
 pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
@@ -47,6 +48,7 @@ target_include_directories(mylibrary PRIVATE include
                                      PRIVATE PkgConfig::GTKMM
                                      PRIVATE PkgConfig::POPPLER
                                      PRIVATE PkgConfig::ICU
+                                     PRIVATE PkgConfig::ICUUC
                                      PRIVATE PkgConfig::LIBARCHIVE
                                      PRIVATE PkgConfig::Gcrypt
                                      PRIVATE PkgConfig::GPG-ERROR)
@@ -54,6 +56,7 @@ target_include_directories(mylibrary PRIVATE include
 target_link_libraries(mylibrary PRIVATE PkgConfig::GTKMM
                                 PRIVATE PkgConfig::POPPLER
                                 PRIVATE PkgConfig::ICU
+                                PRIVATE PkgConfig::ICUUC
                                 PRIVATE PkgConfig::LIBARCHIVE
                                 PRIVATE ${DJVU}
                                 PRIVATE PkgConfig::Gcrypt
