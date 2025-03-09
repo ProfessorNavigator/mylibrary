@@ -408,6 +408,9 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_halign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_selectable(true);
+      lab->set_max_width_chars(50);
+      lab->set_wrap(true);
+      lab->set_wrap_mode(Pango::WrapMode::WORD);
       lab->set_text(translate_genre(bbe.bpe.book_genre));
       lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
@@ -430,6 +433,9 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_halign(Gtk::Align::START);
       lab->set_expand(true);
       lab->set_selectable(true);
+      lab->set_max_width_chars(50);
+      lab->set_wrap(true);
+      lab->set_wrap_mode(Pango::WrapMode::WORD);
       lab->set_text(bbe.bpe.book_series);
       lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
@@ -496,6 +502,9 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
           lab->set_halign(Gtk::Align::START);
           lab->set_expand(true);
           lab->set_selectable(true);
+          lab->set_max_width_chars(50);
+          lab->set_wrap(true);
+          lab->set_wrap_mode(Pango::WrapMode::WORD);
           lab->set_text(Glib::ustring(bie->translator));
           lab->set_name("windowLabel");
           grid->attach(*lab, 1, row_num, 1, 1);
@@ -817,6 +826,9 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_selectable(true);
+              lab->set_max_width_chars(50);
+              lab->set_wrap(true);
+              lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_text(Glib::ustring(bie->electro->program_used));
               lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
@@ -938,6 +950,9 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_halign(Gtk::Align::START);
               lab->set_expand(true);
               lab->set_selectable(true);
+              lab->set_max_width_chars(50);
+              lab->set_wrap(true);
+              lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_text(Glib::ustring(bie->electro->id));
               lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);

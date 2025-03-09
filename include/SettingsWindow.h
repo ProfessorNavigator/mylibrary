@@ -56,7 +56,8 @@ private:
     error_label,
     warning_label,
     progress_bar,
-    column_view
+    column_view,
+    frames
   };
 
   Gtk::Widget *

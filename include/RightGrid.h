@@ -24,6 +24,7 @@
 #include <BookInfoEntry.h>
 #include <BookMarks.h>
 #include <FormatAnnotation.h>
+#include <NotesKeeper.h>
 #include <OpenBook.h>
 #include <SearchResultModelItem.h>
 #include <SearchResultShow.h>
@@ -50,7 +51,8 @@ class RightGrid
 {
 public:
   RightGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
-            const std::shared_ptr<BookMarks> &bookmarks);
+            const std::shared_ptr<BookMarks> &bookmarks,
+            const std::shared_ptr<NotesKeeper> &notes);
 
   virtual ~RightGrid();
 
@@ -69,9 +71,14 @@ public:
   void
   search_result_show_files(const std::vector<FileParseEntry> &result);
 
+  void
+  searchResultShowAuthors(const std::vector<std::string> &result);
+
   std::function<std::string()> get_current_collection_name;
 
   std::function<void(const std::string &col_name)> reload_collection_base;
+
+  std::function<void(const std::string &auth)> search_books_callback;
 
 private:
   void
@@ -99,6 +106,9 @@ private:
   files_menu(Glib::RefPtr<Gio::Menu> &result);
 
   void
+  auth_menu(Glib::RefPtr<Gio::Menu> &result);
+
+  void
   show_popup_menu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
   Glib::RefPtr<Gio::Menu>
@@ -121,6 +131,9 @@ private:
   book_remove_action();
 
   void
+  bookNotesAction();
+
+  void
   bookmarks_save_result_dialog(const int &variant);
 
   void
@@ -137,6 +150,7 @@ private:
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
   std::shared_ptr<BookMarks> bookmarks;
+  std::shared_ptr<NotesKeeper> notes;
 
   Gtk::ColumnView *search_res = nullptr;
   SearchResultShow *srs = nullptr;

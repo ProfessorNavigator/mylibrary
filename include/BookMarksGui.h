@@ -21,6 +21,7 @@
 #include <AuxFunc.h>
 #include <BookMarks.h>
 #include <BookMarksShow.h>
+#include <NotesKeeper.h>
 #include <OpenBook.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <glib-2.0/glib/gtypes.h>
@@ -35,12 +36,13 @@ class BookMarksGui
 public:
   BookMarksGui(const std::shared_ptr<AuxFunc> &af,
                const std::shared_ptr<BookMarks> &bookmarks,
+               const std::shared_ptr<NotesKeeper> &notes,
                Gtk::Window *main_window);
 
   virtual ~BookMarksGui();
 
   void
-  createWindow();  
+  createWindow();
 
 private:
   void
@@ -73,6 +75,7 @@ private:
 
   std::shared_ptr<AuxFunc> af;
   std::shared_ptr<BookMarks> bookmarks;
+  std::shared_ptr<NotesKeeper> notes;
   Gtk::Window *main_window = nullptr;
 
   int window_height = 0;

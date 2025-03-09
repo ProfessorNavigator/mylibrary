@@ -21,24 +21,25 @@
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookMarks.h>
+#include <LibArchive.h>
+#include <NotesKeeper.h>
+#include <filesystem>
+#include <functional>
 #include <giomm-2.68/giomm/asyncresult.h>
 #include <glibmm-2.68/glibmm/dispatcher.h>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#include <LibArchive.h>
-#include <filesystem>
-#include <functional>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
 #include <vector>
 
+#ifndef ML_GTK_OLD
+#include <gtkmm-4.0/gtkmm/filedialog.h>
+#endif
 #ifdef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
@@ -48,6 +49,7 @@ class TransferBookGui
 public:
   TransferBookGui(const std::shared_ptr<AuxFunc> &af,
                   const std::shared_ptr<BookMarks> &bookmarks,
+                  const std::shared_ptr<NotesKeeper> &notes,
                   const BookBaseEntry &bbe_from,
                   const std::string &collection_from,
                   Gtk::Window *parent_window);
@@ -114,6 +116,7 @@ private:
 
   std::shared_ptr<AuxFunc> af;
   std::shared_ptr<BookMarks> bookmarks;
+  std::shared_ptr<NotesKeeper> notes;
   BookBaseEntry bbe_from;
   std::string collection_from;
   Gtk::Window *parent_window = nullptr;

@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(MyLibrary VERSION 3.2 LANGUAGES CXX)
+project(MyLibrary VERSION 4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-option(USE_OPENMP "Build with openmp support" OFF)
-option(USE_TBB "Build with tbb support" OFF)
+
+option(USE_PLUGINS "Build with plugin support" OFF)
 
 find_package(PkgConfig REQUIRED)
 
@@ -13,59 +13,41 @@ find_package(Intl REQUIRED)
 find_package(Gettext)
 
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
-pkg_check_modules(POPPLER REQUIRED IMPORTED_TARGET poppler-cpp)
-pkg_check_modules(ICU REQUIRED IMPORTED_TARGET icu-i18n)
-pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
-pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
-pkg_check_modules(Gcrypt REQUIRED IMPORTED_TARGET libgcrypt)
-pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
 
-find_library(DJVU djvulibre REQUIRED)
+add_executable(mylibrary)
 
-if(USE_TBB)
-  find_package(TBB REQUIRED)
-endif()
+add_subdirectory(src)
+add_subdirectory(include)
+add_subdirectory(mlbookproc)
 
-if(POPPLER_VERSION VERSION_LESS "22.05")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_OLDPOPPLER")
+if(USE_OPENMP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
+    add_link_options("-fopenmp")
 endif()
 
 if(GTKMM_VERSION VERSION_LESS "4.10")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
 endif()
 
-if(USE_OPENMP)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
-  add_link_options("-fopenmp")
+if(USE_PLUGINS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PLUGINS")
+    add_subdirectory(mlpluginifc)
+    target_include_directories(mylibrary PRIVATE mlpluginifc/include)
+    target_link_libraries(mlpluginifc PRIVATE mlbookproc)
+    target_link_libraries(mylibrary PRIVATE mlpluginifc)
 endif()
 
-add_executable(mylibrary)
+target_include_directories(mylibrary
+    PRIVATE mlbookproc/include
+    PRIVATE PkgConfig::GTKMM
+    PRIVATE include        
+)
 
-add_subdirectory(src)
-add_subdirectory(include)
-
-target_include_directories(mylibrary PRIVATE include
-                                     PRIVATE PkgConfig::GTKMM
-                                     PRIVATE PkgConfig::POPPLER
-                                     PRIVATE PkgConfig::ICU
-                                     PRIVATE PkgConfig::ICUUC
-                                     PRIVATE PkgConfig::LIBARCHIVE
-                                     PRIVATE PkgConfig::Gcrypt
-                                     PRIVATE PkgConfig::GPG-ERROR)
-
-target_link_libraries(mylibrary PRIVATE PkgConfig::GTKMM
-                                PRIVATE PkgConfig::POPPLER
-                                PRIVATE PkgConfig::ICU
-                                PRIVATE PkgConfig::ICUUC
-                                PRIVATE PkgConfig::LIBARCHIVE
-                                PRIVATE ${DJVU}
-                                PRIVATE PkgConfig::Gcrypt
-                                PRIVATE PkgConfig::GPG-ERROR
-                                PRIVATE atomic)
-
-if(USE_TBB)
-  target_link_libraries(mylibrary PRIVATE TBB::tbb)
-endif()
+target_link_libraries(mylibrary
+    PRIVATE mlbookproc
+    PRIVATE PkgConfig::GTKMM
+    PRIVATE atomic
+)
 
 include(GNUInstallDirs)
 

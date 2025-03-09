@@ -18,6 +18,13 @@
 #include <AddBook.h>
 #include <BaseKeeper.h>
 #include <BookParseEntry.h>
+#include <MLException.h>
+#include <OpenBook.h>
+#include <RefreshCollection.h>
+#include <RemoveBook.h>
+#include <SelfRemovingPath.h>
+#include <TransferBookGui.h>
+#include <atomic>
 #include <giomm/cancellable.h>
 #include <giomm/file.h>
 #include <giomm/liststore.h>
@@ -29,16 +36,6 @@
 #include <gtkmm/application.h>
 #include <gtkmm/button.h>
 #include <gtkmm/enums.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
-#include <MLException.h>
-#include <OpenBook.h>
-#include <RefreshCollection.h>
-#include <RemoveBook.h>
-#include <SelfRemovingPath.h>
-#include <TransferBookGui.h>
-#include <atomic>
 #include <gtkmm/filefilter.h>
 #include <gtkmm/grid.h>
 #include <gtkmm/label.h>
@@ -51,14 +48,20 @@
 #include <tuple>
 #include <vector>
 
+#ifndef ML_GTK_OLD
+#include <gtkmm/error.h>
+#endif
+
 TransferBookGui::TransferBookGui(const std::shared_ptr<AuxFunc> &af,
                                  const std::shared_ptr<BookMarks> &bookmarks,
+                                 const std::shared_ptr<NotesKeeper> &notes,
                                  const BookBaseEntry &bbe_from,
                                  const std::string &collection_from,
                                  Gtk::Window *parent_window)
 {
   this->af = af;
   this->bookmarks = bookmarks;
+  this->notes = notes;
   this->bbe_from = bbe_from;
   this->collection_from = collection_from;
   this->parent_window = parent_window;
@@ -878,6 +881,34 @@ TransferBookGui::copy_overwrite(const int &variant,
 
       if(rfr->refreshBook(bbe_out))
         {
+          NotesBaseEntry nbe = notes->getNote(
+              collection_from, bbe_from.file_path, bbe_from.bpe.book_path);
+          std::fstream f;
+          f.open(nbe.note_file_full_path,
+                 std::ios_base::in | std::ios_base::binary);
+          if(f.is_open())
+            {
+              std::string note_buf;
+              f.seekg(0, std::ios_base::end);
+              note_buf.resize(f.tellg());
+              f.seekg(0, std::ios_base::beg);
+              f.read(note_buf.data(), note_buf.size());
+              f.close();
+
+              std::string find_str = "\n\n";
+              std::string::size_type n = note_buf.find(find_str);
+              if(n != std::string::npos)
+                {
+                  note_buf.erase(0, n + find_str.size());
+                }
+
+              notes->editNote(nbe, "");
+
+              nbe = notes->getNote(collection_to, bbe_out.file_path,
+                                   bbe_out.bpe.book_path);
+              notes->editNote(nbe, note_buf);
+            }
+
           rfr.reset();
           std::shared_ptr<RemoveBook> rmb = std::make_shared<RemoveBook>(
               af, bbe_from, collection_from, bookmarks);

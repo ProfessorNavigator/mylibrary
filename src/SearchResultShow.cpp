@@ -36,6 +36,7 @@
 #include <libintl.h>
 #include <pangomm/layout.h>
 #include <sigc++/connection.h>
+#include <thread>
 
 SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
                                    Gtk::ColumnView *search_res)
@@ -43,7 +44,18 @@ SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
   this->af = af;
   this->search_res = search_res;
 
+  disp_adjust = new Glib::Dispatcher;
+  disp_adjust->connect([this, search_res] {
+    Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
+    adj->set_value(0.0);
+  });
+
   genre_list = af->get_genre_list();
+}
+
+SearchResultShow::~SearchResultShow()
+{
+  delete disp_adjust;
 }
 
 void
@@ -56,6 +68,7 @@ SearchResultShow::clearSearchResult()
     }
   selected_item.reset();
   selected_item_file.reset();
+  selected_item_auth.reset();
   if(model)
     {
       model->remove_all();
@@ -65,6 +78,11 @@ SearchResultShow::clearSearchResult()
     {
       model_files->remove_all();
       model_files.reset();
+    }
+  if(model_auth)
+    {
+      model_auth->remove_all();
+      model_auth.reset();
     }
   str_filter.reset();
   filter_model.reset();
@@ -197,7 +215,6 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
 
   Glib::RefPtr<Gtk::SortListModel> sort_model
       = Gtk::SortListModel::create(filter_model, search_res->get_sorter());
-  sort_model->set_sorter(search_res->get_sorter());
 
   Glib::RefPtr<Gtk::SingleSelection> select
       = Gtk::SingleSelection::create(sort_model);
@@ -216,13 +233,11 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
       mc->iteration(true);
     }
 
-  Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
-  adj->set_value(0.0);
-
-  while(mc->pending())
-    {
-      mc->iteration(true);
-    }
+  std::thread thr([this] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    disp_adjust->emit();
+  });
+  thr.detach();
 }
 
 void
@@ -273,13 +288,66 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
       mc->iteration(true);
     }
 
-  Glib::RefPtr<Gtk::Adjustment> adj = search_res->get_vadjustment();
-  adj->set_value(0.0);
+  std::thread thr([this] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    disp_adjust->emit();
+  });
+  thr.detach();
+}
 
+void
+SearchResultShow::searchResultShow(const std::vector<std::string> &result)
+{
+  clearSearchResult();
+
+  model_auth = Gio::ListStore<SearchResultModelItemAuth>::create();
+
+  for(auto it = result.begin(); it != result.end(); it++)
+    {
+      Glib::RefPtr<SearchResultModelItemAuth> item
+          = SearchResultModelItemAuth::create(*it);
+      model_auth->append(item);
+    }
+
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+            Glib::ustring result;
+            Glib::RefPtr<SearchResultModelItemAuth> item
+                = std::dynamic_pointer_cast<SearchResultModelItemAuth>(
+                    list_item);
+            if(item)
+              {
+                result = Glib::ustring(item->auth);
+              }
+            return result;
+          });
+
+  str_filter = Gtk::StringFilter::create(expr);
+  Glib::RefPtr<Gtk::FilterListModel> filer_list_model
+      = Gtk::FilterListModel::create(model_auth, str_filter);
+
+  Glib::RefPtr<Gtk::SortListModel> sort_model
+      = Gtk::SortListModel::create(filer_list_model, search_res->get_sorter());
+
+  Glib::RefPtr<Gtk::SingleSelection> select
+      = Gtk::SingleSelection::create(sort_model);
+
+  search_res->set_model(select);
+
+  formAuthColumn();
+
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
   while(mc->pending())
     {
       mc->iteration(true);
     }
+
+  std::thread thr([this] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    disp_adjust->emit();
+  });
+  thr.detach();
 }
 
 void
@@ -565,6 +633,70 @@ SearchResultShow::formFilesColumn()
 }
 
 void
+SearchResultShow::formAuthColumn()
+{
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
+
+  factory->signal_setup().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+        lab->set_halign(Gtk::Align::START);
+        lab->set_ellipsize(Pango::EllipsizeMode::START);
+        l_item->set_child(*lab);
+      });
+
+  factory->signal_bind().connect(
+      [this](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Glib::RefPtr<SearchResultModelItemAuth> item
+            = std::dynamic_pointer_cast<SearchResultModelItemAuth>(
+                l_item->get_item());
+        if(item)
+          {
+            Gtk::Label *lab = dynamic_cast<Gtk::Label *>(l_item->get_child());
+            if(lab)
+              {
+                lab->set_text(item->auth);
+                if(item == selected_item_auth)
+                  {
+                    lab->set_name("selectedLab");
+                  }
+                else
+                  {
+                    lab->set_name("windowLabel");
+                  }
+              }
+          }
+      });
+
+  Glib::RefPtr<Gtk::ColumnViewColumn> column
+      = Gtk::ColumnViewColumn::create(gettext("Author"), factory);
+
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](const Glib::RefPtr<Glib::ObjectBase> &list_item) {
+            Glib::ustring result;
+            Glib::RefPtr<SearchResultModelItemAuth> item
+                = std::dynamic_pointer_cast<SearchResultModelItemAuth>(
+                    list_item);
+            if(item)
+              {
+                result = Glib::ustring(item->auth);
+              }
+            return result;
+          });
+
+  Glib::RefPtr<Gtk::StringSorter> sorter = Gtk::StringSorter::create(expr);
+  column->set_sorter(sorter);
+
+  column->set_resizable(true);
+  column->set_expand(true);
+
+  search_res->append_column(column);
+  search_res->sort_by_column(column, Gtk::SortType::ASCENDING);
+}
+
+void
 SearchResultShow::append_genre(Glib::ustring &result, std::string &genre)
 {
   for(auto it = genre.begin(); it != genre.end();)
@@ -725,6 +857,23 @@ SearchResultShow::select_item(
     }
 }
 
+void
+SearchResultShow::select_item(
+    const Glib::RefPtr<SearchResultModelItemAuth> &item)
+{
+  Glib::RefPtr<SearchResultModelItemAuth> prev = selected_item_auth;
+  selected_item_auth = item;
+  for(guint i = 0; i < model_auth->get_n_items(); i++)
+    {
+      Glib::RefPtr<SearchResultModelItemAuth> si = model_auth->get_item(i);
+      if(si == prev || si == selected_item_auth)
+        {
+          model_auth->insert(i, si);
+          model_auth->remove(i);
+        }
+    }
+}
+
 Glib::RefPtr<SearchResultModelItem>
 SearchResultShow::get_selected_item()
 {
@@ -735,6 +884,12 @@ Glib::RefPtr<SearchResultModelItemFL>
 SearchResultShow::get_selected_item_file()
 {
   return selected_item_file;
+}
+
+Glib::RefPtr<SearchResultModelItemAuth>
+SearchResultShow::get_selected_item_auth()
+{
+  return selected_item_auth;
 }
 
 void
@@ -870,6 +1025,12 @@ SearchResultShow::filterFiles(const Glib::ustring &filter_val)
     {
       str_filter->set_search(filter_val);
     }
+}
+
+void
+SearchResultShow::filterAuth(const Glib::ustring &filter_val)
+{
+  filterFiles(filter_val);
 }
 
 void

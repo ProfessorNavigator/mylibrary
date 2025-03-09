@@ -20,6 +20,7 @@
 
 #include <BaseKeeper.h>
 #include <BookBaseEntry.h>
+#include <NotesBaseEntry.h>
 #include <functional>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <vector>
@@ -33,14 +34,20 @@ public:
   createWindow(const BookBaseEntry &search);
 
   void
-  createWindow(const std::string &collection_name,
-               std::shared_ptr<AuxFunc> af);
+  createWindow(const std::string &collection_name, std::shared_ptr<AuxFunc> af,
+               const int &variant);
+
+  void
+  createWindow(const std::vector<NotesBaseEntry> &notes);
 
   std::function<void(const std::vector<BookBaseEntry> &result)>
       search_result_show;
 
   std::function<void(const std::vector<FileParseEntry> &result)>
       search_result_file;
+
+  std::function<void(const std::vector<std::string> &result)>
+      search_result_authors;
 
 private:
   void
@@ -50,10 +57,18 @@ private:
   copyFiles(Gtk::Window *win, const std::string &collection_name,
             std::shared_ptr<AuxFunc> af);
 
+  void
+  showAuthors(Gtk::Window *win, const std::string &collection_name);
+
+  void
+  showBooksWithNotes(Gtk::Window *win,
+                     const std::vector<NotesBaseEntry> &notes);
+
   BaseKeeper *bk = nullptr;
   Gtk::Window *main_window = nullptr;
   std::vector<BookBaseEntry> search_result;
   std::vector<FileParseEntry> files;
+  std::vector<std::string> authors;
 };
 
 #endif // SEARCHPROCESSGUI_H

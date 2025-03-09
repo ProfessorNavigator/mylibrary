@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <glibmm/signalproxy.h>
 #include <glibmm/ustring.h>
+#include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm/application.h>
 #include <gtkmm/button.h>
 #include <gtkmm/enums.h>
@@ -37,13 +38,22 @@ RemoveBookGui::RemoveBookGui(const std::shared_ptr<AuxFunc> &af,
                              Gtk::Window *parent_window,
                              const BookBaseEntry &bbe,
                              const std::string &col_name,
-                             const std::shared_ptr<BookMarks> &bookmarks)
+                             const std::shared_ptr<BookMarks> &bookmarks,
+                             const std::shared_ptr<NotesKeeper> &notes)
 {
   this->af = af;
   this->parent_window = parent_window;
   this->bbe = bbe;
   this->col_name = col_name;
   this->bookmarks = bookmarks;
+  this->notes = notes;
+  notes_reserve_path = af->homePath();
+  notes_reserve_path /= std::filesystem::u8path(af->randomFileName());
+  while(std::filesystem::exists(notes_reserve_path))
+    {
+      notes_reserve_path = af->homePath();
+      notes_reserve_path /= std::filesystem::u8path(af->randomFileName());
+    }
   remove_callback_disp = std::make_shared<Glib::Dispatcher>();
 }
 
@@ -161,6 +171,40 @@ RemoveBookGui::createWindow()
       grid->attach(*lab, 0, row_numb, 2, 1);
       row_numb++;
     }
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  Glib::ustring vl = gettext("Notes will be transfered to ");
+  vl += notes_reserve_path.u8string();
+  lab->set_text(vl);
+  lab->set_visible(false);
+  lab->set_selectable(true);
+
+  Gtk::CheckButton *make_notes_reserve = Gtk::make_managed<Gtk::CheckButton>();
+  make_notes_reserve->set_margin(5);
+  make_notes_reserve->set_halign(Gtk::Align::START);
+  make_notes_reserve->set_label(gettext("Create reserve copy of notes"));
+  make_notes_reserve->set_active(false);
+  make_notes_reserve->set_name("windowLabel");
+  make_notes_reserve->signal_toggled().connect(
+      [make_notes_reserve, lab, this] {
+        notes_reserve = make_notes_reserve->get_active();
+        if(notes_reserve)
+          {
+            lab->set_visible(true);
+          }
+        else
+          {
+            lab->set_visible(false);
+          }
+      });
+  grid->attach(*make_notes_reserve, 0, row_numb, 2, 1);
+  row_numb++;
+
+  grid->attach(*lab, 0, row_numb, 2, 1);
+  row_numb++;
 
   lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
@@ -287,6 +331,9 @@ RemoveBookGui::removeFinished(Gtk::Window *win)
   lab->set_name("windowLabel");
   if(remove_result > 0)
     {
+      NotesBaseEntry nbe
+          = notes->getNote(col_name, bbe.file_path, bbe.bpe.book_path);
+      notes->removeNotes(nbe, notes_reserve_path, notes_reserve);
       lab->set_text(gettext("Book successfully removed."));
     }
   else

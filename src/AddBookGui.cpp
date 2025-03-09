@@ -18,6 +18,8 @@
 #include <AddBook.h>
 #include <AddBookGui.h>
 #include <BaseKeeper.h>
+#include <MLException.h>
+#include <algorithm>
 #include <gdkmm/display.h>
 #include <gdkmm/monitor.h>
 #include <gdkmm/rectangle.h>
@@ -38,11 +40,6 @@
 #include <gtkmm/columnview.h>
 #include <gtkmm/dialog.h>
 #include <gtkmm/enums.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
-#include <MLException.h>
-#include <algorithm>
 #include <gtkmm/filechooser.h>
 #include <gtkmm/filefilter.h>
 #include <gtkmm/gestureclick.h>
@@ -59,6 +56,10 @@
 #include <sigc++/connection.h>
 #include <thread>
 #include <tuple>
+
+#ifndef ML_GTK_OLD
+#include <gtkmm/error.h>
+#endif
 
 AddBookGui::AddBookGui(const std::shared_ptr<AuxFunc> &af,
                        Gtk::Window *parent_window,
@@ -429,7 +430,7 @@ AddBookGui::bookSelectionWindow(Gtk::Window *win, const int &variant)
   else
     {
       lab->set_markup(Glib::ustring("<b>") + gettext("Books") + "</b>");
-    }  
+    }
   grid->attach(*lab, 0, row_num, 2, 1);
   row_num++;
 
@@ -888,7 +889,7 @@ AddBookGui::slot_setup(const Glib::RefPtr<Gtk::ListItem> &list_item,
         Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
         lab->set_halign(Gtk::Align::FILL);
         lab->set_expand(true);
-        lab->set_ellipsize(Pango::EllipsizeMode::START);        
+        lab->set_ellipsize(Pango::EllipsizeMode::START);
         list_item->set_child(*lab);
         break;
       }

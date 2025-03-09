@@ -95,6 +95,7 @@ SettingsWindow::createWindow()
   f_box->insert(*formSection(widget_type::error_label), -1);
   f_box->insert(*formSection(widget_type::warning_label), -1);
   f_box->insert(*formSection(widget_type::progress_bar), -1);
+  f_box->insert(*formSection(widget_type::frames), -1);
 
   Gtk::Box *but_box
       = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
@@ -146,6 +147,7 @@ SettingsWindow::windowsSection()
 {
   Gtk::Frame *frame = Gtk::make_managed<Gtk::Frame>();
   frame->set_margin(5);
+  frame->set_name("MLframe");
 
   Gtk::Box *section_box
       = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
@@ -326,7 +328,7 @@ SettingsWindow::windowsSection()
                       }
                   }
 #ifdef __linux
-                it_set->value = "url(file://" + std::string(p) + ")";                
+                it_set->value = "url(file://" + std::string(p) + ")";
 #endif
 #ifdef _WIN32
                 n = 0;
@@ -375,6 +377,7 @@ SettingsWindow::formSection(const widget_type &wt)
 {
   Gtk::Frame *frame = Gtk::make_managed<Gtk::Frame>();
   frame->set_margin(5);
+  frame->set_name("MLframe");
 
   Gtk::Box *section_box
       = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
@@ -466,6 +469,12 @@ SettingsWindow::formSection(const widget_type &wt)
       {
         search_str = "tablesView listview";
         sec_name = gettext("Table views");
+        break;
+      }
+    case widget_type::frames:
+      {
+        search_str = "MLframe";
+        sec_name = gettext("Frames");
         break;
       }
     default:

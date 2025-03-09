@@ -21,6 +21,8 @@
 #include <AddBookModelItem.h>
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <filesystem>
+#include <functional>
 #include <giomm-2.68/giomm/asyncresult.h>
 #include <giomm-2.68/giomm/file.h>
 #include <giomm-2.68/giomm/liststore.h>
@@ -32,21 +34,19 @@
 #include <gtkmm-4.0/gtkmm/columnviewcolumn.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <gtkmm-4.0/gtkmm/listitem.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
 #include <gtkmm-4.0/gtkmm/singleselection.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
-#include <filesystem>
-#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
+#ifndef ML_GTK_OLD
+#include <gtkmm-4.0/gtkmm/filedialog.h>
+#endif
 #ifdef ML_GTK_OLD
 #include <gtkmm/filechooserdialog.h>
 #endif
@@ -55,14 +55,13 @@ class AddBookGui
 {
 public:
   AddBookGui(const std::shared_ptr<AuxFunc> &af, Gtk::Window *parent_window,
-	     const std::shared_ptr<BookMarks> &bookmarks,
-	     const bool &directory_add);  
+             const std::shared_ptr<BookMarks> &bookmarks,             
+             const bool &directory_add);
 
   void
   createWindow();
 
-  std::function<void
-  (const std::string &col_name)> books_added;
+  std::function<void(const std::string &col_name)> books_added;
 
 private:
   void
@@ -76,7 +75,7 @@ private:
 
   void
   modeSelector(Gtk::Window *win, Gtk::CheckButton *pack_in_arch,
-	       Gtk::CheckButton *add_to_arch);
+               Gtk::CheckButton *add_to_arch);
 
   void
   bookSelectionWindow(Gtk::Window *win, const int &variant);
@@ -87,19 +86,19 @@ private:
 #ifndef ML_GTK_OLD
   void
   book_add_dialog_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-		       const Glib::RefPtr<Gtk::FileDialog> &fd,
-		       const int &variant);
+                       const Glib::RefPtr<Gtk::FileDialog> &fd,
+                       const int &variant);
 #endif
 
 #ifdef ML_GTK_OLD
   void
   book_add_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
-  		       const int &variant);
+                       const int &variant);
 #endif
 
   void
   form_books_list(const std::vector<Glib::RefPtr<Gio::File>> &files,
-		  const int &variant);
+                  const int &variant);
 
   Glib::RefPtr<Gtk::ColumnViewColumn>
   form_sources_column();
@@ -147,7 +146,7 @@ private:
 #ifndef ML_GTK_OLD
   void
   action_chage_path_notarch_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-				 const Glib::RefPtr<Gtk::FileDialog> &fd);
+                                 const Glib::RefPtr<Gtk::FileDialog> &fd);
 #endif
 
 #ifdef ML_GTK_OLD
@@ -157,14 +156,14 @@ private:
 
   void
   action_chage_path_arch_slot(Gtk::Entry *path, Gtk::Window *win,
-			      const int &variant);
+                              const int &variant);
 
   Glib::RefPtr<Gio::Menu>
   create_menu(const int &variant);
 
   void
   show_popup_menu(int nclck, double x, double y, Gtk::PopoverMenu *menu,
-		  const Glib::RefPtr<Gtk::SingleSelection> &selection);
+                  const Glib::RefPtr<Gtk::SingleSelection> &selection);
 
   bool
   add_books(Gtk::Window *win, const int &variant);
@@ -197,7 +196,7 @@ private:
 #ifdef ML_GTK_OLD
   void
   archive_selection_dialog_overwrite_slot(int resp, Gtk::FileChooserDialog *fd,
-					  Gtk::Window *win);
+                                          Gtk::Window *win);
 #endif
 
 #ifndef ML_GTK_OLD
@@ -210,10 +209,10 @@ private:
 #ifdef ML_GTK_OLD
   void
   archive_selection_dialog_add_slot(int resp, Gtk::FileChooserDialog *fd,
-				    Gtk::Window *win);
+                                    Gtk::Window *win);
 #endif
 
-  Gtk::Window*
+  Gtk::Window *
   wait_window(Gtk::Window *win);
 
   std::shared_ptr<AuxFunc> af;

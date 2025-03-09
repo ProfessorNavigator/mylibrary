@@ -78,7 +78,11 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
   Gtk::StyleContext::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
+  notes = std::make_shared<NotesKeeper>(af);
   bookmarks = std::make_shared<BookMarks>(af);
+#ifdef USE_PLUGINS
+  plugins_keeper = std::make_shared<PluginsKeeper>(this, af);
+#endif
   formMainWindow();
 }
 
@@ -111,11 +115,11 @@ MainWindow::formMainWindow()
   main_pane->set_expand(true);
   grid->attach(*main_pane, 0, 1, 1, 1);
 
-  lg = new LeftGrid(af, this);
+  lg = new LeftGrid(af, this, notes);
   Gtk::Grid *left_grid = lg->createGrid();
   main_pane->set_start_child(*left_grid);
 
-  rg = new RightGrid(af, this, bookmarks);
+  rg = new RightGrid(af, this, bookmarks, notes);
   Gtk::Grid *right_grid = rg->createGrid();
   main_pane->set_end_child(*right_grid);
   lg->clear_search_result = std::bind(&RightGrid::clearSearchResult, rg);
@@ -126,12 +130,23 @@ MainWindow::formMainWindow()
   lg->search_result_show_files = std::bind(
       &RightGrid::search_result_show_files, rg, std::placeholders::_1);
 
+  lg->search_result_authors = std::bind(&RightGrid::searchResultShowAuthors,
+                                        rg, std::placeholders::_1);
+
   rg->get_current_collection_name
       = std::bind(&MainWindow::get_current_collection_name, this);
 
   rg->reload_collection_base = [this](const std::string &col_name) {
     lg->reloadCollection(col_name);
   };
+
+  rg->search_books_callback
+      = std::bind(&LeftGrid::searchAuth, lg, std::placeholders::_1);
+
+#ifdef USE_PLUGINS
+  plugins_keeper->signal_reload_collection_list
+      = std::bind(&LeftGrid::reloadCollectionList, lg);
+#endif
 
   signal_realize().connect(std::bind(&MainWindow::setMainWindowSizes, this));
 
@@ -195,6 +210,16 @@ MainWindow::createMainMenu()
   item = Gio::MenuItem::create(gettext("Show bookmarks"),
                                "main_menu.book_marks");
   book_marks_menu->append_item(item);
+
+#ifdef USE_PLUGINS
+  Glib::RefPtr<Gio::Menu> plugins_menu = Gio::Menu::create();
+  item = Gio::MenuItem::create(gettext("Plugins"), plugins_menu);
+  menu_model->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Show plugins"),
+                               "main_menu.plugins_keeper");
+  plugins_menu->append_item(item);
+#endif
 
   Glib::RefPtr<Gio::Menu> settings_menu = Gio::Menu::create();
   item = Gio::MenuItem::create(gettext("Settings"), settings_menu);
@@ -265,11 +290,10 @@ MainWindow::setMainWindowSizes()
       req.set_width(req.get_width() * mon->get_scale_factor());
       req.set_height(req.get_height() * mon->get_scale_factor());
 
-      width = static_cast<int32_t>(req.get_width());
-      height = static_cast<int32_t>(req.get_height());
-      int w = static_cast<int>(width * 0.75);
-      set_default_size(w, static_cast<int>(height * 0.75));
-      main_pane->set_position(w * 0.35);
+      width = req.get_width();
+      height = req.get_height();
+      set_default_size(width * 0.75, height * 0.75);
+      main_pane->set_position(width * 0.35);
     }
 }
 
@@ -287,14 +311,15 @@ MainWindow::createMainMenuActionGroup()
   });
 
   main_menu_actions->add_action("remove_collection", [this] {
-    RemoveCollectionGui *rcg = new RemoveCollectionGui(af, this);
+    RemoveCollectionGui *rcg = new RemoveCollectionGui(af, this, notes);
     rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot,
                                         this, std::placeholders::_1);
     rcg->createWindow();
   });
 
   main_menu_actions->add_action("refresh_collection", [this] {
-    RefreshCollectionGui *rfcg = new RefreshCollectionGui(af, this, bookmarks);
+    RefreshCollectionGui *rfcg
+        = new RefreshCollectionGui(af, this, bookmarks, notes);
     rfcg->collection_refreshed = [this](const std::string &col_name) {
       if(lg->reloadCollection(col_name))
         {
@@ -305,7 +330,7 @@ MainWindow::createMainMenuActionGroup()
   });
 
   main_menu_actions->add_action("book_marks", [this] {
-    BookMarksGui *bmg = new BookMarksGui(af, bookmarks, this);
+    BookMarksGui *bmg = new BookMarksGui(af, bookmarks, notes, this);
     bmg->createWindow();
   });
 
@@ -351,6 +376,12 @@ MainWindow::createMainMenuActionGroup()
 
   main_menu_actions->add_action("about_dialog",
                                 std::bind(&MainWindow::about_dialog, this));
+
+#ifdef USE_PLUGINS
+  main_menu_actions->add_action(
+      "plugins_keeper",
+      std::bind(&PluginsKeeper::createWindow, plugins_keeper));
+#endif
 
   insert_action_group("main_menu", main_menu_actions);
 }
@@ -454,7 +485,7 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("3.2");
+  about->set_version("4.0");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 

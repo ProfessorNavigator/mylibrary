@@ -22,8 +22,10 @@
 #include <BookBaseEntry.h>
 #include <GenreGroup.h>
 #include <SearchResultModelItem.h>
+#include <SearchResultModelItemAuth.h>
 #include <SearchResultModelItemFL.h>
 #include <giomm-2.68/giomm/liststore.h>
+#include <glibmm-2.68/glibmm/dispatcher.h>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
@@ -32,7 +34,6 @@
 #include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
 #include <gtkmm-4.0/gtkmm/stringfilter.h>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -41,6 +42,8 @@ class SearchResultShow
 public:
   SearchResultShow(const std::shared_ptr<AuxFunc> &af,
                    Gtk::ColumnView *search_res);
+
+  virtual ~SearchResultShow();
 
   void
   clearSearchResult();
@@ -52,16 +55,25 @@ public:
   searchResultShow(const std::vector<FileParseEntry> &result);
 
   void
+  searchResultShow(const std::vector<std::string> &result);
+
+  void
   select_item(const Glib::RefPtr<SearchResultModelItem> &item);
 
   void
   select_item(const Glib::RefPtr<SearchResultModelItemFL> &item);
+
+  void
+  select_item(const Glib::RefPtr<SearchResultModelItemAuth> &item);
 
   Glib::RefPtr<SearchResultModelItem>
   get_selected_item();
 
   Glib::RefPtr<SearchResultModelItemFL>
   get_selected_item_file();
+
+  Glib::RefPtr<SearchResultModelItemAuth>
+  get_selected_item_auth();
 
   void
   removeItem(const Glib::RefPtr<SearchResultModelItem> &item);
@@ -74,6 +86,9 @@ public:
 
   void
   filterFiles(const Glib::ustring &filter_val);
+
+  void
+  filterAuth(const Glib::ustring &filter_val);
 
   void
   filterBooks(const Glib::ustring &filter_val, const guint &variant);
@@ -101,6 +116,9 @@ private:
   formFilesColumn();
 
   void
+  formAuthColumn();
+
+  void
   itemSetup(const Glib::RefPtr<Gtk::ListItem> &list_item);
 
   void
@@ -119,13 +137,17 @@ private:
   std::shared_ptr<AuxFunc> af;
   Gtk::ColumnView *search_res = nullptr;
 
+  Glib::Dispatcher *disp_adjust;
+
   std::vector<GenreGroup> genre_list;
 
   Glib::RefPtr<SearchResultModelItem> selected_item;
   Glib::RefPtr<SearchResultModelItemFL> selected_item_file;
+  Glib::RefPtr<SearchResultModelItemAuth> selected_item_auth;
 
   Glib::RefPtr<Gio::ListStore<SearchResultModelItem>> model;
   Glib::RefPtr<Gio::ListStore<SearchResultModelItemFL>> model_files;
+  Glib::RefPtr<Gio::ListStore<SearchResultModelItemAuth>> model_auth;
 
   Glib::RefPtr<Gtk::StringFilter> str_filter;
 

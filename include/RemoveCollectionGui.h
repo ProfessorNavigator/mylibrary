@@ -19,6 +19,7 @@
 #define REMOVECOLLECTIONGUI_H
 
 #include <AuxFunc.h>
+#include <NotesKeeper.h>
 #include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
@@ -31,7 +32,8 @@ class RemoveCollectionGui
 {
 public:
   RemoveCollectionGui(const std::shared_ptr<AuxFunc> &af,
-                      Gtk::Window *main_window);
+                      Gtk::Window *main_window,
+                      const std::shared_ptr<NotesKeeper> &notes);
 
   void
   createWindow();
@@ -39,11 +41,6 @@ public:
   std::function<void(const std::string &collection_name)> collection_removed;
 
 private:
-  std::shared_ptr<AuxFunc> af;
-  Gtk::Window *main_window = nullptr;
-
-  Gtk::DropDown *collection_name = nullptr;
-
   Glib::RefPtr<Gtk::StringList>
   formCollectionsModel();
 
@@ -52,6 +49,15 @@ private:
 
   void
   successDialog(Gtk::Window *win, const std::string &filename);
+
+  std::shared_ptr<AuxFunc> af;
+  Gtk::Window *main_window = nullptr;
+  std::shared_ptr<NotesKeeper> notes;
+
+  Gtk::DropDown *collection_name = nullptr;
+
+  bool reserve_notes = false;
+  std::filesystem::path reserve_notes_path;
 };
 
 #endif // REMOVECOLLECTIONGUI_H

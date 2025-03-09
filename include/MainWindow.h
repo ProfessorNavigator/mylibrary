@@ -21,12 +21,17 @@
 #include <AuxFunc.h>
 #include <BookMarks.h>
 #include <LeftGrid.h>
+#include <NotesKeeper.h>
 #include <RightGrid.h>
 #include <gtkmm-4.0/gtkmm/applicationwindow.h>
 #include <gtkmm-4.0/gtkmm/paned.h>
 #include <gtkmm-4.0/gtkmm/popovermenubar.h>
 #include <memory>
 #include <string>
+
+#ifdef USE_PLUGINS
+#include <PluginsKeeper.h>
+#endif
 
 class MainWindow : public Gtk::ApplicationWindow
 {
@@ -69,6 +74,11 @@ private:
   RightGrid *rg = nullptr;
 
   std::shared_ptr<BookMarks> bookmarks;
+  std::shared_ptr<NotesKeeper> notes;
+
+#ifdef USE_PLUGINS
+  std::shared_ptr<PluginsKeeper> plugins_keeper;
+#endif
 };
 
 #endif // MAINWINDOW_H

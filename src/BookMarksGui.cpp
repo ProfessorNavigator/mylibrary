@@ -20,6 +20,7 @@
 #include <BookMarksGui.h>
 #include <CopyBookGui.h>
 #include <MLException.h>
+#include <NotesGui.h>
 #include <SearchResultModelItem.h>
 #include <filesystem>
 #include <fstream>
@@ -58,10 +59,12 @@
 
 BookMarksGui::BookMarksGui(const std::shared_ptr<AuxFunc> &af,
                            const std::shared_ptr<BookMarks> &bookmarks,
+                           const std::shared_ptr<NotesKeeper> &notes,
                            Gtk::Window *main_window)
 {
   this->af = af;
   this->bookmarks = bookmarks;
+  this->notes = notes;
   this->main_window = main_window;
   open_book = new OpenBook(af);
   loadWindowSizes();
@@ -384,6 +387,16 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
     confirmationDialog(win);
   });
 
+  bookmark_actions->add_action("book_notes", [this, win] {
+    Glib::RefPtr<BookMarksModelItem> item = bms->getSelectedItem();
+    if(item)
+      {
+        NotesGui *ngui = new NotesGui(win, notes);
+        ngui->creatWindow(std::get<0>(item->element),
+                          std::get<1>(item->element));
+      }
+  });
+
   win->insert_action_group("book_mark_ag", bookmark_actions);
 }
 
@@ -460,6 +473,9 @@ BookMarksGui::bookmark_menu()
   result->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Book info"), "book_mark_ag.book_info");
+  result->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Notes"), "book_mark_ag.book_notes");
   result->append_item(item);
 
   item = Gio::MenuItem::create(gettext("Save book as..."),

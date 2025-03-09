@@ -38,11 +38,21 @@
 
 RefreshCollectionGui::RefreshCollectionGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
-    const std::shared_ptr<BookMarks> &bookmarks)
+    const std::shared_ptr<BookMarks> &bookmarks,
+    const std::shared_ptr<NotesKeeper> &notes)
 {
   this->af = af;
   this->main_window = main_window;
   this->bookmarks = bookmarks;
+  this->notes = notes;
+
+  reserve_notes_directory = af->homePath();
+  reserve_notes_directory /= std::filesystem::u8path(af->randomFileName());
+  while(std::filesystem::exists(reserve_notes_directory))
+    {
+      reserve_notes_directory = af->homePath();
+      reserve_notes_directory /= std::filesystem::u8path(af->randomFileName());
+    }
 }
 
 void
@@ -137,12 +147,46 @@ RefreshCollectionGui::createWindow()
   disable_rar->set_name("windowLabel");
   grid->attach(*disable_rar, 0, 6, 2, 1);
 
+  Gtk::Grid *reserve_notes_grid = Gtk::make_managed<Gtk::Grid>();
+  reserve_notes_grid->set_halign(Gtk::Align::FILL);
+  reserve_notes_grid->set_valign(Gtk::Align::FILL);
+  grid->attach(*reserve_notes_grid, 0, 7, 2, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  lab->set_visible(false);
+  lab->set_text(Glib::ustring(gettext("Notes reserve path: "))
+                + reserve_notes_directory.u8string());
+
+  Gtk::CheckButton *reserve_notes_chb = Gtk::make_managed<Gtk::CheckButton>();
+  reserve_notes_chb->set_margin(5);
+  reserve_notes_chb->set_halign(Gtk::Align::START);
+  reserve_notes_chb->set_name("windowLabel");
+  reserve_notes_chb->set_active(false);
+  reserve_notes_chb->set_label(gettext("Make reserve copies of notes"));
+  reserve_notes_chb->signal_toggled().connect([this, lab, reserve_notes_chb] {
+    reserve_notes = reserve_notes_chb->get_active();
+    if(reserve_notes)
+      {
+        lab->set_visible(true);
+      }
+    else
+      {
+        lab->set_visible(false);
+      }
+  });
+  reserve_notes_grid->attach(*reserve_notes_chb, 0, 0, 1, 1);
+
+  reserve_notes_grid->attach(*lab, 0, 1, 1, 1);
+
   Gtk::Grid *action_group_grid = Gtk::make_managed<Gtk::Grid>();
   action_group_grid->set_halign(Gtk::Align::FILL);
   action_group_grid->set_valign(Gtk::Align::FILL);
   action_group_grid->set_expand(true);
   action_group_grid->set_column_homogeneous(true);
-  grid->attach(*action_group_grid, 0, 7, 2, 1);
+  grid->attach(*action_group_grid, 0, 8, 2, 1);
 
   Gtk::Button *refresh = Gtk::make_managed<Gtk::Button>();
   refresh->set_margin(5);
@@ -264,7 +308,15 @@ RefreshCollectionGui::refreshCollection(Gtk::Window *win,
           af, main_window, coll_name, num_threads, clean_empty->get_active(),
           fast_refreshing->get_active(), refresh_bookmarks->get_active(),
           !disable_rar->get_active(), bookmarks);
-      ccpg->collection_refreshed = collection_refreshed;
+      std::filesystem::path rsrv = reserve_notes_directory;
+      bool rn = reserve_notes;
+      std::shared_ptr<NotesKeeper> nk = notes;
+      std::function<void(const std::string &)> sign = collection_refreshed;
+      ccpg->collection_refreshed
+          = [rsrv, rn, nk, sign](const std::string &coll_name) {
+              nk->refreshCollection(coll_name, rsrv, rn);
+              sign(coll_name);
+            };
       ccpg->createWindow(2);
       win->unset_transient_for();
       parent_window->close();

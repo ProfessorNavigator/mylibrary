@@ -17,11 +17,8 @@
 
 #include <AuxFunc.h>
 #include <MyLibraryApplication.h>
-#include <archive.h>
 #include <filesystem>
-#include <gcrypt.h>
 #include <iostream>
-#include <libdjvu/ddjvuapi.h>
 #include <libintl.h>
 #include <memory>
 #include <string>
@@ -33,56 +30,27 @@
 int
 main(int argc, char *argv[])
 {
-  std::shared_ptr<AuxFunc> af = std::make_shared<AuxFunc>();
-  std::filesystem::path p = af->share_path();
-  p = p.parent_path();
-  p /= std::filesystem::u8path("locale");
-  char *report = bindtextdomain("MyLibrary", p.u8string().c_str());
-  if(report)
-    {
-      std::cout << "MyLibrary text domain path: " << report << std::endl;
-    }
-  report = bind_textdomain_codeset("MyLibrary", "UTF-8");
-  if(report)
-    {
-      std::cout << "MyLibrary codeset: " << report << std::endl;
-    }
-  report = textdomain("MyLibrary");
-  if(report)
-    {
-      std::cout << "MyLibrary text domain: " << report << std::endl;
-    }
+  std::shared_ptr<AuxFunc> af = AuxFunc::create();
 
-  report = const_cast<char *>(gcry_check_version(nullptr));
-  if(report)
+  if(af->get_activated())
     {
-      gcry_error_t err = gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
-      if(err != 0)
-        {
-          std::cout << "MyLibrary libgcrypt disabling secmem error: "
-                    << af->libgcrypt_error_handling(err) << std::endl;
-          return err;
-        }
-      err = gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-      if(err != 0)
-        {
-          std::cout << "MyLibrary libgcrypt initialization error: "
-                    << af->libgcrypt_error_handling(err) << std::endl;
-          return err;
-        }
-      std::cout << "MyLibrary: libgcrypt has been initialized, version: "
-                << report << std::endl;
-
-      report = const_cast<char *>(archive_version_details());
+      std::filesystem::path p = af->share_path();
+      p = p.parent_path();
+      p /= std::filesystem::u8path("locale");
+      char *report = bindtextdomain("MyLibrary", p.u8string().c_str());
       if(report)
         {
-          std::cout << "MyLibrary: " << report << std::endl;
+          std::cout << "MyLibrary text domain path: " << report << std::endl;
         }
-
-      report = const_cast<char *>(ddjvu_get_version_string());
+      report = bind_textdomain_codeset("MyLibrary", "UTF-8");
       if(report)
         {
-          std::cout << "MyLibrary: " << report << std::endl;
+          std::cout << "MyLibrary codeset: " << report << std::endl;
+        }
+      report = textdomain("MyLibrary");
+      if(report)
+        {
+          std::cout << "MyLibrary text domain: " << report << std::endl;
         }
 #ifdef __linux
       {
@@ -98,6 +66,7 @@ main(int argc, char *argv[])
       auto app = MyLibraryApplication::create(af);
       int result = app->run(argc, argv);
       af.reset();
+      app.reset();
       return result;
     }
   else

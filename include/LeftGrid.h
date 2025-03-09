@@ -22,6 +22,7 @@
 #include <BaseKeeper.h>
 #include <BookBaseEntry.h>
 #include <Genre.h>
+#include <NotesKeeper.h>
 #include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
@@ -38,7 +39,8 @@
 class LeftGrid
 {
 public:
-  LeftGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window);
+  LeftGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
+           const std::shared_ptr<NotesKeeper> &notes);
 
   virtual ~LeftGrid();
 
@@ -60,6 +62,12 @@ public:
   bool
   reloadCollection(const std::string &col_name);
 
+  void
+  searchAuth(const std::string &auth);
+
+  void
+  reloadCollectionList();
+
   std::function<void()> clear_search_result;
 
   std::function<void(const std::vector<BookBaseEntry> &result)>
@@ -67,6 +75,9 @@ public:
 
   std::function<void(const std::vector<FileParseEntry> &result)>
       search_result_show_files;
+
+  std::function<void(const std::vector<std::string> &result)>
+      search_result_authors;
 
 private:
   Glib::RefPtr<Gtk::StringList>
@@ -99,11 +110,18 @@ private:
   void
   showCollectionFiles();
 
+  void
+  showCollectionAuthors();
+
+  void
+  showBooksWithNotes();
+
   Gtk::Grid *
   formGenreExpanderGrid(const std::vector<Genre> &genre, Gtk::Popover *pop);
 
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
+  std::shared_ptr<NotesKeeper> notes;
 
   Gtk::DropDown *collection_select = nullptr;
 

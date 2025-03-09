@@ -22,29 +22,32 @@
 #include <SearchProcessGui.h>
 #include <filesystem>
 #include <fstream>
-#include <glibmm/propertyproxy.h>
-#include <glibmm/propertyproxy_base.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/expander.h>
-#include <gtkmm/gestureclick.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
-#include <gtkmm/popover.h>
-#include <gtkmm/requisition.h>
-#include <gtkmm/scrolledwindow.h>
+#include <glibmm-2.68/glibmm/propertyproxy.h>
+#include <glibmm-2.68/glibmm/propertyproxy_base.h>
+#include <glibmm-2.68/glibmm/signalproxy.h>
+#include <glibmm-2.68/glibmm/ustring.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/enums.h>
+#include <gtkmm-4.0/gtkmm/expander.h>
+#include <gtkmm-4.0/gtkmm/gestureclick.h>
+#include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/object.h>
+#include <gtkmm-4.0/gtkmm/popover.h>
+#include <gtkmm-4.0/gtkmm/requisition.h>
+#include <gtkmm-4.0/gtkmm/scrolledwindow.h>
+#include <gtkmm-4.0/gtkmm/separator.h>
 #include <iostream>
 #include <libintl.h>
 #include <sigc++/connection.h>
 #include <thread>
 
 LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
-                   Gtk::Window *main_window)
+                   Gtk::Window *main_window,
+                   const std::shared_ptr<NotesKeeper> &notes)
 {
   this->af = af;
   this->main_window = main_window;
+  this->notes = notes;
   base_keeper = new BaseKeeper(af);
 }
 
@@ -346,6 +349,11 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
       std::bind(&LeftGrid::clear_all_search_fields, this));
   search_grid->attach(*clear, 1, 0, 1, 1);
 
+  Gtk::Separator *sep = Gtk::make_managed<Gtk::Separator>();
+  sep->set_margin(5);
+  sep->set_halign(Gtk::Align::FILL);
+  search_grid->attach(*sep, 0, 1, 2, 1);
+
   Gtk::Button *show_files = Gtk::make_managed<Gtk::Button>();
   show_files->set_halign(Gtk::Align::CENTER);
   show_files->set_margin(5);
@@ -353,7 +361,25 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   show_files->set_name("applyBut");
   show_files->signal_clicked().connect(
       std::bind(&LeftGrid::showCollectionFiles, this));
-  search_grid->attach(*show_files, 0, 1, 2, 1);
+  search_grid->attach(*show_files, 0, 2, 1, 1);
+
+  Gtk::Button *show_authors = Gtk::make_managed<Gtk::Button>();
+  show_authors->set_halign(Gtk::Align::CENTER);
+  show_authors->set_margin(5);
+  show_authors->set_label(gettext("Show collection authors"));
+  show_authors->set_name("applyBut");
+  show_authors->signal_clicked().connect(
+      std::bind(&LeftGrid::showCollectionAuthors, this));
+  search_grid->attach(*show_authors, 1, 2, 1, 1);
+
+  Gtk::Button *show_books_with_notes = Gtk::make_managed<Gtk::Button>();
+  show_books_with_notes->set_halign(Gtk::Align::CENTER);
+  show_books_with_notes->set_margin(5);
+  show_books_with_notes->set_label(gettext("Show books with notes"));
+  show_books_with_notes->set_name("applyBut");
+  show_books_with_notes->signal_clicked().connect(
+      std::bind(&LeftGrid::showBooksWithNotes, this));
+  search_grid->attach(*show_books_with_notes, 0, 3, 2, 1);
 }
 
 void
@@ -505,9 +531,75 @@ LeftGrid::showCollectionFiles()
       if(list)
         {
           coll_name = std::string(list->get_string(selected));
+          spg->createWindow(coll_name, af, 1);
+        }
+      else
+        {
+          delete spg;
         }
     }
-  spg->createWindow(coll_name, af);
+  else
+    {
+      delete spg;
+    }
+}
+
+void
+LeftGrid::showCollectionAuthors()
+{
+  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+  spg->search_result_authors = search_result_authors;
+  std::string coll_name;
+  guint selected = collection_select->get_selected();
+  if(selected != GTK_INVALID_LIST_POSITION)
+    {
+      Glib::RefPtr<Gtk::StringList> list
+          = std::dynamic_pointer_cast<Gtk::StringList>(
+              collection_select->get_model());
+      if(list)
+        {
+          coll_name = std::string(list->get_string(selected));
+          spg->createWindow(coll_name, af, 2);
+        }
+      else
+        {
+          delete spg;
+        }
+    }
+  else
+    {
+      delete spg;
+    }
+}
+
+void
+LeftGrid::showBooksWithNotes()
+{
+  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+  spg->search_result_show = search_result_show;
+  std::string coll_name;
+  guint selected = collection_select->get_selected();
+  if(selected != GTK_INVALID_LIST_POSITION)
+    {
+      Glib::RefPtr<Gtk::StringList> list
+          = std::dynamic_pointer_cast<Gtk::StringList>(
+              collection_select->get_model());
+      if(list)
+        {
+          coll_name = std::string(list->get_string(selected));
+          std::vector<NotesBaseEntry> nt
+              = notes->getNotesForCollection(coll_name);
+          spg->createWindow(nt);
+        }
+      else
+        {
+          delete spg;
+        }
+    }
+  else
+    {
+      delete spg;
+    }
 }
 
 void
@@ -540,6 +632,44 @@ LeftGrid::reloadCollection(const std::string &col_name)
     }
 
   return result;
+}
+
+void
+LeftGrid::searchAuth(const std::string &auth)
+{
+  BookBaseEntry bbe;
+  bbe.bpe.book_author = auth + "\n\n";
+  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+  spg->search_result_show = search_result_show;
+  spg->createWindow(bbe);
+}
+
+void
+LeftGrid::reloadCollectionList()
+{
+  guint selected = collection_select->get_selected();
+  Glib::ustring sel;
+  if(selected != GTK_INVALID_LIST_POSITION)
+    {
+      Glib::RefPtr<Gtk::StringList> list
+          = std::dynamic_pointer_cast<Gtk::StringList>(
+              collection_select->get_model());
+      if(list)
+        {
+          sel = list->get_string(selected);
+        }
+    }
+
+  Glib::RefPtr<Gtk::StringList> list = createCollectionsList();
+  collection_select->set_model(list);
+  for(guint i = 0; i < list->get_n_items(); i++)
+    {
+      if(sel == list->get_string(i))
+        {
+          collection_select->set_selected(i);
+          break;
+        }
+    }
 }
 
 Gtk::Grid *

@@ -167,10 +167,10 @@ CollectionCrProcessGui::createWindow(const int &variant)
     default:
       {
         delete window;
-        std::shared_ptr<CollectionCrProcessGui> ccpg(this);
+        std::unique_ptr<CollectionCrProcessGui> ccpg(this);
         break;
       }
-    }
+    }  
 }
 
 void
@@ -271,7 +271,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
   };
 
   total_bytes_to_hash_disp = new Glib::Dispatcher;
-  total_bytes_to_hash_disp->connect([this] {
+  total_bytes_to_hash_disp->connect([this] {   
     process_name->set_text(gettext("Collection hashing progress:"));
     creation_progress->set_show_text(true);
     creation_progress->set_fraction(0.0);

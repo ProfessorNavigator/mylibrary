@@ -20,6 +20,7 @@
 
 #include <AuxFunc.h>
 #include <BookMarks.h>
+#include <NotesKeeper.h>
 #include <functional>
 #include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
@@ -35,7 +36,8 @@ class RefreshCollectionGui
 public:
   RefreshCollectionGui(const std::shared_ptr<AuxFunc> &af,
                        Gtk::Window *main_window,
-                       const std::shared_ptr<BookMarks> &bookmarks);
+                       const std::shared_ptr<BookMarks> &bookmarks,
+                       const std::shared_ptr<NotesKeeper> &notes);
 
   void
   createWindow();
@@ -55,6 +57,7 @@ private:
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
   std::shared_ptr<BookMarks> bookmarks;
+  std::shared_ptr<NotesKeeper> notes;
 
   Gtk::DropDown *collection = nullptr;
   Gtk::Entry *num_threads = nullptr;
@@ -62,6 +65,9 @@ private:
   Gtk::CheckButton *fast_refreshing = nullptr;
   Gtk::CheckButton *refresh_bookmarks = nullptr;
   Gtk::CheckButton *disable_rar = nullptr;
+
+  bool reserve_notes = false;
+  std::filesystem::path reserve_notes_directory;
 };
 
 #endif // REFRESHCOLLECTIONGUI_H
