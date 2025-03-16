@@ -28,12 +28,8 @@
 #include <OpenBook.h>
 #include <SearchResultModelItem.h>
 #include <SearchResultShow.h>
-#include <cairomm-1.16/cairomm/context.h>
-#include <cairomm-1.16/cairomm/refptr.h>
 #include <functional>
 #include <giomm-2.68/giomm/menu.h>
-#include <glib-2.0/glib/gtypes.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
 #include <gtkmm-4.0/gtkmm/drawingarea.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>

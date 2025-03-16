@@ -19,7 +19,6 @@
 #define COVERPIXBUF_H
 
 #include <BookInfoEntry.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <memory>
 

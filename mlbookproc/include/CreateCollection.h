@@ -30,6 +30,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
 #ifndef USE_OPENMP
 #include <condition_variable>
 #endif
@@ -50,7 +51,7 @@ public:
 
   std::function<void()> pulse;
 
-  std::function<void(const double &file_number)> total_file_number;
+  std::function<void(const double &)> signal_total_bytes;
 
   std::function<void(const double &progress)> progress;
 
@@ -76,6 +77,8 @@ protected:
   std::vector<std::tuple<std::filesystem::path, std::string>> already_hashed;
 
   std::vector<std::filesystem::path> need_to_parse;
+
+  std::atomic<double> current_bytes;
 
 private:
   void
@@ -107,7 +110,7 @@ private:
   std::atomic<bool> *cancel = nullptr;
 
   std::fstream base_strm;
-  std::mutex base_strm_mtx;
+  std::mutex base_strm_mtx;  
 
 #ifndef USE_OPENMP
   std::mutex newthrmtx;

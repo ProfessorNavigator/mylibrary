@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <MLException.h>
 #include <XMLParser.h>
 #include <algorithm>
 
@@ -28,144 +29,8 @@ XMLParser::get_tag(const std::string &book, const std::string &tag_id)
 {
   std::vector<XMLTag> result;
 
-  if(book.size() < tag_id.size())
-    {
-      return result;
-    }
-  bool s_quot = false;
-  bool d_quot = false;
-  const char *ptr = book.data();
-  size_t lim = book.size();
-  std::string find_str = "<" + tag_id;
-  bool tag_s = false;
-  XMLTag tag;
-  tag.tag_id = tag_id;
-  bool checked = false;
-  bool found = false;
-  for(size_t i = 0; i < lim; i++)
-    {
-      switch(ptr[i])
-        {
-        case 32:
-          {
-            if(tag_s)
-              {
-                if(!checked)
-                  {
-                    if(find_str == tag.element)
-                      {
-                        found = true;
-                      }
-                    checked = true;
-                  }
-                tag.element.push_back(ptr[i]);
-              }
-            break;
-          }
-        case 34:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-                if(!s_quot)
-                  {
-                    d_quot = !d_quot;
-                  }
-              }
-            break;
-          }
-        case 39:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-                if(!d_quot)
-                  {
-                    s_quot = !s_quot;
-                  }
-              }
-            break;
-          }
-        case 60:
-          {
-            if(!s_quot && !d_quot)
-              {
-                tag_s = true;
-                checked = false;
-              }
-            if(tag_s)
-              {
-                tag.content_start = i;
-                tag.element.push_back(ptr[i]);
-              }
-            break;
-          }
-        case 62:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-              }
-            if(!s_quot && !d_quot)
-              {
-                tag.content_start += tag.element.size();
-                if(!found)
-                  {
-                    if(find_str + ">" == tag.element)
-                      {
-                        found = true;
-                      }
-                  }
-                tag_s = false;
-                if(found)
-                  {
-                    if(*(tag.element.end() - 2) != '/')
-                      {
-                        std::string f_str = "</" + tag_id + ">";
-                        std::string::size_type n = book.find(f_str, i);
-                        if(n != std::string::npos)
-                          {
-                            tag.content_end = n;
-                            tag.tag_list
-                                = listAllTags(book, tag.content_start, n);
-                            i = n + f_str.size() - 1;
-                          }
-                        else
-                          {
-                            f_str = "<" + tag_id + "/>";
-                            n = book.find(f_str, i);
-                            if(n != std::string::npos)
-                              {
-                                tag.content_end = n;
-                                tag.tag_list
-                                    = listAllTags(book, tag.content_start, n);
-                                i = n + f_str.size() - 1;
-                              }
-                          }
-                      }
-                    af->html_to_utf8(tag.element);
-                    result.push_back(tag);
-                  }
-                tag.element.clear();
-                tag.tag_list.clear();
-                tag.content_start = std::string::npos;
-                tag.content_end = std::string::npos;
-                found = false;
-                checked = false;
-              }
-            break;
-          }
-        default:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-              }
-
-            break;
-          }
-        }
-    }
+  std::vector<XMLTag> tgv = listAllTags(book);
+  searchTag(tgv, tag_id, result);
 
   return result;
 }
@@ -360,13 +225,17 @@ XMLParser::get_element_attribute(const std::string &element,
           }
         }
       n = 0;
-      while(n != std::string::npos)
+      while(!result.empty())
         {
           n = result.find(find_str, n);
           if(n != std::string::npos)
             {
               result.erase(n, find_str.size());
               result.insert(result.begin() + n, replace);
+            }
+          else
+            {
+              break;
             }
         }
     }
@@ -375,162 +244,61 @@ XMLParser::get_element_attribute(const std::string &element,
 }
 
 std::vector<XMLTag>
-XMLParser::listAllTags(const std::string &book,
-                       const std::string::size_type &offset,
-                       const std::string::size_type &lim)
+XMLParser::listAllTags(const std::string &book)
 {
   std::vector<XMLTag> result;
-
-  bool s_quot = false;
-  bool d_quot = false;
-  const char *ptr = book.data();
-  size_t llim = lim;
-  if(llim == 0)
+  if(book.empty())
     {
-      llim = book.size();
+      return result;
     }
-  bool tag_s = false;
-  XMLTag tag;
-  bool checked = false;
-
-  for(size_t i = offset; i < llim; i++)
+  std::string find_str = "?>";
+  std::string::size_type n = book.find(find_str);
+  if(n != std::string::npos)
     {
-      switch(ptr[i])
-        {
-        case 32:
-          {
-            if(tag_s)
-              {
-                if(!checked)
-                  {
-                    tag.tag_id = std::string(tag.element.begin() + 1,
-                                             tag.element.end());
-                    checked = true;
-                  }
-                tag.element.push_back(ptr[i]);
-              }
-            break;
-          }
-        case 34:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-                if(!s_quot)
-                  {
-                    d_quot = !d_quot;
-                  }
-              }
-            break;
-          }
-        case 39:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-                if(!d_quot)
-                  {
-                    s_quot = !s_quot;
-                  }
-              }
-            break;
-          }
-        case 60:
-          {
-            if(!s_quot && !d_quot)
-              {
-                tag_s = true;
-                checked = false;
-              }
-            if(tag_s)
-              {
-                tag.content_start = i;
-                tag.element.push_back(ptr[i]);
-              }
-            break;
-          }
-        case 62:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-              }
-            if(!s_quot && !d_quot)
-              {
-                tag.content_start += tag.element.size();
-                if(tag.tag_id.empty())
-                  {
-                    std::for_each(tag.element.begin(), tag.element.end(),
-                                  [&tag](char &el) {
-                                    switch(el)
-                                      {
-                                      case 0 ... 32:
-                                      case 47:
-                                      case 60:
-                                      case 62:
-                                        {
-                                          break;
-                                        }
-                                      default:
-                                        {
-                                          tag.tag_id.push_back(el);
-                                          break;
-                                        }
-                                      }
-                                  });
-                  }
-                tag_s = false;
-                if(*(tag.element.end() - 2) != '/')
-                  {
-                    std::string f_str = "</" + tag.tag_id + ">";
-                    std::string::size_type n = book.find(f_str, i);
-                    if(n != std::string::npos)
-                      {
-                        tag.content_end = n;
-                        tag.tag_list = listAllTags(book, tag.content_start, n);
-                        i = n + f_str.size() - 1;
-                      }
-                    else
-                      {
-                        f_str = "<" + tag.tag_id + "/>";
-                        n = book.find(f_str, i);
-                        if(n != std::string::npos)
-                          {
-                            tag.content_end = n;
-                            tag.tag_list
-                                = listAllTags(book, tag.content_start, n);
-                            i = n + f_str.size() - 1;
-                          }
-                      }
-                  }
-                af->html_to_utf8(tag.element);
-                if(tag.element.size() > 2)
-                  {
-                    if(std::string(tag.element.begin(),
-                                   tag.element.begin() + 2)
-                       != "</")
-                      {
-                        result.push_back(tag);
-                      }
-                  }
-                tag.element.clear();
-                tag.tag_id.clear();
-                tag.tag_list.clear();
-                tag.content_start = std::string::npos;
-                tag.content_end = std::string::npos;
-                checked = false;
-              }
-            break;
-          }
-        default:
-          {
-            if(tag_s)
-              {
-                tag.element.push_back(ptr[i]);
-              }
+      n += find_str.size();
+    }
+  else
+    {
+      n = 0;
+    }
 
-            break;
-          }
+  find_str = "<";
+
+  for(;;)
+    {
+      n = book.find(find_str, n);
+      if(n != std::string::npos)
+        {
+          XMLTag tag;
+          std::string::size_type end;
+          tag_type tg_tp;
+          tag.element = tagElement(book, n, end, tg_tp);
+          n = end;
+          tagId(tag);
+          if(tg_tp == tag_type::has_content)
+            {
+              if(n + 1 < book.size())
+                {
+                  n++;
+                  tag.content_start = n;
+                  tagContent(book, n, tag, end);
+                  n = end;
+                }
+              else
+                {
+                  result.emplace_back(tag);
+                  break;
+                }
+            }
+          else
+            {
+              tag.content_start = n + 1;
+            }
+          result.emplace_back(tag);
+        }
+      else
+        {
+          break;
         }
     }
 
@@ -555,7 +323,7 @@ XMLParser::searchTag(const std::vector<XMLTag> &list,
 }
 
 void
-XMLParser::htmlSybolsReplacement(std::string &book)
+XMLParser::htmlSymbolsReplacement(std::string &book)
 {
   for(int i = 1; i <= 5; i++)
     {
@@ -615,4 +383,352 @@ XMLParser::htmlSybolsReplacement(std::string &book)
         }
     }
   af->html_to_utf8(book);
+}
+
+void
+XMLParser::removeAllTags(std::string &book)
+{
+  std::string find_str = "<";
+  std::string::size_type n = 0;
+  std::string cdata_s = "<![CDATA[";
+  std::string cdata_e = "]]>";
+  std::string comm_s = "<!--";
+  std::string comm_e = "-->";
+  while(book.size() > 0)
+    {
+      n = book.find(find_str, n);
+      if(n != std::string::npos)
+        {
+          if(n + cdata_s.size() < book.size())
+            {
+              if(book.substr(n, cdata_s.size()) == cdata_s)
+                {
+                  book.erase(book.begin() + n,
+                             book.begin() + n + cdata_s.size());
+                  std::string::size_type n2 = book.find(cdata_e, n);
+                  if(n2 != std::string::npos)
+                    {
+                      book.erase(book.begin() + n2,
+                                 book.begin() + n2 + cdata_e.size());
+                      n = book.find(find_str, n);
+                      if(n == std::string::npos)
+                        {
+                          break;
+                        }
+                    }
+                  else
+                    {
+                      book.erase(book.begin() + n, book.end());
+                      break;
+                    }
+                }
+              else if(book.substr(n, comm_s.size()) == comm_s)
+                {
+                  std::string::size_type n2 = book.find(comm_e, n);
+                  if(n2 != std::string::npos)
+                    {
+                      book.erase(book.begin() + n,
+                                 book.begin() + n2 + comm_e.size());
+                      continue;
+                    }
+                  else
+                    {
+                      book.erase(book.begin() + n, book.end());
+                      break;
+                    }
+                }
+            }
+          std::string::size_type n2 = std::string::npos;
+          bool d_quot = false;
+          bool s_quot = false;
+          bool stop = false;
+          for(std::string::size_type i = n; i < book.size(); i++)
+            {
+              switch(book[i])
+                {
+                case 34:
+                  {
+                    if(!s_quot)
+                      {
+                        d_quot = !d_quot;
+                      }
+                    break;
+                  }
+                case 39:
+                  {
+                    if(!d_quot)
+                      {
+                        s_quot = !s_quot;
+                      }
+                    break;
+                  }
+                case 62:
+                  {
+                    if(!s_quot && !d_quot)
+                      {
+                        n2 = i + 1;
+                        stop = true;
+                      }
+                    break;
+                  }
+                default:
+                  {
+                    break;
+                  }
+                }
+              if(stop)
+                {
+                  break;
+                }
+            }
+          if(n2 != std::string::npos)
+            {
+              book.erase(book.begin() + n, book.begin() + n2);
+            }
+          else
+            {
+              book.erase(book.begin(), book.end());
+              break;
+            }
+        }
+      else
+        {
+          break;
+        }
+    }
+}
+
+std::string
+XMLParser::tagElement(const std::string &book,
+                      const std::string::size_type &start,
+                      std::string::size_type &end, tag_type &tg_type)
+{  
+  tg_type = tag_type::has_content;
+  {
+    std::string find_str = "<![CDATA[";
+    if(start + find_str.size() < book.size())
+      {
+        if(book.substr(start, find_str.size()) == find_str)
+          {
+            find_str = "]]>";
+            end = book.find(find_str, start);
+            if(end != std::string::npos)
+              {
+                end += find_str.size();
+                tg_type = tag_type::spec_tag;
+                return book.substr(start, end - start);
+              }
+            else
+              {
+                throw MLException(
+                    "XMLParser::tagElement: cannot find CDATA end");
+              }
+          }
+      }
+  }
+
+  bool stop = false;
+  bool s_quot = false;
+  bool d_quot = false;
+
+  for(end = start; end < book.size(); end++)
+    {
+      char val = book[end];
+      switch(val)
+        {
+        case 33:
+          {
+            if(end == start + 1)
+              {
+                tg_type = tag_type::spec_tag;
+              }
+            break;
+          }
+        case 34:
+          {
+            if(tg_type != tag_type::spec_tag)
+              {
+                if(!s_quot)
+                  {
+                    d_quot = !d_quot;
+                  }
+              }
+            break;
+          }
+        case 39:
+          {
+            if(tg_type != tag_type::spec_tag)
+              {
+                if(!d_quot)
+                  {
+                    s_quot = !s_quot;
+                  }
+              }
+            break;
+          }
+        case 47:
+          {
+            if(!s_quot && !d_quot)
+              {
+                if(end == start + 1)
+                  {
+                    tg_type = tag_type::end_tag;
+                  }
+                else
+                  {
+                    tg_type = tag_type::single;
+                  }
+              }
+            break;
+          }
+        case 62:
+          {
+            if(!s_quot && !d_quot)
+              {
+                stop = true;
+              }
+            break;
+          }
+        default:
+          {
+            break;
+          }
+        }
+
+      if(stop)
+        {
+          break;
+        }
+    }
+
+  std::string result = book.substr(start, end + 1 - start);
+
+  return result;
+}
+
+void
+XMLParser::tagContent(const std::string &book,
+                      const std::string::size_type &start, XMLTag &tag,
+                      std::string::size_type &tag_end)
+{
+  std::string find_str = "<";
+  std::string::size_type n = start;
+  bool stop = false;
+  while(n < book.size() - 1)
+    {
+      n = book.find(find_str, n);
+      if(n != std::string::npos)
+        {
+          tag_type tg_tp;
+          XMLTag ltg;
+          ltg.element = tagElement(book, n, tag_end, tg_tp);
+          n = tag_end;
+          switch(tg_tp)
+            {
+            case tag_type::end_tag:
+              {
+                stop = true;
+                tag.content_end = tag_end + 1 - ltg.element.size();
+                break;
+              }
+            case tag_type::spec_tag:
+            case tag_type::single:
+              {
+                tagId(ltg);
+                ltg.content_start = tag_end + 1;
+                tag.tag_list.emplace_back(ltg);
+                break;
+              }
+            case tag_type::has_content:
+              {
+                tagId(ltg);
+                if(n + 1 < book.size())
+                  {
+                    n++;
+                    ltg.content_start = n;
+                    tagContent(book, n, ltg, tag_end);
+                    n = tag_end;
+                    tag.tag_list.emplace_back(ltg);
+                  }
+                else
+                  {
+                    stop = true;
+                  }
+                break;
+              }
+            default:
+              {
+                stop = true;
+                break;
+              }
+            }
+        }
+      else
+        {
+          throw MLException("XMLParser::tagContent: cannot find tag end");
+        }
+      if(stop)
+        {
+          break;
+        }
+    }
+}
+
+void
+XMLParser::tagId(XMLTag &tag)
+{
+  std::string find_str = "<!--";
+  if(tag.element.substr(0, find_str.size()) == find_str)
+    {
+      tag.tag_id = "!--";
+      return void();
+    }
+  find_str = "<![CDATA[";
+  if(tag.element.substr(0, find_str.size()) == find_str)
+    {
+      tag.tag_id = "CDATA";
+      return void();
+    }
+
+  find_str = " ";
+  std::string::size_type n = tag.element.find(find_str);
+  if(n != std::string::npos)
+    {
+      tag.tag_id = tag.element.substr(0, n);
+      tag.tag_id.erase(std::remove_if(tag.tag_id.begin(), tag.tag_id.end(),
+                                      [](char &el) {
+                                        switch(el)
+                                          {
+                                          case 0 ... 32:
+                                          case 47:
+                                          case 60:
+                                            {
+                                              return true;
+                                            }
+                                          default:
+                                            return false;
+                                          }
+                                      }),
+                       tag.tag_id.end());
+    }
+  else
+    {
+      tag.tag_id = tag.element;
+      tag.tag_id.erase(std::remove_if(tag.tag_id.begin(), tag.tag_id.end(),
+                                      [](char &el) {
+                                        switch(el)
+                                          {
+                                          case 0 ... 32:
+                                          case 47:
+                                          case 60:
+                                          case 62:
+                                            {
+                                              return true;
+                                            }
+                                          default:
+                                            return false;
+                                          }
+                                      }),
+                       tag.tag_id.end());
+    }
 }

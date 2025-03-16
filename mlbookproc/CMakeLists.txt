@@ -6,15 +6,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-option(USE_OPENMP "Build with openmp support" OFF)
-option(USE_TBB "Build with tbb support" OFF)
 
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(POPPLER REQUIRED IMPORTED_TARGET poppler-cpp)
 pkg_check_modules(ICU REQUIRED IMPORTED_TARGET icu-i18n)
 pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
-pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
+#pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 pkg_check_modules(Gcrypt REQUIRED IMPORTED_TARGET libgcrypt)
 pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -22,14 +20,14 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     find_library(DJVU djvulibre REQUIRED)
 endif()
+find_package(LibArchive REQUIRED)
 
-if(USE_OPENMP)    
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
-    add_link_options("-fopenmp")
-endif()
-
-if(USE_TBB)
-    find_package(TBB REQUIRED)
+if(USE_OPENMP)
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
+    add_link_options("${OpenMP_CXX_FLAGS}")
+else()
+    find_package(TBB)
 endif()
 
 if(POPPLER_VERSION VERSION_LESS "22.05")
@@ -59,7 +57,7 @@ target_include_directories(mlbookproc
     PRIVATE PkgConfig::POPPLER
     PRIVATE PkgConfig::ICU
     PRIVATE PkgConfig::ICUUC
-    PRIVATE PkgConfig::LIBARCHIVE
+    PRIVATE ${LibArchive_INCLUDE_DIRS}
     PRIVATE PkgConfig::Gcrypt
     PRIVATE PkgConfig::GPG-ERROR    
 )
@@ -68,7 +66,7 @@ target_link_libraries(mlbookproc
     PUBLIC PkgConfig::POPPLER
     PUBLIC PkgConfig::ICU
     PUBLIC PkgConfig::ICUUC
-    PUBLIC PkgConfig::LIBARCHIVE
+    PUBLIC ${LibArchive_LIBRARIES}
     PUBLIC PkgConfig::Gcrypt
     PUBLIC PkgConfig::GPG-ERROR    
     PUBLIC atomic
@@ -82,8 +80,9 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(mlbookproc PUBLIC ${DJVU})
 endif()
 
-if(USE_TBB)
-    target_link_libraries(mlbookproc PUBLIC TBB::tbb)
+if(TBB_FOUND)
+    option(USE_OPENMP "Build with openmp support" ON)
+    target_link_libraries(mlbookproc PUBLIC TBB::tbb)    
 endif()
 
 include(GNUInstallDirs)

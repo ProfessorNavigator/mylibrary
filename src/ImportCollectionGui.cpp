@@ -16,25 +16,19 @@
  */
 
 #include <ByteOrder.h>
-#include <giomm/cancellable.h>
-#include <giomm/file.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
 #include <ImportCollectionGui.h>
 #include <fstream>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
+#include <giomm-2.68/giomm/file.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
 #include <libintl.h>
-#include <sigc++/connection.h>
-#include <stddef.h>
+
+#ifndef ML_GTK_OLD
+#include <giomm-2.68/giomm/cancellable.h>
+#include <gtkmm-4.0/gtkmm/error.h>
+#endif
 
 ImportCollectionGui::ImportCollectionGui(const std::shared_ptr<AuxFunc> &af,
                                          Gtk::Window *parent_window)

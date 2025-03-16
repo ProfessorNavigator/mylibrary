@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "MyLibraryApplication.h"
+#include <MyLibraryApplication.h>
 
 MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af) :
     Gtk::Application("ru.mail.bobilev_yury.MyLibrary")

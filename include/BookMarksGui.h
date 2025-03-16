@@ -24,8 +24,6 @@
 #include <NotesKeeper.h>
 #include <OpenBook.h>
 #include <giomm-2.68/giomm/menu.h>
-#include <glib-2.0/glib/gtypes.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
 #include <gtkmm-4.0/gtkmm/window.h>

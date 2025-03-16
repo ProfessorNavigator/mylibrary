@@ -18,15 +18,10 @@
 #include <CollectionCrProcessGui.h>
 #include <MLException.h>
 #include <RefreshCollection.h>
-#include <glibmm/signalproxy.h>
-#include <gtkmm/application.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/object.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
 #include <iostream>
 #include <libintl.h>
 #include <locale>
-#include <sigc++/connection.h>
 #include <sstream>
 #include <thread>
 
@@ -199,18 +194,18 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
     creation_progress->set_show_text(true);
     creation_progress->set_fraction(0.0);
   });
-  cc->total_file_number = [this](const double &tot) {
-    total_files = tot;
-    if(total_files == 0.0)
+  cc->signal_total_bytes = [this](const double &tot) {
+    total_bytes = tot;
+    if(total_bytes == 0.0)
       {
-        total_files = 1.0;
+        total_bytes = 1.0;
       }
     total_files_disp->emit();
   };
 
   progress_disp = new Glib::Dispatcher;
   progress_disp->connect([this] {
-    creation_progress->set_fraction(progress_count / total_files);
+    creation_progress->set_fraction(progress_count / total_bytes);
   });
   cc->progress = [this](const double &prog) {
     if(prog > progress_count.load())
@@ -306,18 +301,18 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
     creation_progress->set_fraction(0.0);
   });
 
-  rfr->total_file_number = [this](const double &tot) {
-    total_files = tot;
-    if(total_files == 0.0)
+  rfr->signal_total_bytes = [this](const double &tot) {
+    total_bytes = tot;
+    if(total_bytes == 0.0)
       {
-        total_files = 1.0;
+        total_bytes = 1.0;
       }
     total_files_disp->emit();
   };
 
   progress_disp = new Glib::Dispatcher;
   progress_disp->connect([this] {
-    creation_progress->set_fraction(progress_count / total_files);
+    creation_progress->set_fraction(progress_count / total_bytes);
   });
   rfr->progress = [this](const double &prog) {
     if(prog > progress_count.load())

@@ -24,7 +24,6 @@
 #include <Genre.h>
 #include <NotesKeeper.h>
 #include <functional>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/grid.h>

@@ -25,9 +25,7 @@
 #include <NotesKeeper.h>
 #include <filesystem>
 #include <functional>
-#include <giomm-2.68/giomm/asyncresult.h>
 #include <glibmm-2.68/glibmm/dispatcher.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>

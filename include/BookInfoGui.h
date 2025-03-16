@@ -23,11 +23,7 @@
 #include <BookInfo.h>
 #include <BookInfoEntry.h>
 #include <GenreGroup.h>
-#include <cairomm-1.16/cairomm/context.h>
-#include <cairomm-1.16/cairomm/refptr.h>
 #include <giomm-2.68/giomm/menu.h>
-#include <glibmm-2.68/glibmm/refptr.h>
-#include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gtkmm/grid.h>

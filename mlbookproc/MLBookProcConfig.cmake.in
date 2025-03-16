@@ -2,11 +2,10 @@
 
 include(CMakeFindDependencyMacro)
 
-find_package(PkgConfig REQUIRED)
+find_dependency(PkgConfig REQUIRED)
 pkg_check_modules(POPPLER REQUIRED IMPORTED_TARGET poppler-cpp)
 pkg_check_modules(ICU REQUIRED IMPORTED_TARGET icu-i18n)
 pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
-pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 pkg_check_modules(Gcrypt REQUIRED IMPORTED_TARGET libgcrypt)
 pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -14,8 +13,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     find_library(DJVU djvulibre REQUIRED)
 endif()
+find_dependency(LibArchive REQUIRED)
 
-find_package(TBB)
+find_dependency(TBB)
 
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 

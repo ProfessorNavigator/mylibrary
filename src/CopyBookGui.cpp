@@ -17,30 +17,26 @@
 
 #include <BookParseEntry.h>
 #include <CopyBookGui.h>
-#include <giomm/cancellable.h>
-#include <glibmm/miscutils.h>
-#include <glibmm/signalproxy.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
-#include <libintl.h>
 #include <MLException.h>
 #include <OpenBook.h>
-#include <sigc++/connection.h>
 #include <SelfRemovingPath.h>
 #include <filesystem>
 #include <functional>
+#include <glibmm-2.68/glibmm/miscutils.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
+#include <libintl.h>
 #include <string>
 
+#ifndef ML_GTK_OLD
+#include <giomm-2.68/giomm/cancellable.h>
+#include <gtkmm-4.0/gtkmm/error.h>
+#endif
+
 CopyBookGui::CopyBookGui(const std::shared_ptr<AuxFunc> &af,
-			 Gtk::Window *parent_window, const BookBaseEntry &bbe)
+                         Gtk::Window *parent_window, const BookBaseEntry &bbe)
 {
   this->af = af;
   this->parent_window = parent_window;
@@ -55,34 +51,32 @@ CopyBookGui::createWindow()
   fd->set_title(gettext("Save as..."));
   fd->set_modal(true);
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      Glib::get_home_dir());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(Glib::get_home_dir());
   fd->set_initial_folder(initial);
 
   std::string ext = bbe.file_path.extension().u8string();
-  if(ext != ".fb2" && ext != ".epub" && ext != ".pdf"
-      && ext != ".djvu")
+  if(ext != ".fb2" && ext != ".epub" && ext != ".pdf" && ext != ".djvu")
     {
       std::string bp = bbe.bpe.book_path;
       std::string::size_type n;
       std::string sstr = "\n";
       for(;;)
-	{
-	  n = bp.find(sstr);
-	  if(n != std::string::npos)
-	    {
-	      bp.erase(0, n + sstr.size());
-	    }
-	  else
-	    {
-	      if(!bp.empty())
-		{
-		  ext = std::filesystem::u8path(bp).extension()
-		      .u8string();
-		}
-	      break;
-	    }
-	}
+        {
+          n = bp.find(sstr);
+          if(n != std::string::npos)
+            {
+              bp.erase(0, n + sstr.size());
+            }
+          else
+            {
+              if(!bp.empty())
+                {
+                  ext = std::filesystem::u8path(bp).extension().u8string();
+                }
+              break;
+            }
+        }
     }
   std::string filename;
   if(!bbe.bpe.book_author.empty())
@@ -96,22 +90,20 @@ CopyBookGui::createWindow()
   fd->set_initial_name(filename);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fd->save(
-      *parent_window,
-      std::bind(&CopyBookGui::save_slot, this, std::placeholders::_1,
-		fd),
-      cncl);
+  fd->save(*parent_window,
+           std::bind(&CopyBookGui::save_slot, this, std::placeholders::_1, fd),
+           cncl);
 #endif
 #ifdef ML_GTK_OLD
-  Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
-      *parent_window, gettext("Save as..."), Gtk::FileChooser::Action::SAVE,
-      true);
+  Gtk::FileChooserDialog *fd
+      = new Gtk::FileChooserDialog(*parent_window, gettext("Save as..."),
+                                   Gtk::FileChooser::Action::SAVE, true);
   fd->set_application(parent_window->get_application());
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
-  Gtk::Button *but = fd->add_button(gettext("Cancel"),
-				    Gtk::ResponseType::CANCEL);
+  Gtk::Button *but
+      = fd->add_button(gettext("Cancel"), Gtk::ResponseType::CANCEL);
   but->set_margin(5);
   but->set_name("cancelBut");
 
@@ -119,8 +111,8 @@ CopyBookGui::createWindow()
   but->set_margin(5);
   but->set_name("applyBut");
 
-  Glib::RefPtr<Gio::File> initial = Gio::File::create_for_path(
-      Glib::get_home_dir());
+  Glib::RefPtr<Gio::File> initial
+      = Gio::File::create_for_path(Glib::get_home_dir());
   fd->set_current_folder(initial);
 
   std::string ext = bbe.file_path.extension().u8string();
@@ -130,21 +122,21 @@ CopyBookGui::createWindow()
       std::string::size_type n;
       std::string sstr = "\n";
       for(;;)
-	{
-	  n = bp.find(sstr);
-	  if(n != std::string::npos)
-	    {
-	      bp.erase(0, n + sstr.size());
-	    }
-	  else
-	    {
-	      if(!bp.empty())
-		{
-		  ext = std::filesystem::u8path(bp).extension().u8string();
-		}
-	      break;
-	    }
-	}
+        {
+          n = bp.find(sstr);
+          if(n != std::string::npos)
+            {
+              bp.erase(0, n + sstr.size());
+            }
+          else
+            {
+              if(!bp.empty())
+                {
+                  ext = std::filesystem::u8path(bp).extension().u8string();
+                }
+              break;
+            }
+        }
     }
   std::string filename;
   if(!bbe.bpe.book_author.empty())
@@ -160,13 +152,13 @@ CopyBookGui::createWindow()
   fd->signal_response().connect(
       std::bind(&CopyBookGui::save_slot, this, std::placeholders::_1, fd));
 
-  fd->signal_close_request().connect([fd]
-  {
-    std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
-    fdl->set_visible(false);
-    return true;
-  },
-				     false);
+  fd->signal_close_request().connect(
+      [fd] {
+        std::shared_ptr<Gtk::FileChooserDialog> fdl(fd);
+        fdl->set_visible(false);
+        return true;
+      },
+      false);
 
   fd->present();
 #endif
@@ -175,7 +167,7 @@ CopyBookGui::createWindow()
 #ifndef ML_GTK_OLD
 void
 CopyBookGui::save_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
-		       const Glib::RefPtr<Gtk::FileDialog> &fd)
+                       const Glib::RefPtr<Gtk::FileDialog> &fd)
 {
   std::shared_ptr<CopyBookGui> cbg;
   Glib::RefPtr<Gio::File> fl;
@@ -186,10 +178,10 @@ CopyBookGui::save_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
   catch(Gtk::DialogError &er)
     {
       if(er.code() == Gtk::DialogError::FAILED)
-	{
-	  std::cout << "CopyBookGui::save_slot error: " << er.what()
-	      << std::endl;
-	}
+        {
+          std::cout << "CopyBookGui::save_slot error: " << er.what()
+                    << std::endl;
+        }
       cbg = std::shared_ptr<CopyBookGui>(this);
     }
   if(fl)
@@ -211,13 +203,9 @@ CopyBookGui::copy_func(const Glib::RefPtr<Gio::File> &fl)
   Glib::ustring result = gettext("Book successfully saved!");
   try
     {
-      ob->open_book(
-	  bbe,
-	  false,
-	  tmp,
-	  false,
-	  std::bind(&AuxFunc::copy_book_callback, af.get(),
-		    std::placeholders::_1, out));
+      ob->open_book(bbe, false, tmp, false,
+                    std::bind(&AuxFunc::copy_book_callback, af.get(),
+                              std::placeholders::_1, out));
     }
   catch(MLException &er)
     {
@@ -237,9 +225,9 @@ CopyBookGui::save_slot(int resp, Gtk::FileChooserDialog *fd)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
-	{
-	  copy_func(fl);
-	}
+        {
+          copy_func(fl);
+        }
     }
 
   fd->close();
@@ -277,14 +265,14 @@ CopyBookGui::result_dialog(const Glib::ustring &text)
   close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
   grid->attach(*close, 0, 1, 1, 1);
 
-  window->signal_close_request().connect([window, this]
-  {
-    std::unique_ptr<Gtk::Window> win(window);
-    win->set_visible(false);
-    delete this;
-    return true;
-  },
-					 false);
+  window->signal_close_request().connect(
+      [window, this] {
+        std::unique_ptr<Gtk::Window> win(window);
+        win->set_visible(false);
+        delete this;
+        return true;
+      },
+      false);
 
   window->present();
 }

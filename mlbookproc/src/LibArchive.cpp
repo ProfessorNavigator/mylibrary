@@ -24,8 +24,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <iterator>
-#include <system_error>
 #include <unistd.h>
 
 LibArchive::LibArchive()

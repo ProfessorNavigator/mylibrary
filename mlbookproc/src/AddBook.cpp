@@ -27,7 +27,6 @@
 #include <archive_entry.h>
 #include <atomic>
 #include <iostream>
-#include <system_error>
 #include <thread>
 
 AddBook::AddBook(const std::shared_ptr<AuxFunc> &af,

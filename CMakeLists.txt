@@ -21,12 +21,17 @@ add_subdirectory(include)
 add_subdirectory(mlbookproc)
 
 if(USE_OPENMP)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP -fopenmp")
-    add_link_options("-fopenmp")
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
+    add_link_options("${OpenMP_CXX_FLAGS}")
+endif()
+
+if(USE_TBB)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
 endif()
 
 if(GTKMM_VERSION VERSION_LESS "4.10")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
 endif()
 
 if(USE_PLUGINS)
@@ -35,6 +40,10 @@ if(USE_PLUGINS)
     target_include_directories(mylibrary PRIVATE mlpluginifc/include)
     target_link_libraries(mlpluginifc PRIVATE mlbookproc)
     target_link_libraries(mylibrary PRIVATE mlpluginifc)
+
+    if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+        target_link_libraries(mylibrary PRIVATE ${CMAKE_DL_LIBS})
+    endif()
 endif()
 
 target_include_directories(mylibrary

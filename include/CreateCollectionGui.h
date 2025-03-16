@@ -19,19 +19,16 @@
 #define CREATECOLLECTIONGUI_H
 
 #include <AuxFunc.h>
-#include <giomm-2.68/giomm/asyncresult.h>
-#include <glibmm-2.68/glibmm/refptr.h>
+#include <functional>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
-
-#ifndef ML_GTK_OLD
-#include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#include <functional>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
 
+#ifndef ML_GTK_OLD
+#include <gtkmm-4.0/gtkmm/filedialog.h>
+#endif
 #ifdef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif

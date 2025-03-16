@@ -36,7 +36,10 @@ public:
   replace_tags(std::string &annotation);
 
   void
-  final_cleaning(std::string &annotation);  
+  final_cleaning(std::string &annotation);
+
+  void
+  removeAllTags(std::string &annotation);
 
 private:
   struct replace_tag
@@ -55,7 +58,7 @@ private:
 
   void
   recursiveReplacement(const std::vector<XMLTag> &tgv,
-                       std::string &annotation);
+                       std::string &annotation); 
 
   std::vector<replace_tag> replacement_table;
 };

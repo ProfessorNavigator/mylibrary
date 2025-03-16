@@ -356,6 +356,7 @@ PluginsKeeper::removeConfirmationWindow(Gtk::Widget *widg, Gtk::Widget *flbx)
   window->set_transient_for(*main_window);
   window->set_name("MLwindow");
   window->set_modal(true);
+  window->set_default_size(1, 1);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);

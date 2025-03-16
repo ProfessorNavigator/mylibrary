@@ -27,38 +27,30 @@
 #include <SaveCover.h>
 #include <TransferBookGui.h>
 #include <filesystem>
-#include <gdkmm/display.h>
-#include <gdkmm/general.h>
-#include <gdkmm/monitor.h>
-#include <gdkmm/pixbuf.h>
-#include <gdkmm/rectangle.h>
-#include <gdkmm/surface.h>
-#include <giomm/liststore.h>
-#include <giomm/menuitem.h>
-#include <giomm/simpleaction.h>
-#include <giomm/simpleactiongroup.h>
-#include <glibmm/propertyproxy.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtk/gtktypes.h>
+#include <giomm-2.68/giomm/liststore.h>
+#include <giomm-2.68/giomm/menuitem.h>
+#include <giomm-2.68/giomm/simpleaction.h>
+#include <giomm-2.68/giomm/simpleactiongroup.h>
+#include <gtkmm-4.0/gdkmm/display.h>
+#include <gtkmm-4.0/gdkmm/general.h>
+#include <gtkmm-4.0/gdkmm/monitor.h>
+#include <gtkmm-4.0/gdkmm/pixbuf.h>
+#include <gtkmm-4.0/gdkmm/rectangle.h>
+#include <gtkmm-4.0/gdkmm/surface.h>
+#include <gtkmm-4.0/gtkmm/box.h>
 #include <gtkmm-4.0/gtkmm/eventcontrollerkey.h>
+#include <gtkmm-4.0/gtkmm/gestureclick.h>
+#include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/linkbutton.h>
+#include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <gtkmm-4.0/gtkmm/separator.h>
-#include <gtkmm/application.h>
-#include <gtkmm/box.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/gestureclick.h>
-#include <gtkmm/label.h>
-#include <gtkmm/linkbutton.h>
-#include <gtkmm/object.h>
-#include <gtkmm/scrolledwindow.h>
-#include <gtkmm/singleselection.h>
-#include <gtkmm/sortlistmodel.h>
-#include <gtkmm/textchildanchor.h>
-#include <gtkmm/textiter.h>
-#include <gtkmm/textmark.h>
+#include <gtkmm-4.0/gtkmm/singleselection.h>
+#include <gtkmm-4.0/gtkmm/sortlistmodel.h>
+#include <gtkmm-4.0/gtkmm/textchildanchor.h>
+#include <gtkmm-4.0/gtkmm/textiter.h>
+#include <gtkmm-4.0/gtkmm/textmark.h>
 #include <iostream>
 #include <libintl.h>
-#include <sigc++/connection.h>
 
 RightGrid::RightGrid(const std::shared_ptr<AuxFunc> &af,
                      Gtk::Window *main_window,
@@ -174,6 +166,7 @@ RightGrid::createGrid()
   filter_ent->set_margin(5);
   filter_ent->set_has_frame(true);
   filter_ent->set_name("windowEntry");
+  filter_ent->set_width_chars(20);
   Glib::RefPtr<Gtk::EventControllerKey> key
       = Gtk::EventControllerKey::create();
   key->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
@@ -357,7 +350,7 @@ RightGrid::search_result_show(const std::vector<BookBaseEntry> &result)
   box->append(*lab);
 
   window->signal_close_request().connect(
-      [window] {
+      [window, this] {
         std::unique_ptr<Gtk::Window> win(window);
         win->set_visible(false);
         return true;
@@ -486,10 +479,17 @@ RightGrid::set_annotation_n_cover(
   if(bie)
     {
       formatter->remove_escape_sequences(bie->annotation);
+      std::string reserve_annot = bie->annotation;
       formatter->replace_tags(bie->annotation);
       formatter->final_cleaning(bie->annotation);
 
       buffer->insert_markup(buffer->begin(), Glib::ustring(bie->annotation));
+      if(buffer->size() == 0)
+        {
+          formatter->removeAllTags(reserve_annot);
+          formatter->final_cleaning(reserve_annot);
+          buffer->set_text(Glib::ustring(reserve_annot));
+        }
     }
   annotation->set_buffer(buffer);
   annotation_parse_http(buffer);

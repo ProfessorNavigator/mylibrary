@@ -19,13 +19,16 @@
 #include <MLException.h>
 #include <NotesKeeper.h>
 #include <algorithm>
-#include <execution>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <thread>
 
 #ifdef USE_OPENMP
 #include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <execution>
 #endif
 
 NotesKeeper::NotesKeeper(const std::shared_ptr<AuxFunc> &af)
@@ -79,10 +82,18 @@ void
 NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
 {
   base_mtx.lock();
+#ifdef USE_OPENMP
+  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
+                                    [nbe](NotesBaseEntry &el) {
+                                      return el == nbe;
+                                    });
+#endif
+#ifndef USE_OPENMP
   auto it = std::find_if(std::execution::par, base.begin(), base.end(),
                          [nbe](NotesBaseEntry &el) {
                            return el == nbe;
                          });
+#endif
   if(it != base.end())
     {
       if(note.size() == 0)
@@ -145,10 +156,18 @@ NotesKeeper::getNote(const std::string &collection_name,
   NotesBaseEntry nbe(collection_name, book_file_full_path, book_path);
 
   base_mtx.lock();
+#ifdef USE_OPENMP
+  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
+                                    [nbe](NotesBaseEntry &el) {
+                                      return el == nbe;
+                                    });
+#endif
+#ifndef USE_OPENMP
   auto it = std::find_if(std::execution::par, base.begin(), base.end(),
                          [nbe](NotesBaseEntry &el) {
                            return el == nbe;
                          });
+#endif
   if(it != base.end())
     {
       nbe.note_file_full_path = it->note_file_full_path;
@@ -325,7 +344,17 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
   if(to_check.size() > 0)
     {
       BaseKeeper bk(af);
-      bk.loadCollection(collection_name);
+      try
+        {
+          bk.loadCollection(collection_name);
+        }
+      catch(MLException &e)
+        {
+          std::cout << "NotesKeeper::refreshCollection: " << e.what()
+                    << std::endl;
+          return void();
+        }
+
       std::vector<FileParseEntry> bs = bk.get_base_vector();
       std::filesystem::path books_path
           = BaseKeeper::get_books_path(collection_name, af);

@@ -18,19 +18,14 @@
 #include <CoverPixBuf.h>
 #include <FullSizeCover.h>
 #include <functional>
-#include <gdkmm/display.h>
-#include <gdkmm/general.h>
-#include <gdkmm/monitor.h>
-#include <gdkmm/rectangle.h>
-#include <gdkmm/surface.h>
-#include <glibmm/signalproxy.h>
-#include <gtkmm/application.h>
-#include <gtkmm/drawingarea.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/object.h>
-#include <gtkmm/scrolledwindow.h>
+#include <gtkmm-4.0/gdkmm/display.h>
+#include <gtkmm-4.0/gdkmm/general.h>
+#include <gtkmm-4.0/gdkmm/monitor.h>
+#include <gtkmm-4.0/gdkmm/rectangle.h>
+#include <gtkmm-4.0/gdkmm/surface.h>
+#include <gtkmm-4.0/gtkmm/drawingarea.h>
+#include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <libintl.h>
-#include <sigc++/connection.h>
 
 FullSizeCover::FullSizeCover(const std::shared_ptr<BookInfoEntry> &bie,
                              Gtk::Window *parent_window)

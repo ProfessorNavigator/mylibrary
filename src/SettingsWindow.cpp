@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "gdkmm/monitor.h"
 #include <SettingsWindow.h>
 #include <fstream>
 #include <giomm-2.68/giomm/liststore.h>
+#include <gtkmm-4.0/gdkmm/monitor.h>
 #include <gtkmm-4.0/gtkmm/box.h>
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/cssprovider.h>
@@ -28,6 +28,7 @@
 #include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <iostream>
 #include <libintl.h>
+
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/colordialogbutton.h>
 #include <gtkmm-4.0/gtkmm/error.h>

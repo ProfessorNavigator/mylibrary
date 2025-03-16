@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <SearchResultModelItem.h>
 
 SearchResultModelItem::SearchResultModelItem(const BookBaseEntry &bbe)

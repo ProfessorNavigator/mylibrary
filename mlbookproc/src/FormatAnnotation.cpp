@@ -16,7 +16,9 @@
  */
 
 #include <FormatAnnotation.h>
+#include <MLException.h>
 #include <algorithm>
+#include <iostream>
 
 FormatAnnotation::FormatAnnotation(const std::shared_ptr<AuxFunc> &af)
     : XMLParser(af)
@@ -69,8 +71,15 @@ FormatAnnotation::remove_escape_sequences(std::string &annotation)
 void
 FormatAnnotation::replace_tags(std::string &annotation)
 {
-  std::vector<XMLTag> tgv = listAllTags(annotation);
-  recursiveReplacement(tgv, annotation);
+  try
+    {
+      std::vector<XMLTag> tgv = listAllTags(annotation);
+      recursiveReplacement(tgv, annotation);
+    }
+  catch(MLException &e)
+    {
+      std::cout << "FormatAnnotation::replace_tags: " << e.what() << std::endl;
+    }
 }
 
 void
@@ -180,6 +189,12 @@ FormatAnnotation::final_cleaning(std::string &annotation)
 }
 
 void
+FormatAnnotation::removeAllTags(std::string &annotation)
+{
+  XMLParser::removeAllTags(annotation);
+}
+
+void
 FormatAnnotation::replace_html(std::string &annotation,
                                const std::string &sstr,
                                const std::string &replacement)
@@ -207,6 +222,47 @@ FormatAnnotation::recursiveReplacement(const std::vector<XMLTag> &tgv,
   for(auto it = tgv.rbegin(); it != tgv.rend(); it++)
     {
       std::string tag_id = it->tag_id;
+      if(tag_id == "CDATA")
+        {
+          std::string repl = it->element;
+          std::string find_str = "<![CDATA[";
+          std::string::size_type n_cd = 0;
+          while(repl.size() > 0)
+            {
+              n_cd = repl.find(find_str, n_cd);
+              if(n_cd != std::string::npos)
+                {
+                  repl.erase(n_cd, find_str.size());
+                }
+              else
+                {
+                  break;
+                }
+            }
+          find_str = "]]>";
+          n_cd = 0;
+          while(repl.size() > 0)
+            {
+              n_cd = repl.find(find_str, n_cd);
+              if(n_cd != std::string::npos)
+                {
+                  repl.erase(n_cd, find_str.size());
+                }
+              else
+                {
+                  break;
+                }
+            }
+          if(it->content_start != std::string::npos)
+            {
+              auto it_r
+                  = annotation.erase(annotation.begin() + it->content_start
+                                         - it->element.size() - 1,
+                                     annotation.begin() + it->content_start);
+              annotation.insert(it_r, repl.begin(), repl.end());
+            }
+          continue;
+        }
       auto it_rpl
           = std::find_if(replacement_table.begin(), replacement_table.end(),
                          [tag_id](replace_tag &el) {

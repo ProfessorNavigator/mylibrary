@@ -17,13 +17,52 @@
 
 #include <MLException.h>
 
+MLException::MLException()
+{
+}
+
 MLException::MLException(const std::string &msg)
 {
   this->msg = msg;
+}
+
+MLException::MLException(const MLException &other)
+{
+  msg = other.msg;
+}
+
+MLException::MLException(MLException &&other)
+{
+  msg = std::move(other.msg);
+}
+
+MLException &
+MLException::operator=(const MLException &other)
+{
+  if(this != &other)
+    {
+      msg = other.msg;
+    }
+  return *this;
+}
+
+MLException &
+MLException::operator=(MLException &&other)
+{
+  if(this != &other)
+    {
+      msg = std::move(other.msg);
+    }
+  return *this;
 }
 
 std::string
 MLException::what()
 {
   return msg;
+}
+
+MLException::operator bool()
+{
+  return !msg.empty();
 }

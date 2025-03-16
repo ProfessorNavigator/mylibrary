@@ -21,7 +21,6 @@
 #include <OpenBook.h>
 #include <algorithm>
 #include <iostream>
-#include <system_error>
 
 OpenBook::OpenBook(const std::shared_ptr<AuxFunc> &af)
 {

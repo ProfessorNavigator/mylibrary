@@ -19,19 +19,17 @@
 #define SAVECOVER_H
 
 #include <BookInfoEntry.h>
-#include <giomm-2.68/giomm/asyncresult.h>
 #include <giomm-2.68/giomm/file.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 
+#ifndef ML_GTK_OLD
+#include <gtkmm-4.0/gtkmm/filedialog.h>
+#endif
 #ifdef ML_GTK_OLD
-#include <gtkmm/filechooserdialog.h>
+#include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
 class SaveCover

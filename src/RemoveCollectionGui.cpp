@@ -17,18 +17,12 @@
 
 #include <RemoveCollectionGui.h>
 #include <filesystem>
-#include <glibmm/main.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
+#include <glibmm-2.68/glibmm/main.h>
+#include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <libintl.h>
-#include <sigc++/connection.h>
 
 RemoveCollectionGui::RemoveCollectionGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
@@ -263,13 +257,17 @@ RemoveCollectionGui::successDialog(Gtk::Window *win,
     }
 
   win->unset_child();
-  win->queue_resize();
   win->set_default_size(1, 1);
+
+  Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+  while(mc->pending())
+    {
+      mc->iteration(true);
+    }
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
-  grid->set_expand(true);
   win->set_child(*grid);
 
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();

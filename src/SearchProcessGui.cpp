@@ -16,17 +16,12 @@
  */
 
 #include <SearchProcessGui.h>
-#include <glibmm/dispatcher.h>
-#include <glibmm/signalproxy.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
+#include <glibmm-2.68/glibmm/dispatcher.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <libintl.h>
 #include <memory>
-#include <sigc++/connection.h>
 #include <thread>
 
 SearchProcessGui::SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window)
@@ -125,7 +120,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   grid->attach(*cancel, 0, 1, 1, 1);
 
   window->signal_close_request().connect(
-      [window, this] {        
+      [window, this] {
         std::unique_ptr<SearchProcessGui> gui(this);
         std::unique_ptr<Gtk::Window> win(window);
         win->set_visible(false);
@@ -203,7 +198,7 @@ SearchProcessGui::createWindow(const std::vector<NotesBaseEntry> &notes)
 void
 SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
 {
-  Glib::Dispatcher *search_finished = new Glib::Dispatcher;  
+  Glib::Dispatcher *search_finished = new Glib::Dispatcher;
 
   search_finished->connect([this, win, search_finished] {
     std::unique_ptr<Glib::Dispatcher> disp(search_finished);

@@ -15,16 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <archive.h>
-#include <archive_entry.h>
 #include <ArchiveFileEntry.h>
 #include <ArchiveRemoveEntry.h>
 #include <BookParseEntry.h>
 #include <MLException.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
+#include <archive.h>
+#include <archive_entry.h>
 #include <iostream>
-#include <system_error>
 
 RemoveBook::RemoveBook(const std::shared_ptr<AuxFunc> &af,
                        const BookBaseEntry &bbe, const std::string &col_name,

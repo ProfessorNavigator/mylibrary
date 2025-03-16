@@ -27,9 +27,7 @@
 #include <functional>
 #include <giomm-2.68/giomm/liststore.h>
 #include <giomm-2.68/giomm/menu.h>
-#include <glib-2.0/glib/gtypes.h>
 #include <glibmm-2.68/glibmm/dispatcher.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/columnviewcolumn.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/grid.h>

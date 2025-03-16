@@ -49,9 +49,16 @@ XMLTag::operator=(const XMLTag &other)
 bool
 XMLTag::hasContent() const
 {
-  if(content_start != std::string::npos && content_end != std::string::npos)
+  if(content_start != std::string::npos)
     {
-      return true;
+      if(content_end != content_start && content_end != std::string::npos)
+        {
+          return true;
+        }
+      else
+        {
+          return false;
+        }
     }
   else
     {

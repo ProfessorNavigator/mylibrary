@@ -24,7 +24,6 @@
 #include <archive_entry.h>
 #include <filesystem>
 #include <memory>
-#include <stddef.h>
 #include <string>
 #include <tuple>
 #include <vector>

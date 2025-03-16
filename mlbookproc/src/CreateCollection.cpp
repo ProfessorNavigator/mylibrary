@@ -25,14 +25,12 @@
 #include <MLException.h>
 #include <PDFParser.h>
 #include <algorithm>
-#include <cstdint>
 #include <cstring>
 #include <iostream>
-#include <iterator>
+
 #ifndef USE_OPENMP
 #include <thread>
 #endif
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -54,6 +52,7 @@ CreateCollection::CreateCollection(
       this->num_threads = num_threads;
     }
   this->cancel = cancel;
+  current_bytes.store(0.0);
 }
 
 CreateCollection::~CreateCollection()
@@ -123,9 +122,27 @@ CreateCollection::createCollection()
                          }),
           need_to_parse.end());
     }
-  if(total_file_number)
+
+  if(signal_total_bytes)
     {
-      total_file_number(static_cast<double>(need_to_parse.size()));
+      double tmp = 0.0;
+      for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
+        {
+          std::error_code ec;
+          uintmax_t sz
+              = static_cast<double>(std::filesystem::file_size(*it, ec));
+
+          if(ec)
+            {
+              std::cout << "CreateCollection::createCollection: "
+                        << ec.message() << std::endl;
+            }
+          else
+            {
+              tmp += static_cast<double>(sz);
+            }
+        }
+      signal_total_bytes(tmp);
     }
   threadRegulator();
 }
@@ -180,10 +197,6 @@ CreateCollection::threadRegulator()
             {
               std::cout << er.what() << std::endl;
             }
-          if(progress)
-            {
-              progress(static_cast<double>(i + 1));
-            }
         }
       else if(ext == ".epub")
         {
@@ -194,10 +207,6 @@ CreateCollection::threadRegulator()
           catch(MLException &er)
             {
               std::cout << er.what() << std::endl;
-            }
-          if(progress)
-            {
-              progress(static_cast<double>(i + 1));
             }
         }
       else if(ext == ".pdf")
@@ -210,10 +219,6 @@ CreateCollection::threadRegulator()
             {
               std::cout << er.what() << std::endl;
             }
-          if(progress)
-            {
-              progress(static_cast<double>(i + 1));
-            }
         }
       else if(ext == ".djvu")
         {
@@ -224,10 +229,6 @@ CreateCollection::threadRegulator()
           catch(MLException &er)
             {
               std::cout << er.what() << std::endl;
-            }
-          if(progress)
-            {
-              progress(static_cast<double>(i + 1));
             }
         }
       else
@@ -240,11 +241,25 @@ CreateCollection::threadRegulator()
             {
               std::cout << er.what() << std::endl;
             }
-          if(progress)
-            {
-              progress(static_cast<double>(i + 1));
-            }
         }
+
+      if(progress)
+        {
+          std::error_code ec;
+          uintmax_t sz = std::filesystem::file_size(p, ec);
+          if(ec)
+            {
+              std::cout << "CreateCollection::threadRegulator " << ext << ": "
+                        << ec.message() << std::endl;
+            }
+          else
+            {
+              current_bytes.store(current_bytes.load()
+                                  + static_cast<double>(sz));
+            }
+          progress(current_bytes.load());
+        }
+
       cout_mtx.lock();
       std::cout << "Finish parsing: " << p.u8string() << std::endl;
       cout_mtx.unlock();
@@ -288,7 +303,19 @@ CreateCollection::threadRegulator()
               }
             if(progress)
               {
-                progress(static_cast<double>(i + 1));
+                std::error_code ec;
+                uintmax_t sz = std::filesystem::file_size(p, ec);
+                if(ec)
+                  {
+                    std::cout << "CreateCollection::threadRegulator fb2: "
+                              << ec.message() << std::endl;
+                  }
+                else
+                  {
+                    current_bytes.store(current_bytes.load()
+                                        + static_cast<double>(sz));
+                  }
+                progress(current_bytes.load());
               }
             std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
@@ -312,7 +339,19 @@ CreateCollection::threadRegulator()
               }
             if(progress)
               {
-                progress(static_cast<double>(i + 1));
+                std::error_code ec;
+                uintmax_t sz = std::filesystem::file_size(p, ec);
+                if(ec)
+                  {
+                    std::cout << "CreateCollection::threadRegulator epub: "
+                              << ec.message() << std::endl;
+                  }
+                else
+                  {
+                    current_bytes.store(current_bytes.load()
+                                        + static_cast<double>(sz));
+                  }
+                progress(current_bytes.load());
               }
             std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
@@ -336,7 +375,19 @@ CreateCollection::threadRegulator()
               }
             if(progress)
               {
-                progress(static_cast<double>(i + 1));
+                std::error_code ec;
+                uintmax_t sz = std::filesystem::file_size(p, ec);
+                if(ec)
+                  {
+                    std::cout << "CreateCollection::threadRegulator pdf: "
+                              << ec.message() << std::endl;
+                  }
+                else
+                  {
+                    current_bytes.store(current_bytes.load()
+                                        + static_cast<double>(sz));
+                  }
+                progress(current_bytes.load());
               }
             std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
@@ -362,6 +413,22 @@ CreateCollection::threadRegulator()
               {
                 progress(static_cast<double>(i + 1));
               }
+            if(progress)
+              {
+                std::error_code ec;
+                uintmax_t sz = std::filesystem::file_size(p, ec);
+                if(ec)
+                  {
+                    std::cout << "CreateCollection::threadRegulator djvu: "
+                              << ec.message() << std::endl;
+                  }
+                else
+                  {
+                    current_bytes.store(current_bytes.load()
+                                        + static_cast<double>(sz));
+                  }
+                progress(current_bytes.load());
+              }
             std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
             run_threads--;
@@ -385,6 +452,22 @@ CreateCollection::threadRegulator()
             if(progress)
               {
                 progress(static_cast<double>(i + 1));
+              }
+            if(progress)
+              {
+                std::error_code ec;
+                uintmax_t sz = std::filesystem::file_size(p, ec);
+                if(ec)
+                  {
+                    std::cout << "CreateCollection::threadRegulator archive: "
+                              << ec.message() << std::endl;
+                  }
+                else
+                  {
+                    current_bytes.store(current_bytes.load()
+                                        + static_cast<double>(sz));
+                  }
+                progress(current_bytes.load());
               }
             std::lock_guard<std::mutex> lk(newthrmtx);
             std::cout << "Parsing finished: " << p.u8string() << std::endl;
@@ -428,6 +511,10 @@ CreateCollection::fb2_thread(const std::filesystem::path &file_col_path,
   if(ec)
     {
       throw MLException("CreateCollection::fb2_thread: " + ec.message());
+    }
+  if(fsz == 0)
+    {
+      throw MLException("CreateCollection::fb2_thread: file size is zero");
     }
 
   std::fstream f;
@@ -608,6 +695,10 @@ CreateCollection::pdf_thread(const std::filesystem::path &file_col_path,
   if(ec)
     {
       throw MLException("CreateCollection::pdf_thread: " + ec.message());
+    }
+  if(fsz == 0)
+    {
+      throw MLException("CreateCollection::pdf_thread: file size is zero");
     }
 
   std::fstream f;

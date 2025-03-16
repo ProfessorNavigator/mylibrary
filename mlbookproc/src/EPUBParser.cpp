@@ -132,7 +132,7 @@ EPUBParser::epubTitle(const std::string &root_file_content,
                     std::back_inserter(result));
         }
     }
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -253,7 +253,7 @@ EPUBParser::epubAuthor(const std::string &root_file_content,
             }
         }
     }
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   std::string::size_type n = 0;
   std::string find_str = "  ";
@@ -341,7 +341,7 @@ EPUBParser::epubGenre(const std::string &root_file_content,
         }
     }
 
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -369,7 +369,7 @@ EPUBParser::epubDate(const std::string &root_file_content,
         }
     }
 
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -448,6 +448,8 @@ EPUBParser::epub_annotation(const std::string &root_file_content)
                     buf.begin() + it->content_end, std::back_inserter(result));
         }
     }
+
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -572,7 +574,7 @@ EPUBParser::epub_language(const std::string &root_file_content,
                     std::back_inserter(result.language));
         }
     }
-  htmlSybolsReplacement(result.language);
+  htmlSymbolsReplacement(result.language);
 }
 
 void
@@ -700,7 +702,7 @@ EPUBParser::epub_translator(const std::string &root_file_content,
             }
         }
     }
-  htmlSybolsReplacement(result.translator);
+  htmlSymbolsReplacement(result.translator);
 }
 
 void
@@ -727,7 +729,7 @@ EPUBParser::epub_publisher(const std::string &root_file_content,
         }
     }
 
-  htmlSybolsReplacement(result.electro->publisher);
+  htmlSymbolsReplacement(result.electro->publisher);
 }
 
 void
@@ -753,7 +755,7 @@ EPUBParser::epub_identifier(const std::string &root_file_content,
         }
     }
 
-  htmlSybolsReplacement(result.electro->id);
+  htmlSymbolsReplacement(result.electro->id);
 }
 
 void
@@ -779,5 +781,5 @@ EPUBParser::epub_source(const std::string &root_file_content,
         }
     }
 
-  htmlSybolsReplacement(result.electro->src_url);
+  htmlSymbolsReplacement(result.electro->src_url);
 }

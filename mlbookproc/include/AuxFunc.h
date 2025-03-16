@@ -26,6 +26,10 @@
 #include <tuple>
 #include <vector>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 class AuxFunc
 {
 public:
@@ -107,6 +111,95 @@ public:
 
   bool
   get_activated();
+
+#ifdef USE_OPENMP
+  template <class InputIt,
+            class T = typename std::iterator_traits<InputIt>::value_type>
+  static InputIt
+  parallelFind(InputIt start, InputIt end, const T &val)
+  {
+    InputIt res = end;
+#pragma omp parallel
+    {
+#pragma omp for
+      for(InputIt i = start; i != end; i++)
+        {
+          if(res < i)
+            {
+              continue;
+            }
+          else if(*i == val)
+            {
+              res = i;
+#pragma omp cancel for
+            }
+        }
+    }
+    return res;
+  }
+
+  template <class InputIt, class UnaryPred>
+  static InputIt
+  parallelFindIf(InputIt start, InputIt end, UnaryPred predicate)
+  {
+    InputIt res = end;
+#pragma omp parallel
+    {
+#pragma omp for
+      for(InputIt i = start; i != end; i++)
+        {
+          if(res < i)
+            {
+              continue;
+            }
+          else if(predicate(*i))
+            {
+              res = i;
+#pragma omp cancel for
+            }
+        }
+    }
+
+    return res;
+  }
+
+  template <class InputIt,
+            class T = typename std::iterator_traits<InputIt>::value_type>
+  static InputIt
+  parallelRemove(InputIt start, InputIt end, const T &val)
+  {
+    start = parallelFind(start, end, val);
+    if(start != end)
+      {
+        for(InputIt i = start; ++i != end;)
+          {
+            if(!(*i == val))
+              {
+                *start++ = std::move(*i);
+              }
+          }
+      }
+    return start;
+  }
+
+  template <class InputIt, class UnaryPred>
+  static InputIt
+  parallelRemoveIf(InputIt start, InputIt end, UnaryPred predicate)
+  {
+    start = parallelFindIf(start, end, predicate);
+    if(start != end)
+      {
+        for(InputIt i = start; ++i != end;)
+          {
+            if(!predicate(*i))
+              {
+                *start++ = std::move(*i);
+              }
+          }
+      }
+    return start;
+  }
+#endif
 
 private:
   AuxFunc();

@@ -20,22 +20,17 @@
 #include <SearchResultShow.h>
 #include <filesystem>
 #include <functional>
-#include <glibmm/main.h>
-#include <glibmm/signalproxy.h>
-#include <gtkmm/adjustment.h>
-#include <gtkmm/columnviewcolumn.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/expression.h>
-#include <gtkmm/filterlistmodel.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
-#include <gtkmm/singleselection.h>
-#include <gtkmm/sortlistmodel.h>
-#include <gtkmm/stringfilter.h>
-#include <gtkmm/stringsorter.h>
+#include <glibmm-2.68/glibmm/main.h>
+#include <gtkmm-4.0/gtkmm/adjustment.h>
+#include <gtkmm-4.0/gtkmm/columnviewcolumn.h>
+#include <gtkmm-4.0/gtkmm/expression.h>
+#include <gtkmm-4.0/gtkmm/filterlistmodel.h>
+#include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/singleselection.h>
+#include <gtkmm-4.0/gtkmm/sortlistmodel.h>
+#include <gtkmm-4.0/gtkmm/stringfilter.h>
+#include <gtkmm-4.0/gtkmm/stringsorter.h>
 #include <libintl.h>
-#include <pangomm/layout.h>
-#include <sigc++/connection.h>
 #include <thread>
 
 SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,

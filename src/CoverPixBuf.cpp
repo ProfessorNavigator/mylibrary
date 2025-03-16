@@ -16,10 +16,8 @@
  */
 
 #include <CoverPixBuf.h>
-#include <giomm/memoryinputstream.h>
-#include <glibmm/base64.h>
-#include <glibmm/bytes.h>
-#include <glibmm/error.h>
+#include <giomm-2.68/giomm/memoryinputstream.h>
+#include <glibmm-2.68/glibmm/base64.h>
 #include <iostream>
 #include <string>
 

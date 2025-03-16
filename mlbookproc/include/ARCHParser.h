@@ -62,6 +62,8 @@ private:
   std::vector<BookParseEntry> fbd;
 
   std::thread parse_thr;
+
+  std::filesystem::path arch_path;
 };
 
 #endif // ARCHPARSER_H

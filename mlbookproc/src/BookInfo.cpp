@@ -27,7 +27,6 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
-#include <system_error>
 #include <vector>
 
 BookInfo::BookInfo(const std::shared_ptr<AuxFunc> &af)

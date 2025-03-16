@@ -18,8 +18,8 @@
 #ifndef MYLIBRARYAPPLICATION_H
 #define MYLIBRARYAPPLICATION_H
 
-#include "MainWindow.h"
-#include <gtkmm.h>
+#include <MainWindow.h>
+#include <gtkmm-4.0/gtkmm/application.h>
 
 class MyLibraryApplication : public Gtk::Application
 {

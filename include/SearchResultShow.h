@@ -26,8 +26,6 @@
 #include <SearchResultModelItemFL.h>
 #include <giomm-2.68/giomm/liststore.h>
 #include <glibmm-2.68/glibmm/dispatcher.h>
-#include <glibmm-2.68/glibmm/refptr.h>
-#include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gtkmm/columnview.h>
 #include <gtkmm-4.0/gtkmm/filterlistmodel.h>
 #include <gtkmm-4.0/gtkmm/listitem.h>

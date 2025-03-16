@@ -17,27 +17,21 @@
 
 #include <CollectionCrProcessGui.h>
 #include <CreateCollectionGui.h>
-#include <giomm/cancellable.h>
-#include <giomm/file.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
 #include <filesystem>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
+#include <giomm-2.68/giomm/file.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
 #include <libintl.h>
 #include <locale>
-#include <sigc++/connection.h>
 #include <sstream>
 #include <thread>
+
+#ifndef ML_GTK_OLD
+#include <giomm-2.68/giomm/cancellable.h>
+#include <gtkmm-4.0/gtkmm/error.h>
+#endif
 
 CreateCollectionGui::CreateCollectionGui(const std::shared_ptr<AuxFunc> &af,
                                          Gtk::Window *main_window)

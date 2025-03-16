@@ -90,7 +90,7 @@ private:
   Glib::Dispatcher *total_bytes_to_hash_disp = nullptr;
   Glib::Dispatcher *bytes_hashed_disp = nullptr;
 
-  double total_files = 0.0;
+  double total_bytes = 0.0;
   std::atomic<double> progress_count;
 
   double total_bytes_to_hash = 0.0;

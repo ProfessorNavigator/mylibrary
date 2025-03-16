@@ -51,6 +51,7 @@ ARCHParser::~ARCHParser()
 std::vector<BookParseEntry>
 ARCHParser::arch_parser(const std::filesystem::path &filepath)
 {
+  arch_path = filepath;
   std::shared_ptr<ArchiveFileEntry> fl = createArchFile(filepath, 0);
   if(fl)
     {
@@ -164,6 +165,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     {
       return void();
     }
+
   if(af->if_supported_type(ch_p) || ext == ".fbd")
     {
       std::string buf;
@@ -180,8 +182,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               }
             catch(MLException &er)
               {
-                std::cout << "ARCHParser::unpack_entry error: " << er.what()
-                          << std::endl;
+                std::cout << "ARCHParser::unpack_entry error " << arch_path
+                          << " " << ch_p << " " << er.what() << std::endl;
                 return void();
               }
             bpe.book_path = ch_p.u8string();
@@ -212,9 +214,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   }
                 catch(MLException &er)
                   {
-                    std::cout
-                        << "ARCHParser::unpack_entry error: " << er.what()
-                        << std::endl;
+                    std::cout << "ARCHParser::unpack_entry error " << arch_path
+                              << " " << ch_p << " " << er.what() << std::endl;
                     return void();
                   }
                 bpe.book_path = ch_p.u8string();
@@ -245,8 +246,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               }
             catch(MLException &er)
               {
-                std::cout << "ARCHParser::unpack_entry error: " << er.what()
-                          << std::endl;
+                std::cout << "ARCHParser::unpack_entry error " << arch_path
+                          << " " << ch_p << " " << er.what() << std::endl;
                 return void();
               }
             bpe.book_path = ch_p.u8string();
@@ -278,9 +279,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   }
                 catch(MLException &er)
                   {
-                    std::cout
-                        << "ARCHParser::unpack_entry error: " << er.what()
-                        << std::endl;
+                    std::cout << "ARCHParser::unpack_entry error " << arch_path
+                              << " " << ch_p << " " << er.what() << std::endl;
                     return void();
                   }
                 bpe.book_date = book_date;
@@ -312,8 +312,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               }
             catch(MLException &er)
               {
-                std::cout << "ARCHParser::unpack_entry error: " << er.what()
-                          << std::endl;
+                std::cout << "ARCHParser::unpack_entry error " << arch_path
+                          << " " << ch_p << " " << er.what() << std::endl;
                 return void();
               }
             bpe.book_path = ch_p.u8string();
@@ -343,8 +343,8 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   }
                 catch(MLException &er)
                   {
-                    std::cout << "ARCHParser::unpack_entry: " << er.what()
-                              << std::endl;
+                    std::cout << "ARCHParser::unpack_entry error " << arch_path
+                              << " " << ch_p << " " << er.what() << std::endl;
                     return void();
                   }
                 for(auto it = rec_v.begin(); it != rec_v.end(); it++)

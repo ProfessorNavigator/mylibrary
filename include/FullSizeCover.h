@@ -19,9 +19,6 @@
 #define FULLSIZECOVER_H
 
 #include <BookInfoEntry.h>
-#include <cairomm-1.16/cairomm/context.h>
-#include <cairomm-1.16/cairomm/refptr.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>

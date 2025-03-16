@@ -16,30 +16,23 @@
  */
 
 #include <CoverPixBuf.h>
-#include <gdkmm/pixbuf.h>
-#include <gdkmm/pixbufformat.h>
-#include <giomm/cancellable.h>
-#include <glib/gtypes.h>
-#include <glibmm/miscutils.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
-#endif
 #include <SaveCover.h>
 #include <filesystem>
 #include <functional>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
+#include <glibmm-2.68/glibmm/miscutils.h>
+#include <gtkmm-4.0/gdkmm/pixbuf.h>
+#include <gtkmm-4.0/gdkmm/pixbufformat.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
 #include <libintl.h>
-#include <pangomm/layout.h>
-#include <sigc++/connection.h>
 #include <vector>
+
+#ifndef ML_GTK_OLD
+#include <giomm-2.68/giomm/cancellable.h>
+#include <gtkmm-4.0/gtkmm/error.h>
+#endif
 
 SaveCover::SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
                      Gtk::Window *parent_window)

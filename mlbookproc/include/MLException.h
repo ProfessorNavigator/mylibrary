@@ -23,10 +23,24 @@
 class MLException
 {
 public:
+  MLException();
+
   MLException(const std::string &msg);
 
+  MLException(const MLException &other);
+
+  MLException(MLException &&other);
+
+  MLException &
+  operator=(const MLException &other);
+
+  MLException &
+  operator=(MLException &&other);
+
+  operator bool();
+
   std::string
-  what();
+  what();  
 
 private:
   std::string msg;

@@ -18,8 +18,7 @@
 #ifndef ADDBOOKMODELITEM_H
 #define ADDBOOKMODELITEM_H
 
-#include <glibmm-2.68/glibmm/refptr.h>
-#include <gtkmm-4.0/gtkmm/label.h>
+#include <glibmm-2.68/glibmm/object.h>
 #include <string>
 
 class AddBookModelItem : public Glib::Object

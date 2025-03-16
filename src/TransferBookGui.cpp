@@ -25,31 +25,23 @@
 #include <SelfRemovingPath.h>
 #include <TransferBookGui.h>
 #include <atomic>
-#include <giomm/cancellable.h>
-#include <giomm/file.h>
-#include <giomm/liststore.h>
-#include <glibmm/main.h>
-#include <glibmm/propertyproxy.h>
-#include <glibmm/propertyproxy_base.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtkmm/application.h>
-#include <gtkmm/button.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/filefilter.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/label.h>
-#include <gtkmm/object.h>
-#include <gtkmm/stringobject.h>
+#include <giomm-2.68/giomm/file.h>
+#include <giomm-2.68/giomm/liststore.h>
+#include <glibmm-2.68/glibmm/main.h>
+#include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/filefilter.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <iostream>
 #include <libintl.h>
-#include <sigc++/connection.h>
 #include <thread>
 #include <tuple>
 #include <vector>
 
 #ifndef ML_GTK_OLD
-#include <gtkmm/error.h>
+#include <giomm-2.68/giomm/cancellable.h>
+#include <gtkmm-4.0/gtkmm/error.h>
 #endif
 
 TransferBookGui::TransferBookGui(const std::shared_ptr<AuxFunc> &af,

@@ -19,7 +19,6 @@
 #define EDITBOOKGENREMODELITEM_H
 
 #include <glibmm-2.68/glibmm/object.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <string>
 
 class EditBookGenreModelItem : public Glib::Object

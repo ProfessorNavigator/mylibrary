@@ -21,7 +21,6 @@
 #include <AuxFunc.h>
 #include <NotesKeeper.h>
 #include <functional>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>

@@ -20,7 +20,6 @@
 #include <fstream>
 #include <gcrypt.h>
 #include <iostream>
-#include <stddef.h>
 #include <thread>
 
 Hasher::Hasher(const std::shared_ptr<AuxFunc> &af)

@@ -29,32 +29,22 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
-#include <gdkmm/display.h>
-#include <gdkmm/monitor.h>
-#include <gdkmm/pixbuf.h>
-#include <gdkmm/rectangle.h>
-#include <gdkmm/surface.h>
-#include <gdkmm/texture.h>
-#include <giomm/menu.h>
-#include <giomm/menuitem.h>
-#include <giomm/simpleaction.h>
-#include <giomm/simpleactiongroup.h>
-#include <glib/gtypes.h>
-#include <glibmm/refptr.h>
-#include <glibmm/signalproxy.h>
-#include <glibmm/ustring.h>
-#include <gtk/gtkstyleprovider.h>
-#include <gtk/gtktypes.h>
-#include <gtkmm/aboutdialog.h>
-#include <gtkmm/application.h>
-#include <gtkmm/cssprovider.h>
-#include <gtkmm/dropdown.h>
-#include <gtkmm/enums.h>
-#include <gtkmm/grid.h>
-#include <gtkmm/object.h>
-#include <gtkmm/stringlist.h>
+#include <giomm-2.68/giomm/menu.h>
+#include <giomm-2.68/giomm/menuitem.h>
+#include <giomm-2.68/giomm/simpleaction.h>
+#include <giomm-2.68/giomm/simpleactiongroup.h>
+#include <gtkmm-4.0/gdkmm/display.h>
+#include <gtkmm-4.0/gdkmm/monitor.h>
+#include <gtkmm-4.0/gdkmm/pixbuf.h>
+#include <gtkmm-4.0/gdkmm/rectangle.h>
+#include <gtkmm-4.0/gdkmm/surface.h>
+#include <gtkmm-4.0/gdkmm/texture.h>
+#include <gtkmm-4.0/gtkmm/aboutdialog.h>
+#include <gtkmm-4.0/gtkmm/cssprovider.h>
+#include <gtkmm-4.0/gtkmm/dropdown.h>
+#include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <libintl.h>
-#include <sigc++/connection.h>
 
 MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
@@ -508,6 +498,12 @@ MainWindow::about_dialog()
             "ICU https://icu.unicode.org/\n"
             "Poppler https://poppler.freedesktop.org/\n"
             "DjVuLibre https://djvu.sourceforge.net/");
+#ifdef USE_OPENMP
+  abbuf += "\nOpenMP https://www.openmp.org/";
+#endif
+#ifdef USE_TBB
+  abbuf += "\noneTBB https://github.com/uxlfoundation/oneTBB";
+#endif
   about->set_comments(abbuf);
 
   about->signal_close_request().connect(

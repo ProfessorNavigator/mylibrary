@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iostream>
 #include <tuple>
+
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -115,12 +116,12 @@ RefreshCollection::get_books_path()
 
 void
 RefreshCollection::refreshCollection()
-{
+{  
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
   bk->loadCollection(base_path.parent_path().filename().u8string());
   std::vector<FileParseEntry> base = bk->get_base_vector();
   if(std::filesystem::exists(books_path))
-    {
+    {      
       std::vector<std::filesystem::path> books_files;
       std::vector<std::filesystem::path> empty_paths;
       for(auto &dirit : std::filesystem::recursive_directory_iterator(
@@ -211,9 +212,22 @@ RefreshCollection::refreshCollection()
           write_file_to_base(*it);
         }
       closeBaseFile();
-      if(total_file_number)
+
+      if(signal_total_bytes)
         {
-          total_file_number(static_cast<double>(need_to_parse.size()));
+          double tmp = 0.0;
+          for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
+            {
+              std::error_code ec;
+              tmp += static_cast<double>(std::filesystem::file_size(*it, ec));
+              if(ec)
+                {
+                  std::cout
+                      << "CreateCollection::createCollection: " << ec.message()
+                      << std::endl;
+                }
+            }
+          signal_total_bytes(tmp);
         }
       threadRegulator();
 
@@ -223,7 +237,7 @@ RefreshCollection::refreshCollection()
         }
     }
   else
-    {
+    {      
       throw MLException(
           "RefreshCollection::refreshCollection: books not found");
     }

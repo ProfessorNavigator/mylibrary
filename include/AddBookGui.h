@@ -23,12 +23,10 @@
 #include <BookMarks.h>
 #include <filesystem>
 #include <functional>
-#include <giomm-2.68/giomm/asyncresult.h>
 #include <giomm-2.68/giomm/file.h>
 #include <giomm-2.68/giomm/liststore.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <glibmm-2.68/glibmm/dispatcher.h>
-#include <glibmm-2.68/glibmm/refptr.h>
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/columnviewcolumn.h>
@@ -48,7 +46,7 @@
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #endif
 #ifdef ML_GTK_OLD
-#include <gtkmm/filechooserdialog.h>
+#include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
 class AddBookGui

@@ -19,7 +19,6 @@
 #include <PDFParser.h>
 #include <algorithm>
 #include <cstring>
-#include <iterator>
 #include <poppler-document.h>
 #include <poppler-global.h>
 #include <poppler-image.h>
@@ -35,6 +34,10 @@ PDFParser::PDFParser(const std::shared_ptr<AuxFunc> &af)
 BookParseEntry
 PDFParser::pdf_parser(const std::string &file)
 {
+  if(file.empty())
+    {
+      throw MLException("PDFParser::pdf_parser: enpty file");
+    }
   BookParseEntry bpe;
 
   std::shared_ptr<poppler::document> doc(poppler::document::load_from_raw_data(

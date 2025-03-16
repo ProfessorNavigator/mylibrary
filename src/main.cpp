@@ -17,11 +17,8 @@
 
 #include <AuxFunc.h>
 #include <MyLibraryApplication.h>
-#include <filesystem>
-#include <iostream>
 #include <libintl.h>
-#include <memory>
-#include <string>
+
 #ifdef __linux
 #include <cstring>
 #include <stdlib.h>

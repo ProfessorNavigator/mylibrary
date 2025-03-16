@@ -16,6 +16,7 @@
  */
 
 #include <FB2Parser.h>
+#include <MLException.h>
 #include <algorithm>
 
 FB2Parser::FB2Parser(const std::shared_ptr<AuxFunc> &af) : XMLParser(af)
@@ -26,6 +27,11 @@ FB2Parser::FB2Parser(const std::shared_ptr<AuxFunc> &af) : XMLParser(af)
 BookParseEntry
 FB2Parser::fb2_parser(const std::string &book)
 {
+  if(book.empty())
+    {
+      throw MLException("FB2Parser::fb2_parser: book is empty");
+    }
+
   BookParseEntry result;
 
   std::string code_page = get_book_encoding(book);
@@ -145,7 +151,7 @@ FB2Parser::fb2_author(const std::string &book,
         }
     }
 
-  htmlSybolsReplacement(elstr);
+  htmlSymbolsReplacement(elstr);
 
   std::string::size_type n = 0;
   std::string find_str = "  ";
@@ -233,7 +239,7 @@ FB2Parser::fb2_series(const std::vector<XMLTag> &sequence)
         }
     }
 
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -258,7 +264,7 @@ FB2Parser::fb2_genres(const std::string &book,
         }
     }
 
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 
   return result;
 }
@@ -288,7 +294,7 @@ FB2Parser::fb2_description(const std::string &book)
                     std::back_inserter(result.book_name));
         }
     }
-  htmlSybolsReplacement(result.book_name);
+  htmlSymbolsReplacement(result.book_name);
 
   res.clear();
   searchTag(tgv, "sequence", res);
@@ -313,7 +319,7 @@ FB2Parser::fb2_description(const std::string &book)
                     std::back_inserter(result.book_date));
         }
     }
-  htmlSybolsReplacement(result.book_date);
+  htmlSymbolsReplacement(result.book_date);
 
   return result;
 }
@@ -360,7 +366,7 @@ FB2Parser::fb2_annotation_decode(const std::string &book, std::string &result)
                     std::back_inserter(result));
         }
     }
-  htmlSybolsReplacement(result);
+  htmlSymbolsReplacement(result);
 }
 
 void
@@ -406,7 +412,7 @@ FB2Parser::fb2_cover(const std::string &book, std::string &cover)
             }
         }
     }
-  else
+  if(cover.empty())
     {
       tgv = get_tag(book, "src-title-info");
       if(tgv.size() > 0)
@@ -473,7 +479,7 @@ FB2Parser::fb2_extra_info(const std::string &book, BookInfoEntry &result)
                         std::back_inserter(result.language));
             }
         }
-      htmlSybolsReplacement(result.language);
+      htmlSymbolsReplacement(result.language);
 
       res.clear();
       searchTag(tgv, "src-lang", res);
@@ -490,7 +496,7 @@ FB2Parser::fb2_extra_info(const std::string &book, BookInfoEntry &result)
                         std::back_inserter(result.src_language));
             }
         }
-      htmlSybolsReplacement(result.src_language);
+      htmlSymbolsReplacement(result.src_language);
 
       res.clear();
       searchTag(tgv, "translator", res);
@@ -522,7 +528,7 @@ FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.paper->book_name));
         }
     }
-  htmlSybolsReplacement(result.paper->book_name);
+  htmlSymbolsReplacement(result.paper->book_name);
 
   res.clear();
   searchTag(tgv, "publisher", res);
@@ -540,7 +546,7 @@ FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.paper->publisher));
         }
     }
-  htmlSybolsReplacement(result.paper->publisher);
+  htmlSymbolsReplacement(result.paper->publisher);
 
   res.clear();
   searchTag(tgv, "city", res);
@@ -558,7 +564,7 @@ FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.paper->city));
         }
     }
-  htmlSybolsReplacement(result.paper->city);
+  htmlSymbolsReplacement(result.paper->city);
 
   res.clear();
   searchTag(tgv, "year", res);
@@ -576,7 +582,7 @@ FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.paper->year));
         }
     }
-  htmlSybolsReplacement(result.paper->year);
+  htmlSymbolsReplacement(result.paper->year);
 
   res.clear();
   searchTag(tgv, "isbn", res);
@@ -594,7 +600,7 @@ FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.paper->isbn));
         }
     }
-  htmlSybolsReplacement(result.paper->isbn);
+  htmlSymbolsReplacement(result.paper->isbn);
 }
 
 void
@@ -626,7 +632,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->program_used));
         }
     }
-  htmlSybolsReplacement(result.electro->program_used);
+  htmlSymbolsReplacement(result.electro->program_used);
 
   res.clear();
   searchTag(tgv, "date", res);
@@ -644,7 +650,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->date));
         }
     }
-  htmlSybolsReplacement(result.electro->date);
+  htmlSymbolsReplacement(result.electro->date);
 
   res.clear();
   searchTag(tgv, "src-url", res);
@@ -662,7 +668,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->src_url));
         }
     }
-  htmlSybolsReplacement(result.electro->src_url);
+  htmlSymbolsReplacement(result.electro->src_url);
 
   res.clear();
   searchTag(tgv, "src-ocr", res);
@@ -680,7 +686,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->src_ocr));
         }
     }
-  htmlSybolsReplacement(result.electro->src_ocr);
+  htmlSymbolsReplacement(result.electro->src_ocr);
 
   res.clear();
   searchTag(tgv, "id", res);
@@ -698,7 +704,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->id));
         }
     }
-  htmlSybolsReplacement(result.electro->id);
+  htmlSymbolsReplacement(result.electro->id);
 
   res.clear();
   searchTag(tgv, "version", res);
@@ -716,7 +722,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->version));
         }
     }
-  htmlSybolsReplacement(result.electro->version);
+  htmlSymbolsReplacement(result.electro->version);
 
   res.clear();
   searchTag(tgv, "history", res);
@@ -734,7 +740,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
                     std::back_inserter(result.electro->history));
         }
     }
-  htmlSybolsReplacement(result.electro->history);
+  htmlSymbolsReplacement(result.electro->history);
 
   res.clear();
   searchTag(tgv, "publisher", res);
@@ -759,7 +765,7 @@ FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
             }
         }
     }
-  htmlSybolsReplacement(result.electro->publisher);
+  htmlSymbolsReplacement(result.electro->publisher);
 }
 
 void
@@ -768,7 +774,7 @@ FB2Parser::fb2_elctor_publisher(const std::string &book,
                                 BookInfoEntry &result)
 {
   recursiveGetTags(book, tgv, result.electro->publisher);
-  htmlSybolsReplacement(result.electro->publisher);
+  htmlSymbolsReplacement(result.electro->publisher);
 }
 
 void

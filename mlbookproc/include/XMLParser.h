@@ -19,6 +19,7 @@
 #define XMLPARSER_H
 
 #include <AuxFunc.h>
+#include <MLException.h>
 #include <XMLTag.h>
 #include <memory>
 #include <string>
@@ -30,7 +31,7 @@ public:
   XMLParser(const std::shared_ptr<AuxFunc> &af);
 
   std::vector<XMLTag>
-  get_tag(const std::string &book, const std::string &tag_id);  
+  get_tag(const std::string &book, const std::string &tag_id);
 
   std::string
   get_book_encoding(const std::string &book);
@@ -40,18 +41,38 @@ public:
                         const std::string &attr_name);
 
   std::vector<XMLTag>
-  listAllTags(const std::string &book,
-              const std::string::size_type &offset = std::string::size_type(0),
-              const std::string::size_type &lim = std::string::size_type(0));
+  listAllTags(const std::string &book);
 
   void
   searchTag(const std::vector<XMLTag> &list, const std::string &tag_id,
             std::vector<XMLTag> &result);
 
   void
-  htmlSybolsReplacement(std::string &book);
+  htmlSymbolsReplacement(std::string &book);
+
+  void
+  removeAllTags(std::string &book);
 
 private:
+  enum tag_type
+  {
+    single,
+    has_content,
+    end_tag,
+    spec_tag
+  };
+
+  std::string
+  tagElement(const std::string &book, const std::string::size_type &start,
+             std::string::size_type &end, tag_type &tg_type);
+
+  void
+  tagContent(const std::string &book, const std::string::size_type &start,
+             XMLTag &tag, std::string::size_type &tag_end);
+
+  void
+  tagId(XMLTag &tag);
+
   std::shared_ptr<AuxFunc> af;
 };
 

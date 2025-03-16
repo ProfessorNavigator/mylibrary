@@ -21,11 +21,14 @@
 #include <MLException.h>
 #include <algorithm>
 #include <cstring>
-#include <execution>
 #include <fstream>
 #include <iostream>
+
 #ifdef USE_OPENMP
 #include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <execution>
 #endif
 
 BaseKeeper::BaseKeeper(const std::shared_ptr<AuxFunc> &af)
@@ -358,7 +361,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search)
         }
     }
   if(all_empty && !cancel_search.load())
-    {      
+    {
       for(auto it = base.begin(); it != base.end(); it++)
         {
           if(cancel_search.load())
@@ -409,7 +412,6 @@ BaseKeeper::collectionAuthors()
               break;
             }
           n_beg = 0;
-          n_end = 0;
           bool stop = false;
           for(;;)
             {
@@ -439,6 +441,30 @@ BaseKeeper::collectionAuthors()
                 }
               if(!auth.empty())
                 {
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.begin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.erase(auth.begin());
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.rbegin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.pop_back();
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
                   result.push_back(auth);
                 }
               n_beg = n_end + find_str.size() - 1;
@@ -458,7 +484,12 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
+#ifdef USE_OPENMP
+      it_end = AuxFunc::parallelRemove(it + 1, it_end, *it);
+#endif
+#ifndef USE_OPENMP
       it_end = std::remove(std::execution::par, it + 1, it_end, *it);
+#endif
     }
   result.erase(it_end, result.end());
 
@@ -724,6 +755,23 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
     }
   else
     {
+#ifdef USE_OPENMP
+      result.erase(
+          AuxFunc::parallelRemoveIf(result.begin(), result.end(),
+                                    [search, this](BookBaseEntry &el) {
+                                      if(searchLineFunc(search.bpe.book_name,
+                                                        el.bpe.book_name))
+                                        {
+                                          return false;
+                                        }
+                                      else
+                                        {
+                                          return true;
+                                        }
+                                    }),
+          result.end());
+#endif
+#ifndef USE_OPENMP
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -738,6 +786,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#endif
     }
 }
 
@@ -806,6 +855,23 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
     }
   else
     {
+#ifdef USE_OPENMP
+      result.erase(
+          AuxFunc::parallelRemoveIf(result.begin(), result.end(),
+                                    [search, this](BookBaseEntry &el) {
+                                      if(searchLineFunc(search.bpe.book_series,
+                                                        el.bpe.book_series))
+                                        {
+                                          return false;
+                                        }
+                                      else
+                                        {
+                                          return true;
+                                        }
+                                    }),
+          result.end());
+#endif
+#ifndef USE_OPENMP
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -820,6 +886,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#endif
     }
 }
 
@@ -958,6 +1025,23 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
     }
   else
     {
+#ifdef USE_OPENMP
+      result.erase(
+          AuxFunc::parallelRemoveIf(result.begin(), result.end(),
+                                    [search, this](BookBaseEntry &el) {
+                                      if(searchLineFunc(search.bpe.book_genre,
+                                                        el.bpe.book_genre))
+                                        {
+                                          return false;
+                                        }
+                                      else
+                                        {
+                                          return true;
+                                        }
+                                    }),
+          result.end());
+#endif
+#ifndef USE_OPENMP
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -972,6 +1056,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#endif
     }
 }
 
@@ -1067,6 +1152,23 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                 }
               else
                 {
+#ifdef USE_OPENMP
+                  result.erase(
+                      AuxFunc::parallelRemoveIf(
+                          result.begin(), result.end(),
+                          [last_name, this](BookBaseEntry &el) {
+                            if(searchLineFunc(last_name, el.bpe.book_author))
+                              {
+                                return false;
+                              }
+                            else
+                              {
+                                return true;
+                              }
+                          }),
+                      result.end());
+#endif
+#ifndef USE_OPENMP
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
@@ -1081,6 +1183,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
+#endif
                 }
             }
         }
@@ -1166,6 +1269,23 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                 }
               else
                 {
+#ifdef USE_OPENMP
+                  result.erase(
+                      AuxFunc::parallelRemoveIf(
+                          result.begin(), result.end(),
+                          [first_name, this](BookBaseEntry &el) {
+                            if(searchLineFunc(first_name, el.bpe.book_author))
+                              {
+                                return false;
+                              }
+                            else
+                              {
+                                return true;
+                              }
+                          }),
+                      result.end());
+#endif
+#ifndef USE_OPENMP
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
@@ -1180,6 +1300,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
+#endif
                 }
             }
         }

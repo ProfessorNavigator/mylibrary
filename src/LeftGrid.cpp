@@ -22,23 +22,16 @@
 #include <SearchProcessGui.h>
 #include <filesystem>
 #include <fstream>
-#include <glibmm-2.68/glibmm/propertyproxy.h>
-#include <glibmm-2.68/glibmm/propertyproxy_base.h>
-#include <glibmm-2.68/glibmm/signalproxy.h>
-#include <glibmm-2.68/glibmm/ustring.h>
 #include <gtkmm-4.0/gtkmm/button.h>
-#include <gtkmm-4.0/gtkmm/enums.h>
 #include <gtkmm-4.0/gtkmm/expander.h>
 #include <gtkmm-4.0/gtkmm/gestureclick.h>
 #include <gtkmm-4.0/gtkmm/label.h>
-#include <gtkmm-4.0/gtkmm/object.h>
 #include <gtkmm-4.0/gtkmm/popover.h>
 #include <gtkmm-4.0/gtkmm/requisition.h>
 #include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <gtkmm-4.0/gtkmm/separator.h>
 #include <iostream>
 #include <libintl.h>
-#include <sigc++/connection.h>
 #include <thread>
 
 LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
@@ -623,8 +616,17 @@ LeftGrid::reloadCollection(const std::string &col_name)
           if(std::string(list->get_string(selected)) == col_name)
             {
               base_keeper->clearBase();
-              std::thread thr(std::bind(&BaseKeeper::loadCollection,
-                                        base_keeper, col_name));
+              std::thread thr([this, col_name] {
+                try
+                  {
+                    base_keeper->loadCollection(col_name);
+                  }
+                catch(MLException &e)
+                  {
+                    std::cout << "LeftGrid::reloadCollection: " << e.what()
+                              << std::endl;
+                  }
+              });
               thr.detach();
               result = true;
             }
