@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <CollectionCrProcessGui.h>
@@ -23,7 +22,13 @@
 #include <libintl.h>
 #include <locale>
 #include <sstream>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 CollectionCrProcessGui::CollectionCrProcessGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
@@ -40,7 +45,6 @@ CollectionCrProcessGui::CollectionCrProcessGui(
   strm.imbue(std::locale("C"));
   strm.str(num_thr);
   strm >> thr_num;
-  cancel_proc.store(false);
 }
 
 CollectionCrProcessGui::~CollectionCrProcessGui()
@@ -67,7 +71,6 @@ CollectionCrProcessGui::CollectionCrProcessGui(
   strm.imbue(std::locale("C"));
   strm.str(num_thr);
   strm >> thr_num;
-  cancel_proc.store(false);
   this->remove_empty = remove_empty;
   fast_refresh = fast;
   this->refresh_bookmarkse = refresh_bookmarks;
@@ -129,7 +132,10 @@ CollectionCrProcessGui::createWindow(const int &variant)
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
   cancel->signal_clicked().connect([this] {
-    cancel_proc.store(true);
+    if(stop_ops)
+      {
+        stop_ops();
+      }
     cancel->hide();
     creation_progress->hide();
     process_name->set_text(gettext("Interruption..."));
@@ -165,7 +171,7 @@ CollectionCrProcessGui::createWindow(const int &variant)
         std::unique_ptr<CollectionCrProcessGui> ccpg(this);
         break;
       }
-    }  
+    }
 }
 
 void
@@ -177,8 +183,12 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
       thr_num = 1;
     }
 
-  CreateCollection *cc = new CreateCollection(
-      af, collection_path, books_path, rar_support, thr_num, &cancel_proc);
+  CreateCollection *cc = new CreateCollection(af, collection_path, books_path,
+                                              rar_support, thr_num);
+
+  stop_ops = [cc] {
+    cc->cancelAll();
+  };
 
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this] {
@@ -228,6 +238,28 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
       }
   });
 
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      try
+        {
+          cc->createCollection();
+          new_collection_name_disp->emit();
+        }
+      catch(MLException &e)
+        {
+          std::cout << e.what() << std::endl;
+        }
+      creation_finished_disp->emit();
+      delete cc;
+      omp_fulfill_event(event);
+    }
+  }
+#endif
+#ifndef USE_OPENMP
   std::thread thr([cc, this] {
     try
       {
@@ -242,6 +274,7 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
     delete cc;
   });
   thr.detach();
+#endif
 }
 
 void
@@ -253,10 +286,14 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
       thr_num = 1;
     }
 
-  RefreshCollection *rfr = new RefreshCollection(
-      af, coll_name, thr_num, &cancel_proc, remove_empty, fast_refresh,
-      refresh_bookmarkse, bookmarks);
+  RefreshCollection *rfr
+      = new RefreshCollection(af, coll_name, thr_num, remove_empty,
+                              fast_refresh, refresh_bookmarkse, bookmarks);
   rfr->set_rar_support(rar_support);
+
+  stop_ops = [rfr] {
+    rfr->cancelAll();
+  };
   pulse_disp = new Glib::Dispatcher;
   pulse_disp->connect([this] {
     creation_progress->pulse();
@@ -266,7 +303,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
   };
 
   total_bytes_to_hash_disp = new Glib::Dispatcher;
-  total_bytes_to_hash_disp->connect([this] {   
+  total_bytes_to_hash_disp->connect([this] {
     process_name->set_text(gettext("Collection hashing progress:"));
     creation_progress->set_show_text(true);
     creation_progress->set_fraction(0.0);
@@ -330,7 +367,26 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
         collection_refreshed(coll_name);
       }
   });
-
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      try
+        {
+          rfr->refreshCollection();
+        }
+      catch(MLException &e)
+        {
+          std::cout << e.what() << std::endl;
+        }
+      creation_finished_disp->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
+#ifndef USE_OPENMP
   std::thread thr([rfr, this] {
     try
       {
@@ -343,6 +399,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
     creation_finished_disp->emit();
   });
   thr.detach();
+#endif
 }
 
 void

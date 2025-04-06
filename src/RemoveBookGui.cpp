@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <BookParseEntry.h>
@@ -26,7 +25,13 @@
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
 #include <libintl.h>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 RemoveBookGui::RemoveBookGui(const std::shared_ptr<AuxFunc> &af,
                              Gtk::Window *parent_window,
@@ -282,6 +287,7 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
   lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
+#ifndef USE_OPENMP
   std::thread thr([this] {
     RemoveBook *rb = new RemoveBook(af, bbe, col_name, bookmarks);
     try
@@ -298,6 +304,30 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
     remove_callback_disp->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      RemoveBook *rb = new RemoveBook(af, bbe, col_name, bookmarks);
+      try
+        {
+          rb->removeBook();
+          remove_result = 1;
+        }
+      catch(MLException &er)
+        {
+          std::cout << er.what() << std::endl;
+          remove_result = -1;
+        }
+      delete rb;
+      remove_callback_disp->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void

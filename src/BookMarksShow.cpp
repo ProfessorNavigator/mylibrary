@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <BookMarksShow.h>
 #include <gtkmm-4.0/gtkmm/expression.h>
@@ -155,18 +154,19 @@ BookMarksShow::showBookMarks(
 void
 BookMarksShow::selectItem(const Glib::RefPtr<BookMarksModelItem> &item)
 {
-  Glib::RefPtr<BookMarksModelItem> prev = selected_item;
   selected_item = item;
   for(guint i = 0; i < model->get_n_items(); i++)
     {
       Glib::RefPtr<BookMarksModelItem> si = model->get_item(i);
-      if(si == prev || si == selected_item)
+      if(si == selected_item)
         {
-          model->insert(i, si);
-          model->remove(i);
+          si->activateLabels();
+        }
+      else
+        {
+          si->deactivateLabels();
         }
     }
-  selected_item = item;
 }
 
 Glib::RefPtr<BookMarksModelItem>
@@ -305,6 +305,8 @@ BookMarksShow::collectionColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 1));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Collection"), factory);
@@ -331,6 +333,8 @@ BookMarksShow::authorColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 2));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Author"), factory);
@@ -357,6 +361,8 @@ BookMarksShow::bookColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 3));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Book"), factory);
@@ -383,6 +389,8 @@ BookMarksShow::seriesColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 4));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Series"), factory);
@@ -409,6 +417,8 @@ BookMarksShow::genreColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 5));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Genre"), factory);
@@ -435,6 +445,8 @@ BookMarksShow::dateColumn()
       std::bind(&BookMarksShow::slotSetup, this, std::placeholders::_1));
   factory->signal_bind().connect(
       std::bind(&BookMarksShow::slotBind, this, std::placeholders::_1, 6));
+  factory->signal_unbind().connect(
+      std::bind(&BookMarksShow::slotUnbind, this, std::placeholders::_1));
 
   Glib::RefPtr<Gtk::ColumnViewColumn> column
       = Gtk::ColumnViewColumn::create(gettext("Date"), factory);
@@ -486,6 +498,7 @@ BookMarksShow::slotBind(const Glib::RefPtr<Gtk::ListItem> &item,
             {
               lab->set_name("windowLabel");
             }
+          m_item->addLabel(lab);
           switch(variant)
             {
             case 1:
@@ -527,6 +540,18 @@ BookMarksShow::slotBind(const Glib::RefPtr<Gtk::ListItem> &item,
               break;
             }
         }
+    }
+}
+
+void
+BookMarksShow::slotUnbind(const Glib::RefPtr<Gtk::ListItem> &item)
+{
+  Glib::RefPtr<BookMarksModelItem> m_item
+      = std::dynamic_pointer_cast<BookMarksModelItem>(item->get_item());
+  if(m_item)
+    {
+      Gtk::Label *lab = dynamic_cast<Gtk::Label *>(item->get_child());
+      m_item->removeLabel(lab);
     }
 }
 

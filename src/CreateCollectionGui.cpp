@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <CollectionCrProcessGui.h>
@@ -26,7 +25,13 @@
 #include <libintl.h>
 #include <locale>
 #include <sstream>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 #ifndef ML_GTK_OLD
 #include <giomm-2.68/giomm/cancellable.h>
@@ -112,7 +117,12 @@ CreateCollectionGui::createWindow()
   lab->set_halign(Gtk::Align::START);
   std::stringstream strm;
   strm.imbue(std::locale("C"));
+#ifndef USE_OPENMP
   strm << std::thread::hardware_concurrency();
+#endif
+#ifdef USE_OPENMP
+  strm << omp_get_num_procs();
+#endif
   lab->set_text(gettext("Thread number (recommended max value: ")
                 + Glib::ustring(strm.str()) + ")");
   lab->set_name("windowLabel");
@@ -258,8 +268,10 @@ CreateCollectionGui::checkInput(Gtk::Window *win)
     }
 
   std::filesystem::path collection_path = af->homePath();
-  collection_path
-      /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+  collection_path /= std::filesystem::u8path(".local")
+                     / std::filesystem::u8path("share")
+                     / std::filesystem::u8path("MyLibrary")
+                     / std::filesystem::u8path("Collections");
   collection_path /= std::filesystem::u8path(filename);
   if(std::filesystem::exists(collection_path))
     {

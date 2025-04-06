@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <BookParseEntry.h>
@@ -31,7 +30,14 @@
 #include <gtkmm-4.0/gtkmm/stringfilter.h>
 #include <gtkmm-4.0/gtkmm/stringsorter.h>
 #include <libintl.h>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#include <unistd.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
                                    Gtk::ColumnView *search_res)
@@ -228,11 +234,25 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
       mc->iteration(true);
     }
 
+#ifndef USE_OPENMP
   std::thread thr([this] {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      usleep(50000);
+      disp_adjust->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -283,11 +303,25 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
       mc->iteration(true);
     }
 
+#ifndef USE_OPENMP
   std::thread thr([this] {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      usleep(50000);
+      disp_adjust->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -338,11 +372,25 @@ SearchResultShow::searchResultShow(const std::vector<std::string> &result)
       mc->iteration(true);
     }
 
+#ifndef USE_OPENMP
   std::thread thr([this] {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      usleep(50000);
+      disp_adjust->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -458,6 +506,18 @@ SearchResultShow::createFactory(const int &variant)
 
   factory->signal_bind().connect(std::bind(&SearchResultShow::itemBind, this,
                                            std::placeholders::_1, variant));
+
+  factory->signal_unbind().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &item) {
+        Glib::RefPtr<SearchResultModelItem> srs_item
+            = std::dynamic_pointer_cast<SearchResultModelItem>(
+                item->get_item());
+        if(srs_item)
+          {
+            Gtk::Label *lab = dynamic_cast<Gtk::Label *>(item->get_child());
+            srs_item->removeLabel(lab);
+          }
+      });
   return factory;
 }
 
@@ -481,6 +541,7 @@ SearchResultShow::itemBind(const Glib::RefPtr<Gtk::ListItem> &list_item,
             {
               lab->set_name("windowLabel");
             }
+          item->addLabel(lab);
           switch(variant)
             {
             case 1:
@@ -597,7 +658,19 @@ SearchResultShow::formFilesColumn()
                   {
                     lab->set_name("windowLabel");
                   }
+                item->setLabel(lab);
               }
+          }
+      });
+
+  factory->signal_unbind().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Glib::RefPtr<SearchResultModelItemFL> item
+            = std::dynamic_pointer_cast<SearchResultModelItemFL>(
+                l_item->get_item());
+        if(item)
+          {
+            item->unsetLabel();
           }
       });
 
@@ -660,7 +733,19 @@ SearchResultShow::formAuthColumn()
                   {
                     lab->set_name("windowLabel");
                   }
+                item->setLabel(lab);
               }
+          }
+      });
+
+  factory->signal_unbind().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &l_item) {
+        Glib::RefPtr<SearchResultModelItemAuth> item
+            = std::dynamic_pointer_cast<SearchResultModelItemAuth>(
+                l_item->get_item());
+        if(item)
+          {
+            item->unsetLabel();
           }
       });
 
@@ -822,15 +907,17 @@ SearchResultShow::expression_slot(
 void
 SearchResultShow::select_item(const Glib::RefPtr<SearchResultModelItem> &item)
 {
-  Glib::RefPtr<SearchResultModelItem> prev = selected_item;
   selected_item = item;
   for(guint i = 0; i < model->get_n_items(); i++)
     {
       Glib::RefPtr<SearchResultModelItem> si = model->get_item(i);
-      if(si == prev || si == selected_item)
+      if(si == selected_item)
         {
-          model->insert(i, si);
-          model->remove(i);
+          si->activateLabels();
+        }
+      else
+        {
+          si->deactivateLabels();
         }
     }
 }
@@ -839,15 +926,17 @@ void
 SearchResultShow::select_item(
     const Glib::RefPtr<SearchResultModelItemFL> &item)
 {
-  Glib::RefPtr<SearchResultModelItemFL> prev = selected_item_file;
   selected_item_file = item;
   for(guint i = 0; i < model_files->get_n_items(); i++)
     {
       Glib::RefPtr<SearchResultModelItemFL> si = model_files->get_item(i);
-      if(si == prev || si == selected_item_file)
+      if(si == selected_item_file)
         {
-          model_files->insert(i, si);
-          model_files->remove(i);
+          si->activateLab();
+        }
+      else
+        {
+          si->deactivateLab();
         }
     }
 }
@@ -856,15 +945,17 @@ void
 SearchResultShow::select_item(
     const Glib::RefPtr<SearchResultModelItemAuth> &item)
 {
-  Glib::RefPtr<SearchResultModelItemAuth> prev = selected_item_auth;
   selected_item_auth = item;
   for(guint i = 0; i < model_auth->get_n_items(); i++)
     {
       Glib::RefPtr<SearchResultModelItemAuth> si = model_auth->get_item(i);
-      if(si == prev || si == selected_item_auth)
+      if(si == selected_item_auth)
         {
-          model_auth->insert(i, si);
-          model_auth->remove(i);
+          si->activateLab();
+        }
+      else
+        {
+          si->deactivateLab();
         }
     }
 }

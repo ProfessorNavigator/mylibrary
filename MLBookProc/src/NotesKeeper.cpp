@@ -1,0 +1,832 @@
+/*
+ * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+#include <BaseKeeper.h>
+#include <ByteOrder.h>
+#include <MLException.h>
+#include <NotesKeeper.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+
+#ifdef USE_OPENMP
+#include <OmpLockGuard.h>
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <execution>
+#include <functional>
+#include <thread>
+#endif
+
+NotesKeeper::NotesKeeper(const std::shared_ptr<AuxFunc> &af)
+{
+  this->af = af;
+  base_directory_path = af->homePath();
+  base_directory_path /= std::filesystem::u8path(".local")
+                         / std::filesystem::u8path("share")
+                         / std::filesystem::u8path("MyLibrary")
+                         / std::filesystem::u8path("Notes");
+
+#ifndef USE_OPENMP
+  std::thread thr(std::bind(&NotesKeeper::loadBase, this));
+  thr.detach();
+#endif
+#ifdef USE_OPENMP
+  omp_init_lock(&base_mtx);
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      loadBase();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
+}
+
+NotesKeeper::~NotesKeeper()
+{
+#ifndef USE_OPENMP
+  std::lock_guard<std::mutex> lglock(base_mtx);
+#endif
+#ifdef USE_OPENMP
+  {
+    OmpLockGuard olg(base_mtx);
+  }
+  omp_destroy_lock(&base_mtx);
+#endif
+}
+
+void
+NotesKeeper::loadBase()
+{
+#ifndef USE_OPENMP
+  std::lock_guard<std::mutex> lglock(base_mtx);
+#endif
+#ifdef USE_OPENMP
+  OmpLockGuard olg(base_mtx);
+#endif
+
+  std::filesystem::path bp = base_directory_path;
+  bp /= std::filesystem::u8path("notes_base");
+
+  std::fstream f;
+  f.open(bp, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      std::string raw_base;
+      f.seekg(0, std::ios_base::end);
+      raw_base.resize(f.tellg());
+      f.seekg(0, std::ios_base::beg);
+      f.read(raw_base.data(), raw_base.size());
+      f.close();
+      try
+        {
+          parseRawBase(raw_base);
+        }
+      catch(MLException &e)
+        {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+  base.shrink_to_fit();
+}
+
+void
+NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
+{
+#ifndef USE_OPENMP
+  base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
+                                    [nbe](NotesBaseEntry &el) {
+                                      return el == nbe;
+                                    });
+#endif
+#ifndef USE_OPENMP
+  auto it = std::find_if(std::execution::par, base.begin(), base.end(),
+                         [nbe](NotesBaseEntry &el) {
+                           return el == nbe;
+                         });
+#endif
+  if(it != base.end())
+    {
+      if(note.size() == 0)
+        {
+          base.erase(it);
+        }
+    }
+  else
+    {
+      if(note.size() > 0)
+        {
+          base.push_back(nbe);
+          base.shrink_to_fit();
+        }
+    }
+
+  std::filesystem::create_directories(nbe.note_file_full_path.parent_path());
+  std::filesystem::remove_all(nbe.note_file_full_path);
+  if(note.size() > 0)
+    {
+      std::fstream f;
+      f.open(nbe.note_file_full_path,
+             std::ios_base::out | std::ios_base::binary);
+      if(f.is_open())
+        {
+          std::string entry = nbe.collection_name + "\n";
+          entry += nbe.book_file_full_path.u8string() + "\n";
+          size_t sz = entry.size();
+          for(auto it = nbe.book_path.begin(); it != nbe.book_path.end(); it++)
+            {
+              char v = *it;
+              if(v == '\n')
+                {
+                  v = '/';
+                }
+              entry.push_back(v);
+            }
+          if(sz < entry.size())
+            {
+              entry += "\n\n";
+            }
+          else
+            {
+              entry += "\n";
+            }
+          entry += note;
+          f.write(entry.c_str(), entry.size());
+          f.close();
+        }
+    }
+#ifndef USE_OPENMP
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_unset_lock(&base_mtx);
+#endif
+  saveBase();
+}
+
+NotesBaseEntry
+NotesKeeper::getNote(const std::string &collection_name,
+                     const std::filesystem::path &book_file_full_path,
+                     const std::string &book_path)
+{
+  NotesBaseEntry nbe(collection_name, book_file_full_path, book_path);
+
+#ifndef USE_OPENMP
+  base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
+                                    [nbe](NotesBaseEntry &el) {
+                                      return el == nbe;
+                                    });
+#endif
+#ifndef USE_OPENMP
+  auto it = std::find_if(std::execution::par, base.begin(), base.end(),
+                         [nbe](NotesBaseEntry &el) {
+                           return el == nbe;
+                         });
+#endif
+  if(it != base.end())
+    {
+      nbe.note_file_full_path = it->note_file_full_path;
+    }
+  else
+    {
+      std::string rnd = af->randomFileName();
+      nbe.note_file_full_path = base_directory_path;
+      nbe.note_file_full_path /= std::filesystem::u8path(rnd);
+
+      while(std::filesystem::exists(nbe.note_file_full_path))
+        {
+          rnd = af->randomFileName();
+          nbe.note_file_full_path = base_directory_path;
+          nbe.note_file_full_path /= std::filesystem::u8path(rnd);
+        }
+    }
+#ifndef USE_OPENMP
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_unset_lock(&base_mtx);
+#endif
+
+  return nbe;
+}
+
+std::string
+NotesKeeper::readNote(const NotesBaseEntry &nbe)
+{
+  std::string result;
+
+  std::fstream f;
+  f.open(nbe.note_file_full_path, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      f.seekg(0, std::ios_base::end);
+      result.resize(f.tellg());
+      f.seekg(0, std::ios_base::beg);
+      f.read(result.data(), result.size());
+      f.close();
+    }
+
+  return result;
+}
+
+std::string
+NotesKeeper::readNoteText(const NotesBaseEntry &nbe)
+{
+  std::string result = readNote(nbe);
+
+  std::string find_str("\n\n");
+  std::string::size_type n = result.find(find_str);
+  if(n != std::string::npos)
+    {
+      result.erase(0, n + find_str.size());
+    }
+
+  return result;
+}
+
+void
+NotesKeeper::removeNotes(const NotesBaseEntry &nbe,
+                         const std::filesystem::path &reserve_directory,
+                         const bool &make_reserve)
+{
+  std::vector<std::filesystem::path> to_remove;
+
+#ifndef USE_OPENMP
+  base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+#endif
+  if(nbe.book_file_full_path.extension().u8string() == ".rar")
+    {
+      base.erase(std::remove_if(
+                     base.begin(), base.end(),
+                     [nbe, &to_remove](NotesBaseEntry &el) {
+                       if(el.book_file_full_path == nbe.book_file_full_path)
+                         {
+                           to_remove.push_back(el.note_file_full_path);
+                           return true;
+                         }
+                       else
+                         {
+                           return false;
+                         }
+                     }),
+                 base.end());
+    }
+  else
+    {
+      base.erase(std::remove_if(base.begin(), base.end(),
+                                [nbe, &to_remove](NotesBaseEntry &el) {
+                                  if(el == nbe)
+                                    {
+                                      to_remove.push_back(
+                                          el.note_file_full_path);
+                                      return true;
+                                    }
+                                  else
+                                    {
+                                      return false;
+                                    }
+                                }),
+                 base.end());
+    }
+#ifndef USE_OPENMP
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_unset_lock(&base_mtx);
+#endif
+  if(make_reserve)
+    {
+      if(to_remove.size() > 0)
+        {
+          std::filesystem::create_directories(reserve_directory);
+        }
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::error_code ec;
+          std::filesystem::path p = reserve_directory;
+          p /= it->filename();
+          std::filesystem::copy(*it, p, ec);
+          if(ec)
+            {
+              std::cout << "NotesKeeper::removeNotes " << *it << ": "
+                        << ec.message() << std::endl;
+            }
+          else
+            {
+              std::filesystem::remove_all(*it);
+            }
+        }
+    }
+  else
+    {
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::filesystem::remove_all(*it);
+        }
+    }
+
+  saveBase();
+}
+
+void
+NotesKeeper::removeCollection(const std::string &collection_name,
+                              const std::filesystem::path &reserve_directory,
+                              const bool &make_reserve)
+{
+  std::vector<std::filesystem::path> to_remove;
+
+#ifndef USE_OPENMP
+  base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+#endif
+  base.erase(std::remove_if(base.begin(), base.end(),
+                            [collection_name, &to_remove](NotesBaseEntry &el) {
+                              if(collection_name == el.collection_name)
+                                {
+                                  to_remove.push_back(el.note_file_full_path);
+                                  return true;
+                                }
+                              else
+                                {
+                                  return false;
+                                }
+                            }),
+             base.end());
+#ifndef USE_OPENMP
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_unset_lock(&base_mtx);
+#endif
+
+  saveBase();
+
+  if(make_reserve)
+    {
+      if(to_remove.size() > 0)
+        {
+          std::filesystem::create_directories(reserve_directory);
+        }
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::error_code ec;
+          std::filesystem::path p = reserve_directory;
+          p /= it->filename();
+          std::filesystem::copy(*it, p, ec);
+          if(ec)
+            {
+              std::cout << "NotesKeeper::removeCollection " << *it << " "
+                        << ec.message() << std::endl;
+            }
+          else
+            {
+              std::filesystem::remove_all(*it);
+            }
+        }
+    }
+  else
+    {
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::filesystem::remove_all(*it);
+        }
+    }
+}
+
+void
+NotesKeeper::refreshCollection(const std::string &collection_name,
+                               const std::filesystem::path &reserve_directory,
+                               const bool &make_reserve)
+{
+  std::vector<NotesBaseEntry> to_remove;
+  std::vector<NotesBaseEntry> to_check;
+#ifndef USE_OPENMP
+  base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+#endif
+  for(auto it = base.begin(); it != base.end(); it++)
+    {
+      if(it->collection_name == collection_name)
+        {
+          to_check.push_back(*it);
+        }
+    }
+#ifndef USE_OPENMP
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_unset_lock(&base_mtx);
+#endif
+  if(to_check.size() > 0)
+    {
+      BaseKeeper bk(af);
+      try
+        {
+          bk.loadCollection(collection_name);
+        }
+      catch(MLException &e)
+        {
+          std::cout << "NotesKeeper::refreshCollection: " << e.what()
+                    << std::endl;
+          return void();
+        }
+
+      std::vector<FileParseEntry> bs = bk.get_base_vector();
+      std::filesystem::path books_path
+          = BaseKeeper::get_books_path(collection_name, af);
+      for(auto it = to_check.begin(); it != to_check.end(); it++)
+        {
+          std::filesystem::path file_path = it->book_file_full_path;
+          std::string b_p = it->book_path;
+          if(b_p.empty())
+            {
+              auto it_bs = std::find_if(
+                  bs.begin(), bs.end(),
+                  [books_path, file_path](FileParseEntry &el) {
+                    std::filesystem::path l_path = books_path;
+                    l_path /= std::filesystem::u8path(el.file_rel_path);
+                    return l_path == file_path;
+                  });
+              if(it_bs == bs.end())
+                {
+                  to_remove.push_back(*it);
+                }
+            }
+          else
+            {
+              auto it_bs = std::find_if(
+                  bs.begin(), bs.end(),
+                  [books_path, file_path, b_p](FileParseEntry &el) {
+                    std::filesystem::path l_path = books_path;
+                    l_path /= std::filesystem::u8path(el.file_rel_path);
+                    if(l_path == file_path)
+                      {
+                        auto it
+                            = std::find_if(el.books.begin(), el.books.end(),
+                                           [b_p](BookParseEntry &bbe) {
+                                             return bbe.book_path == b_p;
+                                           });
+                        if(it != el.books.end())
+                          {
+                            return true;
+                          }
+                        else
+                          {
+                            return false;
+                          }
+                      }
+                    else
+                      {
+                        return false;
+                      }
+                  });
+              if(it_bs == bs.end())
+                {
+                  to_remove.push_back(*it);
+                }
+            }
+        }
+    }
+
+  if(to_remove.size() > 0)
+    {
+#ifndef USE_OPENMP
+      base_mtx.lock();
+#endif
+#ifdef USE_OPENMP
+      omp_set_lock(&base_mtx);
+#endif
+      base.erase(std::remove_if(base.begin(), base.end(),
+                                [to_remove](NotesBaseEntry &el) {
+                                  auto it = std::find(to_remove.begin(),
+                                                      to_remove.end(), el);
+                                  if(it != to_remove.end())
+                                    {
+                                      return true;
+                                    }
+                                  else
+                                    {
+                                      return false;
+                                    }
+                                }),
+                 base.end());
+      base.shrink_to_fit();
+#ifndef USE_OPENMP
+      base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+      omp_unset_lock(&base_mtx);
+#endif
+      saveBase();
+    }
+  if(make_reserve)
+    {
+      if(to_remove.size() > 0)
+        {
+          std::filesystem::create_directories(reserve_directory);
+        }
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::filesystem::path p = reserve_directory;
+          p /= it->note_file_full_path.filename();
+          std::error_code ec;
+          std::filesystem::copy(it->note_file_full_path, p, ec);
+          if(ec)
+            {
+              std::cout << "NotesKeeper::refreshCollection "
+                        << it->note_file_full_path << " " << ec.message()
+                        << std::endl;
+            }
+          else
+            {
+              std::filesystem::remove_all(it->note_file_full_path);
+            }
+        }
+    }
+  else
+    {
+      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
+        {
+          std::filesystem::remove_all(it->note_file_full_path);
+        }
+    }
+}
+
+std::vector<NotesBaseEntry>
+NotesKeeper::getNotesForCollection(const std::string &collection_name)
+{
+  std::vector<NotesBaseEntry> result;
+
+#ifndef USE_OPENMP
+  std::mutex result_mtx;
+  base_mtx.lock();
+  std::for_each(std::execution::par, base.begin(), base.end(),
+                [collection_name, &result, &result_mtx](NotesBaseEntry &el) {
+                  if(el.collection_name == collection_name)
+                    {
+                      result_mtx.lock();
+                      result.push_back(el);
+                      result_mtx.unlock();
+                    }
+                });
+  base_mtx.unlock();
+#endif
+#ifdef USE_OPENMP
+  omp_set_lock(&base_mtx);
+#pragma omp parallel for
+  for(auto it = base.begin(); it != base.end(); it++)
+    {
+      if(it->collection_name == collection_name)
+        {
+#pragma omp critical
+          {
+            result.push_back(*it);
+          }
+        }
+    }
+  omp_unset_lock(&base_mtx);
+#endif
+
+  return result;
+}
+
+void
+NotesKeeper::parseRawBase(const std::string &raw_base)
+{
+  size_t rb = 0;
+  ByteOrder bo;
+  uint64_t val64;
+  size_t sz_64 = sizeof(val64);
+  size_t limit = raw_base.size();
+  size_t sz;
+  while(rb < limit)
+    {
+      if(rb + sz_64 <= limit)
+        {
+          std::memcpy(&val64, &raw_base[rb], sz_64);
+          rb += sz_64;
+          bo.set_little(val64);
+          val64 = bo;
+        }
+      else
+        {
+          throw MLException("NotesKeeper::parseRawBase: incorrect entry size");
+        }
+
+      sz = static_cast<size_t>(val64);
+
+      if(rb + sz <= limit)
+        {
+          std::string entry = raw_base.substr(rb, sz);
+          rb += sz;
+          try
+            {
+              parseEntry(entry);
+            }
+          catch(MLException &e)
+            {
+              std::cout << e.what() << std::endl;
+            }
+        }
+      else
+        {
+          throw MLException("NotesKeeper::parseRawBase: incorrect entry");
+        }
+    }
+}
+
+void
+NotesKeeper::parseEntry(const std::string &entry)
+{
+  uint32_t val32;
+  size_t sz_32 = sizeof(val32);
+  size_t rb = 0;
+  size_t limit = entry.size();
+  ByteOrder bo;
+  NotesBaseEntry nbe;
+  size_t sz;
+  for(int i = 1; i <= 4; i++)
+    {
+      if(rb + sz_32 <= limit)
+        {
+          std::memcpy(&val32, &entry[rb], sz_32);
+          rb += sz_32;
+          bo.set_little(val32);
+          val32 = bo;
+        }
+      else
+        {
+          throw MLException("NotesKeeper::parseEntry: incorrect entry size");
+        }
+      sz = static_cast<size_t>(val32);
+      if(rb + sz <= limit)
+        {
+          switch(i)
+            {
+            case 1:
+              {
+                nbe.collection_name = entry.substr(rb, sz);
+                break;
+              }
+            case 2:
+              {
+                nbe.book_file_full_path
+                    = std::filesystem::u8path(entry.substr(rb, sz));
+                break;
+              }
+            case 3:
+              {
+                nbe.book_path = entry.substr(rb, sz);
+                break;
+              }
+            case 4:
+              {
+                nbe.note_file_full_path
+                    = std::filesystem::u8path(entry.substr(rb, sz));
+                break;
+              }
+            }
+          rb += sz;
+        }
+      else
+        {
+          throw MLException("NotesKeeper::parseEntry: incorrect entry");
+        }
+    }
+  base.emplace_back(nbe);
+}
+
+void
+NotesKeeper::saveBase()
+{
+  uint64_t val64;
+  uint32_t val32;
+  size_t sz_64 = sizeof(val64);
+  size_t sz_32 = sizeof(val32);
+  ByteOrder bo;
+  size_t sz;
+
+  std::filesystem::path bp = base_directory_path;
+  bp /= std::filesystem::u8path("notes_base");
+  std::filesystem::create_directories(bp.parent_path());
+
+#ifndef USE_OPENMP
+  std::lock_guard<std::mutex> lglock(base_mtx);
+#endif
+#ifdef USE_OPENMP
+  OmpLockGuard olg(base_mtx);
+#endif
+  std::filesystem::remove_all(bp);
+
+  std::fstream f;
+  f.open(bp, std::ios_base::out | std::ios_base::binary);
+  if(f.is_open())
+    {
+      for(auto it = base.begin(); it != base.end(); it++)
+        {
+          std::string entry;
+          for(int i = 1; i <= 4; i++)
+            {
+              switch(i)
+                {
+                case 1:
+                  {
+                    val32 = static_cast<uint32_t>(it->collection_name.size());
+                    break;
+                  }
+                case 2:
+                  {
+                    val32 = static_cast<uint32_t>(
+                        it->book_file_full_path.u8string().size());
+                    break;
+                  }
+                case 3:
+                  {
+                    val32 = static_cast<uint32_t>(it->book_path.size());
+                    break;
+                  }
+                case 4:
+                  {
+                    val32 = static_cast<uint32_t>(
+                        it->note_file_full_path.u8string().size());
+                    break;
+                  }
+                }
+              bo = val32;
+              bo.get_little(val32);
+
+              sz = entry.size();
+              entry.resize(sz + sz_32);
+              std::memcpy(&entry[sz], &val32, sz_32);
+
+              switch(i)
+                {
+                case 1:
+                  {
+                    entry += it->collection_name;
+                    break;
+                  }
+                case 2:
+                  {
+                    entry += it->book_file_full_path.u8string();
+                    break;
+                  }
+                case 3:
+                  {
+                    entry += it->book_path;
+                    break;
+                  }
+                case 4:
+                  {
+                    entry += it->note_file_full_path.u8string();
+                    break;
+                  }
+                }
+            }
+
+          val64 = entry.size();
+          bo = val64;
+          bo.get_little(val64);
+
+          f.write(reinterpret_cast<char *>(&val64), sz_64);
+          f.write(entry.c_str(), entry.size());
+        }
+      f.close();
+    }
+  else
+    {
+      std::cout << "NotesKeeper::saveBase: cannot save base!" << std::endl;
+    }
+}

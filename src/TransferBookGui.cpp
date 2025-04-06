@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <AddBook.h>
@@ -24,7 +23,6 @@
 #include <RemoveBook.h>
 #include <SelfRemovingPath.h>
 #include <TransferBookGui.h>
-#include <atomic>
 #include <giomm-2.68/giomm/file.h>
 #include <giomm-2.68/giomm/liststore.h>
 #include <glibmm-2.68/glibmm/main.h>
@@ -35,9 +33,15 @@
 #include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <iostream>
 #include <libintl.h>
-#include <thread>
 #include <tuple>
 #include <vector>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <thread>
+#endif
 
 #ifndef ML_GTK_OLD
 #include <giomm-2.68/giomm/cancellable.h>
@@ -268,7 +272,9 @@ TransferBookGui::create_collections_model()
       = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path col_p = af->homePath();
-  col_p /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+  col_p /= std::filesystem::u8path(".local") / std::filesystem::u8path("share")
+           / std::filesystem::u8path("MyLibrary")
+           / std::filesystem::u8path("Collections");
   if(std::filesystem::exists(col_p))
     {
       std::string col_nm;
@@ -703,7 +709,7 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                     }
                 }
             });
-
+#ifndef USE_OPENMP
             std::thread thr([variant, res_var, this] {
               try
                 {
@@ -717,6 +723,27 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                 }
             });
             thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+            {
+              omp_event_handle_t event;
+#pragma omp task detach(event)
+              {
+                try
+                  {
+                    copy_overwrite(variant, res_var);
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    *res_var = 1;
+                    copy_result_disp->emit();
+                  }
+                omp_fulfill_event(event);
+              }
+            }
+#endif
             break;
           }
         case 2:
@@ -864,12 +891,18 @@ TransferBookGui::copy_overwrite(const int &variant,
 
   if(std::filesystem::exists(out_file_path))
     {
-      std::atomic<bool> cancel;
-      cancel.store(false);
+#ifndef USE_OPENMP
       std::shared_ptr<RefreshCollection> rfr
           = std::make_shared<RefreshCollection>(
-              af, collection_to, std::thread::hardware_concurrency(), &cancel,
-              false, true, false, bookmarks);
+              af, collection_to, std::thread::hardware_concurrency(), false,
+              true, false, bookmarks);
+#endif
+#ifdef USE_OPENMP
+      std::shared_ptr<RefreshCollection> rfr
+          = std::make_shared<RefreshCollection>(af, collection_to,
+                                                omp_get_num_procs(), false,
+                                                true, false, bookmarks);
+#endif
 
       if(rfr->refreshBook(bbe_out))
         {
@@ -1120,6 +1153,7 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       }
   });
 
+#ifndef USE_OPENMP
   std::thread thr([res_var, this, variant] {
     try
       {
@@ -1133,6 +1167,27 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       }
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      try
+        {
+          copy_overwrite(variant, res_var);
+        }
+      catch(MLException &er)
+        {
+          std::cout << er.what() << std::endl;
+          *res_var = 1;
+          copy_result_disp->emit();
+        }
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 #ifndef ML_GTK_OLD
@@ -1183,11 +1238,25 @@ TransferBookGui::path_choose_dialog_add_slot(
         path_in_archive_window(win, 3);
       });
 
+#ifndef USE_OPENMP
       std::thread thr([this] {
-        arch_filelist = AddBook::archive_filenames(out_file_path);
+        arch_filelist = AddBook::archive_filenames(out_file_path, af);
         form_arch_filelist_disp->emit();
       });
       thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+      {
+        omp_event_handle_t event;
+#pragma omp task detach(event)
+        {
+          arch_filelist = AddBook::archive_filenames(out_file_path, af);
+          form_arch_filelist_disp->emit();
+          omp_fulfill_event(event);
+        }
+      }
+#endif
     }
 }
 #endif

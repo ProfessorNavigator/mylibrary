@@ -1,21 +1,19 @@
 /*
  * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <NotesGui.h>
-#include <fstream>
 #include <gtkmm-4.0/gdkmm/monitor.h>
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
@@ -120,26 +118,12 @@ NotesGui::creatWindow(const std::string &collection_name,
   note_txt->set_top_margin(5);
   note_txt->set_right_margin(5);
   note_txt->set_bottom_margin(5);
-  std::fstream f;
-  f.open(nbe.note_file_full_path, std::ios_base::in | std::ios_base::binary);
-  if(f.is_open())
-    {
-      f.seekg(0, std::ios_base::end);
-      note_buffer.resize(f.tellg());
-      f.seekg(0, std::ios_base::beg);
-      f.read(note_buffer.data(), note_buffer.size());
-      f.close();
 
-      std::string find_str = "\n\n";
-      std::string::size_type n = note_buffer.find(find_str);
-      if(n != std::string::npos)
-        {
-          note_buffer.erase(0, n + find_str.size());
-        }
+  note_buffer = notes->readNoteText(nbe);
 
-      Glib::RefPtr<Gtk::TextBuffer> tb = note_txt->get_buffer();
-      tb->set_text(note_buffer);
-    }
+  Glib::RefPtr<Gtk::TextBuffer> tb = note_txt->get_buffer();
+  tb->set_text(note_buffer);
+
   txt_scrl->set_child(*note_txt);
 
   Gtk::Button *save = Gtk::make_managed<Gtk::Button>();

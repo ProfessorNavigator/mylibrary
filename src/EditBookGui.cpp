@@ -1,25 +1,23 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <BookParseEntry.h>
 #include <EditBookGui.h>
 #include <MLException.h>
 #include <RefreshCollection.h>
-#include <atomic>
 #include <giomm-2.68/giomm/menuitem.h>
 #include <giomm-2.68/giomm/simpleaction.h>
 #include <giomm-2.68/giomm/simpleactiongroup.h>
@@ -34,6 +32,13 @@
 #include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
 #include <iostream>
 #include <libintl.h>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <thread>
+#endif
 
 EditBookGui::EditBookGui(const std::shared_ptr<AuxFunc> &af,
                          Gtk::Window *parent_window,
@@ -602,10 +607,23 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   restore->set_name("operationBut");
   restore->set_label(gettext("Restore"));
   restore->signal_clicked().connect([this] {
-    refresh_thr = std::make_shared<std::thread>([this] {
+#ifndef USE_OPENMP
+    std::thread thr([this] {
       restore_disp->emit();
     });
-    refresh_thr->detach();
+    thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+    {
+      omp_event_handle_t event;
+#pragma omp task detach(event)
+      {
+        restore_disp->emit();
+        omp_fulfill_event(event);
+      }
+    }
+#endif
   });
   grid->attach(*restore, 1, row_num, 1, 1);
 
@@ -757,11 +775,15 @@ EditBookGui::edit_book(Gtk::Window *win)
             }
         }
     }
-  std::atomic<bool> cancel;
-  cancel.store(false);
+#ifndef USE_OPENMP
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
-      af, collection_name, std::thread::hardware_concurrency(), &cancel, false,
-      true, true, bookmarks);
+      af, collection_name, std::thread::hardware_concurrency(), false, true,
+      true, bookmarks);
+#endif
+#ifdef USE_OPENMP
+  std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
+      af, collection_name, omp_get_num_procs(), false, true, true, bookmarks);
+#endif
   try
     {
       if(rfr->editBook(bbe, bbe_new))

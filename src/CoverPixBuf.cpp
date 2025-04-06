@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <CoverPixBuf.h>
@@ -80,27 +79,36 @@ CoverPixBuf::createBuffer()
 {
   if(bie)
     {
-      if(bie->cover_type == "base64")
+      switch(bie->cover_type)
         {
-          std::string base64 = Glib::Base64::decode(bie->cover);
-          Glib::RefPtr<Glib::Bytes> bytes
-              = Glib::Bytes::create(base64.c_str(), base64.size());
-          createFromStream(bytes);
-        }
-      else if(bie->cover_type == "file")
-        {
-          Glib::RefPtr<Glib::Bytes> bytes
-              = Glib::Bytes::create(bie->cover.c_str(), bie->cover.size());
-          createFromStream(bytes);
-        }
-      else if(bie->cover_type == "rgb")
-        {
-          createFromRgba(false);
-        }
-      else if(bie->cover_type == "rgba")
-        {
-          createFromRgba(true);
-        }
+        case BookInfoEntry::cover_types::base64:
+          {
+            std::string base64 = Glib::Base64::decode(bie->cover);
+            Glib::RefPtr<Glib::Bytes> bytes
+                = Glib::Bytes::create(base64.c_str(), base64.size());
+            createFromStream(bytes);
+            break;
+          }
+        case BookInfoEntry::cover_types::file:
+          {
+            Glib::RefPtr<Glib::Bytes> bytes
+                = Glib::Bytes::create(bie->cover.c_str(), bie->cover.size());
+            createFromStream(bytes);
+            break;
+          }
+        case BookInfoEntry::cover_types::rgb:
+          {
+            createFromRgba(false);
+            break;
+          }
+        case BookInfoEntry::cover_types::rgba:
+          {
+            createFromRgba(true);
+            break;
+          }
+        default:
+          break;
+        }      
     }
 }
 

@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <SearchProcessGui.h>
@@ -22,7 +21,13 @@
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <libintl.h>
 #include <memory>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 SearchProcessGui::SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window)
 {
@@ -209,11 +214,25 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
     win->close();
   });
 
+#ifndef USE_OPENMP
   std::thread thr([this, search, search_finished] {
     search_result = bk->searchBook(search);
     search_finished->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      search_result = bk->searchBook(search);
+      search_finished->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -231,6 +250,7 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
     win->close();
   });
 
+#ifndef USE_OPENMP
   std::thread thr([this, collection_name, af, copy_proc_finished] {
     files = bk->get_base_vector();
     std::filesystem::path book_p = bk->get_books_path(collection_name, af);
@@ -243,6 +263,26 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
     copy_proc_finished->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      files = bk->get_base_vector();
+      std::filesystem::path book_p = bk->get_books_path(collection_name, af);
+      for(auto it = files.begin(); it != files.end(); it++)
+        {
+          std::filesystem::path p = book_p;
+          p /= std::filesystem::u8path(it->file_rel_path);
+          it->file_rel_path = p.u8string();
+        }
+      copy_proc_finished->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -259,11 +299,25 @@ SearchProcessGui::showAuthors(Gtk::Window *win,
     win->close();
   });
 
+#ifndef USE_OPENMP
   std::thread thr([this, search_finished] {
     authors = bk->collectionAuthors();
     search_finished->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      authors = bk->collectionAuthors();
+      search_finished->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }
 
 void
@@ -281,9 +335,24 @@ SearchProcessGui::showBooksWithNotes(Gtk::Window *win,
     win->close();
   });
 
+#ifndef USE_OPENMP
   std::thread thr([this, notes, search_finished] {
     search_result = bk->booksWithNotes(notes);
     search_finished->emit();
   });
   thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp parallel
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
+    {
+      search_result = bk->booksWithNotes(notes);
+      search_finished->emit();
+      omp_fulfill_event(event);
+    }
+  }
+#endif
 }

@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <AddBookGui.h>
@@ -50,11 +49,13 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
   std::filesystem::path styles_path
-      = af->homePath()
-        / std::filesystem::u8path(".config/MyLibrary/MLStyles.css");
+      = af->homePath() / std::filesystem::u8path(".config")
+        / std::filesystem::u8path("MyLibrary")
+        / std::filesystem::u8path("MLStyles.css");
   if(!std::filesystem::exists(styles_path))
     {
       styles_path = af->share_path();
+      styles_path /= std::filesystem::u8path("MyLibrary");
       styles_path /= std::filesystem::u8path("MLStyles.css");
     }
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
@@ -73,6 +74,30 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 #ifdef USE_PLUGINS
   plugins_keeper = std::make_shared<PluginsKeeper>(this, af);
 #endif
+
+  mlbookproc_docs_path = af->share_path();
+  mlbookproc_docs_path /= std::filesystem::u8path("doc");
+  mlbookproc_docs_path /= std::filesystem::u8path("MLBookProc");
+  mlbookproc_docs_path /= std::filesystem::u8path("html");
+  mlbookproc_docs_path /= std::filesystem::u8path("index.html");
+  if(!std::filesystem::exists(mlbookproc_docs_path))
+    {
+      mlbookproc_docs_path = mlbookproc_docs_path.parent_path().parent_path()
+                             / std::filesystem::u8path("pdf");
+      mlbookproc_docs_path /= std::filesystem::u8path("refman.pdf");
+    }
+
+  mlpluginifc_docs_path = af->share_path();
+  mlpluginifc_docs_path /= std::filesystem::u8path("doc");
+  mlpluginifc_docs_path /= std::filesystem::u8path("MLPluginIfc");
+  mlpluginifc_docs_path /= std::filesystem::u8path("html");
+  mlpluginifc_docs_path /= std::filesystem::u8path("index.html");
+  if(!std::filesystem::exists(mlpluginifc_docs_path))
+    {
+      mlpluginifc_docs_path = mlpluginifc_docs_path.parent_path().parent_path()
+                              / std::filesystem::u8path("pdf");
+      mlpluginifc_docs_path /= std::filesystem::u8path("refman.pdf");
+    }
   formMainWindow();
 }
 
@@ -227,6 +252,20 @@ MainWindow::createMainMenu()
                                "main_menu.about_dialog");
   about_menu->append_item(item);
 
+  if(std::filesystem::exists(mlbookproc_docs_path))
+    {
+      item = Gio::MenuItem::create(gettext("MLBookProc documentation"),
+                                   "main_menu.mlbookproc_doc");
+      about_menu->append_item(item);
+    }
+
+  if(std::filesystem::exists(mlpluginifc_docs_path))
+    {
+      item = Gio::MenuItem::create(gettext("MLPluginIfc documentation"),
+                                   "main_menu.mlpluginifc_doc");
+      about_menu->append_item(item);
+    }
+
   return bar;
 }
 
@@ -234,7 +273,9 @@ void
 MainWindow::setMainWindowSizes()
 {
   std::filesystem::path szpath = af->homePath();
-  szpath /= std::filesystem::u8path(".cache/MyLibrary/mwsizes");
+  szpath /= std::filesystem::u8path(".cache")
+            / std::filesystem::u8path("MyLibrary")
+            / std::filesystem::u8path("mwsizes");
   int32_t height, width;
   double pos;
   std::fstream f;
@@ -365,13 +406,27 @@ MainWindow::createMainMenuActionGroup()
   });
 
   main_menu_actions->add_action("about_dialog",
-                                std::bind(&MainWindow::about_dialog, this));
+                                std::bind(&MainWindow::about_dialog, this));  
 
 #ifdef USE_PLUGINS
   main_menu_actions->add_action(
       "plugins_keeper",
       std::bind(&PluginsKeeper::createWindow, plugins_keeper));
 #endif
+
+  main_menu_actions->add_action("mlbookproc_doc", [this] {
+    if(std::filesystem::exists(mlbookproc_docs_path))
+      {
+        af->open_book_callback(mlbookproc_docs_path);
+      }
+  });
+
+  main_menu_actions->add_action("mlpluginifc_doc", [this] {
+    if(std::filesystem::exists(mlpluginifc_docs_path))
+      {
+        af->open_book_callback(mlpluginifc_docs_path);
+      }
+  });
 
   insert_action_group("main_menu", main_menu_actions);
 }
@@ -387,7 +442,9 @@ MainWindow::mainWindowCloseFunc()
   double pos = static_cast<double>(pane_pos) / static_cast<double>(width);
 
   std::filesystem::path szpath = af->homePath();
-  szpath /= std::filesystem::u8path(".cache/MyLibrary/mwsizes");
+  szpath /= std::filesystem::u8path(".cache")
+            / std::filesystem::u8path("MyLibrary")
+            / std::filesystem::u8path("mwsizes");
   std::filesystem::create_directories(szpath.parent_path());
   std::filesystem::remove_all(szpath);
 
@@ -462,6 +519,7 @@ MainWindow::about_dialog()
   about->set_program_name("MyLibrary");
 
   std::filesystem::path icon_p = af->share_path();
+  icon_p /= std::filesystem::u8path("MyLibrary");
   icon_p /= std::filesystem::u8path("mylibrary.svg");
 
   Glib::RefPtr<Gdk::Pixbuf> icon
@@ -498,9 +556,6 @@ MainWindow::about_dialog()
             "ICU https://icu.unicode.org/\n"
             "Poppler https://poppler.freedesktop.org/\n"
             "DjVuLibre https://djvu.sourceforge.net/");
-#ifdef USE_OPENMP
-  abbuf += "\nOpenMP https://www.openmp.org/";
-#endif
 #ifdef USE_TBB
   abbuf += "\noneTBB https://github.com/uxlfoundation/oneTBB";
 #endif

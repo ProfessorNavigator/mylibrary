@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <Genre.h>
@@ -32,7 +31,13 @@
 #include <gtkmm-4.0/gtkmm/separator.h>
 #include <iostream>
 #include <libintl.h>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
 #include <thread>
+#endif
 
 LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
                    Gtk::Window *main_window,
@@ -104,7 +109,10 @@ LeftGrid::createCollectionsList()
       = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path collections = af->homePath();
-  collections /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+  collections /= std::filesystem::u8path(".local")
+                 / std::filesystem::u8path("share")
+                 / std::filesystem::u8path("MyLibrary")
+                 / std::filesystem::u8path("Collections");
   if(std::filesystem::exists(collections))
     {
       for(auto &dirit : std::filesystem::directory_iterator(collections))
@@ -413,7 +421,9 @@ void
 LeftGrid::setActiveCollection()
 {
   std::filesystem::path selcol = af->homePath();
-  selcol /= std::filesystem::u8path(".cache/MyLibrary/ActiveCollection");
+  selcol /= std::filesystem::u8path(".cache")
+            / std::filesystem::u8path("MyLibrary")
+            / std::filesystem::u8path("ActiveCollection");
   std::fstream f;
   f.open(selcol, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
@@ -457,7 +467,9 @@ LeftGrid::saveActiveCollection()
           loadCollection(sel);
           std::string col(list->get_string(sel));
           std::filesystem::path p = af->homePath();
-          p /= std::filesystem::u8path(".cache/MyLibrary/ActiveCollection");
+          p /= std::filesystem::u8path(".cache")
+               / std::filesystem::u8path("MyLibrary")
+               / std::filesystem::u8path("ActiveCollection");
           std::filesystem::remove_all(p);
           std::filesystem::create_directories(p.parent_path());
           std::fstream f;
@@ -480,6 +492,7 @@ LeftGrid::loadCollection(const guint &sel)
   if(list && sel != GTK_INVALID_LIST_POSITION)
     {
       std::string col(list->get_string(sel));
+#ifndef USE_OPENMP
       std::thread thr([this, col] {
         try
           {
@@ -491,6 +504,25 @@ LeftGrid::loadCollection(const guint &sel)
           }
       });
       thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+      {
+        omp_event_handle_t event;
+#pragma omp task detach(event)
+        {
+          try
+            {
+              base_keeper->loadCollection(col);
+            }
+          catch(MLException &e)
+            {
+              std::cout << e.what() << std::endl;
+            }
+          omp_fulfill_event(event);
+        }
+      }
+#endif
     }
 }
 
@@ -616,6 +648,7 @@ LeftGrid::reloadCollection(const std::string &col_name)
           if(std::string(list->get_string(selected)) == col_name)
             {
               base_keeper->clearBase();
+#ifndef USE_OPENMP
               std::thread thr([this, col_name] {
                 try
                   {
@@ -628,6 +661,26 @@ LeftGrid::reloadCollection(const std::string &col_name)
                   }
               });
               thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+              {
+                omp_event_handle_t event;
+#pragma omp task detach(event)
+                {
+                  try
+                    {
+                      base_keeper->loadCollection(col_name);
+                    }
+                  catch(MLException &e)
+                    {
+                      std::cout << "LeftGrid::reloadCollection: " << e.what()
+                                << std::endl;
+                    }
+                  omp_fulfill_event(event);
+                }
+              }
+#endif
               result = true;
             }
         }

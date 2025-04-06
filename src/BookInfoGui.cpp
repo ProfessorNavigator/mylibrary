@@ -1,25 +1,23 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <BookInfoGui.h>
 #include <BookParseEntry.h>
 #include <CoverPixBuf.h>
 #include <ElectroBookInfoEntry.h>
-#include <FormatAnnotation.h>
 #include <FullSizeCover.h>
 #include <Genre.h>
 #include <MLException.h>
@@ -987,6 +985,9 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
 
               std::string hist = bie->electro->history;
               FormatAnnotation fa(af);
+              std::vector<ReplaceTagItem> tag_replacement_table;
+              formReplacementTable(tag_replacement_table);
+              fa.setTagReplacementTable(tag_replacement_table);
               fa.remove_escape_sequences(hist);
               fa.replace_tags(hist);
               fa.final_cleaning(hist);
@@ -1070,7 +1071,8 @@ BookInfoGui::show_cover_popup_menu(int, double x, double y,
 {
   if(bie)
     {
-      if(!bie->cover.empty() && !bie->cover_type.empty())
+      if(!bie->cover.empty()
+         && bie->cover_type != BookInfoEntry::cover_types::error)
         {
           Gdk::Rectangle rec(static_cast<int>(x), static_cast<int>(y), 1, 1);
           pop_menu->set_pointing_to(rec);
@@ -1084,7 +1086,8 @@ BookInfoGui::cover_full_size(Gtk::Window *win)
 {
   if(bie)
     {
-      if(!bie->cover.empty() && !bie->cover_type.empty())
+      if(!bie->cover.empty()
+         && bie->cover_type != BookInfoEntry::cover_types::error)
         {
           FullSizeCover *fsc = new FullSizeCover(bie, win);
           fsc->createWindow();
@@ -1097,10 +1100,53 @@ BookInfoGui::save_cover(Gtk::Window *win)
 {
   if(bie)
     {
-      if(!bie->cover.empty() && !bie->cover_type.empty())
+      if(!bie->cover.empty()
+         && bie->cover_type != BookInfoEntry::cover_types::error)
         {
           SaveCover *sc = new SaveCover(bie, win);
           sc->createWindow();
         }
     }
+}
+
+void
+BookInfoGui::formReplacementTable(
+    std::vector<ReplaceTagItem> &replacement_table)
+{
+  ReplaceTagItem tag;
+
+  tag.tag_to_replace = "p";
+  tag.begin_replacement = "  ";
+  tag.end_replacement = "\n";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "empty-line";
+  tag.begin_replacement = "";
+  tag.end_replacement = "\n\n  ";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "sub";
+  tag.begin_replacement = "<span rise=\"-5pt\">";
+  tag.end_replacement = "</span>";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "sup";
+  tag.begin_replacement = "<span rise=\"5pt\">";
+  tag.end_replacement = "</span>";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "strong";
+  tag.begin_replacement = "<span font_weight=\"bold\">";
+  tag.end_replacement = "</span>";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "emphasis";
+  tag.begin_replacement = "<span font_style=\"italic\">";
+  tag.end_replacement = "</span>";
+  replacement_table.emplace_back(tag);
+
+  tag.tag_to_replace = "strikethrough";
+  tag.begin_replacement = "<span strikethrough=\"true\">";
+  tag.end_replacement = "</span>";
+  replacement_table.emplace_back(tag);
 }

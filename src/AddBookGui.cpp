@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <AddBook.h>
@@ -40,8 +39,14 @@
 #include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <iostream>
 #include <libintl.h>
-#include <thread>
 #include <tuple>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+#ifndef USE_OPENMP
+#include <thread>
+#endif
 
 #ifndef ML_GTK_OLD
 #include <giomm-2.68/giomm/cancellable.h>
@@ -283,7 +288,10 @@ AddBookGui::form_collections_list()
       = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path col_path = af->homePath();
-  col_path /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+  col_path /= std::filesystem::u8path(".local")
+              / std::filesystem::u8path("share")
+              / std::filesystem::u8path("MyLibrary")
+              / std::filesystem::u8path("Collections");
   if(std::filesystem::exists(col_path))
     {
       for(auto &dirit : std::filesystem::directory_iterator(col_path))
@@ -1395,6 +1403,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
         {
         case 1:
           {
+#ifndef USE_OPENMP
             std::thread thr([this, result] {
               AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
@@ -1416,10 +1425,40 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+            {
+              omp_event_handle_t event;
+#pragma omp task detach(event)
+              {
+                AddBook ab(af, collection_name, remove_sources, bookmarks);
+                try
+                  {
+                    if(directory_add)
+                      {
+                        ab.simple_add_dir(result);
+                      }
+                    else
+                      {
+                        ab.simple_add(result);
+                      }
+                    finish_add_disp->emit();
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    finish_add_err_disp->emit();
+                  }
+                omp_fulfill_event(event);
+              }
+            }
+#endif
             break;
           }
         case 2:
           {
+#ifndef USE_OPENMP
             std::thread thr([this, result] {
               AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
@@ -1441,10 +1480,40 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+            {
+              omp_event_handle_t event;
+#pragma omp task detach(event)
+              {
+                AddBook ab(af, collection_name, remove_sources, bookmarks);
+                try
+                  {
+                    if(directory_add)
+                      {
+                        ab.overwrite_archive_dir(result_archive_path, result);
+                      }
+                    else
+                      {
+                        ab.overwrite_archive(result_archive_path, result);
+                      }
+                    finish_add_disp->emit();
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    finish_add_err_disp->emit();
+                  }
+                omp_fulfill_event(event);
+              }
+            }
+#endif
             break;
           }
         case 3:
           {
+#ifndef USE_OPENMP
             std::thread thr([this, result] {
               AddBook ab(af, collection_name, remove_sources, bookmarks);
               try
@@ -1467,6 +1536,37 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+            {
+              omp_event_handle_t event;
+#pragma omp task detach(event)
+              {
+                AddBook ab(af, collection_name, remove_sources, bookmarks);
+                try
+                  {
+                    if(directory_add)
+                      {
+                        ab.add_to_existing_archive_dir(result_archive_path,
+                                                       result);
+                      }
+                    else
+                      {
+                        ab.add_to_existing_archive(result_archive_path,
+                                                   result);
+                      }
+                    finish_add_disp->emit();
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << er.what() << std::endl;
+                    finish_add_err_disp->emit();
+                  }
+                omp_fulfill_event(event);
+              }
+            }
+#endif
             break;
           }
         default:
@@ -2145,11 +2245,25 @@ AddBookGui::archive_selection_dialog_add_slot(
             bookSelectionWindow(win, 3);
           });
 
+#ifndef USE_OPENMP
           std::thread thr([this, p] {
-            archive_filenames = AddBook::archive_filenames(p);
+            archive_filenames = AddBook::archive_filenames(p, af);
             finish_wait_disp->emit();
           });
           thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+          {
+            omp_event_handle_t event;
+#pragma omp task detach(event)
+            {
+              archive_filenames = AddBook::archive_filenames(p, af);
+              finish_wait_disp->emit();
+              omp_fulfill_event(event);
+            }
+          }
+#endif
         }
     }
 }

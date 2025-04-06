@@ -18,16 +18,17 @@ add_executable(mylibrary)
 
 add_subdirectory(src)
 add_subdirectory(include)
-add_subdirectory(mlbookproc)
+add_subdirectory(MLBookProc)
 
 if(USE_OPENMP)
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
     add_link_options("${OpenMP_CXX_FLAGS}")
-endif()
-
-if(USE_TBB)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
+else()
+    find_package(TBB)
+    if(TBB_FOUND)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
+    endif()
 endif()
 
 if(GTKMM_VERSION VERSION_LESS "4.10")
@@ -36,8 +37,8 @@ endif()
 
 if(USE_PLUGINS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PLUGINS")
-    add_subdirectory(mlpluginifc)
-    target_include_directories(mylibrary PRIVATE mlpluginifc/include)
+    add_subdirectory(MLPluginIfc)
+    target_include_directories(mylibrary PRIVATE MLPluginIfc/include)
     target_link_libraries(mlpluginifc PRIVATE mlbookproc)
     target_link_libraries(mylibrary PRIVATE mlpluginifc)
 
@@ -47,7 +48,7 @@ if(USE_PLUGINS)
 endif()
 
 target_include_directories(mylibrary
-    PRIVATE mlbookproc/include
+    PRIVATE MLBookProc/include
     PRIVATE PkgConfig::GTKMM
     PRIVATE include        
 )

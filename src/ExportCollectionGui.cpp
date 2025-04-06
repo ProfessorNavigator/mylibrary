@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <ByteOrder.h>
@@ -111,7 +110,9 @@ ExportCollectionGui::create_collections_list()
       = Gtk::StringList::create(std::vector<Glib::ustring>());
 
   std::filesystem::path col_p = af->homePath();
-  col_p /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+  col_p /= std::filesystem::u8path(".local") / std::filesystem::u8path("share")
+           / std::filesystem::u8path("MyLibrary")
+           / std::filesystem::u8path("Collections");
 
   if(std::filesystem::exists(col_p))
     {
@@ -245,8 +246,10 @@ ExportCollectionGui::export_func(const std::filesystem::path &exp_p,
   if(col)
     {
       std::filesystem::path source_p = af->homePath();
-      source_p
-          /= std::filesystem::u8path(".local/share/MyLibrary/Collections");
+      source_p /= std::filesystem::u8path(".local")
+                  / std::filesystem::u8path("share")
+                  / std::filesystem::u8path("MyLibrary")
+                  / std::filesystem::u8path("Collections");
       source_p /= std::filesystem::u8path(std::string(col->get_string()));
       source_p /= std::filesystem::u8path("base");
       std::fstream f;

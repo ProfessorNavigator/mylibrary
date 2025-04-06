@@ -1,18 +1,17 @@
 /*
  * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License along with
+ * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <BookBaseEntry.h>
@@ -237,7 +236,9 @@ void
 BookMarksGui::loadWindowSizes()
 {
   std::filesystem::path bmp = af->homePath();
-  bmp /= std::filesystem::u8path(".cache/MyLibrary/bmwsizes");
+  bmp /= std::filesystem::u8path(".cache")
+         / std::filesystem::u8path("MyLibrary")
+         / std::filesystem::u8path("bmwsizes");
   std::fstream f;
   f.open(bmp, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
@@ -295,7 +296,9 @@ BookMarksGui::saveWindowSizes(Gtk::Window *win)
   window_width = win->get_width();
   window_height = win->get_height();
   std::filesystem::path bmp = af->homePath();
-  bmp /= std::filesystem::u8path(".cache/MyLibrary/bmwsizes");
+  bmp /= std::filesystem::u8path(".cache")
+         / std::filesystem::u8path("MyLibrary")
+         / std::filesystem::u8path("bmwsizes");
   std::filesystem::create_directories(bmp.parent_path());
   std::fstream f;
   f.open(bmp, std::ios_base::out | std::ios_base::binary);
