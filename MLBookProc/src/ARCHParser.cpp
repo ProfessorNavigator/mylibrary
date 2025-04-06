@@ -29,6 +29,10 @@
 #include <iostream>
 #include <string>
 
+#ifndef USE_OPENMP
+#include <thread>
+#endif
+
 ARCHParser::ARCHParser(const std::shared_ptr<AuxFunc> &af,
                        const bool &rar_support)
     : LibArchive(af)
@@ -37,8 +41,6 @@ ARCHParser::ARCHParser(const std::shared_ptr<AuxFunc> &af,
   this->rar_support = rar_support;
 #ifndef USE_OPENMP
   cancel.store(false);
-  parse_thr = std::thread([] {
-  });
 #endif
 #ifdef USE_OPENMP
   omp_init_lock(&archp_obj_mtx);
@@ -48,10 +50,10 @@ ARCHParser::ARCHParser(const std::shared_ptr<AuxFunc> &af,
 ARCHParser::~ARCHParser()
 {
 #ifndef USE_OPENMP
-  if(parse_thr.joinable())
-    {
-      parse_thr.join();
-    }
+  std::unique_lock<std::mutex> ullock(extra_run_mtx);
+  extra_run_var.wait(ullock, [this] {
+    return !extra_run;
+  });
 #endif
 #ifdef USE_OPENMP
   omp_destroy_lock(&archp_obj_mtx);
@@ -84,7 +86,10 @@ ARCHParser::arch_parser(const std::filesystem::path &filepath)
     }
 
 #ifndef USE_OPENMP
-  parse_thr.join();
+  std::unique_lock<std::mutex> ullock(extra_run_mtx);
+  extra_run_var.wait(ullock, [this] {
+    return !extra_run;
+  });
 #endif
 
   check_for_fbd();
@@ -137,7 +142,17 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
           break;
         }
       archive_entry_clear(entry.get());
-      er = archive_read_next_header2(a.get(), entry.get());
+      try
+        {
+          er = archive_read_next_header2(a.get(), entry.get());
+        }
+      catch(MLException &ml_e)
+        {
+          std::cout << "ARCHParser::arch_process: " << ml_e.what()
+                    << std::endl;
+          break;
+        }
+
       switch(er)
         {
         case ARCHIVE_OK:
@@ -206,7 +221,17 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
               break;
             }
           archive_entry_clear(entry.get());
-          er = archive_read_next_header2(a.get(), entry.get());
+          try
+            {
+              er = archive_read_next_header2(a.get(), entry.get());
+            }
+          catch(MLException &ml_e)
+            {
+              std::cout << "ARCHParser::arch_process: " << ml_e.what()
+                        << std::endl;
+              break;
+            }
+
           switch(er)
             {
             case ARCHIVE_OK:
@@ -287,27 +312,36 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
         {
           buf = libarchive_read_entry_str(a.get(), e.get());
 
-          parse_thr.join();
-          parse_thr = std::thread([this, buf, ch_p] {
+          std::unique_lock<std::mutex> ullock(extra_run_mtx);
+          extra_run_var.wait(ullock, [this] {
+            return !extra_run;
+          });
+          extra_run = true;
+          ullock.unlock();
+
+          std::thread parse_thr([this, buf, ch_p] {
             BookParseEntry bpe;
             FB2Parser fb2(af);
             try
               {
                 bpe = fb2.fb2_parser(buf);
+                bpe.book_path = ch_p.u8string();
+                if(bpe.book_name.empty())
+                  {
+                    bpe.book_name = ch_p.stem().u8string();
+                  }
+                result.emplace_back(bpe);
               }
             catch(MLException &er)
               {
                 std::cout << "ARCHParser::unpack_entry error " << arch_path
                           << " " << ch_p << " " << er.what() << std::endl;
-                return void();
               }
-            bpe.book_path = ch_p.u8string();
-            if(bpe.book_name.empty())
-              {
-                bpe.book_name = ch_p.stem().u8string();
-              }
-            result.emplace_back(bpe);
+            std::lock_guard<std::mutex> lglock(extra_run_mtx);
+            extra_run = false;
+            extra_run_var.notify_one();
           });
+          parse_thr.detach();
         }
       else if(ext == ".epub")
         {
@@ -319,27 +353,37 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
 
           if(std::filesystem::exists(out))
             {
-              parse_thr.join();
-              parse_thr = std::thread([this, srp, out, ch_p] {
+              std::unique_lock<std::mutex> ullock(extra_run_mtx);
+              extra_run_var.wait(ullock, [this] {
+                return !extra_run;
+              });
+              extra_run = true;
+              ullock.unlock();
+
+              std::thread parse_thr([this, srp, out, ch_p] {
                 EPUBParser epub(af);
                 BookParseEntry bpe;
                 try
                   {
                     bpe = epub.epub_parser(out);
+
+                    bpe.book_path = ch_p.u8string();
+                    if(bpe.book_name.empty())
+                      {
+                        bpe.book_name = ch_p.stem().u8string();
+                      }
+                    result.emplace_back(bpe);
                   }
                 catch(MLException &er)
                   {
                     std::cout << "ARCHParser::unpack_entry error " << arch_path
                               << " " << ch_p << " " << er.what() << std::endl;
-                    return void();
                   }
-                bpe.book_path = ch_p.u8string();
-                if(bpe.book_name.empty())
-                  {
-                    bpe.book_name = ch_p.stem().u8string();
-                  }
-                result.emplace_back(bpe);
+                std::lock_guard<std::mutex> lglock(extra_run_mtx);
+                extra_run = false;
+                extra_run_var.notify_one();
               });
+              parse_thr.detach();
             }
           else
             {
@@ -351,27 +395,38 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
       else if(ext == ".pdf")
         {
           buf = libarchive_read_entry_str(a.get(), e.get());
-          parse_thr.join();
-          parse_thr = std::thread([this, buf, ch_p] {
+
+          std::unique_lock<std::mutex> ullock(extra_run_mtx);
+          extra_run_var.wait(ullock, [this] {
+            return !extra_run;
+          });
+          extra_run = true;
+          ullock.unlock();
+
+          std::thread parse_thr([this, buf, ch_p] {
             PDFParser pdf(af);
             BookParseEntry bpe;
             try
               {
                 bpe = pdf.pdf_parser(buf);
+                bpe.book_path = ch_p.u8string();
+                if(bpe.book_name.empty())
+                  {
+                    bpe.book_name = ch_p.stem().u8string();
+                  }
+                result.emplace_back(bpe);
               }
             catch(MLException &er)
               {
                 std::cout << "ARCHParser::unpack_entry error " << arch_path
                           << " " << ch_p << " " << er.what() << std::endl;
-                return void();
               }
-            bpe.book_path = ch_p.u8string();
-            if(bpe.book_name.empty())
-              {
-                bpe.book_name = ch_p.stem().u8string();
-              }
-            result.emplace_back(bpe);
+
+            std::lock_guard<std::mutex> lglock(extra_run_mtx);
+            extra_run = false;
+            extra_run_var.notify_one();
           });
+          parse_thr.detach();
         }
       else if(ext == ".djvu")
         {
@@ -384,13 +439,26 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               = af->time_t_to_date(archive_entry_birthtime(e.get()));
           if(std::filesystem::exists(out))
             {
-              parse_thr.join();
-              parse_thr = std::thread([this, out, srp, book_date, ch_p] {
+              std::unique_lock<std::mutex> ullock(extra_run_mtx);
+              extra_run_var.wait(ullock, [this] {
+                return !extra_run;
+              });
+              extra_run = true;
+              ullock.unlock();
+
+              std::thread parse_thr([this, out, srp, book_date, ch_p] {
                 DJVUParser djvu(af);
                 BookParseEntry bpe;
                 try
                   {
                     bpe = djvu.djvu_parser(out);
+                    bpe.book_date = book_date;
+                    bpe.book_path = ch_p.u8string();
+                    if(bpe.book_name.empty())
+                      {
+                        bpe.book_name = ch_p.stem().u8string();
+                      }
+                    result.emplace_back(bpe);
                   }
                 catch(MLException &er)
                   {
@@ -398,14 +466,12 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                               << " " << ch_p << " " << er.what() << std::endl;
                     return void();
                   }
-                bpe.book_date = book_date;
-                bpe.book_path = ch_p.u8string();
-                if(bpe.book_name.empty())
-                  {
-                    bpe.book_name = ch_p.stem().u8string();
-                  }
-                result.emplace_back(bpe);
+
+                std::lock_guard<std::mutex> lglock(extra_run_mtx);
+                extra_run = false;
+                extra_run_var.notify_one();
               });
+              parse_thr.detach();
             }
           else
             {
@@ -418,27 +484,38 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
         {
           buf = libarchive_read_entry_str(a.get(), e.get());
 
-          parse_thr.join();
-          parse_thr = std::thread([this, buf, ch_p] {
+          std::unique_lock<std::mutex> ullock(extra_run_mtx);
+          extra_run_var.wait(ullock, [this] {
+            return !extra_run;
+          });
+          extra_run = true;
+          ullock.unlock();
+
+          std::thread parse_thr([this, buf, ch_p] {
             FB2Parser fb2(af);
             BookParseEntry bpe;
             try
               {
                 bpe = fb2.fb2_parser(buf);
+
+                bpe.book_path = ch_p.u8string();
+                if(bpe.book_name.empty())
+                  {
+                    bpe.book_name = ch_p.stem().u8string();
+                  }
+                fbd.emplace_back(bpe);
               }
             catch(MLException &er)
               {
                 std::cout << "ARCHParser::unpack_entry error " << arch_path
                           << " " << ch_p << " " << er.what() << std::endl;
-                return void();
               }
-            bpe.book_path = ch_p.u8string();
-            if(bpe.book_name.empty())
-              {
-                bpe.book_name = ch_p.stem().u8string();
-              }
-            fbd.emplace_back(bpe);
+
+            std::lock_guard<std::mutex> lglock(extra_run_mtx);
+            extra_run = false;
+            extra_run_var.notify_one();
           });
+          parse_thr.detach();
         }
       else
         {
@@ -449,8 +526,14 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               = libarchive_read_entry(a.get(), e.get(), srp.path);
           if(std::filesystem::exists(out))
             {
-              parse_thr.join();
-              parse_thr = std::thread([this, srp, out, ch_p] {
+              std::unique_lock<std::mutex> ullock(extra_run_mtx);
+              extra_run_var.wait(ullock, [this] {
+                return !extra_run;
+              });
+              extra_run = true;
+              ullock.unlock();
+
+              std::thread parse_thr([this, srp, out, ch_p] {
                 std::vector<BookParseEntry> rec_v;
                 ARCHParser arch(af, rar_support);
                 archp_obj_mtx.lock();
@@ -475,7 +558,12 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                     std::remove(archp_obj.begin(), archp_obj.end(), &arch),
                     archp_obj.end());
                 archp_obj_mtx.unlock();
+
+                std::lock_guard<std::mutex> lglock(extra_run_mtx);
+                extra_run = false;
+                extra_run_var.notify_one();
               });
+              parse_thr.detach();
             }
           else
             {

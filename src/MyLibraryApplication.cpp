@@ -16,11 +16,20 @@
 
 #include <MyLibraryApplication.h>
 
+#ifndef USE_OPENMP
 MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af) :
     Gtk::Application("ru.mail.bobilev_yury.MyLibrary")
 {
   this->af = af;
 }
+#endif
+#ifdef USE_OPENMP
+MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af)
+    : Gtk::Application("ru.mail.bobilev_yury.MyLibrary.omp")
+{
+  this->af = af;
+}
+#endif
 
 MyLibraryApplication::~MyLibraryApplication()
 {

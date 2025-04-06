@@ -212,7 +212,14 @@ CreateCollection::threadRegulator()
         }
       std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
       run_threads_var.wait(run_thr_lock, [this] {
-        return run_threads < num_threads;
+        if(num_threads > 1)
+          {
+            return run_threads < num_threads - 1;
+          }
+        else
+          {
+            return run_threads < 1;
+          }
       });
       run_threads++;
       std::filesystem::path p = *it;

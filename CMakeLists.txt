@@ -69,8 +69,13 @@ install(DIRECTORY MyLibrary DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
-    install(FILES
-    ru.mail.bobilev_yury.MyLibrary.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+    if(USE_OPENMP)
+        install(FILES
+        ru.mail.bobilev_yury.MyLibrary.omp.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+    else()
+        install(FILES
+        ru.mail.bobilev_yury.MyLibrary.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+    endif()
 
     install(FILES
     mylibrary.svg DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")

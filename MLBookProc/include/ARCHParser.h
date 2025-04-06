@@ -27,8 +27,8 @@
 
 #ifndef USE_OPENMP
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
-#include <thread>
 #endif
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -96,9 +96,12 @@ private:
   std::vector<ARCHParser *> archp_obj;
 
 #ifndef USE_OPENMP
-  std::mutex archp_obj_mtx;
-  std::thread parse_thr;
+  std::mutex archp_obj_mtx;  
   std::atomic<bool> cancel;
+
+  bool extra_run = false;
+  std::mutex extra_run_mtx;
+  std::condition_variable extra_run_var;
 #endif
 #ifdef USE_OPENMP
   bool cancel = false;
