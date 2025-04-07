@@ -2427,7 +2427,7 @@ AddBookGui::archive_selection_dialog_add_slot(int resp,
               });
 
               std::thread thr([this, p] {
-                archive_filenames = AddBook::archive_filenames(p);
+                archive_filenames = AddBook::archive_filenames(p, af);
                 finish_wait_disp->emit();
               });
               thr.detach();

@@ -26,11 +26,20 @@ find_package(LibArchive REQUIRED)
 find_library(ATOMIC atomic)
 
 if(USE_OPENMP)
+  try_compile(OMP_TEST PROJECT OmpTest SOURCE_DIR omp_test)
+  if(OMP_TEST)
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
     add_link_options("${OpenMP_CXX_FLAGS}")
-else()
+  else()
     find_package(TBB)
+    find_package(Threads)
+    message(WARNING "Compiler does not support some OpenMP features.
+      Project will be built without OpenMP support.")
+  endif()
+else()
+  find_package(TBB)
+  find_package(Threads)
 endif()
 
 if(CREATE_HTML_DOCS_MLBOOKPROC OR CREATE_PDF_DOCS_MLBOOKPROC)
@@ -45,7 +54,7 @@ endif()
 if(BUILD_SHARED_LIBS)
   add_library(mlbookproc SHARED)
 else()
-    add_library(mlbookproc STATIC)
+  add_library(mlbookproc STATIC)
 endif()
 
 
@@ -80,6 +89,10 @@ target_link_libraries(mlbookproc
 
 if(ATOMIC_FOUND)
   target_link_libraries(mlbookproc PUBLIC ${ATOMIC})
+endif()
+
+if(Threads_FOUND)
+  target_link_libraries(mlbookproc PUBLIC Threads::Threads)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")

@@ -1361,7 +1361,7 @@ TransferBookGui::path_choose_dialog_add_slot(int resp,
           });
 
           std::thread thr([this] {
-            arch_filelist = AddBook::archive_filenames(out_file_path);
+            arch_filelist = AddBook::archive_filenames(out_file_path, af);
             form_arch_filelist_disp->emit();
           });
           thr.detach();

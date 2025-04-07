@@ -15,8 +15,6 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif()
 find_dependency(LibArchive REQUIRED)
 
-find_dependency(TBB)
-
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 
 check_required_components(@PROJECT_NAME@)
