@@ -2426,11 +2426,25 @@ AddBookGui::archive_selection_dialog_add_slot(int resp,
                 bookSelectionWindow(win, 3);
               });
 
+#ifndef USE_OPENMP
               std::thread thr([this, p] {
                 archive_filenames = AddBook::archive_filenames(p, af);
                 finish_wait_disp->emit();
               });
               thr.detach();
+#endif
+#ifdef USE_OPENMP
+#pragma omp masked
+              {
+                omp_event_handle_t event;
+#pragma omp task detach(event)
+                {
+                  archive_filenames = AddBook::archive_filenames(p, af);
+                  finish_wait_disp->emit();
+                  omp_fulfill_event(event);
+                }
+              }
+#endif
             }
         }
     }
