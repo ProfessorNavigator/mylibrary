@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
 project(MyLibrary VERSION 4.0 LANGUAGES CXX)
 
@@ -21,7 +21,7 @@ add_subdirectory(include)
 add_subdirectory(MLBookProc)
 
 if(USE_OPENMP)
-    try_compile(OMP_TEST PROJECT OmpTest SOURCE_DIR "${PROJECT_SOURCE_DIR}/MLBookProc/omp_test")
+    try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/MLBookProc/omp_test" "${PROJECT_SOURCE_DIR}/MLBookProc/omp_test" OmpTest)
     if(OMP_TEST)
         find_package(OpenMP REQUIRED)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
