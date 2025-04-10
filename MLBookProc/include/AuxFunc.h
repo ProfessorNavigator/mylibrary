@@ -45,9 +45,18 @@
  * \b MLBookProc creates own database and does not change files content, names
  * or location.
  *
- * To start create AuxFunc object. Further reading: CreateCollection,
- * RefreshCollection, BaseKeeper, BookMarks, NotesKeeper, ARCHParser,
- * DJVUParser, EPUBParser, FB2Parser, PDFParser.
+ * To start add  cmake package MLBookProc to your project.
+ *
+ * \code{.unparsed}
+ * find_package(MLBookProc)
+ * if(MLBookProc_FOUND)
+ *  target_include_directories(myproject MLBookProc::mlbookproc)
+ *  target_link_libraries(myproject MLBookProc::mlbookproc)
+ * endif()
+ * \endcode
+ *
+ * Then create AuxFunc object. Further reading: CreateCollection,
+ * RefreshCollection, BaseKeeper, BookMarks, NotesKeeper, BookInfo, OpenBook.
  */
 
 /*!

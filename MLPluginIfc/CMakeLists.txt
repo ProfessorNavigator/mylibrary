@@ -54,15 +54,9 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_SHOW_FILES NO)
 
   doxygen_add_docs(doxygen_mlpluginifc
-    ${PROJECT_SOURCE_DIR}/include
+    ALL
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/include
     COMMENT "Generating documentation"
-  )
-
-  add_custom_command(TARGET mlpluginifc
-    POST_BUILD
-    COMMAND doxygen
-    ARGS "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.doxygen_mlpluginifc"
-    COMMENT "Building documentation"
   )
 
   if(CREATE_PDF_DOCS_PLUGINIFC)

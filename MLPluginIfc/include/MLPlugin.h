@@ -23,16 +23,27 @@
  * \mainpage MLPluginIfc
  *
  * \b MLPluginIfc library provides interfaces to create plugins for <A
- * HREF="https://github.com/ProfessorNavigator/mylibrary">MyLibrary</A>. See
- * MLPlugin for details and code example.
+ * HREF="https://github.com/ProfessorNavigator/mylibrary">MyLibrary</A>.
+ *
+ * To start add cmake package MLPluginIfc to your project.
+ *
+ * \code{.unparsed}
+ * find_package(MLPluginIfc)
+ * if(MLPluginIfc_FOUND)
+ *  target_include_directories(myproject MLPluginIfc::mlpluginifc)
+ *  target_link_libraries(myproject MLPluginIfc::mlpluginifc)
+ * endif()
+ * \endcode
+ *
+ * See MLPlugin for details and code example.
  */
 
 /*!
  * \brief The MLPlugin class
  *
  * MLPlugin is base class for plugins creation. To create plugin inherit
- * your plugins base class from MLPlugin and override createWindow() method.
- * Also set #plugin_name and #plugin_description if needed. Your plugins base
+ * your plugin base class from MLPlugin and override createWindow() method.
+ * Also set #plugin_name and #plugin_description if needed. Your plugin base
  * header file must include C function create (see example).
  *
  * \include examples/ExamplePlugin.h
@@ -52,7 +63,7 @@ public:
   /*!
    * \brief Virtual function.
    *
-   * You should override this method to create your plugins window. New window
+   * You should override this method to create your plugin window. New window
    * should be transient for parent_window. It is also strongly recommended to
    * make new window modal (see example in class description).
    *

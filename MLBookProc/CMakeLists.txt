@@ -124,14 +124,11 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_SHOW_FILES NO)
 
   doxygen_add_docs(doxygen_mlbookproc
-    ${PROJECT_SOURCE_DIR}/include
-    COMMENT "Generating documentation")
-
-  add_custom_command(TARGET mlbookproc
-    POST_BUILD
-    COMMAND doxygen "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.doxygen_mlbookproc"
-    COMMENT "Building documentation"
+    ALL
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/include"
+    COMMENT "Generating documentation"
   )
+
   if(CREATE_PDF_DOCS_MLBOOKPROC)
     add_custom_command(TARGET mlbookproc
       POST_BUILD
