@@ -22,8 +22,6 @@
 #include <fstream>
 #include <gpg-error.h>
 #include <iostream>
-#include <libdjvu/ddjvuapi.h>
-#include <memory>
 #include <sstream>
 #include <unicode/ucnv.h>
 #include <unicode/ucsdet.h>
@@ -47,6 +45,11 @@ AuxFunc::AuxFunc()
   rng = new std::mt19937_64(ctm);
   std::numeric_limits<uint64_t> lim;
   dist = new std::uniform_int_distribution<uint64_t>(lim.min() + 1, lim.max());
+
+  djvu_context = std::shared_ptr<ddjvu_context_t>(
+      ddjvu_context_create("MLBookProc"), [](ddjvu_context_t *ctx) {
+        ddjvu_context_release(ctx);
+      });
 
   gcry_error_t err = gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P, 0);
   if(!err)
@@ -93,9 +96,12 @@ AuxFunc::AuxFunc()
 
 #ifdef USE_OPENMP
           std::cout << "MLBookProc OMP_CANCELLATION: "
-                    << omp_get_cancellation() << std::endl;
-          omp_init_lock(&djvu_mtx);
+                    << omp_get_cancellation() << std::endl;          
 #endif
+          if(!handleDJVUmsgs(djvu_context))
+            {
+              activated = false;
+            }
         }
       else
         {
@@ -105,10 +111,7 @@ AuxFunc::AuxFunc()
 }
 
 AuxFunc::~AuxFunc()
-{
-#ifdef USE_OPENMP
-  omp_destroy_lock(&djvu_mtx);
-#endif
+{ 
   delete rng;
   delete dist;
 }
@@ -810,10 +813,47 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
   return gg;
 }
 
+bool
+AuxFunc::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx)
+{
+  bool result = true;
+
+  const ddjvu_message_t *msg;
+
+  while((msg = ddjvu_message_peek(ctx.get())))
+    {
+      switch(msg->m_any.tag)
+        {
+        case DDJVU_ERROR:
+          {
+            const char *str = msg->m_error.message;
+            if(str)
+              {
+                std::cout << "AuxFunc::handleDJVUmsgs error: " << str
+                          << std::endl;
+              }
+            result = false;
+            break;
+          }
+        default:
+          break;
+        }
+      ddjvu_message_pop(ctx.get());
+    }
+
+  return result;
+}
+
 std::shared_ptr<AuxFunc>
 AuxFunc::create()
 {
   return std::shared_ptr<AuxFunc>(new AuxFunc);
+}
+
+std::shared_ptr<ddjvu_context_t>
+AuxFunc::getDJVUContext()
+{
+  return djvu_context;
 }
 
 std::string

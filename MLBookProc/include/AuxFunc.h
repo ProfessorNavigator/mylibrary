@@ -22,14 +22,13 @@
 #include <MLException.h>
 #include <filesystem>
 #include <gcrypt.h>
+#include <libdjvu/ddjvuapi.h>
+#include <memory>
 #include <random>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#ifndef USE_OPENMP
-#include <mutex>
-#endif
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -70,8 +69,6 @@
  */
 class AuxFunc
 {
-  friend class DJVUParser;
-
 public:
   /*!
    * \brief AuxFunc destructor.
@@ -308,10 +305,10 @@ public:
   get_charset_conv_quantity();
 
   /*!
-   * \brief Checks if libgcrypt has been successfully activated. libgcrypt is
-   * used for hash algorithms.
-   * \return \a true if libgcrypt has been successfully activated, \a false
-   * otherwise.
+   * \brief Checks if depencies have been successfully activated.
+   *
+   * \return \a true if all dependencies have been successfully activated, \a
+   * false otherwise.
    */
   bool
   get_activated();
@@ -479,6 +476,15 @@ public:
   static std::shared_ptr<AuxFunc>
   create();
 
+  /*!
+   * \brief Returns smart pointer to djvu context object.
+   *
+   * \warning Resulting smart pointer can be \a nullptr (see get_activated()).
+   * \return Smart pointer to djvu context object.
+   */
+  std::shared_ptr<ddjvu_context_t>
+  getDJVUContext();
+
 private:
   AuxFunc();
 
@@ -488,16 +494,15 @@ private:
   std::vector<GenreGroup>
   read_genre_groups(const bool &wrong_loc, const std::string &locname);
 
+  bool
+  handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx);
+
   bool activated = true;
 
   std::mt19937_64 *rng;
   std::uniform_int_distribution<uint64_t> *dist;
-#ifndef USE_OPENMP
-  std::mutex djvu_mtx;
-#endif
-#ifdef USE_OPENMP
-  omp_lock_t djvu_mtx;
-#endif
+
+  std::shared_ptr<ddjvu_context_t> djvu_context;
 };
 
 #endif // AUXFUNC_H
