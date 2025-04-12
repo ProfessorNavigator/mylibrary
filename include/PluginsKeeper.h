@@ -27,7 +27,7 @@
 #include <dlfcn.h>
 #endif
 #ifdef _WIN32
-#include <windows.h>
+#include <libloaderapi.h>
 #endif
 
 #ifndef ML_GTK_OLD

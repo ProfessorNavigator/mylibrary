@@ -20,7 +20,6 @@
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookMarks.h>
-#include <LibArchive.h>
 #include <NotesKeeper.h>
 #include <filesystem>
 #include <functional>

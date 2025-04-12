@@ -82,7 +82,7 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
             }
           if(r)
             {
-              if(r != miniexp_dummy)
+              if(r != miniexp_nil)
                 {
                   miniexp_t exp = miniexp_pname(r, 0);
                   const char *val = miniexp_to_str(exp);
@@ -180,9 +180,10 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
                           bpe.book_date = tmp;
                         }
                     }
+                  ddjvu_miniexp_release(doc.get(), exp);
                 }
-              ddjvu_miniexp_release(doc.get(), r);
             }
+          ddjvu_miniexp_release(doc.get(), r);         
         }
       else
         {

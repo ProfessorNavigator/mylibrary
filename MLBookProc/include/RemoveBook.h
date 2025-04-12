@@ -20,7 +20,6 @@
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookMarks.h>
-#include <LibArchive.h>
 #include <SelfRemovingPath.h>
 #include <filesystem>
 #include <memory>
@@ -31,7 +30,7 @@
  *
  * This class contains methods to carry out book removing from collection.
  */
-class RemoveBook : public LibArchive
+class RemoveBook
 {
 public:
   /*!

@@ -96,7 +96,7 @@ AuxFunc::AuxFunc()
 
 #ifdef USE_OPENMP
           std::cout << "MLBookProc OMP_CANCELLATION: "
-                    << omp_get_cancellation() << std::endl;          
+                    << omp_get_cancellation() << std::endl;
 #endif
           if(!handleDJVUmsgs(djvu_context))
             {
@@ -111,7 +111,7 @@ AuxFunc::AuxFunc()
 }
 
 AuxFunc::~AuxFunc()
-{ 
+{
   delete rng;
   delete dist;
 }
@@ -440,39 +440,48 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
 std::string
 AuxFunc::time_t_to_date(const time_t &tt)
 {
-  std::tm *ltm = localtime(&tt);
   std::string result;
-  std::stringstream strm;
-  strm.imbue(std::locale("C"));
-  int val = ltm->tm_mday;
-  strm << val;
-  if(val < 10)
-    {
-      result = "0" + strm.str();
-    }
-  else
-    {
-      result = strm.str();
-    }
 
-  strm.clear();
-  strm.str("");
-  val = ltm->tm_mon + 1;
-  strm << val;
-  if(val < 10)
+  std::tm *ltm = localtime(&tt);
+  if(ltm)
     {
-      result = result + ".0" + strm.str();
-    }
-  else
-    {
+      std::stringstream strm;
+      strm.imbue(std::locale("C"));
+      int val = ltm->tm_mday;
+      strm << val;
+      if(val < 10)
+        {
+          result = "0" + strm.str();
+        }
+      else
+        {
+          result = strm.str();
+        }
+
+      strm.clear();
+      strm.str("");
+      val = ltm->tm_mon + 1;
+      strm << val;
+      if(val < 10)
+        {
+          result = result + ".0" + strm.str();
+        }
+      else
+        {
+          result = result + "." + strm.str();
+        }
+
+      strm.clear();
+      strm.str("");
+      val = ltm->tm_year + 1900;
+      strm << val;
       result = result + "." + strm.str();
     }
-
-  strm.clear();
-  strm.str("");
-  val = ltm->tm_year + 1900;
-  strm << val;
-  result = result + "." + strm.str();
+  else
+    {
+      std::cout << "AuxFunc::time_t_to_date: " << std::strerror(errno)
+                << std::endl;
+    }
 
   return result;
 }
