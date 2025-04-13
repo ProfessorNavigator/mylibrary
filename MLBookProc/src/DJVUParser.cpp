@@ -50,6 +50,7 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
 
   bpe.book_date = af->time_t_to_date(tt);
 
+#ifndef _WIN32
   std::shared_ptr<ddjvu_context_t> context = af->getDJVUContext();
 
   if(context)
@@ -183,7 +184,8 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
                   ddjvu_miniexp_release(doc.get(), exp);
                 }
             }
-          ddjvu_miniexp_release(doc.get(), r);         
+          ddjvu_miniexp_release(doc.get(), r);
+          handleDJVUmsgs(context, doc, false);
         }
       else
         {
@@ -196,7 +198,7 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
       std::cout << "DJVUParser::djvu_parser: context has not been created"
                 << std::endl;
     }
-
+#endif
   return bpe;
 }
 
@@ -328,46 +330,86 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
 
 bool
 DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-                           const std::shared_ptr<ddjvu_document_t> &doc)
+                           const std::shared_ptr<ddjvu_document_t> &doc,
+                           const bool &wait)
 {
   bool result = true;
 
   const ddjvu_message_t *msg;
-
-  while((msg = ddjvu_message_peek(ctx.get())))
+  if(wait)
     {
-      if(doc.get() == msg->m_any.document)
+      bool found = false;
+      for(;;)
         {
-          switch(msg->m_any.tag)
+          while((msg = ddjvu_message_peek(ctx.get())))
             {
-            case DDJVU_ERROR:
-              {
-                if(msg->m_error.message)
-                  {
-                    std::cout << "DJVUParser error: " << msg->m_error.message
-                              << std::endl;
-                  }
-                result = false;
-                break;
-              }
-            default:
-              {
-                break;
-              }
+              if(doc.get() == msg->m_any.document)
+                {
+                  found = true;
+                  switch(msg->m_any.tag)
+                    {
+                    case DDJVU_ERROR:
+                      {
+                        if(msg->m_error.message)
+                          {
+                            std::cout
+                                << "DJVUParser error: " << msg->m_error.message
+                                << std::endl;
+                          }
+                        result = false;
+                        break;
+                      }
+                    default:
+                      {
+                        break;
+                      }
+                    }
+                  ddjvu_message_pop(ctx.get());
+                }
             }
-          ddjvu_message_pop(ctx.get());
-        }
-      else
-        {
+          if(found)
+            {
+              break;
+            }
+          else
+            {
 #ifdef USE_OPENMP
-          usleep(10000);
+              usleep(10000);
 #endif
 #ifndef USE_OPENMP
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              std::this_thread::sleep_for(std::chrono::milliseconds(10));
 #endif
+            }
         }
     }
-
+  else
+    {
+      while((msg = ddjvu_message_peek(ctx.get())))
+        {
+          if(doc.get() == msg->m_any.document)
+            {
+              switch(msg->m_any.tag)
+                {
+                case DDJVU_ERROR:
+                  {
+                    if(msg->m_error.message)
+                      {
+                        std::cout
+                            << "DJVUParser error: " << msg->m_error.message
+                            << std::endl;
+                      }
+                    result = false;
+                    break;
+                  }
+                default:
+                  {
+                    break;
+                  }
+                }
+              ddjvu_message_pop(ctx.get());
+            }
+        }
+    }
   return result;
 }
 

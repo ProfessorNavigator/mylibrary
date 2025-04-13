@@ -59,7 +59,8 @@ public:
 private:
   bool
   handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-                 const std::shared_ptr<ddjvu_document_t> &doc);
+                 const std::shared_ptr<ddjvu_document_t> &doc,
+                 const bool &wait = bool(true));
 
   void
   getTag(const std::string &exp, const std::string &tag, std::string &line);
