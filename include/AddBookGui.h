@@ -135,10 +135,10 @@ private:
   action_remove_book();
 
   void
-  action_chage_path_notarch(Gtk::Window *win);
+  action_change_path_notarch(Gtk::Window *win);
 
   void
-  action_chage_path_arch(Gtk::Window *win, const int &variant);
+  action_change_path_arch(Gtk::Window *win, const int &variant);
 
 #ifndef ML_GTK_OLD
   void

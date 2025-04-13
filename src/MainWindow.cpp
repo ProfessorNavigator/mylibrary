@@ -42,6 +42,7 @@
 #include <gtkmm-4.0/gtkmm/cssprovider.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
+#include <gtkmm-4.0/gtkmm/settings.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <libintl.h>
 
@@ -98,6 +99,12 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
                               / std::filesystem::u8path("pdf");
       mlpluginifc_docs_path /= std::filesystem::u8path("refman.pdf");
     }
+
+  Glib::RefPtr<Gtk::Settings> settings = this->get_settings();
+  Glib::PropertyProxy<Glib::ustring> them_name
+      = settings->property_gtk_theme_name();
+  them_name.set_value(Glib::ustring("Adwaita"));
+
   formMainWindow();
 }
 

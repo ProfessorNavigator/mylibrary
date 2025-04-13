@@ -52,17 +52,6 @@ main(int argc, char *argv[])
           std::cout << "MyLibrary text domain: " << report << std::endl;
         }
 
-#ifdef __linux
-      {
-        int res = setenv("GTK_THEME", "Adwaita", 1);
-        if(res < 0)
-          {
-            std::cout << "MyLibrary main setenv error: "
-                      << std::strerror(errno) << std::endl;
-          }
-      }
-#endif
-
       int result;
 #ifdef USE_OPENMP
       omp_set_dynamic(true);

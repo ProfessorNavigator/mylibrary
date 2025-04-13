@@ -1078,14 +1078,14 @@ AddBookGui::create_action_group(Gtk::Window *win, const int &variant)
       {
         ac_group->add_action(
             "edit_book",
-            std::bind(&AddBookGui::action_chage_path_notarch, this, win));
+            std::bind(&AddBookGui::action_change_path_notarch, this, win));
         break;
       }
     case 2:
     case 3:
       {
         ac_group->add_action("edit_book",
-                             std::bind(&AddBookGui::action_chage_path_arch,
+                             std::bind(&AddBookGui::action_change_path_arch,
                                        this, win, variant));
         break;
       }
@@ -1153,7 +1153,7 @@ AddBookGui::create_menu(const int &variant)
 }
 
 void
-AddBookGui::action_chage_path_notarch(Gtk::Window *win)
+AddBookGui::action_change_path_notarch(Gtk::Window *win)
 {
   if(selected_book)
     {
@@ -1172,6 +1172,11 @@ AddBookGui::action_chage_path_notarch(Gtk::Window *win)
       Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
       filter->add_pattern(Glib::ustring("*") + source.extension().u8string());
       fd->set_default_filter(filter);
+
+      Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
+          = Gio::ListStore<Gtk::FileFilter>::create();
+      filters_list->append(filter);
+      fd->set_filters(filters_list);
 
       fd->set_initial_name(source.filename().u8string());
 
@@ -1850,10 +1855,17 @@ AddBookGui::archive_selection_dialog_overwrite(Gtk::Window *win)
                 << std::endl;
       return void();
     }
+
   Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
   filter->add_suffix(arch_type->get_string());
 
   fd->set_default_filter(filter);
+
+  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
+      = Gio::ListStore<Gtk::FileFilter>::create();
+  filters_list->append(filter);
+
+  fd->set_filters(filters_list);
 
   fd->set_initial_name(std::string("Archive.") + arch_type->get_string());
 
@@ -1946,7 +1958,7 @@ AddBookGui::form_col_arch_path_column()
 }
 
 void
-AddBookGui::action_chage_path_arch(Gtk::Window *win, const int &variant)
+AddBookGui::action_change_path_arch(Gtk::Window *win, const int &variant)
 {
   if(selected_book)
     {
@@ -2104,6 +2116,11 @@ AddBookGui::archive_selection_dialog_add(Gtk::Window *win)
     }
 
   fd->set_default_filter(filter);
+
+  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
+      = Gio::ListStore<Gtk::FileFilter>::create();
+  filters_list->append(filter);
+  fd->set_filters(filters_list);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
 
