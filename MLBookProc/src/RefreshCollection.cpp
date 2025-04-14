@@ -384,7 +384,14 @@ RefreshCollection::check_hashes(
           std::bind(&RefreshCollection::hash_thread, this, *it, base));
       thr.detach();
       continue_hashing.wait(lk, [this] {
-        return run_threads < num_threads;
+        if(num_threads > 1)
+          {
+            return run_threads < num_threads - 1;
+          }
+        else
+          {
+            return run_threads < 1;
+          }
       });
     }
 
