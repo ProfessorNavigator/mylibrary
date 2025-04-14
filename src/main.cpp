@@ -22,10 +22,6 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#ifdef __linux
-#include <cstring>
-#include <stdlib.h>
-#endif
 
 int
 main(int argc, char *argv[])
@@ -77,7 +73,7 @@ main(int argc, char *argv[])
     }
   else
     {
-      std::cout << "MyLibrary: libgcrypt has not been initialized, "
+      std::cout << "MyLibrary: MLBookProc has not been initialized, "
                    "finishing the application"
                 << std::endl;
       af.reset();
