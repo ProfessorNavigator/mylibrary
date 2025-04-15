@@ -105,8 +105,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(mlbookproc PUBLIC ${DJVU})
 endif()
 
-if(TBB_FOUND)   
-    target_link_libraries(mlbookproc PUBLIC TBB::tbb)    
+if(TBB_FOUND)
+    target_link_libraries(mlbookproc PRIVATE TBB::tbb)
 endif()
 
 if(DOXYGEN_FOUND)
