@@ -157,8 +157,7 @@ ExportCollectionGui::export_file_dialog(Gtk::Window *win)
                          std::placeholders::_1, fd, win),
                cncl);
     }
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *win, gettext("Export path"), Gtk::FileChooser::Action::SAVE, true);
   fd->set_application(win->get_application());

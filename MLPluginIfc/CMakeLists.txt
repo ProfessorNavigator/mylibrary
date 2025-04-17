@@ -36,8 +36,7 @@ target_include_directories(mlpluginifc
 
 target_link_libraries(mlpluginifc
   PUBLIC PkgConfig::GTKMM
-  PUBLIC mlbookproc
-  PUBLIC atomic
+  PUBLIC mlbookproc  
 )
 
 if(DOXYGEN_FOUND)

@@ -14,7 +14,11 @@ find_package(Gettext)
 
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
-add_executable(mylibrary)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_executable(mylibrary)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    add_executable(mylibrary WIN32)
+endif()
 
 add_subdirectory(src)
 add_subdirectory(include)
@@ -28,17 +32,23 @@ if(USE_OPENMP)
         add_link_options("${OpenMP_CXX_FLAGS}")
         message(STATUS "OpenMP features are supported, ${PROJECT_NAME} will be built with OpenMP support")
     else()
-        set(USE_OPENMP OFF)
+        set(USE_OPENMP OFF)        
         message(WARNING "Compiler does not support some OpenMP features. ${PROJECT_NAME} will be built without OpenMP support.")
+        try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/stdexecution_test" "${PROJECT_SOURCE_DIR}/MLBookProc/stdexecution_test" ExecTest)
+        if(EXEC_TEST)
+            find_package(TBB QUIET)
+            if(TBB_FOUND)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
+            endif()
+        endif()
+    endif()
+else()
+    try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/stdexecution_test" "${PROJECT_SOURCE_DIR}/MLBookProc/stdexecution_test" ExecTest)
+    if(EXEC_TEST)
         find_package(TBB QUIET)
         if(TBB_FOUND)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
         endif()
-    endif()
-else()
-    find_package(TBB QUIET)
-    if(TBB_FOUND)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
     endif()
 endif()
 
@@ -67,7 +77,6 @@ target_include_directories(mylibrary
 target_link_libraries(mylibrary
     PRIVATE mlbookproc
     PRIVATE PkgConfig::GTKMM
-    PRIVATE atomic
 )
 
 include(GNUInstallDirs)

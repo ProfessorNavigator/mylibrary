@@ -44,8 +44,7 @@ SearchResultModelItem::addLabel(Gtk::Label *lab)
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   auto it = std::find(labels.begin(), labels.end(), lab);
@@ -59,8 +58,7 @@ SearchResultModelItem::addLabel(Gtk::Label *lab)
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -70,8 +68,7 @@ SearchResultModelItem::removeLabel(Gtk::Label *lab)
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   auto it = std::find(labels.begin(), labels.end(), lab);
@@ -85,8 +82,7 @@ SearchResultModelItem::removeLabel(Gtk::Label *lab)
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -96,8 +92,7 @@ SearchResultModelItem::activateLabels()
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   for(size_t i = 0; i < labels.size(); i++)
@@ -106,8 +101,7 @@ SearchResultModelItem::activateLabels()
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -117,8 +111,7 @@ SearchResultModelItem::deactivateLabels()
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   for(size_t i = 0; i < labels.size(); i++)
@@ -127,8 +120,7 @@ SearchResultModelItem::deactivateLabels()
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }

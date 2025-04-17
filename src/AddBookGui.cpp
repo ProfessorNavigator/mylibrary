@@ -43,8 +43,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -678,8 +677,7 @@ AddBookGui::book_add_dialog(Gtk::Window *win, const int &variant)
                                   std::placeholders::_1, fd, variant),
                         cncl);
     }
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd;
   if(directory_add)
     {
@@ -1186,8 +1184,7 @@ AddBookGui::action_change_path_notarch(Gtk::Window *win)
                std::bind(&AddBookGui::action_chage_path_notarch_slot, this,
                          std::placeholders::_1, fd),
                cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
       Gtk::FileChooserDialog *fd
           = new Gtk::FileChooserDialog(*win, gettext("Collection path"),
                                        Gtk::FileChooser::Action::SAVE, true);
@@ -1430,8 +1427,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
             {
               omp_event_handle_t event;
@@ -1485,8 +1481,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
             {
               omp_event_handle_t event;
@@ -1541,8 +1536,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 }
             });
             thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
             {
               omp_event_handle_t event;
@@ -1875,8 +1869,7 @@ AddBookGui::archive_selection_dialog_overwrite(Gtk::Window *win)
            std::bind(&AddBookGui::archive_selection_dialog_overwrite_slot,
                      this, std::placeholders::_1, fd, win),
            cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *win, gettext("Archive name"), Gtk::FileChooser::Action::SAVE, true);
   fd->set_application(win->get_application());
@@ -2128,8 +2121,7 @@ AddBookGui::archive_selection_dialog_add(Gtk::Window *win)
            std::bind(&AddBookGui::archive_selection_dialog_add_slot, this,
                      std::placeholders::_1, fd, win),
            cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *win, gettext("Archive name"), Gtk::FileChooser::Action::OPEN, true);
   fd->set_application(win->get_application());
@@ -2268,8 +2260,7 @@ AddBookGui::archive_selection_dialog_add_slot(
             finish_wait_disp->emit();
           });
           thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
           {
             omp_event_handle_t event;
@@ -2449,8 +2440,7 @@ AddBookGui::archive_selection_dialog_add_slot(int resp,
                 finish_wait_disp->emit();
               });
               thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
               {
                 omp_event_handle_t event;

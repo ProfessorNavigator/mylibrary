@@ -35,8 +35,7 @@
 
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#ifdef ML_GTK_OLD
+#else
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
@@ -80,8 +79,7 @@ private:
   path_choose_dialog_add_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
                               const Glib::RefPtr<Gtk::FileDialog> &fd,
                               Gtk::Window *win);
-#endif
-#ifdef ML_GTK_OLD
+#else
   void
   path_choose_dialog_overwrite_slot(int resp, Gtk::FileChooserDialog *fd,
                                     Gtk::Window *win, const int &variant);

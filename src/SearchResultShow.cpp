@@ -34,8 +34,7 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #include <unistd.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -240,8 +239,7 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
     disp_adjust->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -309,8 +307,7 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
     disp_adjust->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -378,8 +375,7 @@ SearchResultShow::searchResultShow(const std::vector<std::string> &result)
     disp_adjust->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;

@@ -38,8 +38,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -477,8 +476,7 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
     default:
       break;
     }
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd;
   switch(variant)
     {
@@ -723,8 +721,7 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                 }
             });
             thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
             {
               omp_event_handle_t event;
@@ -896,8 +893,7 @@ TransferBookGui::copy_overwrite(const int &variant,
           = std::make_shared<RefreshCollection>(
               af, collection_to, std::thread::hardware_concurrency(), false,
               true, false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
       std::shared_ptr<RefreshCollection> rfr
           = std::make_shared<RefreshCollection>(af, collection_to,
                                                 omp_get_num_procs(), false,
@@ -1167,8 +1163,7 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       }
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -1244,8 +1239,7 @@ TransferBookGui::path_choose_dialog_add_slot(
         form_arch_filelist_disp->emit();
       });
       thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
       {
         omp_event_handle_t event;
@@ -1308,8 +1302,7 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
                     }
                 });
                 thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
                 {
                   omp_event_handle_t event;
@@ -1388,8 +1381,7 @@ TransferBookGui::path_choose_dialog_add_slot(int resp,
             form_arch_filelist_disp->emit();
           });
           thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
           {
             omp_event_handle_t event;

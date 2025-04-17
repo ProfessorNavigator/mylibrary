@@ -53,8 +53,7 @@
 
 #ifndef USE_OPENMP
 #include <thread>
-#endif
-#ifdef USE_OPENMP
+#else
 #include <omp.h>
 #endif
 
@@ -387,8 +386,7 @@ RightGrid::search_result_show(const std::vector<BookBaseEntry> &result)
     result_disp->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;

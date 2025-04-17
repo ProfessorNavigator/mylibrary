@@ -25,8 +25,7 @@
 
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#ifdef ML_GTK_OLD
+#else
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
@@ -51,9 +50,7 @@ private:
   export_file_dialog_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
                           const Glib::RefPtr<Gtk::FileDialog> &fd,
                           Gtk::Window *win);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   void
   export_file_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
                           Gtk::Window *win);

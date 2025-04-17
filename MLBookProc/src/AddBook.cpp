@@ -28,8 +28,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -67,8 +66,7 @@ AddBook::simple_add(
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, std::thread::hardware_concurrency(), false, true,
       false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, omp_get_num_procs(), false, true, false, bookmarks);
 #endif
@@ -107,8 +105,7 @@ AddBook::overwrite_archive(
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, std::thread::hardware_concurrency(), false, true,
       false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, omp_get_num_procs(), false, true, false, bookmarks);
 #endif
@@ -312,8 +309,7 @@ AddBook::add_to_existing_archive(
           = std::make_shared<RefreshCollection>(
               af, collection_name, std::thread::hardware_concurrency(), false,
               true, false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
       std::shared_ptr<RefreshCollection> rfr
           = std::make_shared<RefreshCollection>(af, collection_name,
                                                 omp_get_num_procs(), false,
@@ -351,8 +347,7 @@ AddBook::simple_add_dir(
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, std::thread::hardware_concurrency(), false, true,
       false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, omp_get_num_procs(), false, true, false, bookmarks);
 #endif
@@ -390,8 +385,7 @@ AddBook::overwrite_archive_dir(
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, std::thread::hardware_concurrency(), false, true,
       false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, omp_get_num_procs(), false, true, false, bookmarks);
 #endif
@@ -546,8 +540,7 @@ AddBook::add_to_existing_archive_dir(
           = std::make_shared<RefreshCollection>(
               af, collection_name, std::thread::hardware_concurrency(), false,
               true, false, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
       std::shared_ptr<RefreshCollection> rfr
           = std::make_shared<RefreshCollection>(af, collection_name,
                                                 omp_get_num_procs(), false,

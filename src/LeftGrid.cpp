@@ -34,8 +34,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -504,8 +503,7 @@ LeftGrid::loadCollection(const guint &sel)
           }
       });
       thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
       {
         omp_event_handle_t event;
@@ -661,8 +659,7 @@ LeftGrid::reloadCollection(const std::string &col_name)
                   }
               });
               thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
               {
                 omp_event_handle_t event;

@@ -74,8 +74,7 @@ protected:
    * \warning Do not call or set this variable yourself!
    */
   std::atomic<bool> cancel;
-#endif
-#ifdef USE_OPENMP
+#else
   /*!
    * \brief Stops all operations if \a true.
    *

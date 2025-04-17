@@ -41,8 +41,7 @@ ARCHParser::ARCHParser(const std::shared_ptr<AuxFunc> &af,
   this->rar_support = rar_support;
 #ifndef USE_OPENMP
   cancel.store(false);
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&archp_obj_mtx);
 #endif
 }
@@ -54,8 +53,7 @@ ARCHParser::~ARCHParser()
   extra_run_var.wait(ullock, [this] {
     return !extra_run;
   });
-#endif
-#ifdef USE_OPENMP
+#else
   omp_destroy_lock(&archp_obj_mtx);
 #endif
 }
@@ -108,8 +106,7 @@ ARCHParser::stopAll()
     }
   archp_obj_mtx.unlock();
   cancel.store(true);
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&archp_obj_mtx);
   for(size_t i = 0; i < archp_obj.size(); i++)
     {
@@ -204,9 +201,7 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
           }
         }
     }
-#endif
-
-#ifdef USE_OPENMP
+#else
 #pragma omp parallel
   {
 #pragma omp master
@@ -573,8 +568,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
             }
         }
     }
-#endif
-#ifdef USE_OPENMP
+#else
   std::string ext = af->get_extension(ch_p);
   ext = af->stringToLower(ext);
   if(!rar_support && ext == ".rar")

@@ -22,9 +22,7 @@
 
 #ifdef USE_OPENMP
 #include <unistd.h>
-#endif
-
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -76,8 +74,7 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
             {
 #ifdef USE_OPENMP
               usleep(10000);
-#endif
-#ifndef USE_OPENMP
+#else
               std::this_thread::sleep_for(std::chrono::milliseconds(10));
 #endif
             }
@@ -375,8 +372,7 @@ DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
             {
 #ifdef USE_OPENMP
               usleep(10000);
-#endif
-#ifndef USE_OPENMP
+#else
               std::this_thread::sleep_for(std::chrono::milliseconds(10));
 #endif
             }

@@ -31,8 +31,7 @@
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/colordialogbutton.h>
 #include <gtkmm-4.0/gtkmm/error.h>
-#endif
-#ifdef ML_GTK_OLD
+#else
 #include <gtkmm-4.0/gtkmm/colorbutton.h>
 #endif
 
@@ -203,8 +202,7 @@ SettingsWindow::windowsSection()
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -531,8 +529,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -571,8 +568,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -611,8 +607,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -658,8 +653,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -698,8 +692,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -746,8 +739,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -786,8 +778,7 @@ SettingsWindow::formSection(const widget_type &wt)
             Gdk::RGBA rgba = prop.get_value();
             it_set->value = std::string(rgba.to_string());
           });
-#endif
-#ifdef ML_GTK_OLD
+#else
           Gtk::ColorButton *color = Gtk::make_managed<Gtk::ColorButton>();
           color->set_margin(5);
           color->set_halign(Gtk::Align::START);
@@ -837,8 +828,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -884,8 +874,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -935,8 +924,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -976,8 +964,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -1024,8 +1011,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -1065,8 +1051,7 @@ SettingsWindow::formSection(const widget_type &wt)
                   Gdk::RGBA rgba = prop.get_value();
                   it_set->value = std::string(rgba.to_string());
                 });
-#endif
-#ifdef ML_GTK_OLD
+#else
                 Gtk::ColorButton *color
                     = Gtk::make_managed<Gtk::ColorButton>();
                 color->set_margin(5);
@@ -1312,8 +1297,7 @@ SettingsWindow::applySettings()
 #ifndef ML_GTK_OLD
       Gtk::StyleProvider::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
-#endif
-#ifdef ML_GTK_OLD
+#else
       Gtk::StyleContext::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
@@ -1353,8 +1337,7 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
            std::bind(&SettingsWindow::fileDialogSlot, this,
                      std::placeholders::_1, fd, ent),
            cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *window, gettext("Image"), Gtk::FileChooser::Action::OPEN, true);
   fd->set_application(window->get_application());

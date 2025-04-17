@@ -32,8 +32,7 @@ SelfRemovingPath::SelfRemovingPath(const SelfRemovingPath &other)
   count = other.count;
 #ifndef USE_OPENMP
   count->store(count->load() + 1);
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp atomic update
   *count = *count + 1;
 #endif
@@ -58,8 +57,7 @@ SelfRemovingPath::operator=(const SelfRemovingPath &other)
           count = other.count;
 #ifndef USE_OPENMP
           count->store(count->load() + 1);
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp atomic update
           *count = *count + 1;
 #endif
@@ -95,8 +93,7 @@ SelfRemovingPath::operator=(const std::filesystem::path &path)
 #ifndef USE_OPENMP
           count = new std::atomic<uint64_t>;
           count->store(1);
-#endif
-#ifdef USE_OPENMP
+#else
           count = new uint64_t(1);
 #endif
           this->path = path;
@@ -112,8 +109,7 @@ SelfRemovingPath::SelfRemovingPath(const std::filesystem::path &path)
 #ifndef USE_OPENMP
       count = new std::atomic<uint64_t>;
       count->store(1);
-#endif
-#ifdef USE_OPENMP
+#else
       count = new uint64_t(1);
 #endif
       this->path = path;
@@ -133,8 +129,7 @@ SelfRemovingPath::deleter()
           std::filesystem::remove_all(path);
           delete count;
         }
-#endif
-#ifdef USE_OPENMP
+#else
       uint64_t l_c;
 #pragma omp atomic capture
       {

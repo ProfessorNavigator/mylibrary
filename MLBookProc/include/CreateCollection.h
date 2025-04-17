@@ -30,8 +30,7 @@
 #ifndef USE_OPENMP
 #include <condition_variable>
 #include <mutex>
-#endif
-#ifdef USE_OPENMP
+#else
 #include <omp.h>
 #endif
 
@@ -191,8 +190,7 @@ protected:
    * \warning Do not call or set this variable yourself!
    */
   std::atomic<double> current_bytes;
-#endif
-#ifdef USE_OPENMP
+#else
   /*!
    * \brief Keeps quantity of bytes have been processed.
    *
@@ -241,8 +239,7 @@ private:
   std::mutex run_threads_mtx;
   std::condition_variable run_threads_var;
   std::mutex base_strm_mtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t archp_obj_mtx;
 #endif
 };

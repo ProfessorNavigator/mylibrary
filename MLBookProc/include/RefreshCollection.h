@@ -33,8 +33,7 @@
 #ifndef USE_OPENMP
 #include <atomic>
 #include <mutex>
-#endif
-#ifdef USE_OPENMP
+#else
 #include <omp.h>
 #endif
 
@@ -187,9 +186,7 @@ private:
   std::mutex newthrmtx;
   std::condition_variable continue_hashing;
   int run_threads = 0;
-#endif
-
-#ifdef USE_OPENMP
+#else
   uintmax_t bytes_summ = 0;
   omp_lock_t basemtx;
   omp_lock_t already_hashedmtx;

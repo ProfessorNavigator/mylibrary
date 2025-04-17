@@ -137,8 +137,7 @@ SaveCover::save_dialog(Gtk::Window *win)
            std::bind(&SaveCover::save_dialog_result, this,
                      std::placeholders::_1, fd, win),
            cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd
       = new Gtk::FileChooserDialog(*win, gettext("Cover saving path"),
                                    Gtk::FileChooser::Action::SAVE, true);

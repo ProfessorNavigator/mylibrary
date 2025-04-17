@@ -25,8 +25,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -258,8 +257,7 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
       omp_fulfill_event(event);
     }
   }
-#endif
-#ifndef USE_OPENMP
+#else
   std::thread thr([cc, this] {
     try
       {
@@ -385,8 +383,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
       omp_fulfill_event(event);
     }
   }
-#endif
-#ifndef USE_OPENMP
+#else
   std::thread thr([rfr, this] {
     try
       {

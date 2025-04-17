@@ -43,8 +43,7 @@
 
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#ifdef ML_GTK_OLD
+#else
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
@@ -85,9 +84,7 @@ private:
   book_add_dialog_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
                        const Glib::RefPtr<Gtk::FileDialog> &fd,
                        const int &variant);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   void
   book_add_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
                        const int &variant);
@@ -144,9 +141,7 @@ private:
   void
   action_chage_path_notarch_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
                                  const Glib::RefPtr<Gtk::FileDialog> &fd);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   void
   action_chage_path_notarch_slot(int resp, Gtk::FileChooserDialog *fd);
 #endif
@@ -188,9 +183,7 @@ private:
   archive_selection_dialog_overwrite_slot(
       const Glib::RefPtr<Gio::AsyncResult> &result,
       const Glib::RefPtr<Gtk::FileDialog> &fd, Gtk::Window *win);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   void
   archive_selection_dialog_overwrite_slot(int resp, Gtk::FileChooserDialog *fd,
                                           Gtk::Window *win);
@@ -201,9 +194,7 @@ private:
   archive_selection_dialog_add_slot(
       const Glib::RefPtr<Gio::AsyncResult> &result,
       const Glib::RefPtr<Gtk::FileDialog> &fd, Gtk::Window *win);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   void
   archive_selection_dialog_add_slot(int resp, Gtk::FileChooserDialog *fd,
                                     Gtk::Window *win);

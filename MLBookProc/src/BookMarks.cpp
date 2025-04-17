@@ -27,8 +27,7 @@
 
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -53,8 +52,7 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
       };
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&bookmarksmtx);
 #pragma omp masked
   {
@@ -88,8 +86,7 @@ BookMarks::loadBookMarks()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bookmarksmtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(bookmarksmtx);
 #endif
   std::fstream f;
@@ -333,8 +330,7 @@ BookMarks::saveBookMarks()
 
 #ifndef USE_OPENMP
   bookmarksmtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bookmarksmtx);
 #endif
   if(bookmarks.size() > 0)
@@ -368,8 +364,7 @@ BookMarks::saveBookMarks()
     }
 #ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bookmarksmtx);
 #endif
 
@@ -388,8 +383,7 @@ BookMarks::createBookMark(const std::string &col_name,
       = std::make_tuple(col_name, bbe);
 #ifndef USE_OPENMP
   bookmarksmtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bookmarksmtx);
 #endif
   auto itbm
@@ -412,8 +406,7 @@ BookMarks::createBookMark(const std::string &col_name,
     }
 #ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bookmarksmtx);
 #endif
 
@@ -437,8 +430,7 @@ BookMarks::getBookMarks()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bookmarksmtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(bookmarksmtx);
 #endif
   return bookmarks;
@@ -455,8 +447,7 @@ BookMarks::removeBookMark(const std::string &col_name,
 
 #ifndef USE_OPENMP
   bookmarksmtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bookmarksmtx);
 #endif
   auto itbm
@@ -479,8 +470,7 @@ BookMarks::removeBookMark(const std::string &col_name,
     }
 #ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bookmarksmtx);
 #endif
 

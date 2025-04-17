@@ -35,8 +35,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -612,8 +611,7 @@ EditBookGui::form_window_grid(Gtk::Window *window)
       restore_disp->emit();
     });
     thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
     {
       omp_event_handle_t event;
@@ -779,8 +777,7 @@ EditBookGui::edit_book(Gtk::Window *win)
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, std::thread::hardware_concurrency(), false, true,
       true, bookmarks);
-#endif
-#ifdef USE_OPENMP
+#else
   std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
       af, collection_name, omp_get_num_procs(), false, true, true, bookmarks);
 #endif

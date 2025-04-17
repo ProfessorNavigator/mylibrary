@@ -28,8 +28,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <atomic>
 #include <mutex>
 #endif
@@ -168,8 +167,7 @@ private:
 #ifdef USE_OPENMP
   omp_lock_t basemtx;
   bool cancel_search;
-#endif
-#ifndef USE_OPENMP
+#else
   std::mutex basemtx;
   std::atomic<bool> cancel_search;
 #endif

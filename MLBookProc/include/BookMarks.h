@@ -24,8 +24,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <mutex>
 #endif
 
@@ -103,8 +102,7 @@ private:
   std::vector<std::tuple<std::string, BookBaseEntry>> bookmarks;
 #ifndef USE_OPENMP
   std::mutex bookmarksmtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t bookmarksmtx;
 #endif
 };

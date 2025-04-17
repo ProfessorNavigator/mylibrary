@@ -62,8 +62,7 @@ main(int argc, char *argv[])
           app.reset();
         }
       }
-#endif
-#ifndef USE_OPENMP
+#else
       auto app = MyLibraryApplication::create(af);
       result = app->run(argc, argv);
       af.reset();

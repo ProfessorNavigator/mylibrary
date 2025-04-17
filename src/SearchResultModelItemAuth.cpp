@@ -37,8 +37,7 @@ SearchResultModelItemAuth::setLabel(Gtk::Label *lab)
   l_lab_mtx.lock();
   l_lab = lab;
   l_lab_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&l_lab_mtx);
   l_lab = lab;
   omp_unset_lock(&l_lab_mtx);
@@ -52,8 +51,7 @@ SearchResultModelItemAuth::unsetLabel()
   l_lab_mtx.lock();
   l_lab = nullptr;
   l_lab_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&l_lab_mtx);
   l_lab = nullptr;
   omp_unset_lock(&l_lab_mtx);
@@ -65,8 +63,7 @@ SearchResultModelItemAuth::activateLab()
 {
 #ifndef USE_OPENMP
   l_lab_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&l_lab_mtx);
 #endif
   if(l_lab)
@@ -75,8 +72,7 @@ SearchResultModelItemAuth::activateLab()
     }
 #ifndef USE_OPENMP
   l_lab_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&l_lab_mtx);
 #endif
 }
@@ -86,8 +82,7 @@ SearchResultModelItemAuth::deactivateLab()
 {
 #ifndef USE_OPENMP
   l_lab_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&l_lab_mtx);
 #endif
   if(l_lab)
@@ -96,8 +91,7 @@ SearchResultModelItemAuth::deactivateLab()
     }
 #ifndef USE_OPENMP
   l_lab_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&l_lab_mtx);
 #endif
 }

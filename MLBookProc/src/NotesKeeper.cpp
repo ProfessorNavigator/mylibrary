@@ -24,9 +24,10 @@
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
 #include <execution>
+#endif
 #include <functional>
 #include <thread>
 #endif
@@ -43,8 +44,7 @@ NotesKeeper::NotesKeeper(const std::shared_ptr<AuxFunc> &af)
 #ifndef USE_OPENMP
   std::thread thr(std::bind(&NotesKeeper::loadBase, this));
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&base_mtx);
 #pragma omp masked
   {
@@ -62,8 +62,7 @@ NotesKeeper::~NotesKeeper()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(base_mtx);
-#endif
-#ifdef USE_OPENMP
+#else
   {
     OmpLockGuard olg(base_mtx);
   }
@@ -76,8 +75,7 @@ NotesKeeper::loadBase()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(base_mtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(base_mtx);
 #endif
 
@@ -112,8 +110,7 @@ NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
 {
 #ifndef USE_OPENMP
   base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&base_mtx);
   auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
                                     [nbe](NotesBaseEntry &el) {
@@ -121,10 +118,16 @@ NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
                                     });
 #endif
 #ifndef USE_OPENMP
+#ifdef USE_PE
   auto it = std::find_if(std::execution::par, base.begin(), base.end(),
                          [nbe](NotesBaseEntry &el) {
                            return el == nbe;
                          });
+#else
+  auto it = std::find_if(base.begin(), base.end(), [nbe](NotesBaseEntry &el) {
+    return el == nbe;
+  });
+#endif
 #endif
   if(it != base.end())
     {
@@ -178,8 +181,7 @@ NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
     }
 #ifndef USE_OPENMP
   base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&base_mtx);
 #endif
   saveBase();
@@ -194,8 +196,7 @@ NotesKeeper::getNote(const std::string &collection_name,
 
 #ifndef USE_OPENMP
   base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&base_mtx);
   auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
                                     [nbe](NotesBaseEntry &el) {
@@ -203,10 +204,16 @@ NotesKeeper::getNote(const std::string &collection_name,
                                     });
 #endif
 #ifndef USE_OPENMP
+#ifdef USE_PE
   auto it = std::find_if(std::execution::par, base.begin(), base.end(),
                          [nbe](NotesBaseEntry &el) {
                            return el == nbe;
                          });
+#else
+  auto it = std::find_if(base.begin(), base.end(), [nbe](NotesBaseEntry &el) {
+    return el == nbe;
+  });
+#endif
 #endif
   if(it != base.end())
     {
@@ -227,8 +234,7 @@ NotesKeeper::getNote(const std::string &collection_name,
     }
 #ifndef USE_OPENMP
   base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&base_mtx);
 #endif
 
@@ -278,8 +284,7 @@ NotesKeeper::removeNotes(const NotesBaseEntry &nbe,
 
 #ifndef USE_OPENMP
   base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&base_mtx);
 #endif
   if(nbe.book_file_full_path.extension().u8string() == ".rar")
@@ -318,8 +323,7 @@ NotesKeeper::removeNotes(const NotesBaseEntry &nbe,
     }
 #ifndef USE_OPENMP
   base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&base_mtx);
 #endif
   if(make_reserve)
@@ -365,8 +369,7 @@ NotesKeeper::removeCollection(const std::string &collection_name,
 
 #ifndef USE_OPENMP
   base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&base_mtx);
 #endif
   base.erase(std::remove_if(base.begin(), base.end(),
@@ -384,8 +387,7 @@ NotesKeeper::removeCollection(const std::string &collection_name,
              base.end());
 #ifndef USE_OPENMP
   base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&base_mtx);
 #endif
 
@@ -432,8 +434,7 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
   std::vector<NotesBaseEntry> to_check;
 #ifndef USE_OPENMP
   base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&base_mtx);
 #endif
   for(auto it = base.begin(); it != base.end(); it++)
@@ -445,8 +446,7 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
     }
 #ifndef USE_OPENMP
   base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&base_mtx);
 #endif
   if(to_check.size() > 0)
@@ -524,8 +524,7 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
     {
 #ifndef USE_OPENMP
       base_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
       omp_set_lock(&base_mtx);
 #endif
       base.erase(std::remove_if(base.begin(), base.end(),
@@ -545,8 +544,7 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
       base.shrink_to_fit();
 #ifndef USE_OPENMP
       base_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
       omp_unset_lock(&base_mtx);
 #endif
       saveBase();
@@ -592,6 +590,7 @@ NotesKeeper::getNotesForCollection(const std::string &collection_name)
 #ifndef USE_OPENMP
   std::mutex result_mtx;
   base_mtx.lock();
+#ifdef USE_PE
   std::for_each(std::execution::par, base.begin(), base.end(),
                 [collection_name, &result, &result_mtx](NotesBaseEntry &el) {
                   if(el.collection_name == collection_name)
@@ -601,9 +600,19 @@ NotesKeeper::getNotesForCollection(const std::string &collection_name)
                       result_mtx.unlock();
                     }
                 });
-  base_mtx.unlock();
+#else
+  std::for_each(base.begin(), base.end(),
+                [collection_name, &result, &result_mtx](NotesBaseEntry &el) {
+                  if(el.collection_name == collection_name)
+                    {
+                      result_mtx.lock();
+                      result.push_back(el);
+                      result_mtx.unlock();
+                    }
+                });
 #endif
-#ifdef USE_OPENMP
+  base_mtx.unlock();
+#else
   omp_set_lock(&base_mtx);
 #pragma omp parallel for
   for(auto it = base.begin(); it != base.end(); it++)
@@ -744,8 +753,7 @@ NotesKeeper::saveBase()
 
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(base_mtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(base_mtx);
 #endif
   std::filesystem::remove_all(bp);

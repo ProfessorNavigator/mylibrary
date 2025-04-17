@@ -399,8 +399,7 @@ RefreshCollection::check_hashes(
   continue_hashing.wait(lk, [this] {
     return run_threads <= 0;
   });
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_max_active_levels(3);
   omp_set_num_threads(num_threads);
 #pragma omp parallel
@@ -502,8 +501,7 @@ RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
   std::lock_guard<std::mutex> lk(newthrmtx);
   run_threads--;
   continue_hashing.notify_one();
-#endif
-#ifdef USE_OPENMP
+#else
   try
     {
       hash = file_hashing(file_to_hash);

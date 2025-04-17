@@ -92,8 +92,7 @@ CopyBookGui::createWindow()
   fd->save(*parent_window,
            std::bind(&CopyBookGui::save_slot, this, std::placeholders::_1, fd),
            cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd
       = new Gtk::FileChooserDialog(*parent_window, gettext("Save as..."),
                                    Gtk::FileChooser::Action::SAVE, true);

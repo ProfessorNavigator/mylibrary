@@ -136,8 +136,7 @@ EmptyCollectionGui::open_directory_dialog(Gtk::Window *win, Gtk::Entry *ent)
                     std::bind(&EmptyCollectionGui::open_directory_dialog_slot,
                               this, std::placeholders::_1, fd, ent),
                     cncl);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *win, gettext("Books path"), Gtk::FileChooser::Action::SELECT_FOLDER,
       true);

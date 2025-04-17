@@ -29,8 +29,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#endif
-#ifdef USE_OPENMP
+#else
 #include <omp.h>
 #endif
 
@@ -102,8 +101,7 @@ private:
   bool extra_run = false;
   std::mutex extra_run_mtx;
   std::condition_variable extra_run_var;
-#endif
-#ifdef USE_OPENMP
+#else
   bool cancel = false;
   omp_lock_t archp_obj_mtx;
 #endif

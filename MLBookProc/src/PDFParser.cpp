@@ -113,8 +113,7 @@ PDFParser::pdf_parser(const std::string &file)
       time_t creation_time;
 #ifdef _OLDPOPPLER
       creation_time = doc->get_creation_date();
-#endif
-#ifndef _OLDPOPPLER
+#else
       creation_time = doc->get_creation_date_t();
 #endif
       bpe.book_date = af->time_t_to_date(creation_time);

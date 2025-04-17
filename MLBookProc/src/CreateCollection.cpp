@@ -61,8 +61,7 @@ CreateCollection::CreateCollection(
       }
     archp_obj_mtx.unlock();
   };
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&archp_obj_mtx);
   stop_all_signal = [this] {
     omp_set_lock(&archp_obj_mtx);
@@ -105,8 +104,7 @@ CreateCollection::CreateCollection(const std::shared_ptr<AuxFunc> &af,
       }
     archp_obj_mtx.unlock();
   };
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&archp_obj_mtx);
   stop_all_signal = [this] {
     omp_set_lock(&archp_obj_mtx);
@@ -238,9 +236,7 @@ CreateCollection::threadRegulator()
   run_threads_var.wait(run_thr_lock, [this] {
     return run_threads <= 0;
   });
-#endif
-
-#ifdef USE_OPENMP
+#else
   omp_set_num_threads(num_threads);
   omp_set_max_active_levels(3);
   omp_set_dynamic(true);
@@ -464,9 +460,8 @@ CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
     }
 #ifndef USE_OPENMP
   if(!cancel.load())
-#endif
-#ifdef USE_OPENMP
-    bool cncl;
+#else
+  bool cncl;
 #pragma atomic read
   cncl = cancel;
   if(!cncl)
@@ -592,8 +587,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
   run_threads++;
   rthr_lock.unlock();
   std::shared_ptr<int> thr_finish(&run_threads, deleter);
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&archp_obj_mtx);
   archp_obj.push_back(&arp);
   omp_unset_lock(&archp_obj_mtx);
@@ -636,8 +630,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
   archp_obj.erase(std::remove(archp_obj.begin(), archp_obj.end(), &arp),
                   archp_obj.end());
   archp_obj_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   bool cncl;
 #pragma omp atomic read
   cncl = cancel;
@@ -741,8 +734,7 @@ CreateCollection::write_file_to_base(const FileParseEntry &fe)
   base_strm.write(reinterpret_cast<char *>(&val64), sizeof(val64));
   base_strm.write(file_entry.c_str(), file_entry.size());
   base_strm_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp critical
   {
     base_strm.write(reinterpret_cast<char *>(&val64), sizeof(val64));
@@ -795,8 +787,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
                                   + static_cast<double>(sz));
             }
           progress(current_bytes.load());
-#endif
-#ifdef USE_OPENMP
+#else
           double cb_val;
           if(ec)
             {
@@ -843,8 +834,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
                                   + static_cast<double>(sz));
             }
           progress(current_bytes.load());
-#endif
-#ifdef USE_OPENMP
+#else
           double cb_val;
           if(ec)
             {
@@ -891,8 +881,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
                                   + static_cast<double>(sz));
             }
           progress(current_bytes.load());
-#endif
-#ifdef USE_OPENMP
+#else
           double cb_val;
           if(ec)
             {
@@ -939,8 +928,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
                                   + static_cast<double>(sz));
             }
           progress(current_bytes.load());
-#endif
-#ifdef USE_OPENMP
+#else
           double cb_val;
           if(ec)
             {
@@ -987,8 +975,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
                                   + static_cast<double>(sz));
             }
           progress(current_bytes.load());
-#endif
-#ifdef USE_OPENMP
+#else
           double cb_val;
           if(ec)
             {
@@ -1068,8 +1055,7 @@ CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
       fe.books.emplace_back(be);
       write_file_to_base(fe);
     }
-#endif
-#ifdef USE_OPENMP
+#else
   BookParseEntry be = djvu.djvu_parser(filepath);
   FileParseEntry fe;
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();

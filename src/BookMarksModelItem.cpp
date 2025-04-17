@@ -35,8 +35,7 @@ BookMarksModelItem::addLabel(Gtk::Label *lab)
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   auto it = std::find(labels.begin(), labels.end(), lab);
@@ -50,8 +49,7 @@ BookMarksModelItem::addLabel(Gtk::Label *lab)
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -61,8 +59,7 @@ BookMarksModelItem::removeLabel(Gtk::Label *lab)
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   auto it = std::find(labels.begin(), labels.end(), lab);
@@ -76,8 +73,7 @@ BookMarksModelItem::removeLabel(Gtk::Label *lab)
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -87,8 +83,7 @@ BookMarksModelItem::activateLabels()
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   for(size_t i = 0; i < labels.size(); i++)
@@ -97,8 +92,7 @@ BookMarksModelItem::activateLabels()
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }
@@ -108,8 +102,7 @@ BookMarksModelItem::deactivateLabels()
 {
 #ifndef USE_OPENMP
   labels_mtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&labels_mtx);
 #endif
   for(size_t i = 0; i < labels.size(); i++)
@@ -118,8 +111,7 @@ BookMarksModelItem::deactivateLabels()
     }
 #ifndef USE_OPENMP
   labels_mtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&labels_mtx);
 #endif
 }

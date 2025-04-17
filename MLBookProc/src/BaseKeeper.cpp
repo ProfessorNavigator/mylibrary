@@ -26,9 +26,11 @@
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
 #include <functional>
-#endif
-#ifndef USE_OPENMP
+#else
+#include <functional>
+#ifdef USE_PE
 #include <execution>
+#endif
 #endif
 
 BaseKeeper::BaseKeeper(const std::shared_ptr<AuxFunc> &af)
@@ -38,8 +40,7 @@ BaseKeeper::BaseKeeper(const std::shared_ptr<AuxFunc> &af)
   omp_init_lock(&basemtx);
 #pragma atomic write
   cancel_search = true;
-#endif
-#ifndef USE_OPENMP
+#else
   cancel_search.store(false);
 #endif
 }
@@ -56,8 +57,7 @@ BaseKeeper::loadCollection(const std::string &col_name)
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lock_base(basemtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard lock_base(basemtx);
 #endif
   base.clear();
@@ -283,8 +283,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search)
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lock_base(basemtx);
   cancel_search.store(false);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard lock_base(basemtx);
 #pragma omp atomic write
   cancel_search = false;
@@ -309,8 +308,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search)
             {
               break;
             }
-#endif
-#ifndef USE_OPENMP
+#else
           if(cancel_search.load())
             {
               break;
@@ -476,8 +474,7 @@ BaseKeeper::collectionAuthors()
 #pragma omp atomic write
   cancel_search = false;
   omp_set_lock(&basemtx);
-#endif
-#ifndef USE_OPENMP
+#else
   cancel_search.store(false);
   basemtx.lock();
 #endif
@@ -598,10 +595,9 @@ BaseKeeper::collectionAuthors()
         }
       }
   }
-#endif
-
-#ifndef USE_OPENMP
+#else
   std::mutex result_mtx;
+#ifdef USE_PE
   std::for_each(
       std::execution::par, base.begin(), base.end(),
       [this, &result, find_str, &result_mtx](FileParseEntry &fpe) {
@@ -684,6 +680,90 @@ BaseKeeper::collectionAuthors()
                 }
             });
       });
+#else
+  std::for_each(
+      base.begin(), base.end(),
+      [this, &result, find_str, &result_mtx](FileParseEntry &fpe) {
+        if(cancel_search.load())
+          {
+            return void();
+          }
+
+        std::for_each(
+            fpe.books.begin(), fpe.books.end(),
+            [this, find_str, &result, &result_mtx](BookParseEntry &bpe) {
+              if(cancel_search.load())
+                {
+                  return void();
+                }
+              std::string::size_type n_beg = 0;
+              std::string::size_type n_end;
+              bool stop = false;
+              for(;;)
+                {
+                  if(cancel_search.load())
+                    {
+                      break;
+                    }
+                  n_end = bpe.book_author.find(find_str, n_beg);
+                  std::string auth;
+                  if(n_end != std::string::npos)
+                    {
+                      auth = bpe.book_author.substr(n_beg, n_end - n_beg);
+                    }
+                  else
+                    {
+                      if(n_beg < bpe.book_author.size())
+                        {
+                          std::copy(bpe.book_author.begin() + n_beg,
+                                    bpe.book_author.end(),
+                                    std::back_inserter(auth));
+                        }
+                      else
+                        {
+                          break;
+                        }
+                      stop = true;
+                    }
+                  if(!auth.empty())
+                    {
+                      while(auth.size() > 0)
+                        {
+                          char ch = *auth.begin();
+                          if(ch >= 0 && ch <= 32)
+                            {
+                              auth.erase(auth.begin());
+                            }
+                          else
+                            {
+                              break;
+                            }
+                        }
+                      while(auth.size() > 0)
+                        {
+                          char ch = *auth.rbegin();
+                          if(ch >= 0 && ch <= 32)
+                            {
+                              auth.pop_back();
+                            }
+                          else
+                            {
+                              break;
+                            }
+                        }
+                      result_mtx.lock();
+                      result.push_back(auth);
+                      result_mtx.unlock();
+                    }
+                  n_beg = n_end + find_str.size() - 1;
+                  if(stop)
+                    {
+                      break;
+                    }
+                }
+            });
+      });
+#endif
   basemtx.unlock();
 #endif
 #ifdef USE_OPENMP
@@ -701,8 +781,7 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
-#endif
-#ifndef USE_OPENMP
+#else
       if(cancel_search.load())
         {
           break;
@@ -747,8 +826,8 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
       it_end = std::find_if(std::execution::par, it_end,
                             std::make_reverse_iterator(it + 1), pred1);
       if(it_end != std::make_reverse_iterator(it + 1))
@@ -780,6 +859,36 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
+#else
+      it_end = std::find_if(it_end, std::make_reverse_iterator(it + 1), pred1);
+      if(it_end != std::make_reverse_iterator(it + 1))
+        {
+          auto it_2 = it + 1;
+          while(it_2 != it_end.base())
+            {
+              if(cancel_search.load())
+                {
+                  break;
+                }
+              it_2 = std::find_if(it_2, it_end.base(), pred2);
+              if(it_2 != it_end.base())
+                {
+                  std::swap(*it_2, *it_end);
+                  it_end++;
+                  it_end = std::find_if(
+                      it_end, std::make_reverse_iterator(it_2 + 1), pred1);
+                  if(it_end == std::make_reverse_iterator(it_2 + 1))
+                    {
+                      break;
+                    }
+                }
+            }
+        }
+      else
+        {
+          break;
+        }
+#endif
 #endif
     }
   result.erase(it_end.base(), result.end());
@@ -788,8 +897,7 @@ BaseKeeper::collectionAuthors()
     {
       result.clear();
     }
-#endif
-#ifdef USE_OPENMP
+#else
   bool c_s;
 #pragma omp atomic read
   c_s = cancel_search;
@@ -809,6 +917,7 @@ BaseKeeper::booksWithNotes(const std::vector<NotesBaseEntry> &notes)
 #ifndef USE_OPENMP
   std::mutex result_mtx;
   basemtx.lock();
+#ifdef USE_PE
   std::for_each(
       std::execution::par, base.begin(), base.end(),
       [&result, &result_mtx, notes, this](FileParseEntry &ent) {
@@ -846,8 +955,46 @@ BaseKeeper::booksWithNotes(const std::vector<NotesBaseEntry> &notes)
               }
           }
       });
+#else
+  std::for_each(
+      base.begin(), base.end(),
+      [&result, &result_mtx, notes, this](FileParseEntry &ent) {
+        if(cancel_search.load())
+          {
+            return void();
+          }
+        std::filesystem::path f_p
+            = collection_path / std::filesystem::u8path(ent.file_rel_path);
+        auto it = std::find_if(notes.begin(), notes.end(),
+                               [f_p](const NotesBaseEntry &el_n) {
+                                 if(f_p == el_n.book_file_full_path)
+                                   {
+                                     return true;
+                                   }
+                                 else
+                                   {
+                                     return false;
+                                   }
+                               });
+        if(it != notes.end())
+          {
+            std::string bp = it->book_path;
+
+            auto it_b = std::find_if(ent.books.begin(), ent.books.end(),
+                                     [bp](BookParseEntry &el) {
+                                       return bp == el.book_path;
+                                     });
+            if(it_b != ent.books.end())
+              {
+                BookBaseEntry bbe(*it_b, f_p);
+                result_mtx.lock();
+                result.emplace_back(bbe);
+                result_mtx.unlock();
+              }
+          }
+      });
 #endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&basemtx);
 #pragma omp parallel
   {
@@ -991,9 +1138,9 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
                 }
               }
           }
-#endif
-#ifndef USE_OPENMP
+#else
           std::mutex result_mtx;
+#ifdef USE_PE
           std::for_each(
               std::execution::par, base.begin(), base.end(),
               [&result_mtx, &result, surname, this](FileParseEntry &el) {
@@ -1021,6 +1168,34 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
                                   }
                               });
               });
+#else
+          std::for_each(
+              base.begin(), base.end(),
+              [&result_mtx, &result, surname, this](FileParseEntry &el) {
+                if(cancel_search.load())
+                  {
+                    return void();
+                  }
+                std::filesystem::path book_file_path
+                    = collection_path
+                      / std::filesystem::u8path(el.file_rel_path);
+                std::for_each(el.books.begin(), el.books.end(),
+                              [this, surname, &result, &result_mtx,
+                               book_file_path](BookParseEntry &el) {
+                                if(cancel_search.load())
+                                  {
+                                    return void();
+                                  }
+                                if(searchLineFunc(surname, el.book_author))
+                                  {
+                                    result_mtx.lock();
+                                    result.emplace_back(
+                                        BookBaseEntry(el, book_file_path));
+                                    result_mtx.unlock();
+                                  }
+                              });
+              });
+#endif
 #endif
         }
     }
@@ -1076,9 +1251,9 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
             }
           }
       }
-#endif
-#ifndef USE_OPENMP
+#else
       std::mutex result_mtx;
+#ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, search, &result, &result_mtx](FileParseEntry &el) {
@@ -1105,6 +1280,34 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                     }
                 });
           });
+#else
+      std::for_each(
+          base.begin(), base.end(),
+          [this, search, &result, &result_mtx](FileParseEntry &el) {
+            if(cancel_search.load())
+              {
+                return void();
+              }
+            std::filesystem::path book_file_path
+                = collection_path / std::filesystem::u8path(el.file_rel_path);
+
+            std::for_each(
+                el.books.begin(), el.books.end(),
+                [this, search, book_file_path, &result,
+                 &result_mtx](BookParseEntry &el) {
+                  if(cancel_search.load())
+                    {
+                      return void();
+                    }
+                  if(searchLineFunc(search.bpe.book_name, el.book_name))
+                    {
+                      result_mtx.lock();
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
+                      result_mtx.unlock();
+                    }
+                });
+          });
+#endif
 #endif
     }
   else
@@ -1124,8 +1327,8 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                                         }
                                     }),
           result.end());
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -1140,6 +1343,21 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#else
+      result.erase(std::remove_if(result.begin(), result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_name,
+                                                      el.bpe.book_name))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
+#endif
 #endif
     }
 }
@@ -1193,9 +1411,9 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
             }
           }
       }
-#endif
-#ifndef USE_OPENMP
+#else
       std::mutex result_mtx;
+#ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, search, &result, &result_mtx](FileParseEntry &el) {
@@ -1222,6 +1440,34 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                     }
                 });
           });
+#else
+      std::for_each(
+          base.begin(), base.end(),
+          [this, search, &result, &result_mtx](FileParseEntry &el) {
+            if(cancel_search.load())
+              {
+                return void();
+              }
+            std::filesystem::path book_file_path
+                = collection_path / std::filesystem::u8path(el.file_rel_path);
+
+            std::for_each(
+                el.books.begin(), el.books.end(),
+                [this, search, &result, &result_mtx,
+                 book_file_path](BookParseEntry &el) {
+                  if(cancel_search.load())
+                    {
+                      return void();
+                    }
+                  if(searchLineFunc(search.bpe.book_series, el.book_series))
+                    {
+                      result_mtx.lock();
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
+                      result_mtx.unlock();
+                    }
+                });
+          });
+#endif
 #endif
     }
   else
@@ -1241,8 +1487,8 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                                         }
                                     }),
           result.end());
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -1257,6 +1503,21 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#else
+      result.erase(std::remove_if(result.begin(), result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_series,
+                                                      el.bpe.book_series))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
+#endif
 #endif
     }
 }
@@ -1266,8 +1527,7 @@ BaseKeeper::clearBase()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lock_base(basemtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard lock_base(basemtx);
 #endif
   collection_path.clear();
@@ -1281,8 +1541,7 @@ BaseKeeper::get_base_vector()
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lock_base(basemtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard lock_base(basemtx);
 #endif
   return base;
@@ -1394,9 +1653,9 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
             }
           }
       }
-#endif
-#ifndef USE_OPENMP
+#else
       std::mutex result_mtx;
+#ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, search, &result, &result_mtx](FileParseEntry &el) {
@@ -1422,6 +1681,33 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                     }
                 });
           });
+#else
+      std::for_each(
+          base.begin(), base.end(),
+          [this, search, &result, &result_mtx](FileParseEntry &el) {
+            if(cancel_search.load())
+              {
+                return void();
+              }
+            std::filesystem::path book_file_path
+                = collection_path / std::filesystem::u8path(el.file_rel_path);
+            std::for_each(
+                el.books.begin(), el.books.end(),
+                [this, search, &result, &result_mtx,
+                 book_file_path](BookParseEntry &el) {
+                  if(cancel_search.load())
+                    {
+                      return void();
+                    }
+                  if(searchLineFunc(search.bpe.book_genre, el.book_genre))
+                    {
+                      result_mtx.lock();
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
+                      result_mtx.unlock();
+                    }
+                });
+          });
+#endif
 #endif
     }
   else
@@ -1441,8 +1727,8 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                                         }
                                     }),
           result.end());
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
       result.erase(std::remove_if(std::execution::par, result.begin(),
                                   result.end(),
                                   [search, this](BookBaseEntry &el) {
@@ -1457,6 +1743,21 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                                       }
                                   }),
                    result.end());
+#else
+      result.erase(std::remove_if(result.begin(), result.end(),
+                                  [search, this](BookBaseEntry &el) {
+                                    if(searchLineFunc(search.bpe.book_genre,
+                                                      el.bpe.book_genre))
+                                      {
+                                        return false;
+                                      }
+                                    else
+                                      {
+                                        return true;
+                                      }
+                                  }),
+                   result.end());
+#endif
 #endif
     }
 }
@@ -1467,8 +1768,7 @@ BaseKeeper::stopSearch()
 #ifdef USE_OPENMP
 #pragma atomic write
   cancel_search = true;
-#endif
-#ifndef USE_OPENMP
+#else
   cancel_search.store(true);
 #endif
 }
@@ -1538,9 +1838,9 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                         }
                       }
                   }
-#endif
-#ifndef USE_OPENMP
+#else
                   std::mutex result_mtx;
+#ifdef USE_PE
                   std::for_each(
                       std::execution::par, base.begin(), base.end(),
                       [this, last_name, &result,
@@ -1559,9 +1859,9 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                             [this, last_name, &result, &result_mtx,
                              book_file_path](BookParseEntry &el) {
                               if(cancel_search.load())
-                                {
-                                  return void();
-                                }
+                                return void();
+                              {
+                              }
                               if(searchLineFunc(last_name, el.book_author))
                                 {
                                   result_mtx.lock();
@@ -1571,6 +1871,37 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                                 }
                             });
                       });
+#else
+                  std::for_each(
+                      base.begin(), base.end(),
+                      [this, last_name, &result,
+                       &result_mtx](FileParseEntry &el) {
+                        if(cancel_search.load())
+                          {
+                            return void();
+                          }
+                        std::filesystem::path book_file_path
+                            = collection_path
+                              / std::filesystem::u8path(el.file_rel_path);
+
+                        std::for_each(
+                            el.books.begin(), el.books.end(),
+                            [this, last_name, &result, &result_mtx,
+                             book_file_path](BookParseEntry &el) {
+                              if(cancel_search.load())
+                                return void();
+                              {
+                              }
+                              if(searchLineFunc(last_name, el.book_author))
+                                {
+                                  result_mtx.lock();
+                                  result.emplace_back(
+                                      BookBaseEntry(el, book_file_path));
+                                  result_mtx.unlock();
+                                }
+                            });
+                      });
+#endif
 #endif
                 }
               else
@@ -1590,8 +1921,8 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
@@ -1606,6 +1937,22 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
+#else
+                  result.erase(
+                      std::remove_if(result.begin(), result.end(),
+                                     [last_name, this](BookBaseEntry &el) {
+                                       if(searchLineFunc(last_name,
+                                                         el.bpe.book_author))
+                                         {
+                                           return false;
+                                         }
+                                       else
+                                         {
+                                           return true;
+                                         }
+                                     }),
+                      result.end());
+#endif
 #endif
                 }
             }
@@ -1679,9 +2026,9 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                         }
                       }
                   }
-#endif
-#ifndef USE_OPENMP
+#else
                   std::mutex result_mtx;
+#ifdef USE_PE
                   std::for_each(
                       std::execution::par, base.begin(), base.end(),
                       [this, first_name, &result,
@@ -1712,6 +2059,37 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                                 }
                             });
                       });
+#else
+                  std::for_each(
+                      base.begin(), base.end(),
+                      [this, first_name, &result,
+                       &result_mtx](FileParseEntry &el) {
+                        if(cancel_search.load())
+                          {
+                            return void();
+                          }
+                        std::filesystem::path book_file_path
+                            = collection_path
+                              / std::filesystem::u8path(el.file_rel_path);
+
+                        std::for_each(
+                            el.books.begin(), el.books.end(),
+                            [this, first_name, &result, &result_mtx,
+                             book_file_path](BookParseEntry &el) {
+                              if(cancel_search.load())
+                                {
+                                  return void();
+                                }
+                              if(searchLineFunc(first_name, el.book_author))
+                                {
+                                  result_mtx.lock();
+                                  result.emplace_back(
+                                      BookBaseEntry(el, book_file_path));
+                                  result_mtx.unlock();
+                                }
+                            });
+                      });
+#endif
 #endif
                 }
               else
@@ -1731,8 +2109,8 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
-#endif
-#ifndef USE_OPENMP
+#else
+#ifdef USE_PE
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
@@ -1747,6 +2125,22 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                               }
                           }),
                       result.end());
+#else
+                  result.erase(
+                      std::remove_if(result.begin(), result.end(),
+                                     [first_name, this](BookBaseEntry &el) {
+                                       if(searchLineFunc(first_name,
+                                                         el.bpe.book_author))
+                                         {
+                                           return false;
+                                         }
+                                       else
+                                         {
+                                           return true;
+                                         }
+                                     }),
+                      result.end());
+#endif
 #endif
                 }
             }

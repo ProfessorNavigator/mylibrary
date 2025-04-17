@@ -24,8 +24,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -220,8 +219,7 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
     search_finished->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -263,8 +261,7 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
     copy_proc_finished->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -305,8 +302,7 @@ SearchProcessGui::showAuthors(Gtk::Window *win,
     search_finished->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -341,8 +337,7 @@ SearchProcessGui::showBooksWithNotes(Gtk::Window *win,
     search_finished->emit();
   });
   thr.detach();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp parallel
 #pragma omp masked
   {

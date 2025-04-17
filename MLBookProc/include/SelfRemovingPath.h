@@ -20,8 +20,7 @@
 #include <filesystem>
 #ifndef USE_OPENMP
 #include <atomic>
-#endif
-#ifdef USE_OPENMP
+#else
 #include <omp.h>
 #endif
 
@@ -92,8 +91,7 @@ private:
 
 #ifndef USE_OPENMP
   std::atomic<uint64_t> *count;
-#endif
-#ifdef USE_OPENMP
+#else
   uint64_t *count;
 #endif
 };

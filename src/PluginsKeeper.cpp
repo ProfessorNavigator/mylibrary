@@ -422,9 +422,7 @@ PluginsKeeper::addPluginDialog(Gtk::Widget *flbx)
            std::bind(&PluginsKeeper::addPluginDialogSlot, this,
                      std::placeholders::_1, fd, flbx),
            cncl);
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *main_window, gettext("Plugin"), Gtk::FileChooser::Action::OPEN, true);
   fd->set_application(main_window->get_application());

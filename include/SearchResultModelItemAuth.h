@@ -21,8 +21,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <mutex>
 #endif
 
@@ -55,8 +54,7 @@ protected:
 
 #ifndef USE_OPENMP
   std::mutex l_lab_mtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t l_lab_mtx;
 #endif
 };

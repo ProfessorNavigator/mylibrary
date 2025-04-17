@@ -28,8 +28,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -97,8 +96,7 @@ RefreshCollectionGui::createWindow()
   strm.imbue(std::locale("C"));
 #ifndef USE_OPENMP
   strm << std::thread::hardware_concurrency();
-#endif
-#ifdef USE_OPENMP
+#else
   strm << omp_get_num_procs();
 #endif
   lab->set_text(gettext("Thread number (recommended max value: ")

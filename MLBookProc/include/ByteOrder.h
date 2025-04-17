@@ -23,8 +23,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <mutex>
 #endif
 /*!
@@ -259,8 +258,7 @@ private:
   std::vector<size_t> native_order;
 #ifndef USE_OPENMP
   std::mutex bomtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t bomtx;
 #endif
 };

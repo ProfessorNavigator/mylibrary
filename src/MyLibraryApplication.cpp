@@ -22,8 +22,7 @@ MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af) :
 {
   this->af = af;
 }
-#endif
-#ifdef USE_OPENMP
+#else
 MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af)
     : Gtk::Application("ru.mail.bobilev_yury.MyLibrary.omp")
 {

@@ -22,8 +22,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -32,8 +31,7 @@ Hasher::Hasher(const std::shared_ptr<AuxFunc> &af)
   this->af = af;
 #ifndef USE_OPENMP
   cancel.store(false);
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp atomic write
   cancel = false;
 #endif
@@ -130,8 +128,7 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
         }
       f.close();
       thr.join();
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp parallel
       {
 #pragma omp master
@@ -212,8 +209,7 @@ Hasher::cancelAll()
 {
 #ifndef USE_OPENMP
   cancel.store(true);
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp atomic write
   cancel = true;
 #endif

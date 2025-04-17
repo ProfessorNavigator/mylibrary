@@ -65,8 +65,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 #ifndef ML_GTK_OLD
   Gtk::StyleProvider::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::StyleContext::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif

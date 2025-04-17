@@ -38,8 +38,7 @@ ByteOrder::ByteOrder(const ByteOrder &other)
 {
 #ifndef USE_OPENMP
   const_cast<ByteOrder *>(&other)->bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&bomtx);
   omp_set_lock(const_cast<omp_lock_t *>(&other.bomtx));
 #endif
@@ -47,8 +46,7 @@ ByteOrder::ByteOrder(const ByteOrder &other)
   native_order = other.native_order;
 #ifndef USE_OPENMP
   const_cast<ByteOrder *>(&other)->bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(const_cast<omp_lock_t *>(&other.bomtx));
 #endif
 }
@@ -138,8 +136,7 @@ ByteOrder::operator=(const ByteOrder &other)
 {
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
   omp_set_lock(const_cast<omp_lock_t *>(&other.bomtx));
 #endif
@@ -147,8 +144,7 @@ ByteOrder::operator=(const ByteOrder &other)
   native_order = other.native_order;
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(const_cast<omp_lock_t *>(&other.bomtx));
   omp_unset_lock(&bomtx);
 #endif
@@ -161,16 +157,14 @@ ByteOrder::operator=(const uint64_t &val)
   uint64_t control = 506097522914230528;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -182,16 +176,14 @@ ByteOrder::operator=(const uint32_t &val)
   uint32_t control = 50462976;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -203,16 +195,14 @@ ByteOrder::operator=(const uint16_t &val)
   uint16_t control = 256;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -224,16 +214,14 @@ ByteOrder::operator=(const int64_t &val)
   int64_t control = 506097522914230528;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -245,16 +233,14 @@ ByteOrder::operator=(const int32_t &val)
   int32_t control = 50462976;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -266,16 +252,14 @@ ByteOrder::operator=(const int16_t &val)
   int16_t control = 256;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -287,16 +271,14 @@ ByteOrder::operator=(const float &val)
   float control = 3.82047e-37;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -308,16 +290,14 @@ ByteOrder::operator=(const double &val)
   double control = 7.949928895127363e-275;
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   form_native_order(control);
   form_inner(val);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   return *this;
@@ -426,8 +406,7 @@ ByteOrder::get_native(T &result)
   uint8_t arr[sz];
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   if(sz > inner.size())
@@ -441,8 +420,7 @@ ByteOrder::get_native(T &result)
     }
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   std::memcpy(&result, &arr, sz);
@@ -475,8 +453,7 @@ ByteOrder::get_big(T &result)
   uint8_t arr[sz];
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   if(sz > inner.size())
@@ -489,8 +466,7 @@ ByteOrder::get_big(T &result)
     }
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
   std::memcpy(&result, &arr, sz);
@@ -522,8 +498,7 @@ ByteOrder::get_little(T &result)
   size_t sz = sizeof(T);
 #ifndef USE_OPENMP
   bomtx.lock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_set_lock(&bomtx);
 #endif
   if(sz > inner.size())
@@ -533,8 +508,7 @@ ByteOrder::get_little(T &result)
   std::memcpy(&result, inner.data(), sz);
 #ifndef USE_OPENMP
   bomtx.unlock();
-#endif
-#ifdef USE_OPENMP
+#else
   omp_unset_lock(&bomtx);
 #endif
 }
@@ -564,8 +538,7 @@ ByteOrder::set_big(T val)
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bomtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(bomtx);
 #endif
   inner.clear();
@@ -647,8 +620,7 @@ ByteOrder::set_little(T val)
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bomtx);
-#endif
-#ifdef USE_OPENMP
+#else
   OmpLockGuard olg(bomtx);
 #endif
   inner.clear();

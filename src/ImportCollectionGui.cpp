@@ -191,8 +191,7 @@ ImportCollectionGui::open_file_dialog(Gtk::Window *win, Gtk::Entry *ent,
     default:
       break;
     }
-#endif
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd;
   switch(variant)
     {

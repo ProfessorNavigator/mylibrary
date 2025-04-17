@@ -23,8 +23,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <mutex>
 #endif
 
@@ -56,8 +55,7 @@ protected:
   std::vector<Gtk::Label *> labels;
 #ifndef USE_OPENMP
   std::mutex labels_mtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t labels_mtx;
 #endif
 };

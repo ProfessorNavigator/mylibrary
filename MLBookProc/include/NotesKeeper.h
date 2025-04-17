@@ -21,8 +21,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <mutex>
 #endif
 
@@ -178,8 +177,7 @@ private:
   std::vector<NotesBaseEntry> base;
 #ifndef USE_OPENMP
   std::mutex base_mtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t base_mtx;
 #endif
 };
