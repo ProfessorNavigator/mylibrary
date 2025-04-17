@@ -30,6 +30,7 @@
 
 #ifndef ML_GTK_OLD
 #include <giomm-2.68/giomm/cancellable.h>
+#include <giomm-2.68/giomm/liststore.h>
 #include <gtkmm-4.0/gtkmm/error.h>
 #endif
 
@@ -128,6 +129,15 @@ SaveCover::save_dialog(Gtk::Window *win)
       if(model)
         {
           name = "Cover." + model->get_string(pos);
+
+          Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+          filter->add_suffix(model->get_string(pos));
+          fd->set_default_filter(filter);
+
+          Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
+              = Gio::ListStore<Gtk::FileFilter>::create();
+          f_list->append(filter);
+          fd->set_filters(f_list);
         }
     }
   fd->set_initial_name(name);

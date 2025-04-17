@@ -31,6 +31,7 @@
 
 #ifndef ML_GTK_OLD
 #include <giomm-2.68/giomm/cancellable.h>
+#include <giomm-2.68/giomm/liststore.h>
 #include <gtkmm-4.0/gtkmm/error.h>
 #endif
 
@@ -87,6 +88,15 @@ CopyBookGui::createWindow()
       filename = bbe.bpe.book_name + ext;
     }
   fd->set_initial_name(filename);
+
+  Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+  filter->add_pattern(Glib::ustring(ext));
+  fd->set_default_filter(filter);
+
+  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
+      = Gio::ListStore<Gtk::FileFilter>::create();
+  f_list->append(filter);
+  fd->set_filters(f_list);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
   fd->save(*parent_window,

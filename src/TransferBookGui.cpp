@@ -438,19 +438,16 @@ TransferBookGui::path_choose_dialog(Gtk::Window *win, const int &variant)
 
   fd->set_default_filter(filter);
 
-  if(variant == 3)
+  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
+      = Gio::ListStore<Gtk::FileFilter>::create();
+  f_list->append(filter);
+  for(auto it = types.begin(); it != types.end(); it++)
     {
-      Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
-          = Gio::ListStore<Gtk::FileFilter>::create();
+      filter = Gtk::FileFilter::create();
+      filter->add_suffix(*it);
       f_list->append(filter);
-      for(auto it = types.begin(); it != types.end(); it++)
-        {
-          filter = Gtk::FileFilter::create();
-          filter->add_suffix(*it);
-          f_list->append(filter);
-        }
-      fd->set_filters(f_list);
     }
+  fd->set_filters(f_list);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
 
