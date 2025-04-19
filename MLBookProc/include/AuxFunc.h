@@ -49,8 +49,8 @@
  * \code{.unparsed}
  * find_package(MLBookProc)
  * if(MLBookProc_FOUND)
- *  target_include_directories(myproject MLBookProc::mlbookproc)
- *  target_link_libraries(myproject MLBookProc::mlbookproc)
+ *  target_include_directories(myproject PRIVATE MLBookProc::mlbookproc)
+ *  target_link_libraries(myproject PUBLIC MLBookProc::mlbookproc)
  * endif()
  * \endcode
  *
