@@ -55,7 +55,7 @@ MyLibrary uses cmake building system, so to build it from source you need cmake 
 
 If you plan to use OpenMP, you also may need to install proper libraries (like libgomp).
 
-To build documentation, you need doxygen. To build pdf documentation, you need LaTex support (see doxygen [documentation](https://www.doxygen.nl/manual/output.html)). 
+To build documentation, you need doxygen. To build pdf documentation, you need LaTeX support (see doxygen [documentation](https://www.doxygen.nl/manual/output.html)). Also to build pdf documentation you need make. 
 
 ## Usage
 

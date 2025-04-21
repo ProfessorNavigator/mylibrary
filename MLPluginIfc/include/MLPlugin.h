@@ -30,8 +30,14 @@
  * \code{.unparsed}
  * find_package(MLPluginIfc)
  * if(MLPluginIfc_FOUND)
- *  target_include_directories(myproject MLPluginIfc::mlpluginifc)
- *  target_link_libraries(myproject MLPluginIfc::mlpluginifc)
+ *  target_include_directories(myproject
+ *    PRIVATE MLPluginIfc::mlpluginifc
+ *    PRIVATE MLBookProc::mlbookproc
+ *  )
+ *  target_link_libraries(myproject
+ *    PRIVATE MLPluginIfc::mlpluginifc
+ *    PRIVATE MLBookProc::mlbookproc
+ *  )
  * endif()
  * \endcode
  *

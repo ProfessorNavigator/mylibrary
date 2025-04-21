@@ -16,14 +16,20 @@ endif()
 
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
-add_library(mlpluginifc SHARED)
+if(BUILD_SHARED_LIBS)
+  add_library(mlpluginifc SHARED)
+else()
+  add_library(mlpluginifc STATIC)
+endif()
 
-set_target_properties(mlpluginifc PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
+set_target_properties(mlpluginifc PROPERTIES POSITION_INDEPENDENT_CODE True)
 
-set_target_properties(mlpluginifc PROPERTIES
-  VERSION ${PROJECT_VERSION}
-  SOVERSION ${PROJECT_VERSION_MAJOR}
-)
+if(BUILD_SHARED_LIBS)
+  set_target_properties(mlpluginifc PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
+endif()
 
 add_subdirectory(src)
 add_subdirectory(include)
@@ -31,12 +37,20 @@ add_subdirectory(include)
 target_include_directories(mlpluginifc
   PRIVATE include
   PRIVATE ../MLBookProc/include
-  PRIVATE PkgConfig::GTKMM
+  PUBLIC ${GTKMM_INCLUDE_DIRS}
 )
 
-target_link_libraries(mlpluginifc
-  PUBLIC PkgConfig::GTKMM
-  PUBLIC mlbookproc  
+target_compile_options(mlpluginifc
+  PUBLIC ${GTKMM_CFLAGS_OTHER}
+)
+
+target_link_libraries(mlpluginifc  
+  PRIVATE mlbookproc
+  PUBLIC ${GTKMM_LINK_LIBRARIES}
+)
+
+target_link_options(mlpluginifc
+  PUBLIC ${GTKMM_LDFLAGS_OTHER}
 )
 
 if(DOXYGEN_FOUND)
@@ -63,20 +77,20 @@ if(DOXYGEN_FOUND)
       POST_BUILD
       COMMAND make
       ARGS pdf -C "${CMAKE_CURRENT_BINARY_DIR}/latex"
-      COMMENT "Building pdf documentation"
+      COMMENT "Generating pdf documentation"
     )
   endif()
 endif()
 
 include(GNUInstallDirs)
 
-install(TARGETS mlpluginifc EXPORT MLPluginIfcTargets
+install(TARGETS mlpluginifc EXPORT "${PROJECT_NAME}Targets"
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 
 install(DIRECTORY include/
-    EXPORT MLPluginIfcTargets
+    EXPORT "${PROJECT_NAME}Targets"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
     FILES_MATCHING PATTERN "*.h"
 )
