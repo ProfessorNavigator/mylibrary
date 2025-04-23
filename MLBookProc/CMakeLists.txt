@@ -171,7 +171,7 @@ if(DOXYGEN_FOUND)
   )
 
   if(CREATE_PDF_DOCS_MLBOOKPROC)
-    add_custom_command(TARGET mlbookproc
+    add_custom_command(TARGET doxygen_mlbookproc
       POST_BUILD
       COMMAND make
       ARGS pdf -C "${CMAKE_CURRENT_BINARY_DIR}/latex"

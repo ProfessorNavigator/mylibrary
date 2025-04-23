@@ -73,7 +73,7 @@ if(DOXYGEN_FOUND)
   )
 
   if(CREATE_PDF_DOCS_PLUGINIFC)
-    add_custom_command(TARGET mlpluginifc
+    add_custom_command(TARGET doxygen_mlpluginifc
       POST_BUILD
       COMMAND make
       ARGS pdf -C "${CMAKE_CURRENT_BINARY_DIR}/latex"
