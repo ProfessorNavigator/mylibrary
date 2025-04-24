@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2025-04-23 14:34+0400\n"
-"PO-Revision-Date: 2025-04-23 14:34+0400\n"
+"POT-Creation-Date: 2025-04-24 14:12+0400\n"
+"PO-Revision-Date: 2025-04-24 14:15+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -1087,11 +1087,11 @@ msgstr "Кнопки выпадающих меню"
 
 #: SettingsWindow.cpp:452
 msgid "\"Error\" labels"
-msgstr "Надписи ощибок"
+msgstr "Ошибки"
 
 #: SettingsWindow.cpp:458
 msgid "\"Warning\" labels"
-msgstr "Надписи предупреждений"
+msgstr "Предупреждения"
 
 #: SettingsWindow.cpp:464
 msgid "Progress bars"
