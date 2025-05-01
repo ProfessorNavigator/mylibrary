@@ -306,7 +306,6 @@ RefreshCollectionGui::refreshCollection(Gtk::Window *win,
     {
       std::string coll_name(list->get_string(sel));
       std::string num_threads(this->num_threads->get_text());
-
       CollectionCrProcessGui *ccpg = new CollectionCrProcessGui(
           af, main_window, coll_name, num_threads, clean_empty->get_active(),
           fast_refreshing->get_active(), refresh_bookmarks->get_active(),

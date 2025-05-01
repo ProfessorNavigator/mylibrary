@@ -50,11 +50,10 @@ main(int argc, char *argv[])
 
       int result;
 #ifdef USE_OPENMP
-      omp_set_dynamic(true);
-      omp_set_max_active_levels(3);
+      omp_set_dynamic(true);      
 #pragma omp parallel
       {
-#pragma omp master
+#pragma omp masked
         {
           auto app = MyLibraryApplication::create(af);
           result = app->run(argc, argv);

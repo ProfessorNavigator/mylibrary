@@ -131,7 +131,7 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
 #else
 #pragma omp parallel
       {
-#pragma omp master
+#pragma omp masked
         {
           for(;;)
             {

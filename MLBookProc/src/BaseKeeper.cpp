@@ -496,7 +496,6 @@ BaseKeeper::collectionAuthors()
   std::string find_str = ", ";
 #ifdef USE_OPENMP
   omp_set_dynamic(true);
-  omp_set_max_active_levels(3);
 #pragma omp parallel
   {
 #pragma omp for
@@ -1096,7 +1095,6 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
           all_empty = false;
 #ifdef USE_OPENMP
           omp_set_dynamic(true);
-          omp_set_max_active_levels(3);
 #pragma omp parallel
           {
 #pragma omp for
@@ -1210,7 +1208,6 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
-      omp_set_max_active_levels(3);
 #pragma omp parallel
       {
 #pragma omp for
@@ -1370,7 +1367,6 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
-      omp_set_max_active_levels(3);
 #pragma omp parallel
       {
 #pragma omp for
@@ -1612,7 +1608,6 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
-      omp_set_max_active_levels(3);
 #pragma omp parallel
       {
 #pragma omp for
@@ -1795,7 +1790,6 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
                   omp_set_dynamic(true);
-                  omp_set_max_active_levels(3);
 #pragma omp parallel
                   {
 #pragma omp for
@@ -1983,7 +1977,6 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
                   omp_set_dynamic(true);
-                  omp_set_max_active_levels(3);
 #pragma omp parallel
                   {
 #pragma omp for

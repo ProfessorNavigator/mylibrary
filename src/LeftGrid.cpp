@@ -542,8 +542,6 @@ LeftGrid::searchBook()
 void
 LeftGrid::showCollectionFiles()
 {
-  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
-  spg->search_result_file = search_result_show_files;
   std::string coll_name;
   guint selected = collection_select->get_selected();
   if(selected != GTK_INVALID_LIST_POSITION)
@@ -553,25 +551,18 @@ LeftGrid::showCollectionFiles()
               collection_select->get_model());
       if(list)
         {
+          SearchProcessGui *spg
+              = new SearchProcessGui(base_keeper, main_window);
+          spg->search_result_file = search_result_show_files;
           coll_name = std::string(list->get_string(selected));
           spg->createWindow(coll_name, af, 1);
         }
-      else
-        {
-          delete spg;
-        }
-    }
-  else
-    {
-      delete spg;
     }
 }
 
 void
 LeftGrid::showCollectionAuthors()
 {
-  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
-  spg->search_result_authors = search_result_authors;
   std::string coll_name;
   guint selected = collection_select->get_selected();
   if(selected != GTK_INVALID_LIST_POSITION)
@@ -581,25 +572,18 @@ LeftGrid::showCollectionAuthors()
               collection_select->get_model());
       if(list)
         {
+          SearchProcessGui *spg
+              = new SearchProcessGui(base_keeper, main_window);
+          spg->search_result_authors = search_result_authors;
           coll_name = std::string(list->get_string(selected));
           spg->createWindow(coll_name, af, 2);
         }
-      else
-        {
-          delete spg;
-        }
-    }
-  else
-    {
-      delete spg;
     }
 }
 
 void
 LeftGrid::showBooksWithNotes()
 {
-  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
-  spg->search_result_show = search_result_show;
   std::string coll_name;
   guint selected = collection_select->get_selected();
   if(selected != GTK_INVALID_LIST_POSITION)
@@ -609,19 +593,14 @@ LeftGrid::showBooksWithNotes()
               collection_select->get_model());
       if(list)
         {
+          SearchProcessGui *spg
+              = new SearchProcessGui(base_keeper, main_window);
+          spg->search_result_show = search_result_show;
           coll_name = std::string(list->get_string(selected));
           std::vector<NotesBaseEntry> nt
               = notes->getNotesForCollection(coll_name);
           spg->createWindow(nt);
         }
-      else
-        {
-          delete spg;
-        }
-    }
-  else
-    {
-      delete spg;
     }
 }
 

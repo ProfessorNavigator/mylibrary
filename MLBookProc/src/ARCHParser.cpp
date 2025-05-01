@@ -204,7 +204,7 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
 #else
 #pragma omp parallel
   {
-#pragma omp master
+#pragma omp masked
     {
       while(!interrupt)
         {

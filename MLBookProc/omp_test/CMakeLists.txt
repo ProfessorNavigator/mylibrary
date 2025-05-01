@@ -7,9 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenMP REQUIRED)
 
-if(OpenMP_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    add_link_options("${OpenMP_CXX_FLAGS}")
-endif()
 add_executable(omp_test main.cpp)
 
+if(OpenMP_FOUND)
+    target_include_directories(omp_test PRIVATE ${OpenMP_CXX_INCLUDE_DIRS})
+    target_compile_options(omp_test PRIVATE ${OpenMP_CXX_FLAGS})
+    target_link_libraries(omp_test PRIVATE ${OpenMP_CXX_LIBRARIES})
+endif()

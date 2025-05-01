@@ -238,7 +238,6 @@ CreateCollection::threadRegulator()
   });
 #else
   omp_set_num_threads(num_threads);
-  omp_set_max_active_levels(3);
   omp_set_dynamic(true);
 #pragma omp parallel
   {
