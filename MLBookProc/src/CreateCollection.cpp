@@ -124,68 +124,78 @@ CreateCollection::createCollection()
     {
       return void();
     }
-  for(auto &dirit : std::filesystem::recursive_directory_iterator(
-          books_path,
-          std::filesystem::directory_options::follow_directory_symlink))
+#pragma omp parallel
+#pragma omp masked
+  {
+    omp_event_handle_t event;
+#pragma omp task detach(event)
     {
-      if(pulse)
+      for(auto &dirit : std::filesystem::recursive_directory_iterator(
+              books_path,
+              std::filesystem::directory_options::follow_directory_symlink))
         {
-          pulse();
+          if(pulse)
+            {
+              pulse();
+            }
+          std::filesystem::path p = dirit.path();
+          if(!std::filesystem::is_directory(p))
+            {
+              std::filesystem::path check_type;
+              if(!(std::filesystem::symlink_status(p).type()
+                   == std::filesystem::file_type::symlink))
+                {
+                  check_type = p;
+                }
+              else
+                {
+                  check_type = std::filesystem::read_symlink(p);
+                }
+              if(af->if_supported_type(check_type))
+                {
+                  need_to_parse.emplace_back(p);
+                }
+            }
         }
-      std::filesystem::path p = dirit.path();
-      if(!std::filesystem::is_directory(p))
-        {
-          std::filesystem::path check_type;
-          if(!(std::filesystem::symlink_status(p).type()
-               == std::filesystem::file_type::symlink))
-            {
-              check_type = p;
-            }
-          else
-            {
-              check_type = std::filesystem::read_symlink(p);
-            }
-          if(af->if_supported_type(check_type))
-            {
-              need_to_parse.emplace_back(p);
-            }
-        }
+      omp_fulfill_event(event);
     }
-  if(!rar_support)
-    {
-      std::string sstr = ".rar";
-      need_to_parse.erase(
-          std::remove_if(need_to_parse.begin(), need_to_parse.end(),
-                         [sstr, this](std::filesystem::path &el) {
-                           std::string ext = el.extension().u8string();
-                           ext = af->stringToLower(ext);
-                           return ext == sstr;
-                         }),
-          need_to_parse.end());
-    }
+#pragma omp taskwait
+    if(!rar_support)
+      {
+        std::string sstr = ".rar";
+        need_to_parse.erase(
+            std::remove_if(need_to_parse.begin(), need_to_parse.end(),
+                           [sstr, this](std::filesystem::path &el) {
+                             std::string ext = el.extension().u8string();
+                             ext = af->stringToLower(ext);
+                             return ext == sstr;
+                           }),
+            need_to_parse.end());
+      }
 
-  if(signal_total_bytes)
-    {
-      double tmp = 0.0;
-      for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
-        {
-          std::error_code ec;
-          uintmax_t sz
-              = static_cast<double>(std::filesystem::file_size(*it, ec));
+    if(signal_total_bytes)
+      {
+        double tmp = 0.0;
+        for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
+          {
+            std::error_code ec;
+            uintmax_t sz
+                = static_cast<double>(std::filesystem::file_size(*it, ec));
 
-          if(ec)
-            {
-              std::cout << "CreateCollection::createCollection: "
-                        << ec.message() << std::endl;
-            }
-          else
-            {
-              tmp += static_cast<double>(sz);
-            }
-        }
-      signal_total_bytes(tmp);
-    }
-  threadRegulator();
+            if(ec)
+              {
+                std::cout << "CreateCollection::createCollection: "
+                          << ec.message() << std::endl;
+              }
+            else
+              {
+                tmp += static_cast<double>(sz);
+              }
+          }
+        signal_total_bytes(tmp);
+      }
+    threadRegulator();
+  }
 }
 
 void
@@ -239,6 +249,8 @@ CreateCollection::threadRegulator()
 #else
   omp_set_num_threads(num_threads);
   omp_set_dynamic(true);
+  int lvls = omp_get_max_active_levels();
+  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
   {
 #pragma omp for
@@ -263,6 +275,8 @@ CreateCollection::threadRegulator()
         }
       }
   }
+  omp_set_max_active_levels(lvls);
+  omp_set_dynamic(false);
 #endif
   if(base_strm.is_open())
     {

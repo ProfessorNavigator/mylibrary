@@ -50,7 +50,6 @@ main(int argc, char *argv[])
 
       int result;
 #ifdef USE_OPENMP
-      omp_set_dynamic(true);      
 #pragma omp parallel
       {
 #pragma omp masked

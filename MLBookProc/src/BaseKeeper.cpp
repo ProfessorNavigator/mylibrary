@@ -897,6 +897,7 @@ BaseKeeper::collectionAuthors()
       result.clear();
     }
 #else
+  omp_set_dynamic(false);
   bool c_s;
 #pragma omp atomic read
   c_s = cancel_search;
@@ -1136,6 +1137,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
                 }
               }
           }
+          omp_set_dynamic(false);
 #else
           std::mutex result_mtx;
 #ifdef USE_PE
@@ -1248,6 +1250,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
             }
           }
       }
+      omp_set_dynamic(false);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1407,6 +1410,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
             }
           }
       }
+      omp_set_dynamic(false);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1648,6 +1652,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
             }
           }
       }
+      omp_set_dynamic(false);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1832,6 +1837,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                         }
                       }
                   }
+                  omp_set_dynamic(false);
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE
@@ -2019,6 +2025,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                         }
                       }
                   }
+                  omp_set_dynamic(false);
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE
