@@ -22,6 +22,7 @@
 #include <FileParseEntry.h>
 #include <NotesBaseEntry.h>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -125,6 +126,16 @@ public:
   static std::filesystem::path
   get_books_path(const std::string &collection_name,
                  const std::shared_ptr<AuxFunc> &af);
+
+  /*!
+   * \brief collectionAuthors() progress callback
+   *
+   * collectionAuthors() method execution can take some time. This callback
+   * indicates progress.
+   * \a progr is current progress in conventional units. \a sz is total
+   * conventional units to be processed.
+   */
+  std::function<void(const double &progr, const double &sz)> auth_show_progr;
 
 private:
   FileParseEntry

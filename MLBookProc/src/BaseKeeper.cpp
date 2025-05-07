@@ -25,9 +25,7 @@
 
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
-#include <functional>
 #else
-#include <functional>
 #ifdef USE_PE
 #include <execution>
 #endif
@@ -478,6 +476,7 @@ BaseKeeper::collectionAuthors()
   cancel_search.store(false);
   basemtx.lock();
 #endif
+  std::vector<std::tuple<std::string, bool>> auth_v;
   {
     size_t sz = 0;
     for(auto it = base.begin(); it != base.end(); it++)
@@ -491,11 +490,13 @@ BaseKeeper::collectionAuthors()
             sz += it->books.size();
           }
       }
-    result.reserve(sz);
+    auth_v.reserve(sz);
   }
   std::string find_str = ", ";
 #ifdef USE_OPENMP
-  omp_set_dynamic(true);
+  omp_set_dynamic(true);  
+  int lvls = omp_get_max_active_levels();
+  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
   {
 #pragma omp for
@@ -581,7 +582,7 @@ BaseKeeper::collectionAuthors()
                         }
 #pragma omp critical
                       {
-                        result.push_back(auth);
+                        auth_v.push_back(std::make_tuple(auth, true));
                       }
                     }
                   n_beg = n_end + find_str.size() - 1;
@@ -599,85 +600,86 @@ BaseKeeper::collectionAuthors()
 #ifdef USE_PE
   std::for_each(
       std::execution::par, base.begin(), base.end(),
-      [this, &result, find_str, &result_mtx](FileParseEntry &fpe) {
+      [this, &result, find_str, &result_mtx, &auth_v](FileParseEntry &fpe) {
         if(cancel_search.load())
           {
             return void();
           }
 
-        std::for_each(
-            std::execution::par, fpe.books.begin(), fpe.books.end(),
-            [this, find_str, &result, &result_mtx](BookParseEntry &bpe) {
-              if(cancel_search.load())
-                {
-                  return void();
-                }
-              std::string::size_type n_beg = 0;
-              std::string::size_type n_end;
-              bool stop = false;
-              for(;;)
-                {
-                  if(cancel_search.load())
-                    {
-                      break;
-                    }
-                  n_end = bpe.book_author.find(find_str, n_beg);
-                  std::string auth;
-                  if(n_end != std::string::npos)
-                    {
-                      auth = bpe.book_author.substr(n_beg, n_end - n_beg);
-                    }
-                  else
-                    {
-                      if(n_beg < bpe.book_author.size())
-                        {
-                          std::copy(bpe.book_author.begin() + n_beg,
-                                    bpe.book_author.end(),
-                                    std::back_inserter(auth));
-                        }
-                      else
-                        {
-                          break;
-                        }
-                      stop = true;
-                    }
-                  if(!auth.empty())
-                    {
-                      while(auth.size() > 0)
-                        {
-                          char ch = *auth.begin();
-                          if(ch >= 0 && ch <= 32)
-                            {
-                              auth.erase(auth.begin());
-                            }
-                          else
-                            {
-                              break;
-                            }
-                        }
-                      while(auth.size() > 0)
-                        {
-                          char ch = *auth.rbegin();
-                          if(ch >= 0 && ch <= 32)
-                            {
-                              auth.pop_back();
-                            }
-                          else
-                            {
-                              break;
-                            }
-                        }
-                      result_mtx.lock();
-                      result.push_back(auth);
-                      result_mtx.unlock();
-                    }
-                  n_beg = n_end + find_str.size() - 1;
-                  if(stop)
-                    {
-                      break;
-                    }
-                }
-            });
+        std::for_each(std::execution::par, fpe.books.begin(), fpe.books.end(),
+                      [this, find_str, &result, &result_mtx,
+                       &auth_v](BookParseEntry &bpe) {
+                        if(cancel_search.load())
+                          {
+                            return void();
+                          }
+                        std::string::size_type n_beg = 0;
+                        std::string::size_type n_end;
+                        bool stop = false;
+                        for(;;)
+                          {
+                            if(cancel_search.load())
+                              {
+                                break;
+                              }
+                            n_end = bpe.book_author.find(find_str, n_beg);
+                            std::string auth;
+                            if(n_end != std::string::npos)
+                              {
+                                auth = bpe.book_author.substr(n_beg,
+                                                              n_end - n_beg);
+                              }
+                            else
+                              {
+                                if(n_beg < bpe.book_author.size())
+                                  {
+                                    std::copy(bpe.book_author.begin() + n_beg,
+                                              bpe.book_author.end(),
+                                              std::back_inserter(auth));
+                                  }
+                                else
+                                  {
+                                    break;
+                                  }
+                                stop = true;
+                              }
+                            if(!auth.empty())
+                              {
+                                while(auth.size() > 0)
+                                  {
+                                    char ch = *auth.begin();
+                                    if(ch >= 0 && ch <= 32)
+                                      {
+                                        auth.erase(auth.begin());
+                                      }
+                                    else
+                                      {
+                                        break;
+                                      }
+                                  }
+                                while(auth.size() > 0)
+                                  {
+                                    char ch = *auth.rbegin();
+                                    if(ch >= 0 && ch <= 32)
+                                      {
+                                        auth.pop_back();
+                                      }
+                                    else
+                                      {
+                                        break;
+                                      }
+                                  }
+                                result_mtx.lock();
+                                auth_v.push_back(std::make_tuple(auth, true));
+                                result_mtx.unlock();
+                              }
+                            n_beg = n_end + find_str.size() - 1;
+                            if(stop)
+                              {
+                                break;
+                              }
+                          }
+                      });
       });
 #else
   std::for_each(
@@ -768,11 +770,12 @@ BaseKeeper::collectionAuthors()
 #ifdef USE_OPENMP
   omp_unset_lock(&basemtx);
 #endif
-
-  auto it_end = result.rbegin();
-  for(auto it = result.begin(); it != it_end.base(); it++)
-    {
+  result.reserve(auth_v.size());
+  double sz = static_cast<double>(auth_v.size());
+  double progr = 1.0;
 #ifdef USE_OPENMP
+  for(auto it = auth_v.begin(); it != auth_v.end(); it++)
+    {
       bool c_s;
 #pragma omp atomic read
       c_s = cancel_search;
@@ -780,128 +783,81 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
-#else
-      if(cancel_search.load())
+      if(std::get<1>(*it))
         {
-          break;
-        }
-#endif
-      std::string f_str = *it;
-      std::function<bool(std::string &)> pred1 = [f_str](std::string &el) {
-        return f_str != el;
-      };
-      std::function<bool(std::string &)> pred2 = [f_str](std::string &el) {
-        return f_str == el;
-      };
-#ifdef USE_OPENMP
-      it_end = AuxFunc::parallelFindIf(
-          it_end, std::make_reverse_iterator(it + 1), pred1);
-      if(it_end != std::make_reverse_iterator(it + 1))
-        {
-          auto it_2 = it + 1;
-          while(it_2 != it_end.base())
+          std::string s_str = std::move(std::get<0>(*it));
+#pragma omp parallel
+#pragma omp for
+          for(auto it_s = it + 1; it_s != auth_v.end(); it_s++)
             {
-#pragma omp atomic read
-              c_s = cancel_search;
-              if(c_s)
+              if(std::get<1>(*it_s))
                 {
-                  break;
-                }
-              it_2 = AuxFunc::parallelFindIf(it_2, it_end.base(), pred2);
-              if(it_2 != it_end.base())
-                {
-                  std::swap(*it_2, *it_end);
-                  it_end++;
-                  it_end = AuxFunc::parallelFindIf(
-                      it_end, std::make_reverse_iterator(it_2 + 1), pred1);
-                  if(it_end == std::make_reverse_iterator(it_2 + 1))
+                  if(std::get<0>(*it_s) == s_str)
                     {
-                      break;
+                      std::get<1>(*it_s) = false;
                     }
                 }
             }
+          result.emplace_back(s_str);
         }
-      else
+      if(auth_show_progr)
         {
-          break;
+          auth_show_progr(progr, sz);
         }
-#else
-#ifdef USE_PE
-      it_end = std::find_if(std::execution::par, it_end,
-                            std::make_reverse_iterator(it + 1), pred1);
-      if(it_end != std::make_reverse_iterator(it + 1))
-        {
-          auto it_2 = it + 1;
-          while(it_2 != it_end.base())
-            {
-              if(cancel_search.load())
-                {
-                  break;
-                }
-              it_2 = std::find_if(std::execution::par, it_2, it_end.base(),
-                                  pred2);
-              if(it_2 != it_end.base())
-                {
-                  std::swap(*it_2, *it_end);
-                  it_end++;
-                  it_end = std::find_if(std::execution::par, it_end,
-                                        std::make_reverse_iterator(it_2 + 1),
-                                        pred1);
-                  if(it_end == std::make_reverse_iterator(it_2 + 1))
-                    {
-                      break;
-                    }
-                }
-            }
-        }
-      else
-        {
-          break;
-        }
-#else
-      it_end = std::find_if(it_end, std::make_reverse_iterator(it + 1), pred1);
-      if(it_end != std::make_reverse_iterator(it + 1))
-        {
-          auto it_2 = it + 1;
-          while(it_2 != it_end.base())
-            {
-              if(cancel_search.load())
-                {
-                  break;
-                }
-              it_2 = std::find_if(it_2, it_end.base(), pred2);
-              if(it_2 != it_end.base())
-                {
-                  std::swap(*it_2, *it_end);
-                  it_end++;
-                  it_end = std::find_if(
-                      it_end, std::make_reverse_iterator(it_2 + 1), pred1);
-                  if(it_end == std::make_reverse_iterator(it_2 + 1))
-                    {
-                      break;
-                    }
-                }
-            }
-        }
-      else
-        {
-          break;
-        }
-#endif
-#endif
+      progr += 1.0;
     }
-  result.erase(it_end.base(), result.end());
-#ifndef USE_OPENMP
-  if(cancel_search.load())
-    {
-      result.clear();
-    }
-#else
   omp_set_dynamic(false);
+  omp_set_max_active_levels(lvls);
   bool c_s;
 #pragma omp atomic read
   c_s = cancel_search;
   if(c_s)
+    {
+      result.clear();
+    }
+#else
+  for(auto it = auth_v.begin(); it != auth_v.end(); it++)
+    {
+      if(cancel_search.load())
+        {
+          break;
+        }
+      if(std::get<1>(*it))
+        {
+          std::string s_str = std::move(std::get<0>(*it));
+#ifdef USE_PE
+          std::for_each(std::execution::par, it + 1, auth_v.end(),
+                        [s_str](std::tuple<std::string, bool> &val) {
+                          if(std::get<1>(val))
+                            {
+                              if(std::get<0>(val) == s_str)
+                                {
+                                  std::get<1>(val) = false;
+                                }
+                            }
+                        });
+#else
+          std::for_each(it + 1, auth_v.end(),
+                        [s_str](std::tuple<std::string, bool> &val) {
+                          if(std::get<1>(val))
+                            {
+                              if(std::get<0>(val) == s_str)
+                                {
+                                  std::get<1>(val) = false;
+                                }
+                            }
+                        });
+#endif
+          result.emplace_back(s_str);
+          if(auth_show_progr)
+            {
+              auth_show_progr(progr, sz);
+            }
+          progr += 1.0;
+        }
+    }
+
+  if(cancel_search.load())
     {
       result.clear();
     }
@@ -1096,6 +1052,8 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
           all_empty = false;
 #ifdef USE_OPENMP
           omp_set_dynamic(true);
+          int lvls = omp_get_max_active_levels();
+          omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
           {
 #pragma omp for
@@ -1138,6 +1096,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
               }
           }
           omp_set_dynamic(false);
+          omp_set_max_active_levels(lvls);
 #else
           std::mutex result_mtx;
 #ifdef USE_PE
@@ -1210,6 +1169,8 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
+      int lvls = omp_get_max_active_levels();
+      omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
       {
 #pragma omp for
@@ -1251,6 +1212,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
           }
       }
       omp_set_dynamic(false);
+      omp_set_max_active_levels(lvls);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1370,6 +1332,8 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
+      int lvls = omp_get_max_active_levels();
+      omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
       {
 #pragma omp for
@@ -1411,6 +1375,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
           }
       }
       omp_set_dynamic(false);
+      omp_set_max_active_levels(lvls);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1612,6 +1577,8 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
     {
 #ifdef USE_OPENMP
       omp_set_dynamic(true);
+      int lvls = omp_get_max_active_levels();
+      omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
       {
 #pragma omp for
@@ -1653,6 +1620,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
           }
       }
       omp_set_dynamic(false);
+      omp_set_max_active_levels(lvls);
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
@@ -1795,6 +1763,8 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
                   omp_set_dynamic(true);
+                  int lvls = omp_get_max_active_levels();
+                  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
                   {
 #pragma omp for
@@ -1838,6 +1808,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                       }
                   }
                   omp_set_dynamic(false);
+                  omp_set_max_active_levels(lvls);
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE
@@ -1983,6 +1954,8 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
                   omp_set_dynamic(true);
+                  int lvls = omp_get_max_active_levels();
+                  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
                   {
 #pragma omp for
@@ -2026,6 +1999,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                       }
                   }
                   omp_set_dynamic(false);
+                  omp_set_max_active_levels(lvls);
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE

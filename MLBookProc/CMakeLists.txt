@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(MLBookProc VERSION 1.0 LANGUAGES CXX)
+project(MLBookProc VERSION 1.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -167,7 +167,7 @@ if(DOXYGEN_FOUND)
   doxygen_add_docs(doxygen_mlbookproc
     ALL
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/include"
-    COMMENT "Generating documentation"
+    COMMENT "Generating ${PROJECT_NAME} html documentation"
   )
 
   if(CREATE_PDF_DOCS_MLBOOKPROC)
@@ -175,7 +175,7 @@ if(DOXYGEN_FOUND)
       POST_BUILD
       COMMAND make
       ARGS pdf -C "${CMAKE_CURRENT_BINARY_DIR}/latex"
-      COMMENT "Generating pdf documentation"
+      COMMENT "Generating ${PROJECT_NAME} pdf documentation"
     )
   endif()
 endif()
@@ -189,8 +189,8 @@ if(CREATE_HTML_DOCS_MLBOOKPROC)
 endif()
 
 if(CREATE_PDF_DOCS_MLBOOKPROC)
-  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf
-    DESTINATION ${CMAKE_INSTALL_DOCDIR}/pdf
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}/pdf"
   )
 endif()
 

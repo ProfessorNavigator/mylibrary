@@ -18,7 +18,6 @@
 #include <glibmm-2.68/glibmm/dispatcher.h>
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
-#include <gtkmm-4.0/gtkmm/label.h>
 #include <libintl.h>
 #include <memory>
 
@@ -103,25 +102,44 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   grid->set_expand(true);
   window->set_child(*grid);
 
+  int row = 0;
+
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(true);
+  lab->set_margin(5);
   lab->set_halign(Gtk::Align::CENTER);
   lab->set_expand(true);
   lab->set_text(gettext("Reading base..."));
   lab->set_name("windowLabel");
-  grid->attach(*lab, 0, 0, 1, 1);
+  grid->attach(*lab, 0, row, 1, 1);
+  row++;
+
+  Gtk::ProgressBar *prog = nullptr;
+  if(variant == 2)
+    {
+      prog = Gtk::make_managed<Gtk::ProgressBar>();
+      prog->set_margin(5);
+      prog->set_show_text(true);
+      prog->set_name("progressBars");
+      prog->set_visible(false);
+      grid->attach(*prog, 0, row, 1, 1);
+      row++;
+    }
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
   cancel->set_margin(5);
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
-  cancel->signal_clicked().connect([this, lab, cancel] {
+  cancel->signal_clicked().connect([this, lab, cancel, prog] {
     bk->stopSearch();
     cancel->set_visible(false);
+    if(prog)
+      {
+        prog->set_visible(false);
+      }
     lab->set_text(gettext("Reading interrupting..."));
   });
-  grid->attach(*cancel, 0, 1, 1, 1);
+  grid->attach(*cancel, 0, row, 1, 1);
 
   window->signal_close_request().connect(
       [window, this] {
@@ -141,7 +159,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       }
     case 2:
       {
-        showAuthors(window, collection_name);
+        showAuthors(window, prog, lab, collection_name);
         break;
       }
     }
@@ -283,12 +301,45 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
 }
 
 void
-SearchProcessGui::showAuthors(Gtk::Window *win,
+SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
+                              Gtk::Label *lab,
                               const std::string &collection_name)
 {
-  Glib::Dispatcher *search_finished = new Glib::Dispatcher;
-  search_finished->connect([this, search_finished, win] {
-    std::unique_ptr<Glib::Dispatcher> disp(search_finished);
+  double *pr = new double(0.0);
+  double *sz = new double(1.0);
+#ifdef USE_OPENMP
+  omp_lock_t *prog_mtx = new omp_lock_t;
+  omp_init_lock(prog_mtx);
+#else
+  std::mutex *prog_mtx = new std::mutex;
+#endif
+
+  Glib::Dispatcher *progr_disp = new Glib::Dispatcher;
+  progr_disp->connect([pr, sz, prog_mtx, prog] {
+#ifdef USE_OPENMP
+    omp_set_lock(prog_mtx);
+    double frac = (*pr) / (*sz);
+    omp_unset_lock(prog_mtx);
+    if(!prog->get_visible())
+      {
+        prog->set_visible(true);
+      }
+    prog->set_fraction(frac);
+#else
+    prog_mtx->lock();
+    double frac = (*pr) / (*sz);
+    prog_mtx->unlock();
+    if(!prog->get_visible())
+      {
+        prog->set_visible(true);
+      }
+    prog->set_fraction(frac);
+#endif
+  });
+
+  Glib::Dispatcher *show_res = new Glib::Dispatcher;
+  show_res->connect([show_res, win, this] {
+    std::unique_ptr<Glib::Dispatcher> disp(show_res);
     if(search_result_authors)
       {
         search_result_authors(authors);
@@ -296,13 +347,59 @@ SearchProcessGui::showAuthors(Gtk::Window *win,
     win->close();
   });
 
+  Glib::Dispatcher *search_finished = new Glib::Dispatcher;
+  search_finished->connect(
+      [search_finished, progr_disp, pr, sz, prog_mtx, prog, lab, show_res] {
+        std::unique_ptr<Glib::Dispatcher> disp(search_finished);
+        prog->set_visible(false);
+        lab->set_text(gettext("Sorting..."));
+        delete progr_disp;
+        delete pr;
+        delete sz;
+#ifdef USE_OPENMP
+        omp_destroy_lock(prog_mtx);
+#pragma omp masked
+        {
+          omp_event_handle_t event;
+#pragma omp task detach(event)
+          {
+            show_res->emit();
+            omp_fulfill_event(event);
+          }
+        }
+#else
+        std::thread thr([show_res] {
+          show_res->emit();
+        });
+        thr.detach();
+#endif
+        delete prog_mtx;
+      });
+
 #ifndef USE_OPENMP
+  bk->auth_show_progr = [pr, sz, prog_mtx, progr_disp](const double &progr,
+                                                       const double &size) {
+    prog_mtx->lock();
+    *pr = progr;
+    *sz = size;
+    prog_mtx->unlock();
+    progr_disp->emit();
+  };
   std::thread thr([this, search_finished] {
     authors = bk->collectionAuthors();
+    bk->auth_show_progr = nullptr;
     search_finished->emit();
   });
   thr.detach();
 #else
+  bk->auth_show_progr = [pr, sz, prog_mtx, progr_disp](const double &progr,
+                                                       const double &size) {
+    omp_set_lock(prog_mtx);
+    *pr = progr;
+    *sz = size;
+    omp_unset_lock(prog_mtx);
+    progr_disp->emit();
+  };
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -310,6 +407,7 @@ SearchProcessGui::showAuthors(Gtk::Window *win,
     {
       authors = bk->collectionAuthors();
       search_finished->emit();
+      bk->auth_show_progr = nullptr;
       omp_fulfill_event(event);
     }
   }

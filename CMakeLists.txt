@@ -69,19 +69,21 @@ endif()
 
 target_include_directories(mylibrary
     PRIVATE MLBookProc/include    
-    PRIVATE include        
+    PRIVATE include
+    PRIVATE ${GTKMM_INCLUDE_DIRS}
 )
 
 target_compile_options(mylibrary
-    PRIVATE ${GTKMM_CFLAGS}
+    PRIVATE ${GTKMM_CFLAGS_OTHER}
 )
 
 target_link_libraries(mylibrary
     PRIVATE mlbookproc
+    PRIVATE ${GTKMM_LINK_LIBRARIES}
 )
 
 target_link_options(mylibrary
-    PRIVATE ${GTKMM_LDFLAGS}
+    PRIVATE ${GTKMM_LDFLAGS_OTHER}
 )
 
 include(GNUInstallDirs)

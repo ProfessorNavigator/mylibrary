@@ -21,6 +21,8 @@
 #include <BookBaseEntry.h>
 #include <NotesBaseEntry.h>
 #include <functional>
+#include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/progressbar.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <vector>
 
@@ -57,7 +59,8 @@ private:
             std::shared_ptr<AuxFunc> af);
 
   void
-  showAuthors(Gtk::Window *win, const std::string &collection_name);
+  showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog, Gtk::Label *lab,
+              const std::string &collection_name);
 
   void
   showBooksWithNotes(Gtk::Window *win,
