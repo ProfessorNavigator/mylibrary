@@ -595,19 +595,19 @@ BaseKeeper::collectionAuthors()
         }
       }
   }
-#else
-  std::mutex result_mtx;
+#else  
 #ifdef USE_PE
+  std::mutex auth_v_mtx;
   std::for_each(
       std::execution::par, base.begin(), base.end(),
-      [this, &result, find_str, &result_mtx, &auth_v](FileParseEntry &fpe) {
+      [this, &result, find_str, &auth_v_mtx, &auth_v](FileParseEntry &fpe) {
         if(cancel_search.load())
           {
             return void();
           }
 
         std::for_each(std::execution::par, fpe.books.begin(), fpe.books.end(),
-                      [this, find_str, &result, &result_mtx,
+                      [this, find_str, &result, &auth_v_mtx,
                        &auth_v](BookParseEntry &bpe) {
                         if(cancel_search.load())
                           {
@@ -669,9 +669,9 @@ BaseKeeper::collectionAuthors()
                                         break;
                                       }
                                   }
-                                result_mtx.lock();
+                                auth_v_mtx.lock();
                                 auth_v.push_back(std::make_tuple(auth, true));
-                                result_mtx.unlock();
+                                auth_v_mtx.unlock();
                               }
                             n_beg = n_end + find_str.size() - 1;
                             if(stop)
@@ -684,7 +684,7 @@ BaseKeeper::collectionAuthors()
 #else
   std::for_each(
       base.begin(), base.end(),
-      [this, &result, find_str, &result_mtx](FileParseEntry &fpe) {
+      [this, &result, find_str, &auth_v](FileParseEntry &fpe) {
         if(cancel_search.load())
           {
             return void();
@@ -692,7 +692,7 @@ BaseKeeper::collectionAuthors()
 
         std::for_each(
             fpe.books.begin(), fpe.books.end(),
-            [this, find_str, &result, &result_mtx](BookParseEntry &bpe) {
+            [this, find_str, &result, &auth_v](BookParseEntry &bpe) {
               if(cancel_search.load())
                 {
                   return void();
@@ -752,9 +752,7 @@ BaseKeeper::collectionAuthors()
                               break;
                             }
                         }
-                      result_mtx.lock();
-                      result.push_back(auth);
-                      result_mtx.unlock();
+                      auth_v.push_back(std::make_tuple(auth, true));
                     }
                   n_beg = n_end + find_str.size() - 1;
                   if(stop)
