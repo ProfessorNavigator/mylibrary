@@ -546,7 +546,7 @@ MainWindow::about_dialog()
   about->set_copyright(
       "Copyright 2022-2025 Yury Bobylev <bobilev_yury@mail.ru>");
 
-  about->set_license_type(Gtk::License::GPL_3_0);
+  about->set_license_type(Gtk::License::GPL_3_0_ONLY);
 
   Glib::ustring abbuf
       = Glib::ustring(gettext("MyLibrary is a home librarian"))

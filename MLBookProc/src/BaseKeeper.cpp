@@ -494,7 +494,7 @@ BaseKeeper::collectionAuthors()
   }
   std::string find_str = ", ";
 #ifdef USE_OPENMP
-  omp_set_dynamic(true);  
+  omp_set_dynamic(true);
   int lvls = omp_get_max_active_levels();
   omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
