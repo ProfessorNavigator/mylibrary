@@ -2,7 +2,7 @@
 
 ## Description
 
-MyLibrary is a simple program for managing `.fb2`, `.epub`, `.pdf` and `.djvu` e-book file collections. It can also works with same formats packed in zip, 7z, jar, cpio, iso, tar, tar.gz, tar.bz2, tar.xz, rar (see notes) archives itself or packed in same types of  archives with `.fbd` files (epub, djvu and pdf books). MyLibrary creates own database and does not change files content, names or location. See `Usage` for details.
+MyLibrary is a simple program for managing `.fb2`, `.epub`, `.pdf`, `.djvu` and `.odt` e-book file collections. It can also works with same formats packed in zip, 7z, jar, cpio, iso, tar, tar.gz, tar.bz2, tar.xz, rar (see notes) archives itself or packed in same types of  archives with `.fbd` files (epub, djvu and pdf books). MyLibrary creates own database and does not change files content, names or location. See `Usage` for details.
 
 ## Installation
 
