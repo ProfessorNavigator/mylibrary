@@ -220,6 +220,10 @@ private:
               const std::filesystem::path &resolved);
 
   void
+  odt_thread(const std::filesystem::path &file_col_path,
+             const std::filesystem::path &resolved);
+
+  void
   arch_thread(const std::filesystem::path &file_col_path,
               const std::filesystem::path &resolved);
 

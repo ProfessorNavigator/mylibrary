@@ -13,6 +13,7 @@ target_sources (mlbookproc
     PRIVATE BookParseEntry.cpp
     PRIVATE ByteOrder.cpp
     PRIVATE CreateCollection.cpp
+    PRIVATE DCParser.cpp
     PRIVATE DJVUParser.cpp
     PRIVATE ElectroBookInfoEntry.cpp
     PRIVATE EPUBParser.cpp
@@ -26,6 +27,7 @@ target_sources (mlbookproc
     PRIVATE MLException.cpp
     PRIVATE NotesBaseEntry.cpp
     PRIVATE NotesKeeper.cpp
+    PRIVATE ODTParser.cpp
     PRIVATE OpenBook.cpp
     PRIVATE PaperBookInfoEntry.cpp
     PRIVATE PDFParser.cpp

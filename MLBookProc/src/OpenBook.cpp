@@ -54,7 +54,8 @@ OpenBook::open_book(
       ext = bbe.file_path.extension().u8string();
     }
   ext = af->stringToLower(ext);
-  if(ext == ".fb2" || ext == ".epub" || ext == ".pdf" || ext == ".djvu")
+  if(ext == ".fb2" || ext == ".epub" || ext == ".pdf" || ext == ".djvu"
+     || ext == ".odt")
     {
       if(copy)
         {

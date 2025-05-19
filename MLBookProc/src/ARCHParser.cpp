@@ -20,6 +20,7 @@
 #include <EPUBParser.h>
 #include <FB2Parser.h>
 #include <MLException.h>
+#include <ODTParser.h>
 #include <PDFParser.h>
 #include <SelfRemovingPath.h>
 #include <algorithm>
@@ -512,6 +513,61 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
           });
           parse_thr.detach();
         }
+      else if(ext == ".odt")
+        {
+          std::filesystem::path temp = af->temp_path();
+          temp /= std::filesystem::u8path(af->randomFileName());
+          SelfRemovingPath srp(temp);
+          std::filesystem::path out
+              = libarchive_read_entry(a.get(), e.get(), srp.path);
+          std::string book_date
+              = af->time_t_to_date(archive_entry_birthtime(e.get()));
+          if(std::filesystem::exists(out))
+            {
+              std::unique_lock<std::mutex> ullock(extra_run_mtx);
+              extra_run_var.wait(ullock, [this] {
+                return !extra_run;
+              });
+              extra_run = true;
+              ullock.unlock();
+
+              std::thread parse_thr([this, out, srp, book_date, ch_p] {
+                ODTParser odt(af);
+                BookParseEntry bpe;
+                try
+                  {
+                    bpe = odt.odtParser(out);
+                    if(bpe.book_date.empty())
+                      {
+                        bpe.book_date = book_date;
+                      }
+                    bpe.book_path = ch_p.u8string();
+                    if(bpe.book_name.empty())
+                      {
+                        bpe.book_name = ch_p.stem().u8string();
+                      }
+                    result.emplace_back(bpe);
+                  }
+                catch(MLException &er)
+                  {
+                    std::cout << "ARCHParser::unpack_entry error " << arch_path
+                              << " " << ch_p << " " << er.what() << std::endl;
+                    return void();
+                  }
+
+                std::lock_guard<std::mutex> lglock(extra_run_mtx);
+                extra_run = false;
+                extra_run_var.notify_one();
+              });
+              parse_thr.detach();
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry odt unpacking error"
+                        << std::endl;
+              return void();
+            }
+        }
       else
         {
           std::filesystem::path temp = af->temp_path();
@@ -762,6 +818,57 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
               omp_fulfill_event(event);
             }
           }
+        }
+      else if(ext == ".odt")
+        {
+          std::filesystem::path temp = af->temp_path();
+          temp /= std::filesystem::u8path(af->randomFileName());
+          std::filesystem::path out
+              = libarchive_read_entry(a.get(), e.get(), temp);
+          std::string book_date
+              = af->time_t_to_date(archive_entry_birthtime(e.get()));
+          if(std::filesystem::exists(out))
+            {
+#pragma omp taskwait
+#pragma omp masked
+              {
+                omp_event_handle_t event;
+#pragma omp task detach(event)
+                {
+                  ODTParser odt(af);
+                  BookParseEntry bpe;
+                  try
+                    {
+                      bpe = odt.odtParser(out);
+                      if(bpe.book_date.empty())
+                        {
+                          bpe.book_date = book_date;
+                        }
+                      bpe.book_path = ch_p.u8string();
+                      if(bpe.book_name.empty())
+                        {
+                          bpe.book_name = ch_p.stem().u8string();
+                        }
+                      result.emplace_back(bpe);
+                    }
+                  catch(MLException &er)
+                    {
+                      std::cout << "ARCHParser::unpack_entry error "
+                                << arch_path << " " << ch_p << " " << er.what()
+                                << std::endl;
+                    }
+                  std::filesystem::remove_all(temp);
+                  omp_fulfill_event(event);
+                }
+              }
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry djvu unpacking error"
+                        << std::endl;
+              std::filesystem::remove_all(temp);
+              return void();
+            }
         }
       else
         {

@@ -972,6 +972,7 @@ AuxFunc::get_supported_types()
   types.push_back("epub");
   types.push_back("pdf");
   types.push_back("djvu");
+  types.push_back("odt");
   types.push_back("zip");
   types.push_back("7z");
   types.push_back("tar.gz");
@@ -981,7 +982,7 @@ AuxFunc::get_supported_types()
   types.push_back("iso");
   types.push_back("cpio");
   types.push_back("jar");
-  types.push_back("rar");
+  types.push_back("rar");  
 
   return types;
 }

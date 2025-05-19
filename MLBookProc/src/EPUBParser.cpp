@@ -22,6 +22,12 @@ EPUBParser::EPUBParser(const std::shared_ptr<AuxFunc> &af)
     : XMLParser(af), LibArchive(af)
 {
   this->af = af;
+  dc = new DCParser(af);
+}
+
+EPUBParser::~EPUBParser()
+{
+  delete dc;
 }
 
 BookParseEntry
@@ -99,276 +105,13 @@ EPUBParser::epub_parse_root_file(const std::string &root_file_content)
 
   std::vector<XMLTag> tgv = listAllTags(buf);
 
-  result.book_name = epubTitle(buf, tgv);
+  result.book_name = dc->dcTitle(buf, tgv);
 
-  result.book_author = epubAuthor(buf, tgv);
+  result.book_author = dc->dcAuthor(buf, tgv);
 
-  result.book_genre = epubGenre(buf, tgv);
+  result.book_genre = dc->dcGenre(buf, tgv);
 
-  result.book_date = epubDate(buf, tgv);
-
-  return result;
-}
-
-std::string
-EPUBParser::epubTitle(const std::string &root_file_content,
-                      const std::vector<XMLTag> &tgv)
-{
-  std::string result;
-
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:title", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.empty())
-            {
-              result += ". ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result));
-        }
-    }
-  htmlSymbolsReplacement(result);
-
-  return result;
-}
-
-std::string
-EPUBParser::epubAuthor(const std::string &root_file_content,
-                       const std::vector<XMLTag> &tgv)
-{
-  std::string result;
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:creator", res);
-  std::vector<XMLTag> meta;
-  searchTag(tgv, "meta", meta);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      std::string attr = ":role";
-      std::string::size_type n = it->element.find(attr);
-      if(n != std::string::npos)
-        {
-          std::string::size_type n2 = it->element.rfind(" ", n);
-          if(n2 != std::string::npos)
-            {
-              attr = std::string(it->element.begin() + n2 + 1,
-                                 it->element.begin() + n + attr.size());
-            }
-          else
-            {
-              attr.clear();
-            }
-        }
-      else
-        {
-          attr.clear();
-        }
-      std::string role;
-      if(!attr.empty())
-        {
-          role = get_element_attribute(it->element, attr);
-        }
-      if(role == "aut")
-        {
-          if(it->hasContent())
-            {
-              if(!result.empty())
-                {
-                  result += ", ";
-                }
-              std::copy(root_file_content.begin() + it->content_start,
-                        root_file_content.begin() + it->content_end,
-                        std::back_inserter(result));
-            }
-        }
-      else
-        {
-          role = get_element_attribute(it->element, "id");
-          if(!role.empty())
-            {
-              role = "#" + role;
-              auto it_m = std::find_if(
-                  meta.begin(), meta.end(), [role, this](XMLTag &el) {
-                    if(role == get_element_attribute(el.element, "refines"))
-                      {
-                        if(get_element_attribute(el.element, "property")
-                           == "role")
-                          {
-                            return true;
-                          }
-                        else
-                          {
-                            return false;
-                          }
-                      }
-                    else
-                      {
-                        return false;
-                      }
-                  });
-              if(it_m != meta.end())
-                {
-                  if(it_m->hasContent())
-                    {
-                      if(std::string(
-                             root_file_content.begin() + it_m->content_start,
-                             root_file_content.begin() + it_m->content_end)
-                         == "aut")
-                        {
-                          if(it->hasContent())
-                            {
-                              if(!result.empty())
-                                {
-                                  result += ", ";
-                                }
-                              std::copy(root_file_content.begin()
-                                            + it->content_start,
-                                        root_file_content.begin()
-                                            + it->content_end,
-                                        std::back_inserter(result));
-                            }
-                        }
-                    }
-                }
-            }
-          else
-            {
-              if(it->element.size() == it->tag_id.size() + 2)
-                {
-                  if(it->hasContent())
-                    {
-                      if(!result.empty())
-                        {
-                          result += ", ";
-                        }
-                      std::copy(root_file_content.begin() + it->content_start,
-                                root_file_content.begin() + it->content_end,
-                                std::back_inserter(result));
-                    }
-                }
-            }
-        }
-    }
-  htmlSymbolsReplacement(result);
-
-  std::string::size_type n = 0;
-  std::string find_str = "  ";
-  for(;;)
-    {
-      n = result.find(find_str, n);
-      if(n != std::string::npos)
-        {
-          result.erase(result.begin() + n);
-        }
-      else
-        {
-          break;
-        }
-    }
-
-  bool stop = false;
-
-  while(result.size() > 0)
-    {
-      switch(*result.rbegin())
-        {
-        case 0 ... 32:
-          {
-            result.pop_back();
-            break;
-          }
-        default:
-          {
-            stop = true;
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-
-  stop = false;
-  while(result.size() > 0)
-    {
-      switch(*result.begin())
-        {
-        case 0 ... 32:
-          {
-            result.erase(result.begin());
-            break;
-          }
-        default:
-          {
-            stop = true;
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-
-  return result;
-}
-
-std::string
-EPUBParser::epubGenre(const std::string &root_file_content,
-                      const std::vector<XMLTag> &tgv)
-{
-  std::string result;
-
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:subject", res);
-
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.empty())
-            {
-              result += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result));
-        }
-    }
-
-  htmlSymbolsReplacement(result);
-
-  return result;
-}
-
-std::string
-EPUBParser::epubDate(const std::string &root_file_content,
-                     const std::vector<XMLTag> &tgv)
-{
-  std::string result;
-
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:date", res);
-
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.empty())
-            {
-              result += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result));
-        }
-    }
-
-  htmlSymbolsReplacement(result);
+  result.book_date = dc->dcDate(buf, tgv);
 
   return result;
 }
@@ -433,22 +176,10 @@ EPUBParser::epub_annotation(const std::string &root_file_content)
       code_page = af->detect_encoding(root_file_content);
     }
   buf = af->to_utf_8(root_file_content, code_page.c_str());
-  std::vector<XMLTag> tgv = get_tag(buf, "dc:description");
 
-  for(auto it = tgv.begin(); it != tgv.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.empty())
-            {
-              result += " \n\n";
-            }
-          std::copy(buf.begin() + it->content_start,
-                    buf.begin() + it->content_end, std::back_inserter(result));
-        }
-    }
+  std::vector<XMLTag> tgv = listAllTags(root_file_content);
 
-  htmlSymbolsReplacement(result);
+  result = dc->dcDescription(root_file_content, tgv);
 
   return result;
 }
@@ -558,22 +289,7 @@ EPUBParser::epub_language(const std::string &root_file_content,
                           BookInfoEntry &result)
 {
   std::vector<XMLTag> tgv = get_tag(root_file_content, "metadata");
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:language", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.language.empty())
-            {
-              result.language += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result.language));
-        }
-    }
-  htmlSymbolsReplacement(result.language);
+  result.language = dc->dcLanguage(root_file_content, tgv);
 }
 
 void
@@ -710,25 +426,11 @@ EPUBParser::epub_publisher(const std::string &root_file_content,
 {
   std::vector<XMLTag> tgv = get_tag(root_file_content, "metadata");
 
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:publisher", res);
-
-  for(auto it = res.begin(); it != res.end(); it++)
+  result.electro->publisher = dc->dcPublisher(root_file_content, tgv);
+  if(!result.electro->publisher.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->publisher.empty())
-            {
-              result.electro->publisher += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result.electro->publisher));
-        }
+      result.electro->available = true;
     }
-
-  htmlSymbolsReplacement(result.electro->publisher);
 }
 
 void
@@ -736,25 +438,11 @@ EPUBParser::epub_identifier(const std::string &root_file_content,
                             BookInfoEntry &result)
 {
   std::vector<XMLTag> tgv = get_tag(root_file_content, "metadata");
-
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:identifier", res);
-
-  for(auto it = res.begin(); it != res.end(); it++)
+  result.electro->id = dc->dcIdentifier(root_file_content, tgv);
+  if(!result.electro->id.empty())
     {
-      if(it->hasContent())
-        {
-          if(!result.electro->id.empty())
-            {
-              result.electro->id += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result.electro->id));
-        }
+      result.electro->available = true;
     }
-
-  htmlSymbolsReplacement(result.electro->id);
 }
 
 void
@@ -763,22 +451,9 @@ EPUBParser::epub_source(const std::string &root_file_content,
 {
   std::vector<XMLTag> tgv = get_tag(root_file_content, "metadata");
 
-  std::vector<XMLTag> res;
-  searchTag(tgv, "dc:source", res);
-
-  for(auto it = res.begin(); it != res.end(); it++)
+  result.electro->src_url = dc->dcSource(root_file_content, tgv);
+  if(!result.electro->src_url.empty())
     {
-      if(it->hasContent())
-        {
-          if(!result.electro->src_url.empty())
-            {
-              result.electro->src_url += ", ";
-            }
-          std::copy(root_file_content.begin() + it->content_start,
-                    root_file_content.begin() + it->content_end,
-                    std::back_inserter(result.electro->src_url));
-        }
+      result.electro->available = true;
     }
-
-  htmlSymbolsReplacement(result.electro->src_url);
 }

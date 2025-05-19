@@ -21,6 +21,7 @@
 #include <AuxFunc.h>
 #include <BookInfoEntry.h>
 #include <BookParseEntry.h>
+#include <DCParser.h>
 #include <LibArchive.h>
 #include <XMLParser.h>
 #include <XMLTag.h>
@@ -44,6 +45,11 @@ public:
    * \param af smart pointer to AuxFunc object.
    */
   EPUBParser(const std::shared_ptr<AuxFunc> &af);
+
+  /*!
+   * \brief EPUBParser destructor.
+   */
+  virtual ~EPUBParser();
 
   /*!
    * \brief Parses epub book.
@@ -70,22 +76,6 @@ private:
   epub_parse_root_file(const std::string &root_file_content);
 
   std::string
-  epubTitle(const std::string &root_file_content,
-            const std::vector<XMLTag> &tgv);
-
-  std::string
-  epubAuthor(const std::string &root_file_content,
-             const std::vector<XMLTag> &tgv);
-
-  std::string
-  epubGenre(const std::string &root_file_content,
-            const std::vector<XMLTag> &tgv);
-
-  std::string
-  epubDate(const std::string &root_file_content,
-           const std::vector<XMLTag> &tgv);
-
-  std::string
   epub_annotation(const std::string &root_file_content);
 
   std::string
@@ -107,6 +97,8 @@ private:
   epub_source(const std::string &root_file_content, BookInfoEntry &result);
 
   std::shared_ptr<AuxFunc> af;
+
+  DCParser *dc;
 };
 
 #endif // EPUBPARSER_H

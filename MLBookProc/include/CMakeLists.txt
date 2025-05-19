@@ -13,6 +13,7 @@ target_sources (mlbookproc
     PRIVATE BookParseEntry.h
     PRIVATE ByteOrder.h
     PRIVATE CreateCollection.h
+    PRIVATE DCParser.h
     PRIVATE DJVUParser.h
     PRIVATE ElectroBookInfoEntry.h
     PRIVATE EPUBParser.h
@@ -26,6 +27,7 @@ target_sources (mlbookproc
     PRIVATE MLException.h
     PRIVATE NotesBaseEntry.h
     PRIVATE NotesKeeper.h
+    PRIVATE ODTParser.h
     PRIVATE OpenBook.h
     PRIVATE PaperBookInfoEntry.h
     PRIVATE PDFParser.h

@@ -20,6 +20,7 @@
 #include <EPUBParser.h>
 #include <FB2Parser.h>
 #include <MLException.h>
+#include <ODTParser.h>
 #include <PDFParser.h>
 #include <SelfRemovingPath.h>
 #include <algorithm>
@@ -101,6 +102,11 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
     {
       DJVUParser djvu(af);
       result = djvu.djvu_book_info(bbe.file_path);
+    }
+  else if(ext == ".odt")
+    {
+      ODTParser odt(af);
+      result = odt.odtBookInfo(bbe.file_path);
     }
   else
     {
