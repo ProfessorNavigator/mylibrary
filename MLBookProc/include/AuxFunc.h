@@ -231,6 +231,18 @@ public:
   if_supported_type(const std::filesystem::path &ch_p);
 
   /*!
+   * \brief Checks if given archive is supported by \b MLBookProc.
+   *
+   * Same as if_supported_type(), but check is carried out only for archives
+   * (if given file is not archive \a false will be returned).
+   *
+   * \param ch_p absolute path to archive.
+   * \return \a true if archive is supported, \a false otherwise.
+   */
+  bool
+  ifSupportedArchiveUnpackaingType(const std::filesystem::path &ch_p);
+
+  /*!
    * \brief Converst 'html' symbols to UTF-8 characters.
    *
    * Replaces "&#<unicode_number>;" symbols by UTF-8 characters.
@@ -334,12 +346,13 @@ public:
   parallelFind(InputIt start, InputIt end, const T &val)
   {
     InputIt res = end;
+    const T *val_ptr = &val;
 #pragma omp parallel
     {
 #pragma omp for
       for(InputIt i = start; i != end; i++)
         {
-          if(*i == val)
+          if(*i == *val_ptr)
             {
 #pragma omp critical
               {
@@ -417,13 +430,14 @@ public:
   parallelRemove(InputIt start, InputIt end, const T &val)
   {
     start = parallelFind(start, end, val);
+    const T *val_ptr = &val;
     if(start != end)
       {
         for(InputIt i = start + 1; i != end; i++)
           {
-            if(*i != val)
+            if(*i != *val_ptr)
               {
-                std::swap(*start, *i);
+                *start = std::move(*i);
                 start++;
               }
           }
@@ -457,7 +471,7 @@ public:
           {
             if(!predicate(*i))
               {
-                std::swap(*start, *i);
+                *start = std::move(*i);
                 start++;
               }
           }

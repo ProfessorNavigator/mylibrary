@@ -18,16 +18,19 @@
 #define COVERPIXBUF_H
 
 #include <BookInfoEntry.h>
-#include <gtkmm-4.0/gdkmm/pixbuf.h>
+#include <FormatAnnotation.h>
+#include <Magick++.h>
+#include <cairomm-1.16/cairomm/surface.h>
+#include <filesystem>
 #include <memory>
 
 class CoverPixBuf
 {
 public:
-  CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie, const int &width,
-              const int &height);
+  CoverPixBuf();
 
-  CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie);
+  CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
+              FormatAnnotation *formatter = nullptr);
 
   CoverPixBuf(const CoverPixBuf &other);
 
@@ -39,30 +42,41 @@ public:
   CoverPixBuf &
   operator=(CoverPixBuf &&other);
 
-  operator Glib::RefPtr<Gdk::Pixbuf>();
+  operator bool();
 
-  int
-  get_width();
+  void
+  setImage(const std::shared_ptr<BookInfoEntry> &bie,
+           FormatAnnotation *formatter);
 
-  int
-  get_height();
+  size_t
+  getWidth();
+
+  size_t
+  getHeight();
+
+  Cairo::RefPtr<Cairo::ImageSurface>
+  getSurface(const int &width, const int &height);
+
+  Cairo::RefPtr<Cairo::ImageSurface>
+  getSurface();
+
+  bool
+  saveImage(const std::filesystem::path &p,
+            const std::string &format = std::string());
 
 private:
   void
-  createBuffer();
+  createImage(const std::shared_ptr<BookInfoEntry> &bie);
 
   void
-  createFromStream(const Glib::RefPtr<Glib::Bytes> &bytes);
+  createImageFromBlob(const Magick::Blob &blob);
 
   void
-  createFromRgba(const bool &alpha);
+  createImageFromText(const std::shared_ptr<BookInfoEntry> &bie);
 
-  std::shared_ptr<BookInfoEntry> bie;
+  Magick::Image image;
 
-  Glib::RefPtr<Gdk::Pixbuf> buffer;
-
-  int width = -1;
-  int height = -1;
+  FormatAnnotation *formatter = nullptr;
 };
 
 #endif // COVERPIXBUF_H

@@ -16,7 +16,6 @@
 
 #include <BookInfoGui.h>
 #include <CopyBookGui.h>
-#include <CoverPixBuf.h>
 #include <EditBookGui.h>
 #include <FullSizeCover.h>
 #include <MLException.h>
@@ -33,7 +32,6 @@
 #include <gtkmm-4.0/gdkmm/display.h>
 #include <gtkmm-4.0/gdkmm/general.h>
 #include <gtkmm-4.0/gdkmm/monitor.h>
-#include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gdkmm/surface.h>
 #include <gtkmm-4.0/gtkmm/box.h>
@@ -69,11 +67,11 @@ RightGrid::RightGrid(const std::shared_ptr<AuxFunc> &af,
   bi = new BookInfo(af);
   formatter = new FormatAnnotation(af);
   std::vector<ReplaceTagItem> tag_replacement_table;
-  formReplacementTable(tag_replacement_table);
+  BookInfoGui::formReplacementTable(tag_replacement_table);
   formatter->setTagReplacementTable(tag_replacement_table);
   open_book = new OpenBook(af);
-  book_operations_action_group();
-  cover_operations_action_group();
+  bookOperationsActionGroup();
+  coverOperationsActionGroup();
 }
 
 RightGrid::~RightGrid()
@@ -92,7 +90,7 @@ RightGrid::createGrid()
   grid->set_valign(Gtk::Align::FILL);
   grid->set_expand(true);
 
-  grid->signal_realize().connect(std::bind(&RightGrid::get_dpi, this));
+  grid->signal_realize().connect(std::bind(&RightGrid::getDpi, this));
 
   int height = 4;
   Gtk::ScrolledWindow *search_res_scrl
@@ -119,12 +117,12 @@ RightGrid::createGrid()
       = search_res->property_show_column_separators();
   column_sep.set_value(true);
   search_res->signal_activate().connect(
-      std::bind(&RightGrid::slot_row_activated, this, std::placeholders::_1));
+      std::bind(&RightGrid::slotRowActivated, this, std::placeholders::_1));
   search_res_scrl->set_child(*search_res);
 
   srs = new SearchResultShow(af, search_res);
 
-  book_menu(menu_sr);
+  bookMenu(menu_sr);
 
   Gtk::PopoverMenu *pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu_sr);
@@ -136,7 +134,7 @@ RightGrid::createGrid()
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(3);
   clck->signal_pressed().connect(
-      std::bind(&RightGrid::show_popup_menu, this, std::placeholders::_1,
+      std::bind(&RightGrid::showPopupMenu, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3, pop_menu));
   search_res->add_controller(clck);
 
@@ -288,11 +286,11 @@ RightGrid::createGrid()
   cover_area->set_valign(Gtk::Align::FILL);
   cover_area->set_expand(true);
   cover_area->set_draw_func(
-      std::bind(&RightGrid::cover_draw, this, std::placeholders::_1,
+      std::bind(&RightGrid::coverDraw, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3));
   annot_cover_grid->attach(*cover_area, width, 0, 1, 1);
 
-  Glib::RefPtr<Gio::Menu> menu = cover_menu();
+  Glib::RefPtr<Gio::Menu> menu = coverMenu();
   pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu);
   pop_menu->set_parent(*cover_area);
@@ -303,14 +301,14 @@ RightGrid::createGrid()
   clck = Gtk::GestureClick::create();
   clck->set_button(1);
   clck->signal_pressed().connect([this](int, double, double) {
-    cover_full_size();
+    coverFullSize();
   });
   cover_area->add_controller(clck);
 
   clck = Gtk::GestureClick::create();
   clck->set_button(3);
   clck->signal_pressed().connect(
-      std::bind(&RightGrid::show_cover_popup_menu, this, std::placeholders::_1,
+      std::bind(&RightGrid::showCoverPopupMenu, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3, pop_menu));
   cover_area->add_controller(clck);
 
@@ -318,7 +316,7 @@ RightGrid::createGrid()
 }
 
 Gtk::ColumnView *
-RightGrid::get_search_result()
+RightGrid::getSearchResult()
 {
   return search_res;
 }
@@ -335,7 +333,7 @@ RightGrid::clearSearchResult()
 }
 
 void
-RightGrid::search_result_show(const std::vector<BookBaseEntry> &result)
+RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result)
 {
   Gtk::Window *window = new Gtk::Window;
   window->set_application(main_window->get_application());
@@ -375,7 +373,7 @@ RightGrid::search_result_show(const std::vector<BookBaseEntry> &result)
       {
         current_collection = get_current_collection_name();
       }
-    book_menu(menu_sr);
+    bookMenu(menu_sr);
     filter_selection->set_visible(true);
     book_ops->set_label(gettext("Book operations"));
     window->close();
@@ -400,14 +398,14 @@ RightGrid::search_result_show(const std::vector<BookBaseEntry> &result)
 }
 
 void
-RightGrid::search_result_show_files(const std::vector<FileParseEntry> &result)
+RightGrid::searchResultShowFiles(const std::vector<FileParseEntry> &result)
 {
   srs->searchResultShow(result);
   if(get_current_collection_name)
     {
       current_collection = get_current_collection_name();
     }
-  files_menu(menu_sr);
+  filesMenu(menu_sr);
   filter_selection->set_visible(false);
   book_ops->set_label(gettext("File operations"));
 }
@@ -420,13 +418,13 @@ RightGrid::searchResultShowAuthors(const std::vector<std::string> &result)
     {
       current_collection = get_current_collection_name();
     }
-  auth_menu(menu_sr);
+  authMenu(menu_sr);
   filter_selection->set_visible(false);
   book_ops->set_label(gettext("Operations"));
 }
 
 void
-RightGrid::slot_row_activated(guint pos)
+RightGrid::slotRowActivated(guint pos)
 {
   if(pos != GTK_INVALID_LIST_POSITION)
     {
@@ -449,7 +447,7 @@ RightGrid::slot_row_activated(guint pos)
                       << "Selected file: " << item->bbe.file_path.u8string()
                       << std::endl;
                   srs->select_item(item);
-                  set_annotation_n_cover(item);
+                  setAnnotationNCover(item);
                 }
               else
                 {
@@ -483,10 +481,10 @@ RightGrid::slot_row_activated(guint pos)
 }
 
 void
-RightGrid::set_annotation_n_cover(
-    const Glib::RefPtr<SearchResultModelItem> &item)
+RightGrid::setAnnotationNCover(const Glib::RefPtr<SearchResultModelItem> &item)
 {
   bie.reset();
+  cover_buf = CoverPixBuf();
   try
     {
       bie = bi->get_book_info(item->bbe);
@@ -510,15 +508,16 @@ RightGrid::set_annotation_n_cover(
           formatter->final_cleaning(reserve_annot);
           buffer->set_text(Glib::ustring(reserve_annot));
         }
+      cover_buf = CoverPixBuf(bie, formatter);
     }
   annotation->set_buffer(buffer);
-  annotation_parse_http(buffer);
+  annotationParseHttp(buffer);
 
   cover_area->queue_draw();
 }
 
 void
-RightGrid::annotation_parse_http(Glib::RefPtr<Gtk::TextBuffer> &annotation)
+RightGrid::annotationParseHttp(Glib::RefPtr<Gtk::TextBuffer> &annotation)
 {
   struct self_remove
   {
@@ -603,25 +602,33 @@ RightGrid::annotation_parse_http(Glib::RefPtr<Gtk::TextBuffer> &annotation)
 }
 
 void
-RightGrid::cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
-                      int height)
+RightGrid::coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
+                     int height)
 {
-  if(bie)
+  if(cover_buf)
     {
-      CoverPixBuf cpb(bie, width, height);
-      Glib::RefPtr<Gdk::Pixbuf> l_cover = cpb;
-      if(l_cover)
+      Cairo::RefPtr<Cairo::ImageSurface> surf
+          = cover_buf.getSurface(width, height);
+      if(surf)
         {
-          Gdk::Cairo::set_source_pixbuf(cr, l_cover, 0, 0);
-          cr->rectangle(0, 0, static_cast<double>(width),
-                        static_cast<double>(height));
-          cr->fill();
+          double x = 0.0;
+          if(width > surf->get_width())
+            {
+              x = static_cast<double>(width - surf->get_width()) * 0.5;
+            }
+          double y = 0.0;
+          if(height > surf->get_height())
+            {
+              y = static_cast<double>(height - surf->get_height()) * 0.5;
+            }
+          cr->set_source(surf, x, y);
+          cr->paint();
         }
     }
 }
 
 void
-RightGrid::get_dpi()
+RightGrid::getDpi()
 {
   Glib::RefPtr<Gdk::Display> disp = main_window->get_display();
   Glib::RefPtr<Gdk::Surface> surf = main_window->get_surface();
@@ -641,20 +648,20 @@ RightGrid::get_dpi()
 }
 
 void
-RightGrid::book_operations_action_group()
+RightGrid::bookOperationsActionGroup()
 {
   Glib::RefPtr<Gio::SimpleActionGroup> book_actions
       = Gio::SimpleActionGroup::create();
 
   book_actions->add_action("open_book",
-                           std::bind(&RightGrid::open_book_action, this));
+                           std::bind(&RightGrid::openBookAction, this));
 
   book_actions->add_action("create_bookmark", [this] {
     auto item = srs->get_selected_item();
     if(item)
       {
         int variant = bookmarks->createBookMark(current_collection, item->bbe);
-        bookmarks_save_result_dialog(variant);
+        bookmarksSaveResultDialog(variant);
       }
   });
 
@@ -677,7 +684,7 @@ RightGrid::book_operations_action_group()
   });
 
   book_actions->add_action("remove_book",
-                           std::bind(&RightGrid::book_remove_action, this));
+                           std::bind(&RightGrid::bookRemoveAction, this));
 
   book_actions->add_action("edit_book", [this] {
     auto item = srs->get_selected_item();
@@ -686,14 +693,14 @@ RightGrid::book_operations_action_group()
         EditBookGui *ebg = new EditBookGui(af, main_window, bookmarks,
                                            current_collection, item->bbe);
         ebg->successfully_edited_signal = std::bind(
-            &RightGrid::edit_book_success_slot, this, std::placeholders::_1,
+            &RightGrid::editBookSuccessSlot, this, std::placeholders::_1,
             std::placeholders::_2, std::placeholders::_3);
         ebg->createWindow();
       }
   });
 
   book_actions->add_action("move_to_another_col",
-                           std::bind(&RightGrid::transfer_book_action, this));
+                           std::bind(&RightGrid::transferBookAction, this));
 
   book_actions->add_action("book_notes",
                            std::bind(&RightGrid::bookNotesAction, this));
@@ -716,7 +723,7 @@ RightGrid::book_operations_action_group()
             bbe_v.emplace_back(bbe);
           }
         srs->searchResultShow(bbe_v);
-        book_menu(menu_sr);
+        bookMenu(menu_sr);
         filter_selection->set_visible(true);
       }
   });
@@ -742,7 +749,7 @@ RightGrid::book_operations_action_group()
 }
 
 void
-RightGrid::book_menu(Glib::RefPtr<Gio::Menu> &result)
+RightGrid::bookMenu(Glib::RefPtr<Gio::Menu> &result)
 {
   if(result)
     {
@@ -784,7 +791,7 @@ RightGrid::book_menu(Glib::RefPtr<Gio::Menu> &result)
 }
 
 void
-RightGrid::files_menu(Glib::RefPtr<Gio::Menu> &result)
+RightGrid::filesMenu(Glib::RefPtr<Gio::Menu> &result)
 {
   if(result)
     {
@@ -800,7 +807,7 @@ RightGrid::files_menu(Glib::RefPtr<Gio::Menu> &result)
 }
 
 void
-RightGrid::auth_menu(Glib::RefPtr<Gio::Menu> &result)
+RightGrid::authMenu(Glib::RefPtr<Gio::Menu> &result)
 {
   if(result)
     {
@@ -816,7 +823,7 @@ RightGrid::auth_menu(Glib::RefPtr<Gio::Menu> &result)
 }
 
 void
-RightGrid::show_popup_menu(int, double x, double y, Gtk::PopoverMenu *pop_menu)
+RightGrid::showPopupMenu(int, double x, double y, Gtk::PopoverMenu *pop_menu)
 {
   Gdk::Rectangle rec(static_cast<int>(x), static_cast<int>(y), 1, 1);
   Glib::RefPtr<Gtk::SingleSelection> sing_sel
@@ -832,7 +839,7 @@ RightGrid::show_popup_menu(int, double x, double y, Gtk::PopoverMenu *pop_menu)
           pop_menu->set_pointing_to(rec);
           pop_menu->popup();
           srs->select_item(item);
-          set_annotation_n_cover(item);
+          setAnnotationNCover(item);
         }
       else
         {
@@ -862,22 +869,22 @@ RightGrid::show_popup_menu(int, double x, double y, Gtk::PopoverMenu *pop_menu)
 }
 
 void
-RightGrid::cover_operations_action_group()
+RightGrid::coverOperationsActionGroup()
 {
   Glib::RefPtr<Gio::SimpleActionGroup> cover_actions
       = Gio::SimpleActionGroup::create();
 
   cover_actions->add_action("full_size",
-                            std::bind(&RightGrid::cover_full_size, this));
+                            std::bind(&RightGrid::coverFullSize, this));
 
   cover_actions->add_action("save_cover",
-                            std::bind(&RightGrid::save_cover, this));
+                            std::bind(&RightGrid::saveCover, this));
 
   main_window->insert_action_group("cover_ops", cover_actions);
 }
 
 Glib::RefPtr<Gio::Menu>
-RightGrid::cover_menu()
+RightGrid::coverMenu()
 {
   Glib::RefPtr<Gio::Menu> result = Gio::Menu::create();
 
@@ -892,8 +899,8 @@ RightGrid::cover_menu()
 }
 
 void
-RightGrid::show_cover_popup_menu(int, double x, double y,
-                                 Gtk::PopoverMenu *pop_menu)
+RightGrid::showCoverPopupMenu(int, double x, double y,
+                              Gtk::PopoverMenu *pop_menu)
 {
   if(bie)
     {
@@ -908,21 +915,24 @@ RightGrid::show_cover_popup_menu(int, double x, double y,
 }
 
 void
-RightGrid::cover_full_size()
+RightGrid::coverFullSize()
 {
-  if(bie)
+  if(cover_buf)
     {
-      if(!bie->cover.empty()
-         && bie->cover_type != BookInfoEntry::cover_types::error)
-        {
-          FullSizeCover *fsc = new FullSizeCover(bie, main_window);
-          fsc->createWindow();
-        }
+      FullSizeCover *fsc = new FullSizeCover(main_window, cover_buf);
+      fsc->signal_close_request().connect(
+          [fsc] {
+            std::unique_ptr<FullSizeCover> f(fsc);
+            f->set_visible(false);
+            return true;
+          },
+          false);
+      fsc->present();
     }
 }
 
 void
-RightGrid::save_cover()
+RightGrid::saveCover()
 {
   if(bie)
     {
@@ -930,13 +940,20 @@ RightGrid::save_cover()
          && bie->cover_type != BookInfoEntry::cover_types::error)
         {
           SaveCover *sc = new SaveCover(bie, main_window);
-          sc->createWindow();
+          sc->signal_close_request().connect(
+              [sc] {
+                std::unique_ptr<SaveCover> s(sc);
+                s->set_visible(false);
+                return true;
+              },
+              false);
+          sc->present();
         }
     }
 }
 
 void
-RightGrid::book_remove_action()
+RightGrid::bookRemoveAction()
 {
   auto item = srs->get_selected_item();
   if(item && get_current_collection_name)
@@ -979,7 +996,7 @@ RightGrid::bookNotesAction()
 }
 
 void
-RightGrid::bookmarks_save_result_dialog(const int &variant)
+RightGrid::bookmarksSaveResultDialog(const int &variant)
 {
   Gtk::Window *window = new Gtk::Window;
   window->set_application(main_window->get_application());
@@ -1044,9 +1061,9 @@ RightGrid::bookmarks_save_result_dialog(const int &variant)
 }
 
 void
-RightGrid::edit_book_success_slot(const BookBaseEntry &bbe_old,
-                                  const BookBaseEntry &bbe_new,
-                                  const std::string &col_name)
+RightGrid::editBookSuccessSlot(const BookBaseEntry &bbe_old,
+                               const BookBaseEntry &bbe_new,
+                               const std::string &col_name)
 {
   auto model = srs->get_model();
   if(model)
@@ -1069,7 +1086,7 @@ RightGrid::edit_book_success_slot(const BookBaseEntry &bbe_old,
 }
 
 void
-RightGrid::open_book_action()
+RightGrid::openBookAction()
 {
   auto item = srs->get_selected_item();
   if(item)
@@ -1091,7 +1108,7 @@ RightGrid::open_book_action()
 }
 
 void
-RightGrid::transfer_book_action()
+RightGrid::transferBookAction()
 {
   auto item = srs->get_selected_item();
   if(item)
@@ -1112,45 +1129,4 @@ RightGrid::transfer_book_action()
             };
       tbg->createWindow();
     }
-}
-
-void
-RightGrid::formReplacementTable(std::vector<ReplaceTagItem> &replacement_table)
-{
-  ReplaceTagItem tag;
-
-  tag.tag_to_replace = "p";
-  tag.begin_replacement = "  ";
-  tag.end_replacement = "\n";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "empty-line";
-  tag.begin_replacement = "";
-  tag.end_replacement = "\n\n  ";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "sub";
-  tag.begin_replacement = "<span rise=\"-5pt\">";
-  tag.end_replacement = "</span>";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "sup";
-  tag.begin_replacement = "<span rise=\"5pt\">";
-  tag.end_replacement = "</span>";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "strong";
-  tag.begin_replacement = "<span font_weight=\"bold\">";
-  tag.end_replacement = "</span>";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "emphasis";
-  tag.begin_replacement = "<span font_style=\"italic\">";
-  tag.end_replacement = "</span>";
-  replacement_table.emplace_back(tag);
-
-  tag.tag_to_replace = "strikethrough";
-  tag.begin_replacement = "<span strikethrough=\"true\">";
-  tag.end_replacement = "</span>";
-  replacement_table.emplace_back(tag);
 }

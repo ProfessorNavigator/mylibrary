@@ -23,6 +23,7 @@
 #include <ODTParser.h>
 #include <PDFParser.h>
 #include <SelfRemovingPath.h>
+#include <TXTParser.h>
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -45,7 +46,7 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
       = std::filesystem::symlink_status(bbe.file_path, ec);
   if(ec)
     {
-      throw MLException("BookInfo::get_annotation error: " + ec.message() + " "
+      throw MLException("BookInfo::get_book_info error: " + ec.message() + " "
                         + bbe.file_path.u8string());
     }
   if(fstat.type() == std::filesystem::file_type::symlink)
@@ -107,6 +108,11 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
     {
       ODTParser odt(af);
       result = odt.odtBookInfo(bbe.file_path);
+    }
+  else if(ext == ".txt" || ext == ".md")
+    {
+      TXTParser txt(af);
+      result = txt.txtBookInfo(bbe.file_path);
     }
   else
     {

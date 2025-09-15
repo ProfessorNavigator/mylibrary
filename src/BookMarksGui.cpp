@@ -117,9 +117,6 @@ BookMarksGui::createWindow()
   book_marks->signal_realize().connect([this] {
     bms->setWidth();
   });
-  bms->signal_legacy_bookmarks = [this, window] {
-    legacyWarning(window);
-  };
   std::vector<std::tuple<std::string, BookBaseEntry>> book_marks_v
       = bookmarks->getBookMarks();
   bms->showBookMarks(book_marks_v);
@@ -505,52 +502,4 @@ BookMarksGui::show_popup_menu(int, double x, double y,
           bms->selectItem(item);
         }
     }
-}
-
-void
-BookMarksGui::legacyWarning(Gtk::Window *win)
-{
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(win->get_application());
-  window->set_title(gettext("Warning"));
-  window->set_transient_for(*win);
-  window->set_modal(true);
-  window->set_name("MLwindow");
-  window->set_default_size(1, 1);
-
-  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-  grid->set_halign(Gtk::Align::CENTER);
-  grid->set_valign(Gtk::Align::CENTER);
-  window->set_child(*grid);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(5);
-  lab->set_wrap(true);
-  lab->set_wrap_mode(Pango::WrapMode::WORD);
-  lab->set_max_width_chars(50);
-  lab->set_width_chars(50);
-  lab->set_text(gettext("It seems, that your version of bookmarks base is "
-                        "old. Please, recreate all bookmarks manually to "
-                        "avoid possible bookmarks loss in the future."));
-  lab->set_justify(Gtk::Justification::CENTER);
-  lab->set_name("windowLabel");
-  grid->attach(*lab, 0, 0, 1, 1);
-
-  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
-  close->set_margin(5);
-  close->set_halign(Gtk::Align::CENTER);
-  close->set_label(gettext("Close"));
-  close->set_name("operationBut");
-  close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
-  grid->attach(*close, 0, 1, 1, 1);
-
-  window->signal_close_request().connect(
-      [window] {
-        std::unique_ptr<Gtk::Window> win(window);
-        win->hide();
-        return true;
-      },
-      false);
-
-  window->present();
 }

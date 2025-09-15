@@ -400,10 +400,8 @@ RefreshCollection::check_hashes(
     return run_threads <= 0;
   });
 #else
+  int num_threads_default = omp_get_num_threads();
   omp_set_num_threads(num_threads);
-  omp_set_dynamic(true);
-  int lvls = omp_get_max_active_levels();
-  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
   {
 #pragma omp for
@@ -420,8 +418,7 @@ RefreshCollection::check_hashes(
         hash_thread(*it, base);
       }
   }
-  omp_set_max_active_levels(lvls);
-  omp_set_dynamic(false);
+  omp_set_num_threads(num_threads_default);
 #endif
 }
 

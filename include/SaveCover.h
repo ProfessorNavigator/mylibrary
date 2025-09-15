@@ -19,8 +19,8 @@
 
 #include <BookInfoEntry.h>
 #include <giomm-2.68/giomm/file.h>
+#include <giomm-2.68/giomm/listmodel.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
-#include <gtkmm-4.0/gtkmm/stringlist.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 
@@ -30,34 +30,33 @@
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
-class SaveCover
+class SaveCover : public Gtk::Window
 {
 public:
   SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
             Gtk::Window *parent_window);
 
+private:
   void
   createWindow();
 
-private:
-  Glib::RefPtr<Gtk::StringList>
-  create_model();
+  Glib::RefPtr<Gio::ListModel>
+  createModel();
 
   void
-  save_dialog(Gtk::Window *win);
+  saveDialog();
 
 #ifndef ML_GTK_OLD
   void
-  save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
-                     const Glib::RefPtr<Gtk::FileDialog> &fd,
-                     Gtk::Window *win);
+  saveDialogResult(const Glib::RefPtr<Gio::AsyncResult> &result,
+                   const Glib::RefPtr<Gtk::FileDialog> &fd);
 #else
   void
-  save_dialog_result(int resp, Gtk::FileChooserDialog *fd, Gtk::Window *win);
+  saveDialogResult(int resp, Gtk::FileChooserDialog *fd);
 #endif
 
   void
-  saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl);
+  saveFunc(const Glib::RefPtr<Gio::File> &fl);
 
   std::shared_ptr<BookInfoEntry> bie;
   Gtk::Window *parent_window = nullptr;

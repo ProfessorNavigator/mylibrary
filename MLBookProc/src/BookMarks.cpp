@@ -161,17 +161,7 @@ BookMarks::parse_entry(const std::string &buf)
     {
       if(buf.size() < r_b + val16_sz)
         {
-          if(i == 8)
-            {
-              std::get<0>(result).clear();
-              result = parse_entry_legacy(buf);
-              break;
-            }
-          else
-            {
-              throw MLException(
-                  "BookMarks::parse_entry: incorrect entry size");
-            }
+          throw MLException("BookMarks::parse_entry: incorrect entry size");
         }
       else
         {
@@ -230,87 +220,6 @@ BookMarks::parse_entry(const std::string &buf)
             break;
           }
         case 8:
-          {
-            std::get<1>(result).bpe.book_date = readval;
-            break;
-          }
-        default:
-          break;
-        }
-    }
-
-  return result;
-}
-
-// TODO remove legacy code in next releases
-std::tuple<std::string, BookBaseEntry>
-BookMarks::parse_entry_legacy(const std::string &buf)
-{
-  std::tuple<std::string, BookBaseEntry> result;
-
-  uint16_t val16;
-  ByteOrder bo;
-  const size_t val16_sz = sizeof(val16);
-  std::string readval;
-  size_t r_b = 0;
-  for(int i = 1; i <= 7; i++)
-    {
-      if(buf.size() < val16_sz)
-        {
-          throw MLException("BookMarks::parse_entry_legacy: wrong size");
-        }
-      else
-        {
-          std::memcpy(&val16, &buf[r_b], val16_sz);
-          r_b += val16_sz;
-          bo.set_little(val16);
-          val16 = bo;
-        }
-      if(buf.size() < static_cast<size_t>(val16))
-        {
-          throw MLException("BookMarks::parse_entry_legacy: wrong size(2)");
-        }
-      else
-        {
-          readval.clear();
-          readval
-              = std::string(buf.begin() + r_b,
-                            buf.begin() + r_b + static_cast<size_t>(val16));
-          r_b += static_cast<size_t>(val16);
-        }
-      switch(i)
-        {
-        case 1:
-          {
-            std::get<1>(result).file_path = std::filesystem::u8path(readval);
-            break;
-          }
-        case 2:
-          {
-            std::get<1>(result).bpe.book_path = readval;
-            break;
-          }
-        case 3:
-          {
-            std::get<1>(result).bpe.book_author = readval;
-            break;
-          }
-        case 4:
-          {
-            std::get<1>(result).bpe.book_name = readval;
-            break;
-          }
-        case 5:
-          {
-            std::get<1>(result).bpe.book_series = readval;
-            break;
-          }
-        case 6:
-          {
-            std::get<1>(result).bpe.book_genre = readval;
-            break;
-          }
-        case 7:
           {
             std::get<1>(result).bpe.book_date = readval;
             break;

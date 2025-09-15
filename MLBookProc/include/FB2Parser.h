@@ -76,7 +76,7 @@ private:
   void
   fb2_annotation_decode(const std::string &book, std::string &result);
 
-  void
+  BookInfoEntry::cover_types
   fb2_cover(const std::string &book, std::string &cover);
 
   void

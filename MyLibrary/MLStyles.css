@@ -208,3 +208,22 @@
 #MLframe {
 	border-color: black;
 }
+
+#MLscale marks.bottom {
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#MLscale value {
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#MLnotebook header.top {
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+
+#MLnotebook stack {
+	background-color: rgba(255, 255, 255, 0);
+}

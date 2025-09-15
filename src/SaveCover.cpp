@@ -15,15 +15,18 @@
  */
 
 #include <CoverPixBuf.h>
+#include <Magick++.h>
+#include <MagickModelItem.h>
 #include <SaveCover.h>
 #include <filesystem>
 #include <functional>
+#include <giomm-2.68/giomm/liststore.h>
 #include <glibmm-2.68/glibmm/miscutils.h>
-#include <gtkmm-4.0/gdkmm/pixbuf.h>
-#include <gtkmm-4.0/gdkmm/pixbufformat.h>
 #include <gtkmm-4.0/gtkmm/button.h>
+#include <gtkmm-4.0/gtkmm/expression.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
 #include <iostream>
 #include <libintl.h>
 #include <vector>
@@ -39,23 +42,23 @@ SaveCover::SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
 {
   this->bie = bie;
   this->parent_window = parent_window;
+  createWindow();
 }
 
 void
 SaveCover::createWindow()
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(parent_window->get_application());
-  window->set_title(gettext("Cover saving"));
-  window->set_transient_for(*parent_window);
-  window->set_modal(true);
-  window->set_name("MLwindow");
+  this->set_application(parent_window->get_application());
+  this->set_title(gettext("Cover saving"));
+  this->set_transient_for(*parent_window);
+  this->set_modal(true);
+  this->set_name("MLwindow");
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
   grid->set_expand(true);
-  window->set_child(*grid);
+  this->set_child(*grid);
 
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
@@ -66,16 +69,75 @@ SaveCover::createWindow()
   lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 2, 1);
 
-  Glib::RefPtr<Gtk::StringList> format_list = create_model();
+  Glib::RefPtr<Gio::ListModel> format_list = createModel();
+
+  guint default_num = 0;
+  for(guint i = 0; i < format_list->get_n_items(); i++)
+    {
+      Glib::RefPtr<MagickModelItem> item
+          = std::dynamic_pointer_cast<MagickModelItem>(
+              format_list->get_object(i));
+      if(item)
+        {
+          if(item->info.name() == "JPEG")
+            {
+              default_num = i;
+              break;
+            }
+        }
+    }
+
+  Glib::RefPtr<Gtk::SignalListItemFactory> factory
+      = Gtk::SignalListItemFactory::create();
+
+  factory->signal_setup().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &list_item) {
+        Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+        lab->set_halign(Gtk::Align::CENTER);
+        list_item->set_child(*lab);
+      });
+
+  factory->signal_bind().connect(
+      [](const Glib::RefPtr<Gtk::ListItem> &list_item) {
+        Gtk::Label *lab = dynamic_cast<Gtk::Label *>(list_item->get_child());
+        if(lab)
+          {
+            Glib::RefPtr<MagickModelItem> item
+                = std::dynamic_pointer_cast<MagickModelItem>(
+                    list_item->get_item());
+            if(item)
+              {
+                Glib::ustring str(item->info.name());
+                lab->set_text(str.lowercase());
+              }
+          }
+      });
+
+  Glib::RefPtr<Gtk::ClosureExpression<Glib::ustring>> expr
+      = Gtk::ClosureExpression<Glib::ustring>::create(
+          [](Glib::RefPtr<Glib::ObjectBase> obj) {
+            Glib::ustring result;
+            Glib::RefPtr<MagickModelItem> item
+                = std::dynamic_pointer_cast<MagickModelItem>(obj);
+            if(item)
+              {
+                Glib::ustring str(item->info.name());
+                result = str.lowercase();
+              }
+            return result;
+          });
 
   format = Gtk::make_managed<Gtk::DropDown>();
   format->set_margin(5);
   format->set_halign(Gtk::Align::CENTER);
   format->set_name("comboBox");
+  format->set_factory(factory);
   format->set_model(format_list);
+  format->set_enable_search(true);
+  format->set_expression(expr);
   if(format_list->get_n_items() > 0)
     {
-      format->set_selected(0);
+      format->set_selected(default_num);
     }
   grid->attach(*format, 0, 1, 2, 1);
 
@@ -84,8 +146,7 @@ SaveCover::createWindow()
   save->set_halign(Gtk::Align::CENTER);
   save->set_name("applyBut");
   save->set_label(gettext("Save"));
-  save->signal_clicked().connect(
-      std::bind(&SaveCover::save_dialog, this, window));
+  save->signal_clicked().connect(std::bind(&SaveCover::saveDialog, this));
   grid->attach(*save, 0, 5, 1, 1);
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -93,23 +154,12 @@ SaveCover::createWindow()
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_name("cancelBut");
   cancel->set_label(gettext("Cancel"));
-  cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
+  cancel->signal_clicked().connect(std::bind(&Gtk::Window::close, this));
   grid->attach(*cancel, 1, 5, 1, 1);
-
-  window->signal_close_request().connect(
-      [window, this] {
-        std::unique_ptr<Gtk::Window> win(window);
-        win->set_visible(false);
-        delete this;
-        return true;
-      },
-      false);
-
-  window->present();
 }
 
 void
-SaveCover::save_dialog(Gtk::Window *win)
+SaveCover::saveDialog()
 {
 #ifndef ML_GTK_OLD
   Glib::RefPtr<Gtk::FileDialog> fd = Gtk::FileDialog::create();
@@ -121,37 +171,34 @@ SaveCover::save_dialog(Gtk::Window *win)
   fd->set_initial_folder(initial);
 
   Glib::ustring name;
-  guint pos = format->get_selected();
-  if(pos != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<MagickModelItem> item
+      = std::dynamic_pointer_cast<MagickModelItem>(
+          format->get_selected_item());
+  if(item)
     {
-      Glib::RefPtr<Gtk::StringList> model
-          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
-      if(model)
-        {
-          name = "Cover." + model->get_string(pos);
+      name = "Cover";
 
-          Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-          filter->add_suffix(model->get_string(pos));
-          fd->set_default_filter(filter);
+      Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+      filter->add_mime_type(item->info.mimeType());
+      Glib::ustring str(item->info.name());
+      filter->set_name(str.lowercase());
 
-          Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
-              = Gio::ListStore<Gtk::FileFilter>::create();
-          f_list->append(filter);
-          fd->set_filters(f_list);
-        }
+      Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> f_list
+          = Gio::ListStore<Gtk::FileFilter>::create();
+      f_list->append(filter);
+      fd->set_filters(f_list);
+
+      fd->set_default_filter(filter);
     }
   fd->set_initial_name(name);
 
-  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fd->save(*win,
-           std::bind(&SaveCover::save_dialog_result, this,
-                     std::placeholders::_1, fd, win),
-           cncl);
+  fd->save(*this, std::bind(&SaveCover::saveDialogResult, this,
+                            std::placeholders::_1, fd));
 #else
   Gtk::FileChooserDialog *fd
-      = new Gtk::FileChooserDialog(*win, gettext("Cover saving path"),
+      = new Gtk::FileChooserDialog(*this, gettext("Cover saving path"),
                                    Gtk::FileChooser::Action::SAVE, true);
-  fd->set_application(win->get_application());
+  fd->set_application(this->get_application());
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
@@ -169,20 +216,24 @@ SaveCover::save_dialog(Gtk::Window *win)
   fd->set_current_folder(initial);
 
   Glib::ustring name;
-  guint pos = format->get_selected();
-  if(pos != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<MagickModelItem> item
+      = std::dynamic_pointer_cast<MagickModelItem>(
+          format->get_selected_item());
+  if(item)
     {
-      Glib::RefPtr<Gtk::StringList> model
-          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
-      if(model)
-        {
-          name = "Cover." + model->get_string(pos);
-        }
+      Glib::ustring str(item->info.name());
+      name = "Cover." + str.lowercase();
+
+      Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+      filter->add_mime_type(item->info.mimeType());
+      filter->set_name(str.lowercase());
+      fd->add_filter(filter);
+      fd->set_filter(filter);
     }
   fd->set_current_name(name);
 
-  fd->signal_response().connect(std::bind(&SaveCover::save_dialog_result, this,
-                                          std::placeholders::_1, fd, win));
+  fd->signal_response().connect(std::bind(&SaveCover::saveDialogResult, this,
+                                          std::placeholders::_1, fd));
 
   fd->signal_close_request().connect(
       [fd] {
@@ -198,9 +249,8 @@ SaveCover::save_dialog(Gtk::Window *win)
 
 #ifndef ML_GTK_OLD
 void
-SaveCover::save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
-                              const Glib::RefPtr<Gtk::FileDialog> &fd,
-                              Gtk::Window *win)
+SaveCover::saveDialogResult(const Glib::RefPtr<Gio::AsyncResult> &result,
+                            const Glib::RefPtr<Gtk::FileDialog> &fd)
 {
   Glib::RefPtr<Gio::File> fl;
   try
@@ -217,100 +267,71 @@ SaveCover::save_dialog_result(const Glib::RefPtr<Gio::AsyncResult> &result,
     }
   if(fl)
     {
-      saveFunc(win, fl);
+      saveFunc(fl);
     }
 }
-#endif
-
-Glib::RefPtr<Gtk::StringList>
-SaveCover::create_model()
-{
-  Glib::RefPtr<Gtk::StringList> result
-      = Gtk::StringList::create(std::vector<Glib::ustring>());
-
-  std::vector<Gdk::PixbufFormat> formats = Gdk::Pixbuf::get_formats();
-
-  for(auto it = formats.begin(); it != formats.end(); it++)
-    {
-      if(it->is_writable())
-        {
-          result->append(it->get_name());
-        }
-    }
-
-  return result;
-}
-
-#ifdef ML_GTK_OLD
+#else
 void
-SaveCover::save_dialog_result(int resp, Gtk::FileChooserDialog *fd,
-                              Gtk::Window *win)
+SaveCover::saveDialogResult(int resp, Gtk::FileChooserDialog *fd)
 {
   if(resp == Gtk::ResponseType::ACCEPT)
     {
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
         {
-          saveFunc(win, fl);
+          saveFunc(fl);
         }
     }
   fd->close();
 }
 #endif
 
+Glib::RefPtr<Gio::ListModel>
+SaveCover::createModel()
+{
+  Glib::RefPtr<Gio::ListStore<MagickModelItem>> result
+      = Gio::ListStore<MagickModelItem>::create();
+
+  std::vector<Magick::CoderInfo> list;
+  Magick::coderInfoList(&list, Magick::CoderInfo::AnyMatch,
+                        Magick::CoderInfo::TrueMatch,
+                        Magick::CoderInfo::AnyMatch);
+
+  for(auto it = list.begin(); it != list.end(); it++)
+    {
+      if(!it->mimeType().empty())
+        {
+          Glib::RefPtr<MagickModelItem> item = MagickModelItem::create(*it);
+          result->append(item);
+        }
+    }
+
+  return result;
+}
+
 void
-SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
+SaveCover::saveFunc(const Glib::RefPtr<Gio::File> &fl)
 {
   bool result = false;
-  std::filesystem::path save_path = std::filesystem::u8path(fl->get_path());
-  Glib::ustring name;
-  guint pos = format->get_selected();
-  if(pos != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<MagickModelItem> item
+      = std::dynamic_pointer_cast<MagickModelItem>(
+          format->get_selected_item());
+  if(item)
     {
-      Glib::RefPtr<Gtk::StringList> model
-          = std::dynamic_pointer_cast<Gtk::StringList>(format->get_model());
-      if(model)
-        {
-          name = model->get_string(pos);
-        }
-    }
-  CoverPixBuf cpb(bie);
-  Glib::RefPtr<Gdk::Pixbuf> buf = cpb;
-  if(std::filesystem::exists(save_path))
-    {
-      std::filesystem::remove_all(save_path);
+      std::filesystem::path save_path
+          = std::filesystem::u8path(fl->get_path());
+      CoverPixBuf pb(bie);
+      result = pb.saveImage(save_path, item->info.name());
     }
 
-  if(!name.empty() && buf)
-    {
-      try
-        {
-          buf->save(save_path.u8string(), name);
-          result = true;
-        }
-      catch(Glib::Error &er)
-        {
-          std::cout << "SaveCover::saveFunc error: " << er.what() << std::endl;
-          name = er.what();
-          result = false;
-        }
-    }
-  else
-    {
-      result = false;
-      name = gettext("Format or gdk-pixbuf error.");
-      std::cout << "SaveCover::saveFunc: format or gdk-pixbuf error."
-                << std::endl;
-    }
-
-  win->unset_child();
-  win->set_default_size(1, 1);
+  this->unset_child();
+  this->set_default_size(1, 1);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
   grid->set_valign(Gtk::Align::FILL);
   grid->set_expand(true);
-  win->set_child(*grid);
+  this->set_child(*grid);
 
   Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
   lab->set_margin(5);
@@ -328,7 +349,7 @@ SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
       lab->set_max_width_chars(50);
       lab->set_width_chars(50);
       lab->set_justify(Gtk::Justification::CENTER);
-      lab->set_text(Glib::ustring(gettext("Error!")) + "\n" + name);
+      lab->set_text(Glib::ustring(gettext("Error!")));
     }
   grid->attach(*lab, 0, 0, 1, 1);
 
@@ -337,6 +358,6 @@ SaveCover::saveFunc(Gtk::Window *win, const Glib::RefPtr<Gio::File> &fl)
   close->set_halign(Gtk::Align::CENTER);
   close->set_name("operationBut");
   close->set_label(gettext("Close"));
-  close->signal_clicked().connect(std::bind(&Gtk::Window::close, win));
+  close->signal_clicked().connect(std::bind(&Gtk::Window::close, this));
   grid->attach(*close, 0, 1, 1, 1);
 }

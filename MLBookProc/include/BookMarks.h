@@ -85,10 +85,6 @@ private:
   std::tuple<std::string, BookBaseEntry>
   parse_entry(const std::string &buf);
 
-  // TODO remove legacy code in next releases
-  std::tuple<std::string, BookBaseEntry>
-  parse_entry_legacy(const std::string &buf);
-
   bool
   saveBookMarks();
 

@@ -97,6 +97,10 @@ RemoveBookGui::createWindow()
   lab->set_margin(5);
   lab->set_halign(Gtk::Align::START);
   lab->set_expand(true);
+  lab->set_max_width_chars(50);
+  lab->set_width_chars(50);
+  lab->set_wrap(true);
+  lab->set_wrap_mode(Pango::WrapMode::WORD);
   lab->set_name("windowLabel");
   Glib::ustring text;
   if(!bbe.bpe.book_author.empty())

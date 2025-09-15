@@ -97,6 +97,10 @@ AuxFunc::AuxFunc()
 #ifdef USE_OPENMP
           std::cout << "MLBookProc OMP_CANCELLATION: "
                     << omp_get_cancellation() << std::endl;
+          omp_set_max_active_levels(omp_get_supported_active_levels());
+          omp_set_dynamic(true);
+          std::cout << "MLBookProc omp dynamic: " << omp_get_dynamic()
+                    << std::endl;
 #endif
           if(!handleDJVUmsgs(djvu_context))
             {
@@ -120,11 +124,11 @@ std::string
 AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
 {
   std::string result;
-  int32_t srclen = static_cast<int32_t>(input.size());
-  UChar *buf = new UChar[srclen];
-  std::shared_ptr<UChar> resbuf(buf, [](UChar *arr) {
-    delete[] arr;
-  });
+  if(input.size() == 0)
+    {
+      return result;
+    }
+
   UErrorCode status = U_ZERO_ERROR;
   std::shared_ptr<UConverter> conv(ucnv_open(conv_name, &status),
                                    [](UConverter *c) {
@@ -133,42 +137,41 @@ AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
   if(!U_SUCCESS(status))
     {
       std::cout << "AuxFunc::to_utf_8 converter " << conv_name
-                << " open error: " << u_errorName(status) << std::endl;
+                << " ucnv_open: " << u_errorName(status) << std::endl;
       result = input;
       return result;
     }
 
-  uint64_t len;
+  std::vector<UChar> target;
+  target.resize(input.size());
+
+  const char *lim = &input.data()[input.size()];
+  const char *src = input.c_str();
+  UChar *trgt = target.data();
+  status = U_ZERO_ERROR;
   for(;;)
     {
-      status = U_ZERO_ERROR;
-      len = ucnv_toUChars(conv.get(), resbuf.get(), srclen, input.c_str(),
-                          static_cast<int32_t>(input.size()), &status);
-      if(status != U_BUFFER_OVERFLOW_ERROR)
+      ucnv_toUnicode(conv.get(), &trgt, &target.data()[target.size()], &src,
+                     lim, nullptr, true, &status);
+      if(status == U_BUFFER_OVERFLOW_ERROR)
         {
-          break;
+          size_t buf_sz = target.size();
+          target.resize(buf_sz + buf_sz * 0.3);
+          trgt = &target[buf_sz];
+          status = U_ZERO_ERROR;
         }
       else
         {
-          int32_t newsrclen = srclen * 1.2;
-          buf = new UChar[newsrclen];
-          resbuf = std::shared_ptr<UChar>(buf, [](UChar *arr) {
-            delete[] arr;
-          });
-          srclen = newsrclen;
+          break;
         }
     }
-  if(!U_SUCCESS(status))
+  if(status == U_ZERO_ERROR)
     {
-      std::cout << "AuxFunc::to_utf_8 error: " << u_errorName(status)
-                << std::endl;
-      result = input;
-      return result;
-    }
-  else
-    {
-      icu::UnicodeString ustr(resbuf.get(), len);
-      ustr.toUTF8String(result);
+      target.erase(std::vector<UChar>::iterator(trgt), target.end());
+      icu::UnicodeString str(target.data(),
+                             static_cast<int32_t>(target.size()),
+                             static_cast<int32_t>(target.capacity()));
+      str.toUTF8String(result);
     }
 
   return result;
@@ -218,26 +221,9 @@ AuxFunc::homePath()
     }
   if(result.empty())
     {
-      std::cout << "MLBookProc: cannot find user home directory" << std::endl;
-      exit(1);
+      throw MLException("MLBookProc cannot find user home directory");
     }
-  std::string path = to_utf_8(result, nullptr);
-  std::string::size_type n = 0;
-  std::string sstr = "\\";
-  for(;;)
-    {
-      n = path.find(sstr, n);
-      if(n != std::string::npos)
-        {
-          path.erase(n, sstr.size());
-          path.insert(n, "/");
-        }
-      else
-        {
-          break;
-        }
-    }
-  return std::filesystem::u8path(path);
+  return std::filesystem::path(result);
 }
 
 std::filesystem::path
@@ -442,40 +428,12 @@ AuxFunc::time_t_to_date(const time_t &tt)
 {
   std::string result;
 
-  std::tm *ltm = localtime(&tt);
+  std::tm *ltm = gmtime(&tt);
   if(ltm)
     {
-      std::stringstream strm;
-      strm.imbue(std::locale("C"));
-      int val = ltm->tm_mday;
-      strm << val;
-      if(val < 10)
-        {
-          result = "0" + strm.str();
-        }
-      else
-        {
-          result = strm.str();
-        }
-
-      strm.clear();
-      strm.str("");
-      val = ltm->tm_mon + 1;
-      strm << val;
-      if(val < 10)
-        {
-          result = result + ".0" + strm.str();
-        }
-      else
-        {
-          result = result + "." + strm.str();
-        }
-
-      strm.clear();
-      strm.str("");
-      val = ltm->tm_year + 1900;
-      strm << val;
-      result = result + "." + strm.str();
+      result.resize(100);
+      size_t sz = std::strftime(result.data(), result.size(), "%d.%m.%Y", ltm);
+      result.resize(sz);
     }
   else
     {
@@ -508,6 +466,38 @@ AuxFunc::if_supported_type(const std::filesystem::path &ch_p)
     }
 
   std::vector<std::string> types = get_supported_types();
+
+  auto it = std::find(types.begin(), types.end(), ext);
+  if(it != types.end())
+    {
+      result = true;
+    }
+
+  return result;
+}
+
+bool
+AuxFunc::ifSupportedArchiveUnpackaingType(const std::filesystem::path &ch_p)
+{
+  bool result = false;
+
+  std::string ext = get_extension(ch_p);
+
+  ext = stringToLower(ext);
+
+  for(auto it = ext.begin(); it != ext.end();)
+    {
+      if(*it == '.')
+        {
+          ext.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  std::vector<std::string> types = get_supported_archive_types_unpacking();
 
   auto it = std::find(types.begin(), types.end(), ext);
   if(it != types.end())
@@ -680,42 +670,40 @@ AuxFunc::utf_8_to(const std::string &input, const char *conv_name)
     ucnv_close(c);
   });
 
-  status = U_ZERO_ERROR;
-  std::vector<char> target;
   icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(input.c_str());
-  target.resize(ustr.length());
-  char16_t data[ustr.length()];
-  for(int i = 0; i < ustr.length(); i++)
+  result.resize(input.size());
+  char *trgt = result.data();
+  const UChar *src = ustr.getBuffer();
+  const UChar *limit = &src[ustr.length()];
+  status = U_ZERO_ERROR;
+  for(;;)
     {
-      data[i] = ustr.charAt(i);
-    }
-  size_t cb = ucnv_fromUChars(conv.get(), target.data(), ustr.length(), data,
-                              ustr.length(), &status);
-  if(!U_SUCCESS(status))
-    {
+      ucnv_fromUnicode(conv.get(), &trgt, &result.data()[result.size()], &src,
+                       limit, nullptr, true, &status);
       if(status == U_BUFFER_OVERFLOW_ERROR)
         {
+          size_t buf_sz = result.size();
+          result.resize(buf_sz + 100);
+          trgt = &result[buf_sz];
           status = U_ZERO_ERROR;
-          target.clear();
-          target.resize(cb);
-          ucnv_fromUChars(conv.get(), target.data(), cb, data, ustr.length(),
-                          &status);
-          if(!U_SUCCESS(status))
-            {
-              std::cout << "AuxFunc::utf_8_to conversion error: "
-                        << u_errorName(status) << std::endl;
-              return result;
-            }
         }
       else
         {
-          std::cout << "AuxFunc::utf_8_to conversion error: "
-                    << u_errorName(status) << std::endl;
-          return result;
+          break;
         }
     }
 
-  result = std::string(target.begin(), target.end());
+  if(status == U_ZERO_ERROR)
+    {
+      result.erase(std::string::iterator(trgt), result.end());
+    }
+  else
+    {
+      std::cout << "AuxFunc::utf_8_to ucnv_fromUnicode: "
+                << u_errorName(status) << std::endl;
+      result.clear();
+    }
+  result.shrink_to_fit();
 
   return result;
 }
@@ -973,6 +961,8 @@ AuxFunc::get_supported_types()
   types.push_back("pdf");
   types.push_back("djvu");
   types.push_back("odt");
+  types.push_back("txt");
+  types.push_back("md");
   types.push_back("zip");
   types.push_back("7z");
   types.push_back("tar.gz");
@@ -982,7 +972,7 @@ AuxFunc::get_supported_types()
   types.push_back("iso");
   types.push_back("cpio");
   types.push_back("jar");
-  types.push_back("rar");  
+  types.push_back("rar");
 
   return types;
 }

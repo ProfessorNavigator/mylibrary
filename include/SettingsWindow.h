@@ -18,24 +18,37 @@
 
 #include <AuxFunc.h>
 #include <filesystem>
+#include <functional>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/window.h>
+
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
 #else
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
-class SettingsWindow
+class SettingsWindow : public Gtk::Window
 {
 public:
   SettingsWindow(const std::shared_ptr<AuxFunc> &af,
                  Gtk::Window *parent_window);
 
+  std::function<void(const std::filesystem::path &p)>
+      signal_new_background_path;
+
+  std::function<void(const double &)> signal_coef_coincedence;
+
+private:
   void
   createWindow();
 
-private:
+  Gtk::Widget *
+  colorTab();
+
+  Gtk::Widget *
+  searchTab();
+
   Gtk::Widget *
   windowsSection();
 
@@ -65,6 +78,9 @@ private:
   readSettings();
 
   void
+  readSearchSettings();
+
+  void
   parseSettings();
 
   struct setting
@@ -86,6 +102,9 @@ private:
   applySettings();
 
   void
+  applySearchSettings();
+
+  void
   fileDialog(Gtk::Entry *ent);
 
 #ifndef ML_GTK_OLD
@@ -100,16 +119,19 @@ private:
   void
   windowSize();
 
+  std::string
+  loadStyles(const std::filesystem::path &sp);
+
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *parent_window;
-
-  Gtk::Window *window;
 
   std::filesystem::path save_path;
 
   std::string source_settings;
 
   std::vector<section> settings_v;
+
+  double coef_coincedence_val = 0.7;
 };
 
 #endif // SETTINGSWINDOW_H

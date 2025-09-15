@@ -22,6 +22,7 @@
 #include <BookInfo.h>
 #include <BookInfoEntry.h>
 #include <BookMarks.h>
+#include <CoverPixBuf.h>
 #include <FormatAnnotation.h>
 #include <NotesKeeper.h>
 #include <OpenBook.h>
@@ -55,16 +56,16 @@ public:
   createGrid();
 
   Gtk::ColumnView *
-  get_search_result();
+  getSearchResult();
 
   void
   clearSearchResult();
 
   void
-  search_result_show(const std::vector<BookBaseEntry> &result);
+  searchResultShow(const std::vector<BookBaseEntry> &result);
 
   void
-  search_result_show_files(const std::vector<FileParseEntry> &result);
+  searchResultShowFiles(const std::vector<FileParseEntry> &result);
 
   void
   searchResultShowAuthors(const std::vector<std::string> &result);
@@ -77,73 +78,69 @@ public:
 
 private:
   void
-  slot_row_activated(guint pos);
+  slotRowActivated(guint pos);
 
   void
-  set_annotation_n_cover(const Glib::RefPtr<SearchResultModelItem> &item);
+  setAnnotationNCover(const Glib::RefPtr<SearchResultModelItem> &item);
 
   void
-  annotation_parse_http(Glib::RefPtr<Gtk::TextBuffer> &tb);
+  annotationParseHttp(Glib::RefPtr<Gtk::TextBuffer> &tb);
 
   void
-  cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
+  coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
 
   void
-  get_dpi();
+  getDpi();
 
   void
-  book_operations_action_group();
+  bookOperationsActionGroup();
 
   void
-  book_menu(Glib::RefPtr<Gio::Menu> &result);
+  bookMenu(Glib::RefPtr<Gio::Menu> &result);
 
   void
-  files_menu(Glib::RefPtr<Gio::Menu> &result);
+  filesMenu(Glib::RefPtr<Gio::Menu> &result);
 
   void
-  auth_menu(Glib::RefPtr<Gio::Menu> &result);
+  authMenu(Glib::RefPtr<Gio::Menu> &result);
 
   void
-  show_popup_menu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
+  showPopupMenu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
   Glib::RefPtr<Gio::Menu>
-  cover_menu();
+  coverMenu();
 
   void
-  show_cover_popup_menu(int num, double x, double y,
-                        Gtk::PopoverMenu *pop_menu);
+  showCoverPopupMenu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
   void
-  cover_operations_action_group();
+  coverOperationsActionGroup();
 
   void
-  cover_full_size();
+  coverFullSize();
 
   void
-  save_cover();
+  saveCover();
 
   void
-  book_remove_action();
+  bookRemoveAction();
 
   void
   bookNotesAction();
 
   void
-  bookmarks_save_result_dialog(const int &variant);
+  bookmarksSaveResultDialog(const int &variant);
 
   void
-  edit_book_success_slot(const BookBaseEntry &bbe_old,
-                         const BookBaseEntry &bbe_new,
-                         const std::string &col_name);
+  editBookSuccessSlot(const BookBaseEntry &bbe_old,
+                      const BookBaseEntry &bbe_new,
+                      const std::string &col_name);
 
   void
-  open_book_action();
+  openBookAction();
 
   void
-  transfer_book_action();
-
-  void
-  formReplacementTable(std::vector<ReplaceTagItem> &replacement_table);
+  transferBookAction();
 
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
@@ -161,6 +158,7 @@ private:
   std::string current_collection;
 
   std::shared_ptr<BookInfoEntry> bie;
+  CoverPixBuf cover_buf;
 
   Glib::RefPtr<Gio::Menu> menu_sr;
   Gtk::DropDown *filter_selection;

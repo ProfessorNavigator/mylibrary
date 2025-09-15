@@ -32,7 +32,7 @@ public:
   SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window);
 
   void
-  createWindow(const BookBaseEntry &search);
+  createWindow(const BookBaseEntry &search, const double &coef_coincedence);
 
   void
   createWindow(const std::string &collection_name, std::shared_ptr<AuxFunc> af,
@@ -52,15 +52,16 @@ public:
 
 private:
   void
-  startSearch(Gtk::Window *win, const BookBaseEntry &search);
+  startSearch(Gtk::Window *win, const BookBaseEntry &search,
+              const double &coef_coincedence);
 
   void
   copyFiles(Gtk::Window *win, const std::string &collection_name,
             std::shared_ptr<AuxFunc> af);
 
   void
-  showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog, Gtk::Label *lab,
-              const std::string &collection_name);
+  showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog, Gtk::Label *progr_val,
+              Gtk::Label *lab, const std::string &collection_name);
 
   void
   showBooksWithNotes(Gtk::Window *win,

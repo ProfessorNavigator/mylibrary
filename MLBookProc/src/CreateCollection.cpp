@@ -24,6 +24,7 @@
 #include <MLException.h>
 #include <ODTParser.h>
 #include <PDFParser.h>
+#include <TXTParser.h>
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -238,10 +239,8 @@ CreateCollection::threadRegulator()
     return run_threads <= 0;
   });
 #else
+  int num_threads_default = omp_get_num_threads();
   omp_set_num_threads(num_threads);
-  omp_set_dynamic(true);
-  int lvls = omp_get_max_active_levels();
-  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
   {
 #pragma omp for
@@ -266,8 +265,7 @@ CreateCollection::threadRegulator()
         }
       }
   }
-  omp_set_max_active_levels(lvls);
-  omp_set_dynamic(false);
+  omp_set_num_threads(num_threads_default);
 #endif
   if(base_strm.is_open())
     {
@@ -1000,6 +998,53 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
 #endif
         }
     }
+  else if(ext == ".txt" || ext == ".md")
+    {
+      try
+        {
+          txtThread(p, resolved);
+        }
+      catch(MLException &er)
+        {
+          std::cout << er.what() << std::endl;
+        }
+      if(progress)
+        {
+          std::error_code ec;
+          uintmax_t sz = std::filesystem::file_size(p, ec);
+#ifndef USE_OPENMP
+          if(ec)
+            {
+              std::cout << "CreateCollection::threadRegulator txt: "
+                        << ec.message() << std::endl;
+            }
+          else
+            {
+              current_bytes.store(current_bytes.load()
+                                  + static_cast<double>(sz));
+            }
+          progress(current_bytes.load());
+#else
+          double cb_val;
+          if(ec)
+            {
+              std::cout << "CreateCollection::threadRegulator txt: "
+                        << ec.message() << std::endl;
+#pragma omp atomic read
+              cb_val = current_bytes;
+            }
+          else
+            {
+#pragma omp atomic capture
+              {
+                current_bytes += static_cast<double>(sz);
+                cb_val = current_bytes;
+              }
+            }
+          progress(cb_val);
+#endif
+        }
+    }
   else
     {
       try
@@ -1193,6 +1238,89 @@ CreateCollection::odt_thread(const std::filesystem::path &file_col_path,
     }
 #else
   BookParseEntry be = odt.odtParser(filepath);
+  FileParseEntry fe;
+  fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
+  auto ithsh = std::find_if(
+      already_hashed.begin(), already_hashed.end(),
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
+        return std::get<0>(el) == file_col_path;
+      });
+  if(ithsh != already_hashed.end())
+    {
+      fe.file_hash = std::get<1>(*ithsh);
+    }
+  else
+    {
+      fe.file_hash = file_hashing(filepath);
+    }
+  bool cncl;
+#pragma omp atomic read
+  cncl = cancel;
+  if(!cncl)
+    {
+      fe.books.emplace_back(be);
+      write_file_to_base(fe);
+    }
+#endif
+}
+
+void
+CreateCollection::txtThread(const std::filesystem::path &file_col_path,
+                            const std::filesystem::path &resolved)
+{
+  std::filesystem::path filepath;
+  if(std::filesystem::exists(resolved))
+    {
+      filepath = resolved;
+    }
+  else
+    {
+      filepath = file_col_path;
+    }
+
+  TXTParser txt(af);
+  BookParseEntry be = txt.txtParser(filepath);
+#ifndef USE_OPENMP
+  FileParseEntry fe;
+  fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
+  auto ithsh = std::find_if(
+      already_hashed.begin(), already_hashed.end(),
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
+        return std::get<0>(el) == file_col_path;
+      });
+  if(ithsh != already_hashed.end())
+    {
+      fe.file_hash = std::get<1>(*ithsh);
+    }
+  else
+    {
+      std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
+      run_threads_var.wait(rthr_lock, [this] {
+        if(num_threads > 1)
+          {
+            return run_threads < num_threads;
+          }
+        else
+          {
+            return run_threads < 2;
+          }
+      });
+      run_threads++;
+      rthr_lock.unlock();
+
+      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
+        std::lock_guard<std::mutex> lglock(run_threads_mtx);
+        run_threads--;
+        run_threads_var.notify_one();
+      });
+      fe.file_hash = file_hashing(filepath);
+    }
+  if(!cancel.load())
+    {
+      fe.books.emplace_back(be);
+      write_file_to_base(fe);
+    }
+#else
   FileParseEntry fe;
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(

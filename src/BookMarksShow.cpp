@@ -36,21 +36,13 @@ BookMarksShow::showBookMarks(
     const std::vector<std::tuple<std::string, BookBaseEntry>> &bm_v)
 {
   {
-    bool legacy = false;
     for(auto it = bm_v.begin(); it != bm_v.end(); it++)
       {
         std::tuple<std::string, BookBaseEntry> bm_tup = *it;
-        if(std::get<0>(bm_tup).empty())
-          {
-            legacy = true;
-          }
+
         Glib::RefPtr<BookMarksModelItem> item = BookMarksModelItem::create(
             std::get<0>(bm_tup), std::get<1>(bm_tup));
         model->append(item);
-      }
-    if(legacy && signal_legacy_bookmarks)
-      {
-        signal_legacy_bookmarks();
       }
   }
   bm_view->append_column(collectionColumn());

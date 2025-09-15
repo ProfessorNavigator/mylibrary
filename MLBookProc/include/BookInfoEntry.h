@@ -81,6 +81,8 @@ public:
     file,   /*!< various image files formats, like JPG*/
     rgb,    /*!< RGB image*/
     rgba,   /*!< RGBA image*/
+    bgra,   /*!< BGRA image*/
+    text,   /*!< Not image, just raw text*/
     error   /*!< no image, default value*/
   };
 

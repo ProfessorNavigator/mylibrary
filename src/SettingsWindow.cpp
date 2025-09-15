@@ -13,6 +13,8 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
+#include <ByteOrder.h>
+#include <Magick++.h>
 #include <SettingsWindow.h>
 #include <fstream>
 #include <giomm-2.68/giomm/liststore.h>
@@ -24,6 +26,8 @@
 #include <gtkmm-4.0/gtkmm/frame.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/notebook.h>
+#include <gtkmm-4.0/gtkmm/scale.h>
 #include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <iostream>
 #include <libintl.h>
@@ -44,30 +48,88 @@ SettingsWindow::SettingsWindow(const std::shared_ptr<AuxFunc> &af,
   save_path /= std::filesystem::u8path(".config")
                / std::filesystem::u8path("MyLibrary");
   readSettings();
+  readSearchSettings();
+  createWindow();
 }
 
 void
 SettingsWindow::createWindow()
 {
-  window = new Gtk::Window;
-  window->set_application(parent_window->get_application());
-  window->set_title(gettext("Settings"));
-  window->set_transient_for(*parent_window);
-  window->set_modal(true);
-  window->set_name("MLwindow");
+  this->set_application(parent_window->get_application());
+  this->set_title(gettext("Settings"));
+  this->set_transient_for(*parent_window);
+  this->set_modal(true);
+  this->set_name("MLwindow");
   windowSize();
 
   Gtk::Box *main_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
   main_box->set_halign(Gtk::Align::FILL);
   main_box->set_valign(Gtk::Align::FILL);
-  window->set_child(*main_box);
+  this->set_child(*main_box);
 
+  Gtk::Notebook *note_book = Gtk::make_managed<Gtk::Notebook>();
+  note_book->set_margin(5);
+  note_book->set_halign(Gtk::Align::FILL);
+  note_book->set_valign(Gtk::Align::FILL);
+  note_book->set_name("MLnotebook");
+  main_box->append(*note_book);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_use_markup(true);
+  lab->set_name("windowLabel");
+  lab->set_markup(Glib::ustring("<b>") + gettext("Color settings") + "</b>");
+  note_book->append_page(*colorTab(), *lab);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::CENTER);
+  lab->set_use_markup(true);
+  lab->set_name("windowLabel");
+  lab->set_markup(Glib::ustring("<b>") + gettext("Search settings") + "</b>");
+  note_book->append_page(*searchTab(), *lab);
+
+  Gtk::Box *but_box
+      = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
+  but_box->set_halign(Gtk::Align::CENTER);
+  main_box->append(*but_box);
+
+  Gtk::Button *apply = Gtk::make_managed<Gtk::Button>();
+  apply->set_margin(5);
+  apply->set_halign(Gtk::Align::CENTER);
+  apply->set_label(gettext("Apply"));
+  apply->set_name("applyBut");
+  apply->signal_clicked().connect(
+      std::bind(&SettingsWindow::applySettings, this));
+  but_box->append(*apply);
+
+  Gtk::Button *apply_close = Gtk::make_managed<Gtk::Button>();
+  apply_close->set_margin(5);
+  apply_close->set_halign(Gtk::Align::CENTER);
+  apply_close->set_label(gettext("Apply and close"));
+  apply_close->set_name("applyBut");
+  apply_close->signal_clicked().connect([this] {
+    applySettings();
+    this->close();
+  });
+  but_box->append(*apply_close);
+
+  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
+  close->set_margin(5);
+  close->set_halign(Gtk::Align::CENTER);
+  close->set_label(gettext("Cancel"));
+  close->set_name("cancelBut");
+  close->signal_clicked().connect(std::bind(&Gtk::Window::close, this));
+  but_box->append(*close);
+}
+
+Gtk::Widget *
+SettingsWindow::colorTab()
+{
   Gtk::ScrolledWindow *set_scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
   set_scrl->set_halign(Gtk::Align::FILL);
   set_scrl->set_valign(Gtk::Align::FILL);
   set_scrl->set_expand(true);
   set_scrl->set_policy(Gtk::PolicyType::AUTOMATIC, Gtk::PolicyType::AUTOMATIC);
-  main_box->append(*set_scrl);
 
   Gtk::Box *scrl_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
   set_scrl->set_child(*scrl_box);
@@ -97,49 +159,42 @@ SettingsWindow::createWindow()
   f_box->insert(*formSection(widget_type::progress_bar), -1);
   f_box->insert(*formSection(widget_type::frames), -1);
 
-  Gtk::Box *but_box
-      = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
-  but_box->set_halign(Gtk::Align::CENTER);
-  main_box->append(*but_box);
+  return set_scrl;
+}
 
-  Gtk::Button *apply = Gtk::make_managed<Gtk::Button>();
-  apply->set_margin(5);
-  apply->set_halign(Gtk::Align::CENTER);
-  apply->set_label(gettext("Apply"));
-  apply->set_name("applyBut");
-  apply->signal_clicked().connect(
-      std::bind(&SettingsWindow::applySettings, this));
-  but_box->append(*apply);
+Gtk::Widget *
+SettingsWindow::searchTab()
+{
+  Gtk::Box *box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
+  box->set_halign(Gtk::Align::FILL);
+  box->set_valign(Gtk::Align::FILL);
+  box->set_expand(true);
 
-  Gtk::Button *apply_close = Gtk::make_managed<Gtk::Button>();
-  apply_close->set_margin(5);
-  apply_close->set_halign(Gtk::Align::CENTER);
-  apply_close->set_label(gettext("Apply and close"));
-  apply_close->set_name("applyBut");
-  apply_close->signal_clicked().connect([this] {
-    applySettings();
-    window->close();
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  lab->set_text(gettext("Required coefficient of coincedence (percent):"));
+  box->append(*lab);
+
+  Gtk::Scale *coef_coincidence = Gtk::make_managed<Gtk::Scale>();
+  coef_coincidence->set_margin(5);
+  coef_coincidence->set_halign(Gtk::Align::FILL);
+  coef_coincidence->set_name("MLscale");
+  coef_coincidence->set_range(0.0, 100.0);
+  coef_coincidence->set_value(coef_coincedence_val * 100.0);
+  coef_coincidence->add_mark(0.0, Gtk::PositionType::BOTTOM, "0");
+  coef_coincidence->add_mark(25.0, Gtk::PositionType::BOTTOM, "25");
+  coef_coincidence->add_mark(50.0, Gtk::PositionType::BOTTOM, "50");
+  coef_coincidence->add_mark(75.0, Gtk::PositionType::BOTTOM, "75");
+  coef_coincidence->add_mark(100.0, Gtk::PositionType::BOTTOM, "100");
+  coef_coincidence->set_draw_value(true);
+  coef_coincidence->signal_value_changed().connect([this, coef_coincidence] {
+    coef_coincedence_val = coef_coincidence->get_value() * 0.01;
   });
-  but_box->append(*apply_close);
+  box->append(*coef_coincidence);
 
-  Gtk::Button *close = Gtk::make_managed<Gtk::Button>();
-  close->set_margin(5);
-  close->set_halign(Gtk::Align::CENTER);
-  close->set_label(gettext("Cancel"));
-  close->set_name("cancelBut");
-  close->signal_clicked().connect(std::bind(&Gtk::Window::close, window));
-  but_box->append(*close);
-
-  window->signal_close_request().connect(
-      [this] {
-        std::unique_ptr<Gtk::Window> win(window);
-        win->set_visible(false);
-        delete this;
-        return true;
-      },
-      false);
-
-  window->present();
+  return box;
 }
 
 Gtk::Widget *
@@ -1140,6 +1195,32 @@ SettingsWindow::readSettings()
 }
 
 void
+SettingsWindow::readSearchSettings()
+{
+  std::filesystem::path p = af->homePath();
+  p /= std::filesystem::u8path(".config");
+  p /= std::filesystem::u8path("MyLibrary");
+  p /= std::filesystem::u8path("SearchSettings");
+  std::fstream f;
+  f.open(p, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      size_t sz = sizeof(coef_coincedence_val);
+      f.seekg(0, std::ios_base::end);
+      size_t fsz = f.tellg();
+      if(fsz >= sz)
+        {
+          f.seekg(0, std::ios_base::beg);
+          f.read(reinterpret_cast<char *>(&coef_coincedence_val), sz);
+          ByteOrder bo;
+          bo.set_little(coef_coincedence_val);
+          coef_coincedence_val = bo;
+        }
+      f.close();
+    }
+}
+
+void
 SettingsWindow::parseSettings()
 {
   std::string::size_type n = 0;
@@ -1267,6 +1348,81 @@ SettingsWindow::parseSection(section &s, const std::string &section_str)
 void
 SettingsWindow::applySettings()
 {
+  applySearchSettings();
+  {
+    auto it = std::find_if(settings_v.begin(), settings_v.end(),
+                           [](const section &el) {
+                             return el.section_id == "windowLabel";
+                           });
+    if(it != settings_v.end())
+      {
+        std::vector<setting> sv = it->settings;
+
+        it = std::find_if(settings_v.begin(), settings_v.end(),
+                          [](const section &el) {
+                            return el.section_id == "MLscale marks.bottom";
+                          });
+        if(it != settings_v.end())
+          {
+            it->settings = sv;
+          }
+        else
+          {
+            section sc;
+            sc.section_id = "MLscale marks.bottom";
+            sc.settings = sv;
+            settings_v.push_back(sc);
+          }
+
+        it = std::find_if(settings_v.begin(), settings_v.end(),
+                          [](const section &el) {
+                            return el.section_id == "MLscale value";
+                          });
+        if(it != settings_v.end())
+          {
+            it->settings = sv;
+          }
+        else
+          {
+            section sc;
+            sc.section_id = "MLscale value";
+            sc.settings = sv;
+            settings_v.push_back(sc);
+          }
+
+        it = std::find_if(settings_v.begin(), settings_v.end(),
+                          [](const section &el) {
+                            return el.section_id == "MLnotebook header.top";
+                          });
+        if(it != settings_v.end())
+          {
+            it->settings = sv;
+          }
+        else
+          {
+            section sc;
+            sc.section_id = "MLnotebook header.top";
+            sc.settings = sv;
+            settings_v.push_back(sc);
+          }
+
+        it = std::find_if(settings_v.begin(), settings_v.end(),
+                          [](const section &el) {
+                            return el.section_id == "MLnotebook stack";
+                          });
+        if(it == settings_v.end())
+
+          {
+            section sc;
+            sc.section_id = "MLnotebook stack";
+            setting set;
+            set.attribute_id = "background-color";
+            set.value = "rgba(255, 255, 255, 0)";
+            sc.settings.push_back(set);
+            settings_v.push_back(sc);
+          }
+      }
+  }
   std::filesystem::path sp
       = save_path / std::filesystem::u8path("MLStyles.css");
   std::filesystem::create_directories(save_path);
@@ -1292,7 +1448,7 @@ SettingsWindow::applySettings()
       f.close();
 
       Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-      css_provider->load_from_path(sp.u8string());
+      css_provider->load_from_string(loadStyles(sp));
       Glib::RefPtr<Gdk::Display> disp = parent_window->get_display();
 #ifndef ML_GTK_OLD
       Gtk::StyleProvider::add_provider_for_display(
@@ -1301,6 +1457,31 @@ SettingsWindow::applySettings()
       Gtk::StyleContext::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
+    }
+}
+
+void
+SettingsWindow::applySearchSettings()
+{
+  std::filesystem::path p = af->homePath();
+  p /= std::filesystem::u8path(".config");
+  p /= std::filesystem::u8path("MyLibrary");
+  p /= std::filesystem::u8path("SearchSettings");
+  std::filesystem::create_directories(p.parent_path());
+  std::filesystem::remove_all(p);
+  std::fstream f;
+  f.open(p, std::ios_base::out | std::ios_base::binary);
+  if(f.is_open())
+    {
+      double cc = coef_coincedence_val;
+      ByteOrder bo(cc);
+      bo.get_little(cc);
+      f.write(reinterpret_cast<char *>(&cc), sizeof(cc));
+      f.close();
+    }
+  if(signal_coef_coincedence)
+    {
+      signal_coef_coincedence(coef_coincedence_val);
     }
 }
 
@@ -1316,31 +1497,43 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
       = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_initial_folder(fl);
 
-  std::vector<Gdk::PixbufFormat> format = Gdk::Pixbuf::get_formats();
-  std::vector<Glib::ustring> fmts;
-  for(auto it = format.begin(); it != format.end(); it++)
-    {
-      std::vector<Glib::ustring> ext = it->get_extensions();
-      std::copy(ext.begin(), ext.end(), std::back_inserter(fmts));
-    }
-
   Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filter_list
       = Gio::ListStore<Gtk::FileFilter>::create();
-  Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-  filter->add_pixbuf_formats();
-  filter_list->append(filter);
+
+  std::vector<Magick::CoderInfo> list;
+  Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
+                        Magick::CoderInfo::AnyMatch,
+                        Magick::CoderInfo::AnyMatch);
+
+  Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
+  default_filter->set_name(gettext("All images"));
+  filter_list->append(default_filter);
+
+  for(auto it = list.begin(); it != list.end(); it++)
+    {
+      if(!it->mimeType().empty())
+        {
+          Glib::ustring str(it->name());
+          Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+          filter->set_name(str.lowercase());
+          filter->add_mime_type(it->mimeType());
+          filter_list->append(filter);
+          default_filter->add_mime_type(it->mimeType());
+        }
+    }
 
   fd->set_filters(filter_list);
+  fd->set_default_filter(default_filter);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-  fd->open(*window,
+  fd->open(*this,
            std::bind(&SettingsWindow::fileDialogSlot, this,
                      std::placeholders::_1, fd, ent),
            cncl);
 #else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
-      *window, gettext("Image"), Gtk::FileChooser::Action::OPEN, true);
-  fd->set_application(window->get_application());
+      *this, gettext("Image"), Gtk::FileChooser::Action::OPEN, true);
+  fd->set_application(this->get_application());
   fd->set_modal(true);
   fd->set_name("MLwindow");
 
@@ -1357,9 +1550,29 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
       = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_current_folder(initial);
 
-  Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-  filter->add_pixbuf_formats();
-  fd->set_filter(filter);
+  std::vector<Magick::CoderInfo> list;
+  Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
+                        Magick::CoderInfo::AnyMatch,
+                        Magick::CoderInfo::AnyMatch);
+
+  Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
+  default_filter->set_name(gettext("All images"));
+  fd->add_filter(default_filter);
+
+  for(auto it = list.begin(); it != list.end(); it++)
+    {
+      if(!it->mimeType().empty())
+        {
+          Glib::ustring str(it->name());
+          Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+          filter->set_name(str.lowercase());
+          filter->add_mime_type(it->mimeType());
+          fd->add_filter(filter);
+          default_filter->add_mime_type(it->mimeType());
+        }
+    }
+
+  fd->set_filter(default_filter);
 
   fd->signal_response().connect(std::bind(
       &SettingsWindow::fileDialogSlot, this, std::placeholders::_1, fd, ent));
@@ -1433,5 +1646,110 @@ SettingsWindow::windowSize()
 
   int w = req.get_width() * 0.55;
   int h = req.get_height() * 0.55;
-  window->set_default_size(w, h);
+  this->set_default_size(w, h);
+}
+
+std::string
+SettingsWindow::loadStyles(const std::filesystem::path &sp)
+{
+  std::string result;
+
+  std::fstream f;
+  f.open(sp, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      f.seekg(0, std::ios_base::end);
+      result.resize(f.tellg());
+      f.seekg(0, std::ios_base::beg);
+      f.read(result.data(), result.size());
+      f.close();
+    }
+
+  std::string find_str = "#MLwindow";
+  std::string::size_type n = result.find(find_str);
+  if(n == std::string::npos)
+    {
+      return result;
+    }
+  n += find_str.size();
+
+  find_str = "}";
+  std::string::size_type n2 = result.find(find_str, n);
+  if(n2 == std::string::npos)
+    {
+      return result;
+    }
+
+  find_str = "background-image:";
+  n = result.find(find_str, n);
+  if(n >= n2 || n == std::string::npos)
+    {
+      return result;
+    }
+
+  n += find_str.size();
+#ifdef __linux
+  find_str = "file://";
+#endif
+#ifdef _WIN32
+  find_str = "file:///";
+#endif
+  n = result.find(find_str, n);
+  if(n >= n2 || n == std::string::npos)
+    {
+      return result;
+    }
+
+  n += find_str.size();
+
+  find_str = ")";
+
+  std::string::size_type n3 = result.find(find_str, n);
+  if(n3 >= n2 || n3 == std::string::npos)
+    {
+      return result;
+    }
+
+  std::string back_p(result.begin() + n, result.begin() + n3);
+  std::filesystem::path p = std::filesystem::u8path(back_p);
+  if(!std::filesystem::exists(p))
+    {
+      return result;
+    }
+
+  Magick::Image img;
+  try
+    {
+      img.read(p.string());
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "SettingsWindow::loadStyles: " << er.what() << std::endl;
+      return result;
+    }
+
+  std::filesystem::path temp_background_path = af->temp_path();
+  temp_background_path
+      /= std::filesystem::u8path(af->randomFileName() + ".png");
+
+  try
+    {
+      img.write(temp_background_path.string());
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "SettingsWindow::loadStyles: " << er.what() << std::endl;
+      return result;
+    }
+
+  result.erase(result.begin() + n, result.begin() + n3);
+  find_str = temp_background_path.u8string();
+  result.insert(result.begin() + n, find_str.begin(), find_str.end());
+
+  if(signal_new_background_path)
+    {
+      signal_new_background_path(temp_background_path);
+    }
+
+  return result;
 }

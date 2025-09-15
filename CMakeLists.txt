@@ -8,11 +8,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(USE_PLUGINS "Build with plugin support" OFF)
 
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
+pkg_check_modules(IMAGEMAGICK REQUIRED IMPORTED_TARGET Magick++)
 
 find_package(Intl REQUIRED)
 find_package(Gettext)
-
-pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_executable(mylibrary)
@@ -24,39 +24,8 @@ add_subdirectory(src)
 add_subdirectory(include)
 add_subdirectory(MLBookProc)
 
-if(USE_OPENMP)
-    try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/omp_test" "${PROJECT_SOURCE_DIR}/MLBookProc/omp_test" OmpTest)
-    if(OMP_TEST)
-        message(STATUS "${PROJECT_NAME} will be built with OpenMP support")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP")
-    else()
-        set(USE_OPENMP OFF)
-        message(WARNING "Compiler does not support some OpenMP features. ${PROJECT_NAME} will be built without OpenMP support.")
-        try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/stdexecution_test" "${PROJECT_SOURCE_DIR}/MLBookProc/stdexecution_test" ExecTest)
-        if(EXEC_TEST)
-            find_package(TBB QUIET)
-            if(TBB_FOUND)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
-            endif()
-        endif()
-    endif()
-else()
-    message(STATUS "${PROJECT_NAME} will be built without OpenMP support.")
-    try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/stdexecution_test" "${PROJECT_SOURCE_DIR}/MLBookProc/stdexecution_test" ExecTest)
-    if(EXEC_TEST)
-        find_package(TBB QUIET)
-        if(TBB_FOUND)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TBB")
-        endif()
-    endif()
-endif()
-
-if(GTKMM_VERSION VERSION_LESS "4.10")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
-endif()
-
 if(USE_PLUGINS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PLUGINS")
+    target_compile_options(mylibrary PRIVATE -DUSE_PLUGINS)
     add_subdirectory(MLPluginIfc)
     target_include_directories(mylibrary PRIVATE MLPluginIfc/include)
     target_link_libraries(mlpluginifc PRIVATE mlbookproc)
@@ -70,20 +39,24 @@ endif()
 target_include_directories(mylibrary
     PRIVATE MLBookProc/include    
     PRIVATE include
-    PRIVATE ${GTKMM_INCLUDE_DIRS}
 )
 
-target_compile_options(mylibrary
-    PRIVATE ${GTKMM_CFLAGS_OTHER}
-)
+if(GTKMM_VERSION VERSION_LESS "4.10")
+    target_compile_options(mylibrary
+        PRIVATE -DML_GTK_OLD
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(mylibrary
+        PRIVATE -DGNU_COMPILER
+    )
+endif()
 
 target_link_libraries(mylibrary
     PRIVATE mlbookproc
-    PRIVATE ${GTKMM_LINK_LIBRARIES}
-)
-
-target_link_options(mylibrary
-    PRIVATE ${GTKMM_LDFLAGS_OTHER}
+    PRIVATE PkgConfig::GTKMM
+    PRIVATE PkgConfig::IMAGEMAGICK
 )
 
 include(GNUInstallDirs)

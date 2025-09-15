@@ -144,7 +144,7 @@ PDFParser::pdf_annotation_n_cover(const std::string &file, const double &x_dpi,
         {
           poppler::page *pg = doc->create_page(0);
           poppler::page_renderer pr;
-          pr.set_image_format(poppler::image::format_rgb24);
+          pr.set_image_format(poppler::image::format_argb32);
           poppler::image image;
           if(x_dpi >= y_dpi)
             {
@@ -159,7 +159,8 @@ PDFParser::pdf_annotation_n_cover(const std::string &file, const double &x_dpi,
           result->cover.resize(image.bytes_per_row() * image.height());
           std::memcpy(result->cover.data(), image.const_data(),
                       result->cover.size());
-          result->cover_type = BookInfoEntry::cover_types::rgb;
+
+          result->cover_type = BookInfoEntry::cover_types::bgra;
           result->bytes_per_row = image.bytes_per_row();
           delete pg;
         }

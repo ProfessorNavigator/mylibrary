@@ -20,6 +20,7 @@
 #include <EmptyCollectionGui.h>
 #include <ExportCollectionGui.h>
 #include <ImportCollectionGui.h>
+#include <Magick++.h>
 #include <MainWindow.h>
 #include <RefreshCollectionGui.h>
 #include <RemoveCollectionGui.h>
@@ -28,13 +29,13 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <giomm-2.68/giomm/file.h>
 #include <giomm-2.68/giomm/menu.h>
 #include <giomm-2.68/giomm/menuitem.h>
 #include <giomm-2.68/giomm/simpleaction.h>
 #include <giomm-2.68/giomm/simpleactiongroup.h>
 #include <gtkmm-4.0/gdkmm/display.h>
 #include <gtkmm-4.0/gdkmm/monitor.h>
-#include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gdkmm/surface.h>
 #include <gtkmm-4.0/gdkmm/texture.h>
@@ -44,23 +45,15 @@
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/settings.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
+#include <iostream>
 #include <libintl.h>
 
 MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
-  std::filesystem::path styles_path
-      = af->homePath() / std::filesystem::u8path(".config")
-        / std::filesystem::u8path("MyLibrary")
-        / std::filesystem::u8path("MLStyles.css");
-  if(!std::filesystem::exists(styles_path))
-    {
-      styles_path = af->share_path();
-      styles_path /= std::filesystem::u8path("MyLibrary");
-      styles_path /= std::filesystem::u8path("MLStyles.css");
-    }
+
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-  css_provider->load_from_path(styles_path.u8string());
+  css_provider->load_from_string(loadStyles());
   Glib::RefPtr<Gdk::Display> disp = get_display();
 #ifndef ML_GTK_OLD
   Gtk::StyleProvider::add_provider_for_display(
@@ -111,6 +104,7 @@ MainWindow::~MainWindow()
 {
   delete lg;
   delete rg;
+  std::filesystem::remove_all(temp_background_path);
 }
 
 void
@@ -146,16 +140,16 @@ MainWindow::formMainWindow()
   lg->clear_search_result = std::bind(&RightGrid::clearSearchResult, rg);
 
   lg->search_result_show
-      = std::bind(&RightGrid::search_result_show, rg, std::placeholders::_1);
+      = std::bind(&RightGrid::searchResultShow, rg, std::placeholders::_1);
 
-  lg->search_result_show_files = std::bind(
-      &RightGrid::search_result_show_files, rg, std::placeholders::_1);
+  lg->search_result_show_files = std::bind(&RightGrid::searchResultShowFiles,
+                                           rg, std::placeholders::_1);
 
   lg->search_result_authors = std::bind(&RightGrid::searchResultShowAuthors,
                                         rg, std::placeholders::_1);
 
   rg->get_current_collection_name
-      = std::bind(&MainWindow::get_current_collection_name, this);
+      = std::bind(&MainWindow::getCurrentCollectionName, this);
 
   rg->reload_collection_base = [this](const std::string &col_name) {
     lg->reloadCollection(col_name);
@@ -246,8 +240,7 @@ MainWindow::createMainMenu()
   item = Gio::MenuItem::create(gettext("Settings"), settings_menu);
   menu_model->append_item(item);
 
-  item = Gio::MenuItem::create(gettext("Color settings"),
-                               "main_menu.settings_win");
+  item = Gio::MenuItem::create(gettext("Settings"), "main_menu.settings_win");
   settings_menu->append_item(item);
 
   Glib::RefPtr<Gio::Menu> about_menu = Gio::Menu::create();
@@ -408,11 +401,27 @@ MainWindow::createMainMenuActionGroup()
 
   main_menu_actions->add_action("settings_win", [this] {
     SettingsWindow *sw = new SettingsWindow(af, this);
-    sw->createWindow();
+
+    sw->signal_new_background_path = [this](const std::filesystem::path &p) {
+      std::filesystem::remove_all(temp_background_path);
+      temp_background_path = p;
+    };
+
+    sw->signal_coef_coincedence = std::bind(&LeftGrid::setCoefOfCoincedence,
+                                            lg, std::placeholders::_1);
+
+    sw->signal_close_request().connect(
+        [sw] {
+          std::unique_ptr<SettingsWindow> s(sw);
+          s->set_visible(false);
+          return true;
+        },
+        false);
+    sw->present();
   });
 
   main_menu_actions->add_action("about_dialog",
-                                std::bind(&MainWindow::about_dialog, this));  
+                                std::bind(&MainWindow::aboutDialog, this));
 
 #ifdef USE_PLUGINS
   main_menu_actions->add_action(
@@ -497,7 +506,7 @@ MainWindow::collectionRemoveSlot(const std::string &filename)
 }
 
 std::string
-MainWindow::get_current_collection_name()
+MainWindow::getCurrentCollectionName()
 {
   std::string result;
   Gtk::DropDown *dd = lg->get_collection_select();
@@ -514,7 +523,7 @@ MainWindow::get_current_collection_name()
 }
 
 void
-MainWindow::about_dialog()
+MainWindow::aboutDialog()
 {
   Gtk::AboutDialog *about = new Gtk::AboutDialog;
   about->set_application(get_application());
@@ -528,10 +537,9 @@ MainWindow::about_dialog()
   icon_p /= std::filesystem::u8path("MyLibrary");
   icon_p /= std::filesystem::u8path("mylibrary.svg");
 
-  Glib::RefPtr<Gdk::Pixbuf> icon
-      = Gdk::Pixbuf::create_from_file(icon_p.u8string());
+  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(icon_p.u8string());
 
-  Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_for_pixbuf(icon);
+  Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_from_file(fl);
 
   std::vector<Glib::ustring> credits_people;
   credits_people.push_back("Felix <f11091877@gmail.com>");
@@ -539,7 +547,7 @@ MainWindow::about_dialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("4.1");
+  about->set_version("4.2");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
@@ -561,7 +569,8 @@ MainWindow::about_dialog()
             "libgpg-error https://www.gnupg.org/software/libgpg-error/\n"
             "ICU https://icu.unicode.org/\n"
             "Poppler https://poppler.freedesktop.org/\n"
-            "DjVuLibre https://djvu.sourceforge.net/");
+            "DjVuLibre https://djvu.sourceforge.net/\n"
+            "Magick++ https://imagemagick.org/Magick++/");
 #ifdef USE_TBB
   abbuf += "\noneTBB https://github.com/uxlfoundation/oneTBB";
 #endif
@@ -576,4 +585,114 @@ MainWindow::about_dialog()
       false);
 
   about->present();
+}
+
+std::string
+MainWindow::loadStyles()
+{
+  std::string result;
+  std::filesystem::path styles_path
+      = af->homePath() / std::filesystem::u8path(".config")
+        / std::filesystem::u8path("MyLibrary")
+        / std::filesystem::u8path("MLStyles.css");
+  if(!std::filesystem::exists(styles_path))
+    {
+      styles_path = af->share_path();
+      styles_path /= std::filesystem::u8path("MyLibrary");
+      styles_path /= std::filesystem::u8path("MLStyles.css");
+    }
+
+  std::fstream f;
+  f.open(styles_path, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      f.seekg(0, std::ios_base::end);
+      result.resize(f.tellg());
+      f.seekg(0, std::ios_base::beg);
+      f.read(result.data(), result.size());
+      f.close();
+    }
+
+  std::string find_str = "#MLwindow";
+  std::string::size_type n = result.find(find_str);
+  if(n == std::string::npos)
+    {
+      return result;
+    }
+  n += find_str.size();
+
+  find_str = "}";
+  std::string::size_type n2 = result.find(find_str, n);
+  if(n2 == std::string::npos)
+    {
+      return result;
+    }
+
+  find_str = "background-image:";
+  n = result.find(find_str, n);
+  if(n >= n2 || n == std::string::npos)
+    {
+      return result;
+    }
+
+  n += find_str.size();
+#ifdef __linux
+  find_str = "file://";
+#endif
+#ifdef _WIN32
+  find_str = "file:///";
+#endif
+  n = result.find(find_str, n);
+  if(n >= n2 || n == std::string::npos)
+    {
+      return result;
+    }
+
+  n += find_str.size();
+
+  find_str = ")";
+
+  std::string::size_type n3 = result.find(find_str, n);
+  if(n3 >= n2 || n3 == std::string::npos)
+    {
+      return result;
+    }
+
+  std::string back_p(result.begin() + n, result.begin() + n3);
+  std::filesystem::path p = std::filesystem::u8path(back_p);
+  if(!std::filesystem::exists(p))
+    {
+      return result;
+    }
+
+  Magick::Image img;
+  try
+    {
+      img.read(p.string());
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "MainWindow::loadStyles: " << er.what() << std::endl;
+      return result;
+    }
+
+  temp_background_path = af->temp_path();
+  temp_background_path
+      /= std::filesystem::u8path(af->randomFileName() + ".png");
+
+  try
+    {
+      img.write(temp_background_path.string());
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "MainWindow::loadStyles: " << er.what() << std::endl;
+      return result;
+    }
+
+  result.erase(result.begin() + n, result.begin() + n3);
+  find_str = temp_background_path.u8string();
+  result.insert(result.begin() + n, find_str.begin(), find_str.end());
+
+  return result;
 }

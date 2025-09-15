@@ -48,9 +48,6 @@ public:
   void
   setWidth();
 
-  // TODO remove legacy code in future releases
-  std::function<void()> signal_legacy_bookmarks;
-
 private:
   Glib::RefPtr<Gtk::ColumnViewColumn>
   collectionColumn();

@@ -337,13 +337,8 @@ FB2Parser::fb2_book_info(const std::string &book)
   loc_book = af->to_utf_8(book, code_page.c_str());
 
   fb2_annotation_decode(loc_book, result->annotation);
-  fb2_cover(loc_book, result->cover);
+  result->cover_type = fb2_cover(loc_book, result->cover);
   fb2_extra_info(loc_book, *result);
-
-  if(!result->cover.empty())
-    {
-      result->cover_type = BookInfoEntry::cover_types::base64;
-    }
 
   return result;
 }
@@ -368,9 +363,10 @@ FB2Parser::fb2_annotation_decode(const std::string &book, std::string &result)
   htmlSymbolsReplacement(result);
 }
 
-void
+BookInfoEntry::cover_types
 FB2Parser::fb2_cover(const std::string &book, std::string &cover)
 {
+  BookInfoEntry::cover_types result = BookInfoEntry::cover_types::error;
   std::vector<XMLTag> tgv = get_tag(book, "title-info");
   if(tgv.size() > 0)
     {
@@ -406,6 +402,7 @@ FB2Parser::fb2_cover(const std::string &book, std::string &cover)
                       std::copy(book.begin() + it->content_start,
                                 book.begin() + it->content_end,
                                 std::back_inserter(cover));
+                      result = BookInfoEntry::cover_types::base64;
                     }
                 }
             }
@@ -448,12 +445,29 @@ FB2Parser::fb2_cover(const std::string &book, std::string &cover)
                           std::copy(book.begin() + it->content_start,
                                     book.begin() + it->content_end,
                                     std::back_inserter(cover));
+                          result = BookInfoEntry::cover_types::base64;
                         }
                     }
                 }
             }
         }
     }
+  if(cover.empty())
+    {
+      tgv = get_tag(book, "body");
+      if(tgv.size() > 0)
+        {
+          XMLTag tag = *tgv.begin();
+          if(tag.hasContent())
+            {
+              cover = std::string(book.begin() + tag.content_start,
+                                  book.begin() + tag.content_end);
+              result = BookInfoEntry::cover_types::text;
+              htmlSymbolsReplacement(cover);
+            }
+        }
+    }
+  return result;
 }
 
 void

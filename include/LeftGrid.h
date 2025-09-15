@@ -66,6 +66,12 @@ public:
   void
   reloadCollectionList();
 
+  void
+  setCoefOfCoincedence(const double &coef);
+
+  double
+  getCoefOfCoincedence();
+
   std::function<void()> clear_search_result;
 
   std::function<void(const std::vector<BookBaseEntry> &result)>
@@ -117,6 +123,9 @@ private:
   Gtk::Grid *
   formGenreExpanderGrid(const std::vector<Genre> &genre, Gtk::Popover *pop);
 
+  void
+  readCoefCoincedence();
+
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
   std::shared_ptr<NotesKeeper> notes;
@@ -132,6 +141,8 @@ private:
   BaseKeeper *base_keeper = nullptr;
 
   Genre selected_genre;
+
+  double coef_coincedence = 0.7;
 };
 
 #endif // LEFTGRID_H

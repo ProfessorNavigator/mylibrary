@@ -9,12 +9,11 @@ option(CREATE_HTML_DOCS_PLUGINIFC "Build html documentation for plugins" OFF)
 option(CREATE_PDF_DOCS_PLUGINIFC "Build pdf documentation for plugins" OFF)
 
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
 if(CREATE_HTML_DOCS_PLUGINIFC OR CREATE_PDF_DOCS_PLUGINIFC)
   find_package(Doxygen REQUIRED OPTIONAL_COMPONENTS dot)
 endif()
-
-pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
 
 if(BUILD_SHARED_LIBS)
   add_library(mlpluginifc SHARED)
@@ -37,20 +36,17 @@ add_subdirectory(include)
 target_include_directories(mlpluginifc
   PRIVATE include
   PRIVATE ../MLBookProc/include
-  PUBLIC ${GTKMM_INCLUDE_DIRS}
 )
 
-target_compile_options(mlpluginifc
-  PUBLIC ${GTKMM_CFLAGS_OTHER}
-)
+if(GTKMM_VERSION VERSION_LESS "4.10")
+  target_compile_options(mlpluginifc
+      PUBLIC -DML_GTK_OLD
+  )
+endif()
 
 target_link_libraries(mlpluginifc  
   PRIVATE mlbookproc
-  PUBLIC ${GTKMM_LINK_LIBRARIES}
-)
-
-target_link_options(mlpluginifc
-  PUBLIC ${GTKMM_LDFLAGS_OTHER}
+  PUBLIC PkgConfig::GTKMM
 )
 
 if(DOXYGEN_FOUND)

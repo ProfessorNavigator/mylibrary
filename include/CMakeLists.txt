@@ -17,6 +17,7 @@ target_sources (mylibrary
     PRIVATE ImportCollectionGui.h
     PRIVATE LeftGrid.h
     PRIVATE MainWindow.h
+    PRIVATE MagickModelItem.h
     PRIVATE MyLibraryApplication.h
     PRIVATE NotesGui.h
     PRIVATE RefreshCollectionGui.h
@@ -28,7 +29,7 @@ target_sources (mylibrary
     PRIVATE SearchResultModelItemAuth.h
     PRIVATE SearchResultModelItemFL.h
     PRIVATE SearchResultModelItem.h
-    PRIVATE SearchResultShow.h
+    PRIVATE SearchResultShow.h    
     PRIVATE SettingsWindow.h
     PRIVATE TransferBookGui.h
 )

@@ -59,10 +59,13 @@ private:
   collectionRemoveSlot(const std::string &filename);
 
   std::string
-  get_current_collection_name();
+  getCurrentCollectionName();
 
   void
-  about_dialog();
+  aboutDialog();
+
+  std::string
+  loadStyles();
 
   std::shared_ptr<AuxFunc> af;
 
@@ -77,6 +80,8 @@ private:
 
   std::filesystem::path mlbookproc_docs_path;
   std::filesystem::path mlpluginifc_docs_path;
+
+  std::filesystem::path temp_background_path;
 
 #ifdef USE_PLUGINS
   std::shared_ptr<PluginsKeeper> plugins_keeper;

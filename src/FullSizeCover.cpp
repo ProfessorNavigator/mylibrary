@@ -14,7 +14,6 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <CoverPixBuf.h>
 #include <FullSizeCover.h>
 #include <functional>
 #include <gtkmm-4.0/gdkmm/display.h>
@@ -26,121 +25,96 @@
 #include <gtkmm-4.0/gtkmm/scrolledwindow.h>
 #include <libintl.h>
 
-FullSizeCover::FullSizeCover(const std::shared_ptr<BookInfoEntry> &bie,
-                             Gtk::Window *parent_window)
+FullSizeCover::FullSizeCover(Gtk::Window *parent_window,
+                             const CoverPixBuf &cover_buf)
 {
-  this->bie = bie;
   this->parent_window = parent_window;
-  CoverPixBuf cpb(bie);
-  cover_buf = cpb;
-  if(cover_buf)
-    {
-      calculateSizes();
-    }
+  pb = cover_buf;
+
+  createWindow();
 }
 
 void
 FullSizeCover::createWindow()
 {
-  std::shared_ptr<FullSizeCover> fszc;
-  if(cover_buf)
+  this->set_application(parent_window->get_application());
+  this->set_title(gettext("Cover"));
+  this->set_transient_for(*parent_window);
+  this->set_modal(true);
+
+  Gdk::Rectangle rec = screenSize();
+  int width = rec.get_width() * 0.9;
+  int height = rec.get_height() * 0.9;
+
+  if(width < static_cast<int>(pb.getWidth())
+     || height < static_cast<int>(pb.getHeight()))
     {
-      Gtk::Window *window = new Gtk::Window;
-      window->set_application(parent_window->get_application());
-      window->set_title(gettext("Cover"));
-      window->set_transient_for(*parent_window);
-      window->set_modal(true);
-
-      Gtk::ScrolledWindow *cover_scrl
-          = Gtk::make_managed<Gtk::ScrolledWindow>();
-      cover_scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
-                             Gtk::PolicyType::AUTOMATIC);
-      cover_scrl->set_halign(Gtk::Align::FILL);
-      cover_scrl->set_valign(Gtk::Align::FILL);
-      cover_scrl->set_expand(true);
-      window->set_child(*cover_scrl);
-
-      if(width >= cover_buf->get_width())
-        {
-          cover_scrl->set_min_content_width(cover_buf->get_width());
-        }
-      else
-        {
-          cover_scrl->set_min_content_width(width);
-        }
-
-      if(height >= cover_buf->get_height())
-        {
-          cover_scrl->set_min_content_height(cover_buf->get_height());
-        }
-      else
-        {
-          cover_scrl->set_min_content_height(height);
-        }
-
-      Gtk::DrawingArea *cover = Gtk::make_managed<Gtk::DrawingArea>();
-      cover->set_content_height(cover_buf->get_height());
-      cover->set_content_width(cover_buf->get_width());
-      cover->set_draw_func(
-          std::bind(&FullSizeCover::cover_draw, this, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3));
-      cover_scrl->set_child(*cover);
-
-      window->signal_close_request().connect(
-          [window, this] {
-            std::unique_ptr<Gtk::Window> win(window);
-            win->set_visible(false);
-            delete this;
-            return true;
-          },
-          false);
-
-      window->present();
+      this->maximize();
+      this->signal_realize().connect([this, width, height] {
+        Glib::PropertyProxy<bool> max = this->property_maximized();
+        if(!max.get_value())
+          {
+            this->set_default_size(width, height);
+          }
+      });
     }
   else
     {
-      fszc = std::shared_ptr<FullSizeCover>(this);
+      this->set_default_size(static_cast<int>(pb.getWidth()),
+                             static_cast<int>(pb.getHeight()));
     }
+
+  Gtk::ScrolledWindow *cover_scrl = Gtk::make_managed<Gtk::ScrolledWindow>();
+  cover_scrl->set_policy(Gtk::PolicyType::AUTOMATIC,
+                         Gtk::PolicyType::AUTOMATIC);
+  cover_scrl->set_halign(Gtk::Align::FILL);
+  cover_scrl->set_valign(Gtk::Align::FILL);
+  cover_scrl->set_expand(true);
+  this->set_child(*cover_scrl);
+
+  Gtk::DrawingArea *cover = Gtk::make_managed<Gtk::DrawingArea>();
+  cover->set_content_height(static_cast<int>(pb.getHeight()));
+  cover->set_content_width(static_cast<int>(pb.getWidth()));
+  cover->set_draw_func(std::bind(&FullSizeCover::coverDraw, this,
+                                 std::placeholders::_1, std::placeholders::_2,
+                                 std::placeholders::_3));
+  cover_scrl->set_child(*cover);
 }
 
 void
-FullSizeCover::calculateSizes()
+FullSizeCover::coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
+                         int height)
+{
+  Cairo::RefPtr<Cairo::ImageSurface> surf = pb.getSurface();
+  if(surf)
+    {
+      double x = 0.0;
+      if(width > surf->get_width())
+        {
+          x = static_cast<double>(width - surf->get_width()) * 0.5;
+        }
+      double y = 0.0;
+      if(height > surf->get_height())
+        {
+          y = static_cast<double>(height - surf->get_height()) * 0.5;
+        }
+
+      cr->set_source(surf, x, y);
+      cr->paint();
+    }
+}
+
+Gdk::Rectangle
+FullSizeCover::screenSize()
 {
   Glib::RefPtr<Gdk::Surface> surf = parent_window->get_surface();
   Glib::RefPtr<Gdk::Display> disp = parent_window->get_display();
   Glib::RefPtr<Gdk::Monitor> mon = disp->get_monitor_at_surface(surf);
-  Gdk::Rectangle req;
-  mon->get_geometry(req);
+  Gdk::Rectangle rec;
+  mon->get_geometry(rec);
 
-  req.set_width(req.get_width() * mon->get_scale_factor());
-  req.set_height(req.get_height() * mon->get_scale_factor() * 0.9);
+  rec.set_width(rec.get_width() * mon->get_scale_factor());
+  rec.set_height(rec.get_height() * mon->get_scale_factor());
 
-  if(cover_buf->get_width() >= req.get_width())
-    {
-      width = req.get_width();
-    }
-  else
-    {
-      width = cover_buf->get_width();
-    }
-
-  if(cover_buf->get_height() >= req.get_height())
-    {
-      height = req.get_height();
-    }
-  else
-    {
-      height = cover_buf->get_height();
-    }
-}
-
-void
-FullSizeCover::cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
-                          int height)
-{
-  Glib::RefPtr<Gdk::Pixbuf> l_cover
-      = cover_buf->scale_simple(width, height, Gdk::InterpType::BILINEAR);
-  Gdk::Cairo::set_source_pixbuf(cr, l_cover, 0, 0);
-  cr->rectangle(0, 0, static_cast<double>(width), static_cast<double>(height));
-  cr->fill();
+  return rec;
 }

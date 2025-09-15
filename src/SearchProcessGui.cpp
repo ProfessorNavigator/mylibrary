@@ -34,7 +34,8 @@ SearchProcessGui::SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window)
 }
 
 void
-SearchProcessGui::createWindow(const BookBaseEntry &search)
+SearchProcessGui::createWindow(const BookBaseEntry &search,
+                               const double &coef_coincedence)
 {
   Gtk::Window *window = new Gtk::Window;
   window->set_application(main_window->get_application());
@@ -81,7 +82,7 @@ SearchProcessGui::createWindow(const BookBaseEntry &search)
 
   window->present();
 
-  startSearch(window, search);
+  startSearch(window, search, coef_coincedence);
 }
 
 void
@@ -114,11 +115,20 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   row++;
 
   Gtk::ProgressBar *prog = nullptr;
+  Gtk::Label *progr_val = nullptr;
   if(variant == 2)
     {
+      progr_val = Gtk::make_managed<Gtk::Label>();
+      progr_val->set_margin(5);
+      progr_val->set_halign(Gtk::Align::CENTER);
+      progr_val->set_name("windowLabel");
+      progr_val->set_visible(false);
+      grid->attach(*progr_val, 0, row, 1, 1);
+      row++;
+
       prog = Gtk::make_managed<Gtk::ProgressBar>();
       prog->set_margin(5);
-      prog->set_show_text(true);
+      prog->set_show_text(false);
       prog->set_name("progressBars");
       prog->set_visible(false);
       grid->attach(*prog, 0, row, 1, 1);
@@ -159,7 +169,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       }
     case 2:
       {
-        showAuthors(window, prog, lab, collection_name);
+        showAuthors(window, prog, progr_val, lab, collection_name);
         break;
       }
     }
@@ -218,7 +228,8 @@ SearchProcessGui::createWindow(const std::vector<NotesBaseEntry> &notes)
 }
 
 void
-SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
+SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search,
+                              const double &coef_coincedence)
 {
   Glib::Dispatcher *search_finished = new Glib::Dispatcher;
 
@@ -232,8 +243,8 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
   });
 
 #ifndef USE_OPENMP
-  std::thread thr([this, search, search_finished] {
-    search_result = bk->searchBook(search);
+  std::thread thr([this, search, search_finished, coef_coincedence] {
+    search_result = bk->searchBook(search, coef_coincedence);
     search_finished->emit();
   });
   thr.detach();
@@ -243,7 +254,7 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search)
     omp_event_handle_t event;
 #pragma omp task detach(event)
     {
-      search_result = bk->searchBook(search);
+      search_result = bk->searchBook(search, coef_coincedence);
       search_finished->emit();
       omp_fulfill_event(event);
     }
@@ -302,7 +313,7 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
 
 void
 SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
-                              Gtk::Label *lab,
+                              Gtk::Label *progr_val, Gtk::Label *lab,
                               const std::string &collection_name)
 {
   double *pr = new double(0.0);
@@ -315,7 +326,8 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
 #endif
 
   Glib::Dispatcher *progr_disp = new Glib::Dispatcher;
-  progr_disp->connect([pr, sz, prog_mtx, prog] {
+  std::shared_ptr<std::stringstream> strm(new std::stringstream);
+  progr_disp->connect([pr, sz, prog_mtx, prog, progr_val, strm] {
 #ifdef USE_OPENMP
     omp_set_lock(prog_mtx);
     double frac = (*pr) / (*sz);
@@ -323,7 +335,12 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
     if(!prog->get_visible())
       {
         prog->set_visible(true);
+        progr_val->set_visible(true);
       }
+    strm->clear();
+    strm->str("");
+    *strm << std::fixed << std::setprecision(2) << frac * 100.0;
+    progr_val->set_text(Glib::ustring(strm->str()) + "%");
     prog->set_fraction(frac);
 #else
     prog_mtx->lock();
@@ -332,7 +349,12 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
     if(!prog->get_visible())
       {
         prog->set_visible(true);
+        progr_val->set_visible(true);
       }
+    strm->clear();
+    strm->str("");
+    *strm << std::fixed << std::setprecision(2) << frac * 100.0;
+    progr_val->set_text(Glib::ustring(strm->str()) + "%");
     prog->set_fraction(frac);
 #endif
   });
@@ -348,33 +370,34 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
   });
 
   Glib::Dispatcher *search_finished = new Glib::Dispatcher;
-  search_finished->connect(
-      [search_finished, progr_disp, pr, sz, prog_mtx, prog, lab, show_res] {
-        std::unique_ptr<Glib::Dispatcher> disp(search_finished);
-        prog->set_visible(false);
-        lab->set_text(gettext("Sorting..."));
-        delete progr_disp;
-        delete pr;
-        delete sz;
+  search_finished->connect([search_finished, progr_disp, pr, sz, prog_mtx,
+                            prog, progr_val, lab, show_res] {
+    std::unique_ptr<Glib::Dispatcher> disp(search_finished);
+    prog->set_visible(false);
+    progr_val->set_visible(false);
+    lab->set_text(gettext("Sorting..."));
+    delete progr_disp;
+    delete pr;
+    delete sz;
 #ifdef USE_OPENMP
-        omp_destroy_lock(prog_mtx);
+    omp_destroy_lock(prog_mtx);
 #pragma omp masked
-        {
-          omp_event_handle_t event;
+    {
+      omp_event_handle_t event;
 #pragma omp task detach(event)
-          {
-            show_res->emit();
-            omp_fulfill_event(event);
-          }
-        }
+      {
+        show_res->emit();
+        omp_fulfill_event(event);
+      }
+    }
 #else
-        std::thread thr([show_res] {
-          show_res->emit();
-        });
-        thr.detach();
+    std::thread thr([show_res] {
+      show_res->emit();
+    });
+    thr.detach();
 #endif
-        delete prog_mtx;
-      });
+    delete prog_mtx;
+  });
 
 #ifndef USE_OPENMP
   bk->auth_show_progr = [pr, sz, prog_mtx, progr_disp](const double &progr,
@@ -400,6 +423,7 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
     omp_unset_lock(prog_mtx);
     progr_disp->emit();
   };
+
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -429,14 +453,11 @@ SearchProcessGui::showBooksWithNotes(Gtk::Window *win,
     win->close();
   });
 
-#ifndef USE_OPENMP
-  std::thread thr([this, notes, search_finished] {
-    search_result = bk->booksWithNotes(notes);
-    search_finished->emit();
-  });
-  thr.detach();
-#else
+#ifdef USE_OPENMP
+// TODO GCC bug
+#ifdef GNU_COMPILER
 #pragma omp parallel
+#endif
 #pragma omp masked
   {
     omp_event_handle_t event;
@@ -447,5 +468,11 @@ SearchProcessGui::showBooksWithNotes(Gtk::Window *win,
       omp_fulfill_event(event);
     }
   }
+#else
+  std::thread thr([this, notes, search_finished] {
+    search_result = bk->booksWithNotes(notes);
+    search_finished->emit();
+  });
+  thr.detach();
 #endif
 }

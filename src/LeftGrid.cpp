@@ -14,6 +14,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <ByteOrder.h>
 #include <Genre.h>
 #include <GenreGroup.h>
 #include <LeftGrid.h>
@@ -46,6 +47,7 @@ LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
   this->main_window = main_window;
   this->notes = notes;
   base_keeper = new BaseKeeper(af);
+  readCoefCoincedence();
 }
 
 LeftGrid::~LeftGrid()
@@ -536,7 +538,7 @@ LeftGrid::searchBook()
   bbe.bpe.book_genre = selected_genre.genre_code;
   SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
   spg->search_result_show = search_result_show;
-  spg->createWindow(bbe);
+  spg->createWindow(bbe, coef_coincedence);
 }
 
 void
@@ -672,7 +674,7 @@ LeftGrid::searchAuth(const std::string &auth)
   bbe.bpe.book_author = auth + "\n\n";
   SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
   spg->search_result_show = search_result_show;
-  spg->createWindow(bbe);
+  spg->createWindow(bbe, 0.99);
 }
 
 void
@@ -701,6 +703,18 @@ LeftGrid::reloadCollectionList()
           break;
         }
     }
+}
+
+void
+LeftGrid::setCoefOfCoincedence(const double &coef)
+{
+  coef_coincedence = coef;
+}
+
+double
+LeftGrid::getCoefOfCoincedence()
+{
+  return coef_coincedence;
 }
 
 Gtk::Grid *
@@ -734,4 +748,30 @@ LeftGrid::formGenreExpanderGrid(const std::vector<Genre> &genre,
     }
 
   return grid;
+}
+
+void
+LeftGrid::readCoefCoincedence()
+{
+  std::filesystem::path p = af->homePath();
+  p /= std::filesystem::u8path(".config");
+  p /= std::filesystem::u8path("MyLibrary");
+  p /= std::filesystem::u8path("SearchSettings");
+  std::fstream f;
+  f.open(p, std::ios_base::in | std::ios_base::binary);
+  if(f.is_open())
+    {
+      size_t sz = sizeof(coef_coincedence);
+      f.seekg(0, std::ios_base::end);
+      size_t fsz = f.tellg();
+      if(fsz >= sz)
+        {
+          f.seekg(0, std::ios_base::beg);
+          f.read(reinterpret_cast<char *>(&coef_coincedence), sz);
+          ByteOrder bo;
+          bo.set_little(coef_coincedence);
+          coef_coincedence = bo;
+        }
+      f.close();
+    }
 }

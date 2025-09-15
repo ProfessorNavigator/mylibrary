@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -14,30 +14,16 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FULLSIZECOVER_H
-#define FULLSIZECOVER_H
+#include <MagickModelItem.h>
 
-#include <CoverPixBuf.h>
-#include <gtkmm-4.0/gtkmm/window.h>
-
-class FullSizeCover : public Gtk::Window
+Glib::RefPtr<MagickModelItem>
+MagickModelItem::create(const Magick::CoderInfo &info)
 {
-public:
-  FullSizeCover(Gtk::Window *parent_window, const CoverPixBuf &cover_buf);
+  return Glib::make_refptr_for_instance<MagickModelItem>(
+      new MagickModelItem(info));
+}
 
-private:
-  void
-  createWindow();
-
-  void
-  coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
-
-  Gdk::Rectangle
-  screenSize();
-
-  Gtk::Window *parent_window = nullptr;
-
-  CoverPixBuf pb;
-};
-
-#endif // FULLSIZECOVER_H
+MagickModelItem::MagickModelItem(const Magick::CoderInfo &info)
+{
+  this->info = info;
+}

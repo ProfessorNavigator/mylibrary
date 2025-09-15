@@ -17,7 +17,8 @@ target_sources(mylibrary
     PRIVATE ImportCollectionGui.cpp
     PRIVATE LeftGrid.cpp
     PRIVATE main.cpp
-    PRIVATE MainWindow.cpp
+    PRIVATE MainWindow.cpp   
+    PRIVATE MagickModelItem.cpp
     PRIVATE MyLibraryApplication.cpp
     PRIVATE NotesGui.cpp
     PRIVATE RefreshCollectionGui.cpp

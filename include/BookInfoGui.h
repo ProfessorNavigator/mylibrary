@@ -21,10 +21,10 @@
 #include <BookBaseEntry.h>
 #include <BookInfo.h>
 #include <BookInfoEntry.h>
+#include <CoverPixBuf.h>
 #include <FormatAnnotation.h>
 #include <GenreGroup.h>
 #include <giomm-2.68/giomm/menu.h>
-#include <gtkmm-4.0/gdkmm/pixbuf.h>
 #include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/popovermenu.h>
@@ -47,13 +47,16 @@ public:
   void
   creatWindow(const BookBaseEntry &bbe);
 
+  static void
+  formReplacementTable(std::vector<ReplaceTagItem> &replacement_table);
+
 private:
   Glib::ustring
-  translate_genre(const std::string &genre_str);
+  translateGenre(const std::string &genre_str);
 
   Glib::ustring
-  translate_genre_func(std::string &genre,
-                       const std::vector<GenreGroup> &genre_list);
+  translateGenreFunc(std::string &genre,
+                     const std::vector<GenreGroup> &genre_list);
 
   void
   formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid, int &row_num);
@@ -70,32 +73,25 @@ private:
   formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid, int &row_num);
 
   Gdk::Rectangle
-  screen_size();
-
-  int
-  cover_width(Gtk::ScrolledWindow *scrl);
+  screenSize();
 
   void
-  cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
+  coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);
 
   Glib::RefPtr<Gio::Menu>
-  cover_menu();
+  coverMenu();
 
   void
-  show_cover_popup_menu(int num, double x, double y,
-                        Gtk::PopoverMenu *pop_menu);
+  showCoverPopupMenu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
   void
-  cover_operations_action_group(Gtk::Window *win);
+  coverOperationsActionGroup(Gtk::Window *win);
 
   void
-  cover_full_size(Gtk::Window *win);
+  coverFullSize(Gtk::Window *win);
 
   void
-  save_cover(Gtk::Window *win);
-
-  void
-  formReplacementTable(std::vector<ReplaceTagItem> &replacement_table);
+  saveCover(Gtk::Window *win);
 
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *parent_window = nullptr;
@@ -103,7 +99,9 @@ private:
   BookInfo *bi = nullptr;
 
   std::shared_ptr<BookInfoEntry> bie;
-  Glib::RefPtr<Gdk::Pixbuf> cover_buf;
+  CoverPixBuf cover_buf;
+
+  FormatAnnotation *formatter = nullptr;
 };
 
 #endif // BOOKINFOGUI_H

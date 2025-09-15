@@ -15,50 +15,70 @@
  */
 
 #include <CoverPixBuf.h>
-#include <giomm-2.68/giomm/memoryinputstream.h>
-#include <glibmm-2.68/glibmm/base64.h>
+#include <cairomm-1.16/cairomm/context.h>
+#include <cairomm-1.16/cairomm/surface.h>
+#include <fstream>
+#include <giomm-2.68/giomm/listmodel.h>
+#include <gtkmm-4.0/gdkmm/display.h>
+#include <gtkmm-4.0/gdkmm/monitor.h>
+#include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <iostream>
+#include <pangomm-2.48/pangomm/layout.h>
 #include <string>
 
-CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
-                         const int &width, const int &height)
+CoverPixBuf::CoverPixBuf()
 {
-  this->bie = bie;
-  this->width = width;
-  this->height = height;
-  createBuffer();
 }
 
-CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie)
+CoverPixBuf::CoverPixBuf(const std::shared_ptr<BookInfoEntry> &bie,
+                         FormatAnnotation *formatter)
 {
-  this->bie = bie;
-  createBuffer();
+  this->formatter = formatter;
+  createImage(bie);
 }
 
 CoverPixBuf::CoverPixBuf(const CoverPixBuf &other)
 {
-  bie = other.bie;
-  buffer = other.buffer;
-  width = other.width;
-  height = other.height;
+  image = other.image;
+  formatter = other.formatter;
 }
 
 CoverPixBuf::CoverPixBuf(CoverPixBuf &&other)
 {
-  bie = std::move(other.bie);
-  buffer = std::move(other.buffer);
-  width = std::move(other.width);
-  height = std::move(other.height);
+  image = std::move(other.image);
+  formatter = other.formatter;
+  other.formatter = nullptr;
 }
 
 CoverPixBuf &
 CoverPixBuf::operator=(const CoverPixBuf &other)
 {
-  bie = other.bie;
-  buffer = other.buffer;
-  width = other.width;
-  height = other.height;
+  if(this != &other)
+    {
+      image = other.image;
+      formatter = other.formatter;
+    }
   return *this;
+}
+
+CoverPixBuf::operator bool()
+{
+  if(image.columns() > 0 && image.rows() > 0)
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}
+
+void
+CoverPixBuf::setImage(const std::shared_ptr<BookInfoEntry> &bie,
+                      FormatAnnotation *formatter)
+{
+  this->formatter = formatter;
+  createImage(bie);
 }
 
 CoverPixBuf &
@@ -66,145 +86,337 @@ CoverPixBuf::operator=(CoverPixBuf &&other)
 {
   if(this != &other)
     {
-      bie = std::move(other.bie);
-      buffer = std::move(other.buffer);
-      width = std::move(other.width);
-      height = std::move(other.height);
+      image = std::move(other.image);
+      formatter = other.formatter;
+      other.formatter = nullptr;
     }
   return *this;
 }
 
 void
-CoverPixBuf::createBuffer()
+CoverPixBuf::createImage(const std::shared_ptr<BookInfoEntry> &bie)
 {
   if(bie)
     {
-      switch(bie->cover_type)
+      if(bie->cover.size() > 0
+         && bie->cover_type != BookInfoEntry::cover_types::error)
         {
-        case BookInfoEntry::cover_types::base64:
-          {
-            std::string base64 = Glib::Base64::decode(bie->cover);
-            Glib::RefPtr<Glib::Bytes> bytes
-                = Glib::Bytes::create(base64.c_str(), base64.size());
-            createFromStream(bytes);
-            break;
-          }
-        case BookInfoEntry::cover_types::file:
-          {
-            Glib::RefPtr<Glib::Bytes> bytes
-                = Glib::Bytes::create(bie->cover.c_str(), bie->cover.size());
-            createFromStream(bytes);
-            break;
-          }
-        case BookInfoEntry::cover_types::rgb:
-          {
-            createFromRgba(false);
-            break;
-          }
-        case BookInfoEntry::cover_types::rgba:
-          {
-            createFromRgba(true);
-            break;
-          }
-        default:
-          break;
-        }      
-    }
-}
 
-void
-CoverPixBuf::createFromStream(const Glib::RefPtr<Glib::Bytes> &bytes)
-{
-  std::string base64 = Glib::Base64::decode(bie->cover);
-  Glib::RefPtr<Gio::MemoryInputStream> strm = Gio::MemoryInputStream::create();
-  strm->add_bytes(bytes);
-  try
-    {
-      if(width > 0 && height > 0)
-        {
-          buffer = Gdk::Pixbuf::create_from_stream_at_scale(strm, width,
-                                                            height, true);
-        }
-      else
-        {
-          buffer = Gdk::Pixbuf::create_from_stream(strm);
-          if(buffer)
+          switch(bie->cover_type)
             {
-              width = buffer->get_width();
-              height = buffer->get_height();
+            case BookInfoEntry::cover_types::base64:
+              {
+                Magick::Blob blob;
+                blob.base64(bie->cover);
+                createImageFromBlob(blob);
+                break;
+              }
+            case BookInfoEntry::cover_types::rgb:
+              {
+                try
+                  {
+                    image.read(static_cast<size_t>(bie->bytes_per_row / 3),
+                               bie->cover.size()
+                                   / static_cast<size_t>(bie->bytes_per_row),
+                               "RGB", Magick::CharPixel, bie->cover.c_str());
+                  }
+                catch(Magick::Exception &er)
+                  {
+                    std::cout
+                        << "CoverPixBuf::createImage (rgb): " << er.what()
+                        << std::endl;
+                  }
+
+                break;
+              }
+            case BookInfoEntry::cover_types::rgba:
+              {
+                try
+                  {
+                    image.read(static_cast<size_t>(bie->bytes_per_row * 0.25),
+                               bie->cover.size()
+                                   / static_cast<size_t>(bie->bytes_per_row),
+                               "RGBA", Magick::CharPixel, bie->cover.c_str());
+                  }
+                catch(Magick::Exception &er)
+                  {
+                    std::cout
+                        << "CoverPixBuf::createImage (rgba): " << er.what()
+                        << std::endl;
+                  }
+                break;
+              }
+            case BookInfoEntry::cover_types::bgra:
+              {
+                try
+                  {
+                    image.read(static_cast<size_t>(bie->bytes_per_row * 0.25),
+                               bie->cover.size()
+                                   / static_cast<size_t>(bie->bytes_per_row),
+                               "BGRA", Magick::CharPixel, bie->cover.c_str());
+                  }
+                catch(Magick::Exception &er)
+                  {
+                    std::cout
+                        << "CoverPixBuf::createImage (bgra): " << er.what()
+                        << std::endl;
+                  }
+                break;
+              }
+            case BookInfoEntry::cover_types::file:
+              {
+                Magick::Blob blob;
+                blob.update(bie->cover.c_str(), bie->cover.size());
+                createImageFromBlob(blob);
+                break;
+              }
+            case BookInfoEntry::cover_types::text:
+              {
+                createImageFromText(bie);
+                break;
+              }
+            default:
+              break;
             }
         }
     }
-  catch(Glib::Error &er)
-    {
-      std::cout << "CoverPixBuf::createFromStream: " << er.what() << std::endl;
-    }
-}
-
-CoverPixBuf::operator Glib::RefPtr<Gdk::Pixbuf>()
-{
-  return buffer;
-}
-
-int
-CoverPixBuf::get_width()
-{
-  return width;
-}
-
-int
-CoverPixBuf::get_height()
-{
-  return height;
 }
 
 void
-CoverPixBuf::createFromRgba(const bool &alpha)
+CoverPixBuf::createImageFromBlob(const Magick::Blob &blob)
 {
-  int ih = static_cast<int>(bie->cover.size()) / bie->bytes_per_row;
-  int iw;
-  if(!alpha)
+  try
     {
-      iw = bie->bytes_per_row / 3;
+      image.read(blob);
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "CoverPixBuf::createImageFromBlob: " << er.what()
+                << std::endl;
+    }
+}
+
+void
+CoverPixBuf::createImageFromText(const std::shared_ptr<BookInfoEntry> &bie)
+{
+  Glib::RefPtr<Gdk::Display> disp = Gdk::Display::get_default();
+  Glib::RefPtr<Gio::ListModel> monitor_list = disp->get_monitors();
+  Gdk::Rectangle rect;
+  rect.set_width(0);
+  rect.set_height(0);
+  Glib::RefPtr<Gdk::Monitor> selected_monitor;
+  for(guint i = 0; i < monitor_list->get_n_items(); i++)
+    {
+      Glib::RefPtr<Gdk::Monitor> monitor
+          = std::dynamic_pointer_cast<Gdk::Monitor>(
+              monitor_list->get_object(i));
+      if(monitor)
+        {
+          Gdk::Rectangle l_rect;
+          monitor->get_geometry(l_rect);
+          if(l_rect.get_height() > rect.get_height()
+             && l_rect.get_width() > rect.get_width())
+            {
+              rect = l_rect;
+              selected_monitor = monitor;
+            }
+        }
+    }
+
+  double x_coef = static_cast<double>(rect.get_width())
+                  / static_cast<double>(selected_monitor->get_width_mm());
+  double y_coef = static_cast<double>(rect.get_height())
+                  / static_cast<double>(selected_monitor->get_height_mm());
+  int width = 210 * x_coef;
+  int height = 297 * y_coef;
+
+  Cairo::RefPtr<Cairo::ImageSurface> surf = Cairo::ImageSurface::create(
+      Cairo::ImageSurface::Format::ARGB32, width, height);
+
+  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surf);
+  cr->set_source_rgb(1.0, 1.0, 1.0);
+  cr->rectangle(0.0, 0.0, static_cast<double>(width),
+                static_cast<double>(height));
+  cr->fill();
+
+  cr->set_source_rgb(0.0, 0.0, 0.0);
+
+  Glib::RefPtr<Pango::Layout> pl = Pango::Layout::create(cr);
+
+  std::string buf = bie->cover;
+
+  if(formatter)
+    {
+      formatter->remove_escape_sequences(buf);
+      std::string reserve_annot = buf;
+      formatter->replace_tags(buf);
+      formatter->final_cleaning(buf);
+
+      pl->set_markup(Glib::ustring(buf));
+      if(pl->get_text().size() == 0)
+        {
+          formatter->removeAllTags(reserve_annot);
+          formatter->final_cleaning(reserve_annot);
+          pl->set_text(Glib::ustring(reserve_annot));
+        }
     }
   else
     {
-      iw = bie->bytes_per_row / 4;
+      pl->set_text(Glib::ustring(bie->cover));
     }
+
+  pl->set_width(width * 0.9 * Pango::SCALE);
+  pl->set_height(height * 0.9 * Pango::SCALE);
+  pl->set_justify(true);
+
+  cr->move_to(width * 0.05, height * 0.05);
+
+  pl->show_in_cairo_context(cr);
+
+  std::string result;
+  surf->write_to_png_stream(
+      [&result](const unsigned char *data, unsigned int length) {
+        for(unsigned int i = 0; i < length; i++)
+          {
+            result.push_back(data[i]);
+          }
+        return CAIRO_STATUS_SUCCESS;
+      });
+  Magick::Blob blob(result.c_str(), result.size());
+  createImageFromBlob(blob);
+}
+
+size_t
+CoverPixBuf::getWidth()
+{
+  return image.columns();
+}
+
+size_t
+CoverPixBuf::getHeight()
+{
+  return image.rows();
+}
+
+Cairo::RefPtr<Cairo::ImageSurface>
+CoverPixBuf::getSurface(const int &width, const int &height)
+{
+  Cairo::RefPtr<Cairo::ImageSurface> result;
+
+  if(image.columns() > 0 && image.rows() > 0 && width > 0 && height > 0)
+    {
+      Magick::Image img = image;
+
+      size_t w = static_cast<size_t>(width);
+      if(w < img.columns())
+        {
+          double coef
+              = static_cast<double>(w) / static_cast<double>(img.columns());
+          size_t lh = img.rows() * coef;
+          img.scale(Magick::Geometry(w, lh));
+        }
+      size_t h = static_cast<size_t>(height);
+      if(h < img.rows())
+        {
+          double coef
+              = static_cast<double>(h) / static_cast<double>(img.rows());
+          size_t lw = img.columns() * coef;
+          img.scale(Magick::Geometry(lw, h));
+        }
+
+      Magick::Blob blob;
+      img.write(&blob, "png");
+
+      size_t rb = 0;
+      result = Cairo::ImageSurface::create_from_png_stream(
+          [&rb, blob](unsigned char *data, int length) {
+            const unsigned char *src
+                = reinterpret_cast<const unsigned char *>(blob.data());
+            for(int i = 0; i < length && rb < blob.length(); i++, rb++)
+              {
+                data[i] = src[rb];
+              }
+            return CAIRO_STATUS_SUCCESS;
+          });
+    }
+
+  return result;
+}
+
+Cairo::RefPtr<Cairo::ImageSurface>
+CoverPixBuf::getSurface()
+{
+  Cairo::RefPtr<Cairo::ImageSurface> result;
+
+  Magick::Blob blob;
+  try
+    {
+      image.write(&blob, "png");
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "CoverPixBuf::getSurface: " << er.what() << std::endl;
+      return result;
+    }
+
+  size_t rb = 0;
+  result = Cairo::ImageSurface::create_from_png_stream(
+      [&rb, blob](unsigned char *data, unsigned int length) {
+        const unsigned char *src
+            = reinterpret_cast<const unsigned char *>(blob.data());
+        for(unsigned int i = 0; i < length && rb < blob.length(); i++, rb++)
+          {
+            data[i] = src[rb];
+          }
+        return CAIRO_STATUS_SUCCESS;
+      });
+  return result;
+}
+
+bool
+CoverPixBuf::saveImage(const std::filesystem::path &p,
+                       const std::string &format)
+{
+  bool result = false;
+  if(p.empty())
+    {
+      return result;
+    }
+
+  if(image.columns() == 0 || image.rows() == 0)
+    {
+      return result;
+    }
+
+  std::filesystem::remove_all(p);
 
   try
     {
-      buffer = Gdk::Pixbuf::create_from_data(
-          reinterpret_cast<const guint8 *>(bie->cover.c_str()),
-          Gdk::Colorspace::RGB, alpha, 8, iw, ih, bie->bytes_per_row);
-    }
-  catch(Glib::Error &er)
-    {
-      std::cout << "CoverPixBuf::createFromRgba(" << bie->cover_type
-                << ") error: " << er.what() << std::endl;
-    }
-
-  if(buffer)
-    {
-      if(width > 0 && height > 0)
+      if(format.empty())
         {
-          if(width >= height)
-            {
-              height = width * ih / iw;
-              width = height * iw / ih;
-            }
-          else
-            {
-              width = height * iw / ih;
-              height = width * ih / iw;
-            }
-          buffer
-              = buffer->scale_simple(width, height, Gdk::InterpType::BILINEAR);
+          image.write(p.string());
+          result = true;
         }
       else
         {
-          width = buffer->get_width();
-          height = buffer->get_height();
+          Magick::Blob blob;
+          image.write(&blob, format);
+          const char *src = reinterpret_cast<const char *>(blob.data());
+          std::fstream f;
+          f.open(p, std::ios_base::out | std::ios_base::binary);
+          if(f.is_open())
+            {
+              f.write(src, blob.length());
+              f.close();
+
+              result = true;
+            }
         }
     }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "CoverPixBuf::saveImage: " << er.what() << std::endl;
+    }
+
+  return result;
 }

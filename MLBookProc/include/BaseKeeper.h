@@ -73,10 +73,13 @@ public:
    * returned.
    *
    * \param search BookBaseEntry object.
+   * \param coef_coincedence Required coefficent of coincedence for search
+   * result. Allowed values are from \a 0.0 to \a 1.0. Default value is \a 0.7.
    * \return Vector of BookBaseEntry objects, containing search results.
    */
   std::vector<BookBaseEntry>
-  searchBook(const BookBaseEntry &search);
+  searchBook(const BookBaseEntry &search,
+             const double &coef_coincedence = double(0.7));
 
   /*!
    * \brief Lists all authors, found in collection.
@@ -148,27 +151,34 @@ private:
   parseBookEntry(const std::string &e, std::string &read_val, size_t &rb);
 
   bool
-  searchLineFunc(const std::string &to_search, const std::string &source);
+  searchLineFunc(const std::string &to_search, const std::string &source,
+                 const double &coef_coincidence);
 
   bool
   searchSurname(const BookBaseEntry &search,
-                std::vector<BookBaseEntry> &result);
+                std::vector<BookBaseEntry> &result,
+                const double &coef_coincidence);
   bool
   searchFirstName(const BookBaseEntry &search,
-                  std::vector<BookBaseEntry> &result);
+                  std::vector<BookBaseEntry> &result,
+                  const double &coef_coincidence);
 
   bool
   searchLastName(const BookBaseEntry &search,
-                 std::vector<BookBaseEntry> &result);
+                 std::vector<BookBaseEntry> &result,
+                 const double &coef_coincidence);
 
   void
-  searchBook(const BookBaseEntry &search, std::vector<BookBaseEntry> &result);
-  void
-  searchSeries(const BookBaseEntry &search,
-               std::vector<BookBaseEntry> &result);
+  searchBook(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
+             const double &coef_coincidence);
 
   void
-  searchGenre(const BookBaseEntry &search, std::vector<BookBaseEntry> &result);
+  searchSeries(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
+               const double &coef_coincidence);
+
+  void
+  searchGenre(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
+              const double &coef_coincidence);
 
   std::shared_ptr<AuxFunc> af;
 

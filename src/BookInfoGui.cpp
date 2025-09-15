@@ -16,7 +16,6 @@
 
 #include <BookInfoGui.h>
 #include <BookParseEntry.h>
-#include <CoverPixBuf.h>
 #include <ElectroBookInfoEntry.h>
 #include <FullSizeCover.h>
 #include <Genre.h>
@@ -46,11 +45,17 @@ BookInfoGui::BookInfoGui(const std::shared_ptr<AuxFunc> &af,
   this->af = af;
   this->parent_window = parent_window;
   bi = new BookInfo(af);
+
+  formatter = new FormatAnnotation(af);
+  std::vector<ReplaceTagItem> tag_repl;
+  BookInfoGui::formReplacementTable(tag_repl);
+  formatter->setTagReplacementTable(tag_repl);
 }
 
 BookInfoGui::~BookInfoGui()
 {
   delete bi;
+  delete formatter;
 }
 
 BookInfoGui::BookInfoGui(const std::shared_ptr<AuxFunc> &af,
@@ -60,11 +65,11 @@ BookInfoGui::BookInfoGui(const std::shared_ptr<AuxFunc> &af,
   this->af = af;
   this->parent_window = parent_window;
   this->bie = bie;
-  if(bie)
-    {
-      CoverPixBuf cpb(bie);
-      cover_buf = cpb;
-    }
+
+  formatter = new FormatAnnotation(af);
+  std::vector<ReplaceTagItem> tag_repl;
+  BookInfoGui::formReplacementTable(tag_repl);
+  formatter->setTagReplacementTable(tag_repl);
 }
 
 void
@@ -81,12 +86,10 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
           bie.reset();
           std::cout << e.what() << std::endl;
         }
-      if(bie)
-        {
-          CoverPixBuf cpb(bie);
-          cover_buf = cpb;
-        }
     }
+
+  cover_buf = CoverPixBuf(bie, formatter);
+
   Gtk::Window *window = new Gtk::Window;
   window->set_application(parent_window->get_application());
   window->set_title(gettext("Book info"));
@@ -94,7 +97,7 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
   window->set_modal(true);
   window->set_name("MLwindow");
 
-  cover_operations_action_group(window);
+  coverOperationsActionGroup(window);
 
   Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
   grid->set_halign(Gtk::Align::FILL);
@@ -127,47 +130,40 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
 
   formFileSection(bbe, info_scrl_grid, row_num);
 
-  Gdk::Rectangle scr_sz = screen_size();
-  Gtk::Requisition min, nat;
-  int width, height, w, h;
-  width = scr_sz.get_width() * 0.45;
-  height = scr_sz.get_height() * 0.9;
-
-  info_scrl_grid->get_preferred_size(min, nat);
-  w = nat.get_width();
-  h = nat.get_height();
-  if(w <= width)
-    {
-      info_scrl->set_min_content_width(w);
-    }
-  else
-    {
-      info_scrl->set_min_content_width(width);
-    }
-
-  if(h <= height)
-    {
-      info_scrl->set_min_content_height(h);
-    }
-  else
-    {
-      info_scrl->set_min_content_height(height);
-    }
-
-  int cover_w = cover_width(info_scrl);
-
   Gtk::DrawingArea *cover = Gtk::make_managed<Gtk::DrawingArea>();
   cover->set_margin(5);
   cover->set_valign(Gtk::Align::FILL);
   cover->set_halign(Gtk::Align::FILL);
   cover->set_expand(true);
-  cover->set_content_width(cover_w);
-  cover->set_draw_func(std::bind(&BookInfoGui::cover_draw, this,
+  cover->set_draw_func(std::bind(&BookInfoGui::coverDraw, this,
                                  std::placeholders::_1, std::placeholders::_2,
                                  std::placeholders::_3));
   grid->attach(*cover, 0, 0, 1, 1);
 
-  Glib::RefPtr<Gio::Menu> menu = cover_menu();
+  Gtk::Requisition min, nat;
+  info_scrl_grid->get_preferred_size(min, nat);
+  Gdk::Rectangle rect = screenSize();
+  int width = rect.get_width() * 0.45;
+  int height = rect.get_height() * 0.9;
+  if(nat.get_height() > height)
+    {
+      info_scrl->set_min_content_height(height);
+    }
+  else
+    {
+      info_scrl->set_min_content_height(nat.get_height());
+    }
+  if(nat.get_width() > width)
+    {
+      info_scrl->set_min_content_width(width);
+    }
+  else
+    {
+      info_scrl->set_min_content_width(nat.get_width());
+    }
+  cover->set_content_width(info_scrl->get_min_content_width());
+
+  Glib::RefPtr<Gio::Menu> menu = coverMenu();
 
   Gtk::PopoverMenu *pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu);
@@ -179,14 +175,14 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(1);
   clck->signal_pressed().connect(
-      std::bind(&BookInfoGui::cover_full_size, this, window));
+      std::bind(&BookInfoGui::coverFullSize, this, window));
   cover->add_controller(clck);
 
   clck = Gtk::GestureClick::create();
   clck->set_button(3);
-  clck->signal_pressed().connect(std::bind(
-      &BookInfoGui::show_cover_popup_menu, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3, pop_menu));
+  clck->signal_pressed().connect(
+      std::bind(&BookInfoGui::showCoverPopupMenu, this, std::placeholders::_1,
+                std::placeholders::_2, std::placeholders::_3, pop_menu));
   cover->add_controller(clck);
 
   window->signal_close_request().connect(
@@ -202,7 +198,7 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
 }
 
 Glib::ustring
-BookInfoGui::translate_genre(const std::string &genre_str)
+BookInfoGui::translateGenre(const std::string &genre_str)
 {
   Glib::ustring result;
   std::vector<GenreGroup> genre_list = af->get_genre_list();
@@ -219,13 +215,13 @@ BookInfoGui::translate_genre(const std::string &genre_str)
         {
           genre = genre_loc.substr(0, n);
           genre_loc.erase(0, n + sstr.size());
-          val = translate_genre_func(genre, genre_list);
+          val = translateGenreFunc(genre, genre_list);
         }
       else
         {
           if(!genre_loc.empty())
             {
-              val = translate_genre_func(genre_loc, genre_list);
+              val = translateGenreFunc(genre_loc, genre_list);
             }
           interrupt = true;
         }
@@ -249,25 +245,9 @@ BookInfoGui::translate_genre(const std::string &genre_str)
   return result;
 }
 
-int
-BookInfoGui::cover_width(Gtk::ScrolledWindow *scrl)
-{
-  int result = 0;
-
-  if(cover_buf)
-    {
-      double w = static_cast<double>(cover_buf->get_width());
-      double h = static_cast<double>(cover_buf->get_height());
-      double scale = w / h;
-      result = (scrl->get_min_content_height() - 10) * scale;
-    }
-
-  return result;
-}
-
 Glib::ustring
-BookInfoGui::translate_genre_func(std::string &genre,
-                                  const std::vector<GenreGroup> &genre_list)
+BookInfoGui::translateGenreFunc(std::string &genre,
+                                const std::vector<GenreGroup> &genre_list)
 {
   Glib::ustring result;
 
@@ -403,7 +383,7 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
       lab->set_max_width_chars(50);
       lab->set_wrap(true);
       lab->set_wrap_mode(Pango::WrapMode::WORD);
-      lab->set_text(translate_genre(bbe.bpe.book_genre));
+      lab->set_text(translateGenre(bbe.bpe.book_genre));
       lab->set_name("windowLabel");
       grid->attach(*lab, 1, row_num, 1, 1);
       row_num++;
@@ -506,32 +486,43 @@ BookInfoGui::formBookSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
 }
 
 Gdk::Rectangle
-BookInfoGui::screen_size()
+BookInfoGui::screenSize()
 {
   Glib::RefPtr<Gdk::Surface> surf = parent_window->get_surface();
   Glib::RefPtr<Gdk::Display> disp = parent_window->get_display();
   Glib::RefPtr<Gdk::Monitor> mon = disp->get_monitor_at_surface(surf);
-  Gdk::Rectangle req;
-  mon->get_geometry(req);
+  Gdk::Rectangle rec;
+  mon->get_geometry(rec);
 
-  req.set_width(req.get_width() * mon->get_scale_factor());
-  req.set_height(req.get_height() * mon->get_scale_factor());
+  rec.set_width(rec.get_width() * mon->get_scale_factor());
+  rec.set_height(rec.get_height() * mon->get_scale_factor());
 
-  return req;
+  return rec;
 }
 
 void
-BookInfoGui::cover_draw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
-                        int height)
+BookInfoGui::coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
+                       int height)
 {
-  if(cover_buf)
+  if(bie)
     {
-      Glib::RefPtr<Gdk::Pixbuf> l_cover
-          = cover_buf->scale_simple(width, height, Gdk::InterpType::BILINEAR);
-      Gdk::Cairo::set_source_pixbuf(cr, l_cover, 0, 0);
-      cr->rectangle(0, 0, static_cast<double>(width),
-                    static_cast<double>(height));
-      cr->fill();
+      CoverPixBuf pb(bie, formatter);
+      Cairo::RefPtr<Cairo::ImageSurface> surf = pb.getSurface(width, height);
+      if(surf)
+        {
+          double x = 0.0;
+          if(width > surf->get_width())
+            {
+              x = static_cast<double>(width - surf->get_width()) * 0.5;
+            }
+          double y = 0.0;
+          if(height > surf->get_height())
+            {
+              y = static_cast<double>(height - surf->get_height()) * 0.5;
+            }
+          cr->set_source(surf, x, y);
+          cr->paint();
+        }
     }
 }
 
@@ -1035,22 +1026,22 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
 }
 
 void
-BookInfoGui::cover_operations_action_group(Gtk::Window *win)
+BookInfoGui::coverOperationsActionGroup(Gtk::Window *win)
 {
   Glib::RefPtr<Gio::SimpleActionGroup> cover_actions
       = Gio::SimpleActionGroup::create();
 
-  cover_actions->add_action(
-      "full_size", std::bind(&BookInfoGui::cover_full_size, this, win));
+  cover_actions->add_action("full_size",
+                            std::bind(&BookInfoGui::coverFullSize, this, win));
 
   cover_actions->add_action("save_cover",
-                            std::bind(&BookInfoGui::save_cover, this, win));
+                            std::bind(&BookInfoGui::saveCover, this, win));
 
   win->insert_action_group("cover_ops_info_gui", cover_actions);
 }
 
 Glib::RefPtr<Gio::Menu>
-BookInfoGui::cover_menu()
+BookInfoGui::coverMenu()
 {
   Glib::RefPtr<Gio::Menu> result = Gio::Menu::create();
 
@@ -1066,8 +1057,8 @@ BookInfoGui::cover_menu()
 }
 
 void
-BookInfoGui::show_cover_popup_menu(int, double x, double y,
-                                   Gtk::PopoverMenu *pop_menu)
+BookInfoGui::showCoverPopupMenu(int, double x, double y,
+                                Gtk::PopoverMenu *pop_menu)
 {
   if(bie)
     {
@@ -1082,21 +1073,24 @@ BookInfoGui::show_cover_popup_menu(int, double x, double y,
 }
 
 void
-BookInfoGui::cover_full_size(Gtk::Window *win)
+BookInfoGui::coverFullSize(Gtk::Window *win)
 {
-  if(bie)
+  if(cover_buf)
     {
-      if(!bie->cover.empty()
-         && bie->cover_type != BookInfoEntry::cover_types::error)
-        {
-          FullSizeCover *fsc = new FullSizeCover(bie, win);
-          fsc->createWindow();
-        }
+      FullSizeCover *fsc = new FullSizeCover(win, cover_buf);
+      fsc->signal_close_request().connect(
+          [fsc] {
+            std::unique_ptr<FullSizeCover> f(fsc);
+            f->set_visible(false);
+            return true;
+          },
+          false);
+      fsc->present();
     }
 }
 
 void
-BookInfoGui::save_cover(Gtk::Window *win)
+BookInfoGui::saveCover(Gtk::Window *win)
 {
   if(bie)
     {
@@ -1104,7 +1098,14 @@ BookInfoGui::save_cover(Gtk::Window *win)
          && bie->cover_type != BookInfoEntry::cover_types::error)
         {
           SaveCover *sc = new SaveCover(bie, win);
-          sc->createWindow();
+          sc->signal_close_request().connect(
+              [sc] {
+                std::unique_ptr<SaveCover> s(sc);
+                s->set_visible(false);
+                return true;
+              },
+              false);
+          sc->present();
         }
     }
 }

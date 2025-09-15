@@ -66,10 +66,6 @@ private:
   void
   show_popup_menu(int num, double x, double y, Gtk::PopoverMenu *pop_menu);
 
-  // TODO remove legacy in future releases
-  void
-  legacyWarning(Gtk::Window *win);
-
   std::shared_ptr<AuxFunc> af;
   std::shared_ptr<BookMarks> bookmarks;
   std::shared_ptr<NotesKeeper> notes;

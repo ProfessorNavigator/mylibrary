@@ -224,6 +224,10 @@ private:
              const std::filesystem::path &resolved);
 
   void
+  txtThread(const std::filesystem::path &file_col_path,
+            const std::filesystem::path &resolved);
+
+  void
   arch_thread(const std::filesystem::path &file_col_path,
               const std::filesystem::path &resolved);
 

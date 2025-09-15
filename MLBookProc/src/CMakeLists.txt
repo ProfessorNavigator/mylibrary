@@ -35,6 +35,7 @@ target_sources (mlbookproc
     PRIVATE RemoveBook.cpp
     PRIVATE ReplaceTagItem.cpp
     PRIVATE SelfRemovingPath.cpp
+    PRIVATE TXTParser.cpp
     PRIVATE XMLParser.cpp
     PRIVATE XMLTag.cpp
 )
