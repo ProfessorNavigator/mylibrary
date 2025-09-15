@@ -1448,12 +1448,13 @@ SettingsWindow::applySettings()
       f.close();
 
       Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-      css_provider->load_from_string(loadStyles(sp));
       Glib::RefPtr<Gdk::Display> disp = parent_window->get_display();
 #ifndef ML_GTK_OLD
+      css_provider->load_from_string(loadStyles(sp));
       Gtk::StyleProvider::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #else
+      css_provider->load_from_data(loadStyles(sp));
       Gtk::StyleContext::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif

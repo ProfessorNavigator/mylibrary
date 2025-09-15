@@ -53,12 +53,13 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
   this->af = af;
 
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
-  css_provider->load_from_string(loadStyles());
   Glib::RefPtr<Gdk::Display> disp = get_display();
 #ifndef ML_GTK_OLD
+  css_provider->load_from_string(loadStyles());
   Gtk::StyleProvider::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #else
+  css_provider->load_from_data(loadStyles());
   Gtk::StyleContext::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
 #endif
