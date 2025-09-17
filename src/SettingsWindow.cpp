@@ -1502,9 +1502,16 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
       = Gio::ListStore<Gtk::FileFilter>::create();
 
   std::vector<Magick::CoderInfo> list;
-  Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
-                        Magick::CoderInfo::AnyMatch,
-                        Magick::CoderInfo::AnyMatch);
+  try
+    {
+      Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
+                            Magick::CoderInfo::AnyMatch,
+                            Magick::CoderInfo::AnyMatch);
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "SettingsWindow::fileDialog: " << er.what() << std::endl;
+    }
 
   Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
   default_filter->set_name(gettext("All images"));
@@ -1552,9 +1559,16 @@ SettingsWindow::fileDialog(Gtk::Entry *ent)
   fd->set_current_folder(initial);
 
   std::vector<Magick::CoderInfo> list;
-  Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
-                        Magick::CoderInfo::AnyMatch,
-                        Magick::CoderInfo::AnyMatch);
+  try
+    {
+      Magick::coderInfoList(&list, Magick::CoderInfo::TrueMatch,
+                            Magick::CoderInfo::AnyMatch,
+                            Magick::CoderInfo::AnyMatch);
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "SettingsWindow::fileDialog: " << er.what() << std::endl;
+    }
 
   Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
   default_filter->set_name(gettext("All images"));

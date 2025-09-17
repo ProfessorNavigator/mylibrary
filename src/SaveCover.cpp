@@ -293,9 +293,16 @@ SaveCover::createModel()
       = Gio::ListStore<MagickModelItem>::create();
 
   std::vector<Magick::CoderInfo> list;
-  Magick::coderInfoList(&list, Magick::CoderInfo::AnyMatch,
-                        Magick::CoderInfo::TrueMatch,
-                        Magick::CoderInfo::AnyMatch);
+  try
+    {
+      Magick::coderInfoList(&list, Magick::CoderInfo::AnyMatch,
+                            Magick::CoderInfo::TrueMatch,
+                            Magick::CoderInfo::AnyMatch);
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "SaveCover::createModel: " << er.what() << std::endl;
+    }
 
   for(auto it = list.begin(); it != list.end(); it++)
     {
