@@ -267,6 +267,15 @@ SaveCover::saveDialogResult(const Glib::RefPtr<Gio::AsyncResult> &result,
     }
   if(fl)
     {
+      std::filesystem::path p = std::filesystem::u8path(fl->get_path());
+      if(!p.has_extension())
+        {
+          Glib::RefPtr<Gtk::FileFilter> filter = fd->get_default_filter();
+          p = p.parent_path()
+              / std::filesystem::u8path(p.filename().u8string() + "."
+                                        + std::string(filter->get_name()));
+          fl = Gio::File::create_for_path(p.u8string());
+        }
       saveFunc(fl);
     }
 }
@@ -279,6 +288,15 @@ SaveCover::saveDialogResult(int resp, Gtk::FileChooserDialog *fd)
       Glib::RefPtr<Gio::File> fl = fd->get_file();
       if(fl)
         {
+          std::filesystem::path p = std::filesystem::u8path(fl->get_path());
+          if(!p.has_extension())
+            {
+              Glib::RefPtr<Gtk::FileFilter> filter = fd->get_filter();
+              p = p.parent_path()
+                  / std::filesystem::u8path(p.filename().u8string() + "."
+                                            + std::string(filter->get_name()));
+              fl = Gio::File::create_for_path(p.u8string());
+            }
           saveFunc(fl);
         }
     }
