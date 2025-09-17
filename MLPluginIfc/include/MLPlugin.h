@@ -30,16 +30,24 @@
  * \code{.unparsed}
  * find_package(MLPluginIfc)
  * if(MLPluginIfc_FOUND)
- *  target_include_directories(myproject
- *    PRIVATE MLPluginIfc::mlpluginifc
- *    PRIVATE MLBookProc::mlbookproc
- *  )
  *  target_link_libraries(myproject
  *    PRIVATE MLPluginIfc::mlpluginifc
- *    PRIVATE MLBookProc::mlbookproc
  *  )
  * endif()
  * \endcode
+ *
+ * \parblock
+ * \note MLPluginIfc uses MLBookProc library as dependency. MLBookProc sets
+ * USE_OPENMP build variable in case of OpenMP usage. If USE_OPENMP is set, it
+ * is highly recommended to use only OpenMP for multithreading in your
+ * application.
+ * \endparblock
+ *
+ * \parblock
+ * \note MLPluginIfc uses <A HREF="https://gtkmm.gnome.org/en/">gtkmm</A> as
+ * dependency. If version of gtkmm is less then 4.10, MLPluginIfc sets
+ * ML_GTK_OLD build variable.
+ * \endparblock
  *
  * See MLPlugin for details and code example.
  */

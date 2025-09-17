@@ -37,11 +37,11 @@
  * \mainpage MLBookProc
  *
  *  \b MLBookProc is a library for managing `.fb2`, `.epub`,
- * `.pdf`, `.djvu` and `.odt` e-book file collections. It can also works with
- * same formats packed in zip, 7z, jar, cpio, iso, tar, tar.gz, tar.bz2,
- * tar.xz, rar archives (rar archives are available only for reading) itself or
- * packed in same types of  archives with `.fbd` files (epub, djvu and pdf
- * books).
+ * `.pdf`, `.djvu`, `.odt` e-books,  `txt` and `md` files collections. It can
+ * also works with same formats packed in zip, 7z, jar, cpio, iso, tar, tar.gz,
+ * tar.bz2, tar.xz, rar archives (rar archives are available only for reading)
+ * itself or packed in same types of  archives with `.fbd` files (any files,
+ * not only books).
  * \b MLBookProc creates own database and does not change files content, names
  * or location.
  *
@@ -50,10 +50,13 @@
  * \code{.unparsed}
  * find_package(MLBookProc)
  * if(MLBookProc_FOUND)
- *  target_include_directories(myproject PRIVATE MLBookProc::mlbookproc)
- *  target_link_libraries(myproject PUBLIC MLBookProc::mlbookproc)
+ *  target_link_libraries(myproject MLBookProc::mlbookproc)
  * endif()
  * \endcode
+ *
+ * \note MLBookProc sets USE_OPENMP build variable in case of OpenMP usage. If
+ * USE_OPENMP is set, it is highly recommended to use only OpenMP for
+ * multithreading in your application.
  *
  * Then create AuxFunc object. Further reading: CreateCollection,
  * RefreshCollection, BaseKeeper, BookMarks, NotesKeeper, BookInfo, OpenBook.
