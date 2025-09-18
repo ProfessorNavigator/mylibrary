@@ -37,7 +37,7 @@
  * \mainpage MLBookProc
  *
  *  \b MLBookProc is a library for managing `.fb2`, `.epub`,
- * `.pdf`, `.djvu`, `.odt` e-books,  `txt` and `md` files collections. It can
+ * `.pdf`, `.djvu` e-books, `.odt`, `.txt` and `.md` files collections. It can
  * also works with same formats packed in zip, 7z, jar, cpio, iso, tar, tar.gz,
  * tar.bz2, tar.xz, rar archives (rar archives are available only for reading)
  * itself or packed in same types of  archives with `.fbd` files (any files,

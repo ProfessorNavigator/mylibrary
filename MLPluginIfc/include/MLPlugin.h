@@ -32,7 +32,7 @@
  * if(MLPluginIfc_FOUND)
  *  target_link_libraries(myproject
  *    PRIVATE MLPluginIfc::mlpluginifc
- *    PRIVATE PRIVATE MLBookProc::mlbookproc
+ *    PRIVATE MLBookProc::mlbookproc
  *  )
  * endif()
  * \endcode
