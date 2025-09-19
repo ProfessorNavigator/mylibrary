@@ -21,6 +21,7 @@
 #include <MLException.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
+#include <algorithm>
 #include <iostream>
 
 RemoveBook::RemoveBook(const std::shared_ptr<AuxFunc> &af,
@@ -38,8 +39,22 @@ RemoveBook::removeBook()
 {
   std::string ext = bbe.file_path.extension().u8string();
   ext = af->stringToLower(ext);
-  if(ext == ".fb2" || ext == ".epub" || ext == ".pdf" || ext == ".djvu"
-     || ext == ".rar")
+  for(auto it = ext.begin(); it != ext.end();)
+    {
+      if(*it == '.')
+        {
+          ext.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
+  std::vector<std::string> supported
+      = af->get_supported_archive_types_packing();
+  auto it_sup = std::find(supported.begin(), supported.end(), ext);
+
+  if(it_sup == supported.end())
     {
       std::filesystem::remove_all(bbe.file_path);
     }
@@ -49,7 +64,7 @@ RemoveBook::removeBook()
       tmp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(tmp);
 
-      tmp = archive_remove(srp);
+      tmp = archiveRemove(srp);
       if(std::filesystem::exists(tmp))
         {
           std::filesystem::remove_all(bbe.file_path);
@@ -72,7 +87,7 @@ RemoveBook::removeBook()
 }
 
 std::filesystem::path
-RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
+RemoveBook::archiveRemove(const SelfRemovingPath &out_dir)
 {
   std::filesystem::path result;
 
@@ -114,6 +129,8 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
   std::filesystem::path ch_fbd = std::filesystem::u8path(path_in_arch);
   ch_fbd.replace_extension(std::filesystem::u8path(".fbd"));
   unsigned long int file_count = 0;
+  std::vector<std::string> supported
+      = af->get_supported_archive_types_packing();
   while(!interrupt)
     {
       archive_entry_clear(entry.get());
@@ -194,8 +211,21 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
                 ch_p = std::filesystem::u8path(ch_fnm);
                 std::string ext = ch_p.extension().u8string();
                 ext = af->stringToLower(ext);
-                if(ext != ".fb2" && ext != ".fbd" && ext != ".epub"
-                   && ext != ".pdf" && ext != ".djvu" && ext != ".rar")
+                for(auto it = ext.begin(); it != ext.end();)
+                  {
+                    if(*it == '.')
+                      {
+                        ext.erase(it);
+                      }
+                    else
+                      {
+                        break;
+                      }
+                  }
+                auto it_sup
+                    = std::find(supported.begin(), supported.end(), ext);
+
+                if(it_sup != supported.end())
                   {
                     std::filesystem::path tmp = out_dir.path;
                     tmp /= std::filesystem::u8path(af->randomFileName());
@@ -212,7 +242,7 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
                         tmp = out_dir.path;
                         tmp /= std::filesystem::u8path(af->randomFileName());
                         SelfRemovingPath srp(tmp);
-                        tmp = rb->archive_remove(srp);
+                        tmp = rb->archiveRemove(srp);
 
                         if(std::filesystem::exists(tmp))
                           {
@@ -264,6 +294,7 @@ RemoveBook::archive_remove(const SelfRemovingPath &out_dir)
           {
             la.libarchive_error(are->a_read,
                                 "RemoveBook::archive_remove read error:", er);
+            interrupt = true;
             break;
           }
         }
