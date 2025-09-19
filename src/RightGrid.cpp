@@ -328,6 +328,7 @@ RightGrid::clearSearchResult()
   Glib::RefPtr<Gtk::TextBuffer> tb = Gtk::TextBuffer::create();
   annotation->set_buffer(tb);
   bie.reset();
+  cover_buf.clearImage();
   cover_area->queue_draw();
   current_collection.clear();
 }
@@ -624,6 +625,13 @@ RightGrid::coverDraw(const Cairo::RefPtr<Cairo::Context> &cr, int width,
           cr->set_source(surf, x, y);
           cr->paint();
         }
+    }
+  else
+    {
+      cr->set_source_rgba(255.0, 255.0, 255.0, 0.0);
+      cr->rectangle(0.0, 0.0, static_cast<double>(width),
+                    static_cast<double>(height));
+      cr->fill();
     }
 }
 
@@ -968,6 +976,8 @@ RightGrid::bookRemoveAction()
             bie.reset();
             Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
             annotation->set_buffer(buf);
+            bie.reset();
+            cover_buf.clearImage();
             cover_area->queue_draw();
             srs->removeBook(item);
             if(reload_collection_base)

@@ -420,3 +420,9 @@ CoverPixBuf::saveImage(const std::filesystem::path &p,
 
   return result;
 }
+
+void
+CoverPixBuf::clearImage()
+{
+  image = Magick::Image();
+}

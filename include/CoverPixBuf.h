@@ -64,6 +64,9 @@ public:
   saveImage(const std::filesystem::path &p,
             const std::string &format = std::string());
 
+  void
+  clearImage();
+
 private:
   void
   createImage(const std::shared_ptr<BookInfoEntry> &bie);

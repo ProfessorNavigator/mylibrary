@@ -223,7 +223,8 @@ AuxFunc::homePath()
     {
       throw MLException("MLBookProc cannot find user home directory");
     }
-  return std::filesystem::path(result);
+  result = to_utf_8(result, nullptr);
+  return std::filesystem::u8path(result);
 }
 
 std::filesystem::path
