@@ -17,6 +17,7 @@
 #ifndef SAVECOVER_H
 #define SAVECOVER_H
 
+#include <AuxFunc.h>
 #include <BookInfoEntry.h>
 #include <giomm-2.68/giomm/file.h>
 #include <giomm-2.68/giomm/listmodel.h>
@@ -34,7 +35,7 @@ class SaveCover : public Gtk::Window
 {
 public:
   SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
-            Gtk::Window *parent_window);
+            Gtk::Window *parent_window, const std::shared_ptr<AuxFunc> &af);
 
 private:
   void
@@ -60,6 +61,7 @@ private:
 
   std::shared_ptr<BookInfoEntry> bie;
   Gtk::Window *parent_window = nullptr;
+  std::shared_ptr<AuxFunc> af;
 
   Gtk::DropDown *format = nullptr;
 };

@@ -38,10 +38,12 @@
 #endif
 
 SaveCover::SaveCover(const std::shared_ptr<BookInfoEntry> &bie,
-                     Gtk::Window *parent_window)
+                     Gtk::Window *parent_window,
+                     const std::shared_ptr<AuxFunc> &af)
 {
   this->bie = bie;
   this->parent_window = parent_window;
+  this->af = af;
   createWindow();
 }
 
@@ -167,7 +169,7 @@ SaveCover::saveDialog()
   fd->set_modal(true);
 
   Glib::RefPtr<Gio::File> initial
-      = Gio::File::create_for_path(Glib::get_home_dir());
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_initial_folder(initial);
 
   Glib::ustring name;
@@ -212,7 +214,7 @@ SaveCover::saveDialog()
   but->set_name("applyBut");
 
   Glib::RefPtr<Gio::File> initial
-      = Gio::File::create_for_path(Glib::get_home_dir());
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_current_folder(initial);
 
   Glib::ustring name;

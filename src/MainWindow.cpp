@@ -513,11 +513,12 @@ MainWindow::getCurrentCollectionName()
   Gtk::DropDown *dd = lg->get_collection_select();
   if(dd)
     {
-      guint sel = dd->get_selected();
-      auto model = std::dynamic_pointer_cast<Gtk::StringList>(dd->get_model());
-      if(sel != GTK_INVALID_LIST_POSITION && model)
+      Glib::RefPtr<Gtk::StringObject> obj
+          = std::dynamic_pointer_cast<Gtk::StringObject>(
+              dd->get_selected_item());
+      if(obj)
         {
-          result = std::string(model->get_string(sel));
+          result = std::string(obj->get_string());
         }
     }
   return result;

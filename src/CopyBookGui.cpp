@@ -52,7 +52,7 @@ CopyBookGui::createWindow()
   fd->set_modal(true);
 
   Glib::RefPtr<Gio::File> initial
-      = Gio::File::create_for_path(Glib::get_home_dir());
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_initial_folder(initial);
 
   std::string ext = bbe.file_path.extension().u8string();
@@ -120,7 +120,7 @@ CopyBookGui::createWindow()
   but->set_name("applyBut");
 
   Glib::RefPtr<Gio::File> initial
-      = Gio::File::create_for_path(Glib::get_home_dir());
+      = Gio::File::create_for_path(af->homePath().u8string());
   fd->set_current_folder(initial);
 
   std::string ext = bbe.file_path.extension().u8string();

@@ -22,6 +22,7 @@
 #include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <gtkmm-4.0/gtkmm/label.h>
+#include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <libintl.h>
 #include <sstream>
 #include <string>
@@ -299,12 +300,12 @@ void
 RefreshCollectionGui::refreshCollection(Gtk::Window *win,
                                         Gtk::Window *parent_window)
 {
-  Glib::RefPtr<Gtk::StringList> list
-      = std::dynamic_pointer_cast<Gtk::StringList>(collection->get_model());
-  guint sel = collection->get_selected();
-  if(sel != GTK_INVALID_LIST_POSITION && list)
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection->get_selected_item());
+  if(obj)
     {
-      std::string coll_name(list->get_string(sel));
+      std::string coll_name(obj->get_string());
       std::string num_threads(this->num_threads->get_text());
       CollectionCrProcessGui *ccpg = new CollectionCrProcessGui(
           af, main_window, coll_name, num_threads, clean_empty->get_active(),

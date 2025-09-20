@@ -951,14 +951,14 @@ AddBookGui::slot_select_book(guint pos)
 
       selected_book = books_list->get_item(pos);
       books_list->remove(pos);
-      books_list->insert(pos, selected_book);      
+      books_list->insert(pos, selected_book);
 
       for(guint i = 0; i < books_list->get_n_items(); i++)
         {
           if(books_list->get_item(i) == item)
             {
               books_list->remove(i);
-              books_list->insert(i, item);              
+              books_list->insert(i, item);
               break;
             }
         }
@@ -1282,7 +1282,7 @@ AddBookGui::action_chage_path_notarch_slot(
       if(error_hide)
         {
           error_lab->set_visible(false);
-        }      
+        }
     }
 }
 #endif
@@ -1299,7 +1299,7 @@ AddBookGui::show_popup_menu(
     {
       Glib::RefPtr<AddBookModelItem> it = books_list->get_item(i);
       if(it == item || it == selected_book)
-        {          
+        {
           books_list->remove(i);
           books_list->insert(i, it);
         }
@@ -1328,7 +1328,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 {
                   conflict = true;
                   item->conflict_names = true;
-                  it->conflict_names = true;                  
+                  it->conflict_names = true;
                   books_list->remove(j);
                   books_list->insert(j, it);
                   books_list->remove(i);
@@ -1366,7 +1366,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                 {
                   item->conflict_names = true;
                   books_list->remove(i);
-                  books_list->insert(i, item);                  
+                  books_list->insert(i, item);
                   conf_v.push_back(item);
                 }
             }
@@ -1809,7 +1809,7 @@ AddBookGui::check_conflict_names(const Glib::RefPtr<AddBookModelItem> &item)
       for(guint i = 0; i < books_list->get_n_items(); i++)
         {
           if(books_list->get_item(i) == item)
-            {              
+            {
               books_list->remove(i);
               books_list->insert(i, item);
             }
@@ -2079,7 +2079,7 @@ AddBookGui::action_chage_path_arch_slot(Gtk::Entry *path, Gtk::Window *win,
           if(it == selected_book)
             {
               books_list->remove(i);
-              books_list->insert(i, it);              
+              books_list->insert(i, it);
             }
           check_conflict_names(it);
         }

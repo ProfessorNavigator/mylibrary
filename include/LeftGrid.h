@@ -29,6 +29,7 @@
 #include <gtkmm-4.0/gtkmm/menubutton.h>
 #include <gtkmm-4.0/gtkmm/popover.h>
 #include <gtkmm-4.0/gtkmm/stringlist.h>
+#include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
@@ -106,7 +107,7 @@ private:
   saveActiveCollection();
 
   void
-  loadCollection(const guint &sel);
+  loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected);
 
   void
   searchBook();

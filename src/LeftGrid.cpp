@@ -85,7 +85,8 @@ LeftGrid::createGrid()
 
   setActiveCollection();
 
-  loadCollection(collection_select->get_selected());
+  loadCollection(std::dynamic_pointer_cast<Gtk::StringObject>(
+      collection_select->get_selected_item()));
 
   Glib::PropertyProxy<guint> selcol_prop
       = collection_select->property_selected();
@@ -457,42 +458,36 @@ LeftGrid::setActiveCollection()
 void
 LeftGrid::saveActiveCollection()
 {
-  Glib::RefPtr<Gtk::StringList> list
-      = std::dynamic_pointer_cast<Gtk::StringList>(
-          collection_select->get_model());
-  if(list)
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
+  if(obj)
     {
-      guint sel = collection_select->get_selected();
-      if(sel != GTK_INVALID_LIST_POSITION)
+      loadCollection(obj);
+      std::string col(obj->get_string());
+      std::filesystem::path p = af->homePath();
+      p /= std::filesystem::u8path(".cache")
+           / std::filesystem::u8path("MyLibrary")
+           / std::filesystem::u8path("ActiveCollection");
+      std::filesystem::remove_all(p);
+      std::filesystem::create_directories(p.parent_path());
+      std::fstream f;
+      f.open(p, std::ios_base::out | std::ios_base::binary);
+      if(f.is_open())
         {
-          loadCollection(sel);
-          std::string col(list->get_string(sel));
-          std::filesystem::path p = af->homePath();
-          p /= std::filesystem::u8path(".cache")
-               / std::filesystem::u8path("MyLibrary")
-               / std::filesystem::u8path("ActiveCollection");
-          std::filesystem::remove_all(p);
-          std::filesystem::create_directories(p.parent_path());
-          std::fstream f;
-          f.open(p, std::ios_base::out | std::ios_base::binary);
-          if(f.is_open())
-            {
-              f.write(col.c_str(), col.size());
-              f.close();
-            }
+          f.write(col.c_str(), col.size());
+          f.close();
         }
     }
 }
 
 void
-LeftGrid::loadCollection(const guint &sel)
+LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
 {
-  Glib::RefPtr<Gtk::StringList> list
-      = std::dynamic_pointer_cast<Gtk::StringList>(
-          collection_select->get_model());
-  if(list && sel != GTK_INVALID_LIST_POSITION)
+
+  if(selected)
     {
-      std::string col(list->get_string(sel));
+      std::string col(selected->get_string());
 #ifndef USE_OPENMP
       std::thread thr([this, col] {
         try
@@ -544,65 +539,46 @@ LeftGrid::searchBook()
 void
 LeftGrid::showCollectionFiles()
 {
-  std::string coll_name;
-  guint selected = collection_select->get_selected();
-  if(selected != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
+  if(obj)
     {
-      Glib::RefPtr<Gtk::StringList> list
-          = std::dynamic_pointer_cast<Gtk::StringList>(
-              collection_select->get_model());
-      if(list)
-        {
-          SearchProcessGui *spg
-              = new SearchProcessGui(base_keeper, main_window);
-          spg->search_result_file = search_result_show_files;
-          coll_name = std::string(list->get_string(selected));
-          spg->createWindow(coll_name, af, 1);
-        }
+      SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+      spg->search_result_file = search_result_show_files;
+      std::string coll_name(obj->get_string());
+      spg->createWindow(coll_name, af, 1);
     }
 }
 
 void
 LeftGrid::showCollectionAuthors()
 {
-  std::string coll_name;
-  guint selected = collection_select->get_selected();
-  if(selected != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
+  if(obj)
     {
-      Glib::RefPtr<Gtk::StringList> list
-          = std::dynamic_pointer_cast<Gtk::StringList>(
-              collection_select->get_model());
-      if(list)
-        {
-          SearchProcessGui *spg
-              = new SearchProcessGui(base_keeper, main_window);
-          spg->search_result_authors = search_result_authors;
-          coll_name = std::string(list->get_string(selected));
-          spg->createWindow(coll_name, af, 2);
-        }
+      SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+      spg->search_result_authors = search_result_authors;
+      std::string coll_name(obj->get_string());
+      spg->createWindow(coll_name, af, 2);
     }
 }
 
 void
 LeftGrid::showBooksWithNotes()
 {
-  std::string coll_name;
-  guint selected = collection_select->get_selected();
-  if(selected != GTK_INVALID_LIST_POSITION)
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
+  if(obj)
     {
-      Glib::RefPtr<Gtk::StringList> list
-          = std::dynamic_pointer_cast<Gtk::StringList>(
-              collection_select->get_model());
-      if(list)
-        {
-          SearchProcessGui *spg
-              = new SearchProcessGui(base_keeper, main_window);
-          spg->search_result_show = search_result_show;
-          coll_name = std::string(list->get_string(selected));
-          std::vector<NotesBaseEntry> nt
-              = notes->getNotesForCollection(coll_name);
-          spg->createWindow(nt);
-        }
+      SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+      spg->search_result_show = search_result_show;
+      std::string coll_name = std::string(obj->get_string());
+      std::vector<NotesBaseEntry> nt = notes->getNotesForCollection(coll_name);
+      spg->createWindow(nt);
     }
 }
 
@@ -616,51 +592,48 @@ bool
 LeftGrid::reloadCollection(const std::string &col_name)
 {
   bool result = false;
-  guint selected = collection_select->get_selected();
-  if(selected != GTK_INVALID_LIST_POSITION)
+
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
+  if(obj)
     {
-      Glib::RefPtr<Gtk::StringList> list
-          = std::dynamic_pointer_cast<Gtk::StringList>(
-              collection_select->get_model());
-      if(list)
+      if(std::string(obj->get_string()) == col_name)
         {
-          if(std::string(list->get_string(selected)) == col_name)
-            {
-              base_keeper->clearBase();
+          base_keeper->clearBase();
 #ifndef USE_OPENMP
-              std::thread thr([this, col_name] {
-                try
-                  {
-                    base_keeper->loadCollection(col_name);
-                  }
-                catch(MLException &e)
-                  {
-                    std::cout << "LeftGrid::reloadCollection: " << e.what()
-                              << std::endl;
-                  }
-              });
-              thr.detach();
+          std::thread thr([this, col_name] {
+            try
+              {
+                base_keeper->loadCollection(col_name);
+              }
+            catch(MLException &e)
+              {
+                std::cout << "LeftGrid::reloadCollection: " << e.what()
+                          << std::endl;
+              }
+          });
+          thr.detach();
 #else
 #pragma omp masked
-              {
-                omp_event_handle_t event;
+          {
+            omp_event_handle_t event;
 #pragma omp task detach(event)
+            {
+              try
                 {
-                  try
-                    {
-                      base_keeper->loadCollection(col_name);
-                    }
-                  catch(MLException &e)
-                    {
-                      std::cout << "LeftGrid::reloadCollection: " << e.what()
-                                << std::endl;
-                    }
-                  omp_fulfill_event(event);
+                  base_keeper->loadCollection(col_name);
                 }
-              }
-#endif
-              result = true;
+              catch(MLException &e)
+                {
+                  std::cout << "LeftGrid::reloadCollection: " << e.what()
+                            << std::endl;
+                }
+              omp_fulfill_event(event);
             }
+          }
+#endif
+          result = true;
         }
     }
 
@@ -680,27 +653,21 @@ LeftGrid::searchAuth(const std::string &auth)
 void
 LeftGrid::reloadCollectionList()
 {
-  guint selected = collection_select->get_selected();
-  Glib::ustring sel;
-  if(selected != GTK_INVALID_LIST_POSITION)
-    {
-      Glib::RefPtr<Gtk::StringList> list
-          = std::dynamic_pointer_cast<Gtk::StringList>(
-              collection_select->get_model());
-      if(list)
-        {
-          sel = list->get_string(selected);
-        }
-    }
+  Glib::RefPtr<Gtk::StringObject> obj
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          collection_select->get_selected_item());
 
   Glib::RefPtr<Gtk::StringList> list = createCollectionsList();
   collection_select->set_model(list);
-  for(guint i = 0; i < list->get_n_items(); i++)
+  if(obj)
     {
-      if(sel == list->get_string(i))
+      for(guint i = 0; i < list->get_n_items(); i++)
         {
-          collection_select->set_selected(i);
-          break;
+          if(obj->get_string() == list->get_string(i))
+            {
+              collection_select->set_selected(i);
+              break;
+            }
         }
     }
 }

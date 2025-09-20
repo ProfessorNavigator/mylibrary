@@ -1097,7 +1097,7 @@ BookInfoGui::saveCover(Gtk::Window *win)
       if(!bie->cover.empty()
          && bie->cover_type != BookInfoEntry::cover_types::error)
         {
-          SaveCover *sc = new SaveCover(bie, win);
+          SaveCover *sc = new SaveCover(bie, win, af);
           sc->signal_close_request().connect(
               [sc] {
                 std::unique_ptr<SaveCover> s(sc);
