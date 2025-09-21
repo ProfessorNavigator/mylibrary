@@ -22,6 +22,7 @@
 #include <MLException.h>
 #include <RefreshCollection.h>
 #include <SelfRemovingPath.h>
+#include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
 #include <iostream>
@@ -167,6 +168,29 @@ AddBook::add_to_existing_archive(
 
   if(std::filesystem::exists(archive_path))
     {
+      {
+        std::vector<std::string> existing_files
+            = archive_filenames(archive_path, af);
+        std::string find_str = ".fbd";
+        auto it_ef = std::find_if(existing_files.begin(), existing_files.end(),
+                                  [this, find_str](const std::string &el) {
+                                    if(el.size() > find_str.size())
+                                      {
+                                        std::string::size_type n
+                                            = el.rfind(find_str);
+                                        if(n == el.size() - find_str.size())
+                                          {
+                                            return true;
+                                          }
+                                      }
+                                    return false;
+                                  });
+        if(it_ef != existing_files.end())
+          {
+            throw MLException("AddBook::add_to_existing_archive: adding to "
+                              "fbd archives is prohibited");
+          }
+      }
       std::filesystem::path new_arch = archive_path.parent_path();
       new_arch /= std::filesystem::u8path(
           af->randomFileName() + archive_path.filename().u8string());
@@ -407,6 +431,30 @@ AddBook::add_to_existing_archive_dir(
 
   if(std::filesystem::exists(archive_path))
     {
+      {
+        std::vector<std::string> existing_files
+            = archive_filenames(archive_path, af);
+        std::string find_str = ".fbd";
+        auto it_ef = std::find_if(existing_files.begin(), existing_files.end(),
+                                  [this, find_str](const std::string &el) {
+                                    if(el.size() > find_str.size())
+                                      {
+                                        std::string::size_type n
+                                            = el.rfind(find_str);
+                                        if(n == el.size() - find_str.size())
+                                          {
+                                            return true;
+                                          }
+                                      }
+                                    return false;
+                                  });
+        if(it_ef != existing_files.end())
+          {
+            throw MLException(
+                "AddBook::add_to_existing_archive_dir: adding to "
+                "fbd archives is prohibited");
+          }
+      }
       std::filesystem::path new_arch = archive_path.parent_path();
       new_arch /= std::filesystem::u8path(
           af->randomFileName() + archive_path.filename().u8string());

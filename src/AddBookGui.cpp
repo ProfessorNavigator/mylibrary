@@ -636,28 +636,24 @@ AddBookGui::book_add_dialog(Gtk::Window *win, const int &variant)
   if(!directory_add)
     {
       std::vector<std::string> types = af->get_supported_types();
-      Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-      filter->set_name(gettext("All supported"));
-
-      for(auto it = types.begin(); it != types.end(); it++)
-        {
-          filter->add_suffix(*it);
-        }
-
-      fd->set_default_filter(filter);
+      Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
+      default_filter->set_name(gettext("All supported"));
 
       Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters
           = Gio::ListStore<Gtk::FileFilter>::create();
-      filters->append(filter);
+      filters->append(default_filter);
 
       for(auto it = types.begin(); it != types.end(); it++)
         {
-          filter = Gtk::FileFilter::create();
+          Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+          filter->set_name(*it);
           filter->add_suffix(*it);
+          default_filter->add_suffix(*it);
           filters->append(filter);
         }
 
       fd->set_filters(filters);
+      fd->set_default_filter(default_filter);
     }
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
@@ -1705,6 +1701,12 @@ AddBookGui::error_alert_dialog(Gtk::Window *win, const int &variant)
         lab->set_text(gettext("Error: path cannot be empty"));
         break;
       }
+    case 4:
+      {
+        lab->set_text(gettext("Error: files or directories adding to fbd "
+                              "archives is prohibited"));
+        break;
+      }
     default:
       break;
     }
@@ -1851,25 +1853,23 @@ AddBookGui::archive_selection_dialog_overwrite(Gtk::Window *win)
       return void();
     }
 
-  Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-  filter->add_suffix(arch_type->get_string());
-
-  fd->set_default_filter(filter);
+  Glib::RefPtr<Gtk::FileFilter> default_filter = Gtk::FileFilter::create();
 
   Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
       = Gio::ListStore<Gtk::FileFilter>::create();
-  filters_list->append(filter);
+  filters_list->append(default_filter);
+
+  default_filter->set_name(arch_type->get_string());
+  default_filter->add_suffix(arch_type->get_string());
 
   fd->set_filters(filters_list);
+  fd->set_default_filter(default_filter);
 
   fd->set_initial_name(std::string("Archive.") + arch_type->get_string());
 
-  Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
-
   fd->save(*win,
            std::bind(&AddBookGui::archive_selection_dialog_overwrite_slot,
-                     this, std::placeholders::_1, fd, win),
-           cncl);
+                     this, std::placeholders::_1, fd, win));
 #else
   Gtk::FileChooserDialog *fd = new Gtk::FileChooserDialog(
       *win, gettext("Archive name"), Gtk::FileChooser::Action::SAVE, true);
@@ -2103,6 +2103,11 @@ AddBookGui::archive_selection_dialog_add(Gtk::Window *win)
   std::vector<std::string> types = af->get_supported_archive_types_packing();
 
   Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+  filter->set_name(gettext("Supported archives"));
+  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
+      = Gio::ListStore<Gtk::FileFilter>::create();
+  filters_list->append(filter);
+  fd->set_filters(filters_list);
 
   for(auto it = types.begin(); it != types.end(); it++)
     {
@@ -2110,11 +2115,6 @@ AddBookGui::archive_selection_dialog_add(Gtk::Window *win)
     }
 
   fd->set_default_filter(filter);
-
-  Glib::RefPtr<Gio::ListStore<Gtk::FileFilter>> filters_list
-      = Gio::ListStore<Gtk::FileFilter>::create();
-  filters_list->append(filter);
-  fd->set_filters(filters_list);
 
   Glib::RefPtr<Gio::Cancellable> cncl = Gio::Cancellable::create();
 
@@ -2139,6 +2139,7 @@ AddBookGui::archive_selection_dialog_add(Gtk::Window *win)
   but->set_name("applyBut");
 
   Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+  filter->set_name(gettext("Supported archives"));
 
   std::vector<std::string> types = af->get_supported_archive_types_packing();
   for(auto it = types.begin(); it != types.end(); it++)
@@ -2231,6 +2232,29 @@ AddBookGui::archive_selection_dialog_add_slot(
   if(fl)
     {
       std::filesystem::path p = std::filesystem::u8path(fl->get_path());
+      if(std::filesystem::exists(p))
+        {
+          std::vector<std::string> fl_list = AddBook::archive_filenames(p, af);
+          std::string find_str(".fbd");
+          auto it = std::find_if(fl_list.begin(), fl_list.end(),
+                                 [find_str](const std::string &el) {
+                                   if(el.size() > find_str.size())
+                                     {
+                                       std::string::size_type n
+                                           = el.rfind(find_str);
+                                       if(n == el.size() - find_str.size())
+                                         {
+                                           return true;
+                                         }
+                                     }
+                                   return false;
+                                 });
+          if(it != fl_list.end())
+            {
+              error_alert_dialog(win, 4);
+              return void();
+            }
+        }
       std::string ch_str = p.lexically_proximate(books_path).u8string();
       std::string::size_type n = ch_str.find("../");
       if(n == std::string::npos)
@@ -2411,6 +2435,30 @@ AddBookGui::archive_selection_dialog_add_slot(int resp,
       if(fl)
         {
           std::filesystem::path p = std::filesystem::u8path(fl->get_path());
+          if(std::filesystem::exists(p))
+            {
+              std::vector<std::string> fl_list
+                  = AddBook::archive_filenames(p, af);
+              std::string find_str(".fbd");
+              auto it = std::find_if(fl_list.begin(), fl_list.end(),
+                                     [find_str](const std::string &el) {
+                                       if(el.size() > find_str.size())
+                                         {
+                                           std::string::size_type n
+                                               = el.rfind(find_str);
+                                           if(n == el.size() - find_str.size())
+                                             {
+                                               return true;
+                                             }
+                                         }
+                                       return false;
+                                     });
+              if(it != fl_list.end())
+                {
+                  error_alert_dialog(win, 4);
+                  return void();
+                }
+            }
           std::string ch_str = p.lexically_proximate(books_path).u8string();
           std::string::size_type n = ch_str.find("../");
           if(n == std::string::npos)
