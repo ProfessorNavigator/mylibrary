@@ -1835,10 +1835,10 @@ LibArchive::libarchive_write_data(archive *a, const std::string &data)
 std::shared_ptr<archive>
 LibArchive::libarchive_write_init(const std::filesystem::path &outpath)
 {
-  std::shared_ptr<archive> a;
-  a = std::shared_ptr<archive>(archive_write_new(), [](archive *a) {
-    archive_free(a);
-  });
+  std::shared_ptr<archive> a
+      = std::shared_ptr<archive>(archive_write_new(), [](archive *a) {
+          archive_free(a);
+        });
   int er;
   er = archive_write_set_format_filter_by_ext(a.get(),
                                               outpath.string().c_str());

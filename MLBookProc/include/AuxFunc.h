@@ -239,11 +239,23 @@ public:
    * Same as if_supported_type(), but check is carried out only for archives
    * (if given file is not archive \a false will be returned).
    *
-   * \param ch_p absolute path to archive.
+   * \param ch_p absolute path to archive (may not exist).
    * \return \a true if archive is supported, \a false otherwise.
    */
   bool
   ifSupportedArchiveUnpackaingType(const std::filesystem::path &ch_p);
+
+  /*!
+   * \brief Checks if given archive is supported by \b MLBookProc for packing.
+   *
+   * Same as ifSupportedArchiveUnpackaingType(), but checks if given file is
+   * supported for packing
+   *
+   * \param ch_p absolute path to archive (may not exist).
+   * \return \a true if archive is supported, \a false otherwise.
+   */
+  bool
+  ifSupportedArchivePackingType(const std::filesystem::path &ch_p);
 
   /*!
    * \brief Converst 'html' symbols to UTF-8 characters.

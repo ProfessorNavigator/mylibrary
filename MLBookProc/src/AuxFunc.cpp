@@ -509,6 +509,38 @@ AuxFunc::ifSupportedArchiveUnpackaingType(const std::filesystem::path &ch_p)
   return result;
 }
 
+bool
+AuxFunc::ifSupportedArchivePackingType(const std::filesystem::path &ch_p)
+{
+  bool result = false;
+
+  std::string ext = get_extension(ch_p);
+
+  ext = stringToLower(ext);
+
+  for(auto it = ext.begin(); it != ext.end();)
+    {
+      if(*it == '.')
+        {
+          ext.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  std::vector<std::string> types = get_supported_archive_types_packing();
+
+  auto it = std::find(types.begin(), types.end(), ext);
+  if(it != types.end())
+    {
+      result = true;
+    }
+
+  return result;
+}
+
 std::string
 AuxFunc::detect_encoding(const std::string &buf)
 {

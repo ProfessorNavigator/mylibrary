@@ -53,15 +53,16 @@ public:
   removeBook();
 
 private:
-  std::filesystem::path
-  archiveRemove(const SelfRemovingPath &out_dir);
+  void
+  archiveRemove(const std::filesystem::path &archive_path,
+                const std::string &book_path, const SelfRemovingPath &out_dir);
 
   std::shared_ptr<AuxFunc> af;
   BookBaseEntry bbe;
   std::string col_name;
   std::shared_ptr<BookMarks> bookmarks;
 
-  SelfRemovingPath keep_path;
+  std::vector<std::string> supported_archives;
 };
 
 #endif // REMOVEBOOK_H
