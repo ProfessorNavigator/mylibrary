@@ -63,7 +63,7 @@ RemoveBook::removeBook()
       std::filesystem::path tmp = bbe.file_path.parent_path();
       tmp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(tmp);
-      archiveRemove(bbe.file_path, bbe.bpe.book_path, srp);
+      archiveRemove(bbe.file_path, bbe.bpe.book_path, srp.path);
     }
 
   std::shared_ptr<RefreshCollection> rc = std::make_shared<RefreshCollection>(
@@ -74,7 +74,7 @@ RemoveBook::removeBook()
 void
 RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                           const std::string &book_path,
-                          const SelfRemovingPath &out_dir)
+                          const std::filesystem::path &out_d)
 {
   if(!std::filesystem::exists(archive_path))
     {
@@ -154,7 +154,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
     }
 
   std::filesystem::path new_arch_path
-      = out_dir.path
+      = out_d
         / std::filesystem::u8path(af->randomFileName()
                                   + af->get_extension(archive_path));
 
@@ -182,9 +182,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
             archive_entry_free(e);
           });
 
-      std::filesystem::path unpack_dir
-          = out_dir.path / std::filesystem::u8path(af->randomFileName());
-      std::filesystem::create_directories(unpack_dir);
+      std::filesystem::create_directories(out_d);
 
       while(er == ARCHIVE_OK || er == ARCHIVE_WARN)
         {
@@ -221,8 +219,8 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                 }
               if(path_in_arch != l_book_path && path_in_arch != fbd_file_name)
                 {
-                  srp_read = la->libarchive_read_entry(
-                      rm_e.a_read.get(), read_ent.get(), unpack_dir);
+                  srp_read = la->libarchive_read_entry(rm_e.a_read.get(),
+                                                       read_ent.get(), out_d);
                 }
             }
           else
@@ -294,7 +292,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
           });
 
       std::filesystem::path unpack_dir
-          = out_dir.path / std::filesystem::u8path(af->randomFileName());
+          = out_d / std::filesystem::u8path(af->randomFileName());
       std::filesystem::create_directories(unpack_dir);
 
       while(er == ARCHIVE_OK || er == ARCHIVE_WARN)
@@ -350,7 +348,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                   SelfRemovingPath out_dir_l(
                       unpack_dir
                       / std::filesystem::u8path(af->randomFileName()));
-                  archiveRemove(srp_read.path, next_path, out_dir_l);
+                  archiveRemove(srp_read.path, next_path, out_d);
                   if(std::filesystem::exists(srp_read.path))
                     {
                       archive_entry_clear(write_ent.get());

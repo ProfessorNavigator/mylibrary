@@ -55,7 +55,8 @@ public:
 private:
   void
   archiveRemove(const std::filesystem::path &archive_path,
-                const std::string &book_path, const SelfRemovingPath &out_dir);
+                const std::string &book_path,
+                const std::filesystem::path &out_d);
 
   std::shared_ptr<AuxFunc> af;
   BookBaseEntry bbe;
