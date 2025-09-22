@@ -261,6 +261,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
             }
         }
 
+      rm_e.reset();
       if(er == ARCHIVE_EOF)
         {
           std::filesystem::remove_all(archive_path);
@@ -413,6 +414,7 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
             }
         }
 
+      rm_e.reset();
       if(er == ARCHIVE_EOF)
         {
           std::filesystem::remove_all(archive_path);

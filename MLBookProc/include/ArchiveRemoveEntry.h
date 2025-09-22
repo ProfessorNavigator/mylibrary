@@ -63,6 +63,14 @@ public:
   operator=(ArchiveRemoveEntry &&other);
 
   /*!
+   * \brief Resets all internal objects.
+   *
+   * \warning Do not use ArchiveRemoveEntry item after this method call!
+   */
+  void
+  reset();
+
+  /*!
    * \brief libarchive object, file to be removed from.
    */
   std::shared_ptr<archive> a_read;

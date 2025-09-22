@@ -52,6 +52,14 @@ ArchiveRemoveEntry::operator=(const ArchiveRemoveEntry &other)
   return *this;
 }
 
+void
+ArchiveRemoveEntry::reset()
+{
+  a_read.reset();
+  a_write.reset();
+  fl.reset();
+}
+
 ArchiveRemoveEntry &
 ArchiveRemoveEntry::operator=(ArchiveRemoveEntry &&other)
 {
