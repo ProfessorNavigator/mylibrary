@@ -48,7 +48,6 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
 
   bpe.book_date = af->time_t_to_date(tt);
 
-#ifndef _WIN32
   std::shared_ptr<ddjvu_context_t> context = af->getDJVUContext();
 
   if(context)
@@ -68,14 +67,14 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
             }
 
           miniexp_t r;
-
+          std::chrono::microseconds mcrs(10000);
           while((r = ddjvu_document_get_anno(doc.get(), true))
                 == miniexp_dummy)
             {
 #ifdef USE_OPENMP
-              usleep(10000);
+              usleep(mcrs.count());
 #else
-              std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              std::this_thread::sleep_for(mcrs);
 #endif
             }
           if(r)
@@ -195,7 +194,6 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
       std::cout << "DJVUParser::djvu_parser: context has not been created"
                 << std::endl;
     }
-#endif
   return bpe;
 }
 
@@ -370,10 +368,11 @@ DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
             }
           else
             {
+              std::chrono::microseconds mcrs(10000);
 #ifdef USE_OPENMP
-              usleep(10000);
+              usleep(mcrs.count());
 #else
-              std::this_thread::sleep_for(std::chrono::milliseconds(10));
+              std::this_thread::sleep_for(mcrs);
 #endif
             }
         }
