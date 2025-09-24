@@ -57,15 +57,17 @@ public:
   djvu_book_info(const std::filesystem::path &filepath);
 
 private:
-  bool
+  void
   handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
                  const std::shared_ptr<ddjvu_document_t> &doc,
-                 const bool &wait = bool(true));
+                 const bool &wait);
 
   void
   getTag(const std::string &exp, const std::string &tag, std::string &line);
 
   std::shared_ptr<AuxFunc> af;
+
+  std::filesystem::path djvu_file_path;
 };
 
 #endif // DJVUPARSER_H

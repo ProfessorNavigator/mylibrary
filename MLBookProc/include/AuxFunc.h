@@ -31,6 +31,8 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
+#else
+#include <mutex>
 #endif
 
 /*!
@@ -509,7 +511,6 @@ public:
   /*!
    * \brief Returns smart pointer to djvu context object.
    *
-   * \warning Resulting smart pointer can be \a nullptr (see get_activated()).
    * \return Smart pointer to djvu context object.
    */
   std::shared_ptr<ddjvu_context_t>
@@ -524,15 +525,17 @@ private:
   std::vector<GenreGroup>
   read_genre_groups(const bool &wrong_loc, const std::string &locname);
 
-  bool
-  handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx);
-
   bool activated = true;
 
   std::mt19937_64 *rng;
   std::uniform_int_distribution<uint64_t> *dist;
 
-  std::shared_ptr<ddjvu_context_t> djvu_context;
+  std::weak_ptr<ddjvu_context_t> djvu_context;
+#ifdef USE_OPENMP
+  omp_lock_t djvu_context_mtx;
+#else
+  std::mutex djvu_context_mtx;
+#endif
 };
 
 #endif // AUXFUNC_H

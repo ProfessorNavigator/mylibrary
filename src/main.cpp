@@ -56,16 +56,15 @@ main(int argc, char *argv[])
         {
           auto app = MyLibraryApplication::create(af);
           result = app->run(argc, argv);
-          af.reset();
-          app.reset();
         }
       }
 #else
       auto app = MyLibraryApplication::create(af);
       result = app->run(argc, argv);
-      af.reset();
       app.reset();
+
 #endif
+      af.reset();
       return result;
     }
   else

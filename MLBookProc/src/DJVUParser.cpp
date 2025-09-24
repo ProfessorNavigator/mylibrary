@@ -16,6 +16,7 @@
 
 #include <DJVUParser.h>
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <libdjvu/miniexp.h>
 #include <string>
@@ -34,6 +35,7 @@ DJVUParser::DJVUParser(const std::shared_ptr<AuxFunc> &af)
 BookParseEntry
 DJVUParser::djvu_parser(const std::filesystem::path &filepath)
 {
+  djvu_file_path = filepath;
   BookParseEntry bpe;
 
   bpe.book_name = filepath.stem().u8string();
@@ -53,28 +55,34 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
   if(context)
     {
       std::shared_ptr<ddjvu_document_t> doc(
-          ddjvu_document_create_by_filename_utf8(
-              context.get(), filepath.u8string().c_str(), true),
+          ddjvu_document_create(context.get(), nullptr, false),
           [](ddjvu_document_t *doc) {
             ddjvu_document_release(doc);
           });
 
       if(doc)
         {
-          if(!handleDJVUmsgs(context, doc))
+          try
             {
+              handleDJVUmsgs(context, doc, true);
+            }
+          catch(MLException &mle)
+            {
+              std::cout << mle.what() << std::endl;
               return bpe;
             }
 
           miniexp_t r;
-          std::chrono::microseconds mcrs(10000);
+          std::chrono::milliseconds mlsc(10);
           while((r = ddjvu_document_get_anno(doc.get(), true))
                 == miniexp_dummy)
             {
 #ifdef USE_OPENMP
-              usleep(mcrs.count());
+              usleep(
+                  std::chrono::duration_cast<std::chrono::microseconds>(mlsc)
+                      .count());
 #else
-              std::this_thread::sleep_for(mcrs);
+              std::this_thread::sleep_for(mlsc);
 #endif
             }
           if(r)
@@ -177,10 +185,8 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
                           bpe.book_date = tmp;
                         }
                     }
-                  ddjvu_miniexp_release(doc.get(), exp);
                 }
             }
-          ddjvu_miniexp_release(doc.get(), r);
           handleDJVUmsgs(context, doc, false);
         }
       else
@@ -200,30 +206,42 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
 std::shared_ptr<BookInfoEntry>
 DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
 {
+  djvu_file_path = filepath;
   std::shared_ptr<BookInfoEntry> result = std::make_shared<BookInfoEntry>();
   std::shared_ptr<ddjvu_context_t> context = af->getDJVUContext();
   if(context)
     {
       std::shared_ptr<ddjvu_document_t> doc(
-          ddjvu_document_create_by_filename_utf8(
-              context.get(), filepath.u8string().c_str(), true),
+          ddjvu_document_create(context.get(), nullptr, false),
           [](ddjvu_document_t *doc) {
             ddjvu_document_release(doc);
           });
 
       if(doc)
         {
-          if(!handleDJVUmsgs(context, doc))
+          try
             {
+              handleDJVUmsgs(context, doc, true);
+            }
+          catch(MLException &mle)
+            {
+              std::cout << mle.what() << std::endl;
               return result;
             }
 
           miniexp_t r;
 
+          std::chrono::milliseconds mlsc(5);
           while((r = ddjvu_document_get_anno(doc.get(), true))
                 == miniexp_dummy)
             {
-              handleDJVUmsgs(context, doc);
+#ifdef USE_OPENMP
+              usleep(
+                  std::chrono::duration_cast<std::chrono::microseconds>(mlsc)
+                      .count());
+#else
+              std::this_thread::sleep_for(mlsc);
+#endif
             }
           if(r)
             {
@@ -237,7 +255,6 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
                       getTag(exp_str, "annote", result->annotation);
                     }
                 }
-              ddjvu_miniexp_release(doc.get(), r);
             }
 
           std::shared_ptr<ddjvu_page_t> page(
@@ -249,8 +266,13 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
             {
               while(!ddjvu_page_decoding_done(page.get()))
                 {
-                  if(!handleDJVUmsgs(context, doc))
+                  try
                     {
+                      handleDJVUmsgs(context, doc, true);
+                    }
+                  catch(MLException &mle)
+                    {
+                      std::cout << mle.what() << std::endl;
                       return result;
                     }
                 }
@@ -323,89 +345,114 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
   return result;
 }
 
-bool
+void
 DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
                            const std::shared_ptr<ddjvu_document_t> &doc,
                            const bool &wait)
 {
-  bool result = true;
-
-  const ddjvu_message_t *msg;
   if(wait)
     {
-      bool found = false;
-      for(;;)
+      int num_threads;
+#ifdef USE_OPENMP
+      num_threads = omp_get_num_procs();
+#else
+      num_threads = static_cast<int>(std::thread::hardware_concurrency());
+#endif
+      ddjvu_message_t *msg;
+      for(int i = 0; i <= num_threads * 2; i++)
         {
-          while((msg = ddjvu_message_peek(ctx.get())))
-            {
-              if(doc.get() == msg->m_any.document)
-                {
-                  found = true;
-                  switch(msg->m_any.tag)
-                    {
-                    case DDJVU_ERROR:
-                      {
-                        if(msg->m_error.message)
-                          {
-                            std::cout
-                                << "DJVUParser error: " << msg->m_error.message
-                                << std::endl;
-                          }
-                        result = false;
-                        break;
-                      }
-                    default:
-                      {
-                        break;
-                      }
-                    }
-                  ddjvu_message_pop(ctx.get());
-                }
-            }
-          if(found)
+          msg = ddjvu_message_wait(ctx.get());
+          if(msg->m_any.document == doc.get())
             {
               break;
             }
           else
             {
-              std::chrono::microseconds mcrs(10000);
+              std::chrono::milliseconds msc(5);
 #ifdef USE_OPENMP
-              usleep(mcrs.count());
+              usleep(std::chrono::duration_cast<std::chrono::microseconds>(msc)
+                         .count());
 #else
-              std::this_thread::sleep_for(mcrs);
+              std::this_thread::sleep_for(msc);
 #endif
             }
         }
-    }
-  else
-    {
-      while((msg = ddjvu_message_peek(ctx.get())))
+      if(msg)
         {
-          if(doc.get() == msg->m_any.document)
+          if(msg->m_any.document != doc.get())
             {
-              switch(msg->m_any.tag)
-                {
-                case DDJVU_ERROR:
-                  {
-                    if(msg->m_error.message)
-                      {
-                        std::cout
-                            << "DJVUParser error: " << msg->m_error.message
-                            << std::endl;
-                      }
-                    result = false;
-                    break;
-                  }
-                default:
-                  {
-                    break;
-                  }
-                }
-              ddjvu_message_pop(ctx.get());
+              throw MLException("DJVUParser::handleDJVUmsgs: no messages");
+            }
+        }
+      else
+        {
+          if(msg->m_any.document != doc.get())
+            {
+              throw MLException("DJVUParser::handleDJVUmsgs: no messages");
             }
         }
     }
-  return result;
+
+  for(ddjvu_message_t *msg = ddjvu_message_peek(ctx.get()); msg;
+      msg = ddjvu_message_peek(ctx.get()))
+    {
+      if(msg->m_any.document == doc.get())
+        {
+          switch(msg->m_any.tag)
+            {
+            case DDJVU_ERROR:
+              {
+                throw MLException(msg->m_error.message);
+                break;
+              }
+            case DDJVU_INFO:
+              {
+                std::cout << "DJVUParser::handleDJVUmsgs: "
+                          << msg->m_info.message << std::endl;
+                break;
+              }
+            case DDJVU_NEWSTREAM:
+              {
+                std::fstream f;
+                f.open(djvu_file_path,
+                       std::ios_base::in | std::ios_base::binary);
+                if(f.is_open())
+                  {
+                    std::string str;
+                    f.seekg(0, std::ios_base::end);
+                    str.resize(f.tellg());
+                    f.seekg(0, std::ios_base::beg);
+                    f.read(str.data(), str.size());
+                    f.close();
+
+                    ddjvu_stream_write(doc.get(), msg->m_newstream.streamid,
+                                       str.c_str(),
+                                       static_cast<unsigned long>(str.size()));
+                    ddjvu_stream_close(doc.get(), msg->m_newstream.streamid,
+                                       false);
+                  }
+                else
+                  {
+                    throw MLException(
+                        std::string(
+                            "DJVUParser::handleDJVUmsgs: cannot open file ")
+                        + djvu_file_path.string());
+                  }
+                break;
+              }
+            case DDJVU_DOCINFO:
+            case DDJVU_PAGEINFO:
+            case DDJVU_RELAYOUT:
+            case DDJVU_REDISPLAY:
+            case DDJVU_CHUNK:
+            case DDJVU_THUMBNAIL:
+            case DDJVU_PROGRESS:
+            default:
+              break;
+            }
+          ddjvu_message_pop(ctx.get());
+        }
+    }
 }
 
 void

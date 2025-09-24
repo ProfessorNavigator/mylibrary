@@ -20,6 +20,7 @@
 #include <AuxFunc.h>
 #include <BookParseEntry.h>
 #include <LibArchive.h>
+#include <SelfRemovingPath.h>
 #include <archive.h>
 #include <filesystem>
 #include <memory>
@@ -95,7 +96,7 @@ private:
   std::vector<ARCHParser *> archp_obj;
 
 #ifndef USE_OPENMP
-  std::mutex archp_obj_mtx;  
+  std::mutex archp_obj_mtx;
   std::atomic<bool> cancel;
 
   bool extra_run = false;

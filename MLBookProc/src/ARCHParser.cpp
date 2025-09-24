@@ -22,7 +22,6 @@
 #include <MLException.h>
 #include <ODTParser.h>
 #include <PDFParser.h>
-#include <SelfRemovingPath.h>
 #include <TXTParser.h>
 #include <algorithm>
 #include <archive_entry.h>
@@ -442,10 +441,10 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
           ullock.unlock();
 
           std::thread parse_thr([this, out, srp, book_date, ch_p] {
-            DJVUParser djvu(af);
-            BookParseEntry bpe;
             try
               {
+                DJVUParser djvu(af);
+                BookParseEntry bpe;
                 bpe = djvu.djvu_parser(out);
                 bpe.book_date = book_date;
                 bpe.book_path = ch_p.u8string();
@@ -848,6 +847,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   std::cout << "ARCHParser::unpack_entry error " << arch_path
                             << " " << ch_p << " " << er.what() << std::endl;
                 }
+
               std::filesystem::remove_all(temp);
               omp_fulfill_event(event);
             }
