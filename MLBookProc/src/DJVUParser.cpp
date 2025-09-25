@@ -65,7 +65,6 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
           try
             {
               handleDJVUmsgs(context, doc, true);
-              handleDJVUmsgs(context, doc, true);
             }
           catch(MLException &mle)
             {
@@ -222,7 +221,6 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
         {
           try
             {
-              handleDJVUmsgs(context, doc, true);
               handleDJVUmsgs(context, doc, true);
             }
           catch(MLException &mle)
