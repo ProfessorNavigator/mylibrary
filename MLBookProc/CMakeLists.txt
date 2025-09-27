@@ -9,7 +9,6 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
 option(CREATE_HTML_DOCS_MLBOOKPROC "Build html documentation for MLBookProc" OFF)
 option(CREATE_PDF_DOCS_MLBOOKPROC "Build pdf documentation for MLBookProc" OFF)
-option(RUN_TESTS "Run tests" ON)
 
 find_package(PkgConfig REQUIRED)
 
@@ -28,10 +27,9 @@ pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 if(USE_OPENMP)
   try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/MLBookProc/omp_test" "${PROJECT_SOURCE_DIR}/omp_test" OmpTest)
   if(OMP_TEST)
-    if(RUN_TESTS)
-      include(CTest)
-      add_test(NAME OpenMPTest COMMAND omp_test WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test")
-    endif()
+    include(CTest)
+    add_subdirectory("${PROJECT_SOURCE_DIR}/omp_test")
+    add_test(NAME OpenMPTest COMMAND omp_test WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test")
     find_package(OpenMP REQUIRED)
     option(USE_GPUOFFLOADING "Build with GPU offloading support" OFF)
     message(STATUS "OpenMP features are supported, ${PROJECT_NAME} will be built with OpenMP support")
@@ -65,10 +63,11 @@ else()
 endif()
 
 if(NOT USE_OPENMP)
-  if(EXEC_TEST AND RUN_TESTS)
+  if(EXEC_TEST)
     include(CTest)
-      add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
-        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
+    add_subdirectory("${PROJECT_SOURCE_DIR}/stdexecution_test")
+    add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
     )
   endif()
 endif()
@@ -82,10 +81,9 @@ if(USE_OPENMP AND USE_GPUOFFLOADING)
   if(OMP_TEST_OFFLOADING)
     message(STATUS "OpenMP GPU offloading features are supported, ${PROJECT_NAME} will be built with OpenMP GPU offloading support"
     )
-    if(RUN_TESTS)
-      add_test(NAME OpenMPOffloadingTest COMMAND omp_test_offloading
-        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading")
-    endif()
+  add_subdirectory("${PROJECT_SOURCE_DIR}/omp_test_offloading")
+  add_test(NAME OpenMPOffloadingTest COMMAND omp_test_offloading
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading")
   else()
     message(WARNING "Compiler does not support some OpenMP GPU offloading features. ${PROJECT_NAME} will be built without OpenMP GPU offloading support."
     )

@@ -36,7 +36,7 @@ if(USE_PLUGINS)
     endif()
 endif()
 
-if(RUN_TESTS)
+if(BUILD_TESTING)
     include(CTest)
 endif()
 
