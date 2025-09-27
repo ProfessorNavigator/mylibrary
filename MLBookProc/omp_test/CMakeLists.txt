@@ -9,8 +9,10 @@ find_package(OpenMP REQUIRED)
 
 add_executable(omp_test main.cpp)
 
-if(OpenMP_FOUND)
-    target_include_directories(omp_test PRIVATE ${OpenMP_CXX_INCLUDE_DIRS})
-    target_compile_options(omp_test PRIVATE ${OpenMP_CXX_FLAGS})
-    target_link_libraries(omp_test PRIVATE ${OpenMP_CXX_LIBRARIES})
-endif()
+target_link_libraries(omp_test
+    PRIVATE OpenMP::OpenMP_CXX
+)
+
+target_link_options(omp_test
+    PRIVATE ${OpenMP_CXX_FLAGS}
+)

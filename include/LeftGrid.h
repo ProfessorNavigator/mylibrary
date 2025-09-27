@@ -22,7 +22,9 @@
 #include <BookBaseEntry.h>
 #include <Genre.h>
 #include <NotesKeeper.h>
+#include <atomic>
 #include <functional>
+#include <glibmm-2.68/glibmm/dispatcher.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
@@ -34,6 +36,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+#ifndef USE_OPENMP
+#include <thread>
+#endif
 
 class LeftGrid
 {
@@ -144,6 +150,15 @@ private:
   Genre selected_genre;
 
   double coef_coincedence = 0.7;
+
+#ifdef USE_OPENMP
+  size_t total_books_num = 0;
+#else
+  std::atomic<size_t> total_books_num;
+  std::shared_ptr<std::thread> load_collection_thr;
+#endif
+  Glib::Dispatcher *total_books_num_disp = nullptr;
+  Glib::Dispatcher *total_books_num_load_disp = nullptr;
 };
 
 #endif // LEFTGRID_H

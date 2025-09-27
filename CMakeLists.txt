@@ -36,6 +36,10 @@ if(USE_PLUGINS)
     endif()
 endif()
 
+if(RUN_TESTS)
+    include(CTest)
+endif()
+
 target_include_directories(mylibrary
     PRIVATE MLBookProc/include    
     PRIVATE include

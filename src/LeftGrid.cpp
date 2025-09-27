@@ -47,12 +47,25 @@ LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
   this->main_window = main_window;
   this->notes = notes;
   base_keeper = new BaseKeeper(af);
+  total_books_num_disp = new Glib::Dispatcher;
+  total_books_num_load_disp = new Glib::Dispatcher;
+#ifndef USE_OPENMP
+  total_books_num.store(0);
+#endif
   readCoefCoincedence();
 }
 
 LeftGrid::~LeftGrid()
 {
   delete base_keeper;
+
+#ifdef USE_OPENMP
+#pragma omp taskwait
+#else
+  load_collection_thr.reset();
+#endif
+  delete total_books_num_disp;
+  delete total_books_num_load_disp;
 }
 
 Gtk::Grid *
@@ -73,11 +86,62 @@ LeftGrid::createGrid()
   grid->attach(*lab, 0, row, 1, 1);
   row++;
 
+  Gtk::Grid *col_grid = Gtk::make_managed<Gtk::Grid>();
+  col_grid->set_halign(Gtk::Align::FILL);
+  col_grid->set_hexpand(true);
+  grid->attach(*col_grid, 0, row, 1, 1);
+  row++;
+
   collection_select = Gtk::make_managed<Gtk::DropDown>();
   collection_select->set_halign(Gtk::Align::CENTER);
+  collection_select->set_hexpand(true);
   collection_select->set_margin(5);
   collection_select->set_name("comboBox");
-  grid->attach(*collection_select, 0, row, 1, 1);
+  col_grid->attach(*collection_select, 0, 0, 2, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_halign(Gtk::Align::END);
+  lab->set_margin(5);
+  lab->set_text(gettext("Books quantity:"));
+  lab->set_name("windowLabel");
+  col_grid->attach(*lab, 0, 1, 1, 1);
+
+  Gtk::Label *total_books_num_lab = Gtk::make_managed<Gtk::Label>();
+  total_books_num_lab->set_halign(Gtk::Align::START);
+  total_books_num_lab->set_margin(5);
+  total_books_num_lab->set_use_markup(true);
+  total_books_num_lab->set_text("0");
+  total_books_num_lab->set_name("windowLabel");
+  col_grid->attach(*total_books_num_lab, 1, 1, 1, 1);
+
+  total_books_num_disp->connect([this, total_books_num_lab] {
+#ifdef USE_OPENMP
+    size_t total;
+#pragma omp atomic read
+    total = total_books_num;
+    std::stringstream strm;
+    strm.imbue(std::locale("C"));
+    strm << total;
+    total_books_num_lab->set_text(Glib::ustring(strm.str()));
+#else
+    std::stringstream strm;
+    strm.imbue(std::locale("C"));
+    strm << total_books_num.load();
+    total_books_num_lab->set_text(Glib::ustring(strm.str()));
+#endif
+  });
+
+  total_books_num_load_disp->connect([total_books_num_lab] {
+    total_books_num_lab->set_markup(Glib::ustring("<i>") + gettext("loading")
+                                    + "</i>");
+  });
+
+  Gtk::Separator *sep
+      = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::HORIZONTAL);
+  sep->set_margin(5);
+  sep->set_halign(Gtk::Align::FILL);
+  sep->set_hexpand(true);
+  grid->attach(*sep, 0, row, 1, 1);
   row++;
 
   Glib::RefPtr<Gtk::StringList> list = createCollectionsList();
@@ -484,23 +548,44 @@ LeftGrid::saveActiveCollection()
 void
 LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
 {
-
   if(selected)
     {
       std::string col(selected->get_string());
 #ifndef USE_OPENMP
-      std::thread thr([this, col] {
-        try
-          {
-            base_keeper->loadCollection(col);
-          }
-        catch(MLException &e)
-          {
-            std::cout << e.what() << std::endl;
-          }
-      });
-      thr.detach();
+      if(load_collection_thr)
+        {
+          if(load_collection_thr->joinable())
+            {
+              load_collection_thr->join();
+            }
+        }
+      total_books_num.store(0);
+      total_books_num_load_disp->emit();
+
+      load_collection_thr = std::shared_ptr<std::thread>(
+          new std::thread([this, col] {
+            try
+              {
+                base_keeper->loadCollection(col);
+                total_books_num.store(base_keeper->getBookQuantity());
+                total_books_num_disp->emit();
+              }
+            catch(MLException &e)
+              {
+                std::cout << e.what() << std::endl;
+              }
+          }),
+          [](std::thread *thr) {
+            if(thr->joinable())
+              {
+                thr->join();
+              }
+            delete thr;
+          });
 #else
+#pragma omp atomic write
+      total_books_num = 0;
+      total_books_num_load_disp->emit();
 #pragma omp masked
       {
         omp_event_handle_t event;
@@ -509,6 +594,9 @@ LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
           try
             {
               base_keeper->loadCollection(col);
+#pragma omp atomic write
+              total_books_num = base_keeper->getBookQuantity();
+              total_books_num_disp->emit();
             }
           catch(MLException &e)
             {
@@ -602,19 +690,42 @@ LeftGrid::reloadCollection(const std::string &col_name)
         {
           base_keeper->clearBase();
 #ifndef USE_OPENMP
-          std::thread thr([this, col_name] {
-            try
-              {
-                base_keeper->loadCollection(col_name);
-              }
-            catch(MLException &e)
-              {
-                std::cout << "LeftGrid::reloadCollection: " << e.what()
-                          << std::endl;
-              }
-          });
-          thr.detach();
+          if(load_collection_thr)
+            {
+              if(load_collection_thr->joinable())
+                {
+                  load_collection_thr->join();
+                }
+            }
+
+          total_books_num.store(0);
+          total_books_num_load_disp->emit();
+
+          load_collection_thr = std::shared_ptr<std::thread>(
+              new std::thread([this, col_name] {
+                try
+                  {
+                    base_keeper->loadCollection(col_name);
+                    total_books_num.store(base_keeper->getBookQuantity());
+                    total_books_num_disp->emit();
+                  }
+                catch(MLException &e)
+                  {
+                    std::cout << "LeftGrid::reloadCollection: " << e.what()
+                              << std::endl;
+                  }
+              }),
+              [](std::thread *thr) {
+                if(thr->joinable())
+                  {
+                    thr->join();
+                  }
+                delete thr;
+              });
 #else
+#pragma atomic write
+          total_books_num = 0;
+          total_books_num_load_disp->emit();
 #pragma omp masked
           {
             omp_event_handle_t event;
@@ -623,6 +734,9 @@ LeftGrid::reloadCollection(const std::string &col_name)
               try
                 {
                   base_keeper->loadCollection(col_name);
+#pragma omp atomic write
+                  total_books_num = base_keeper->getBookQuantity();
+                  total_books_num_disp->emit();
                 }
               catch(MLException &e)
                 {

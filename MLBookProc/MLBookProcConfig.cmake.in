@@ -4,7 +4,6 @@ include(CMakeFindDependencyMacro)
 
 find_package(Threads QUIET)
 find_package(TBB QUIET)
-find_package(OpenMP QUIET)
 find_dependency(PkgConfig)
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 pkg_check_modules(POPPLER REQUIRED IMPORTED_TARGET poppler-cpp)

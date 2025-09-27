@@ -9,6 +9,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
 option(CREATE_HTML_DOCS_MLBOOKPROC "Build html documentation for MLBookProc" OFF)
 option(CREATE_PDF_DOCS_MLBOOKPROC "Build pdf documentation for MLBookProc" OFF)
+option(RUN_TESTS "Run tests" ON)
 
 find_package(PkgConfig REQUIRED)
 
@@ -27,11 +28,18 @@ pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 if(USE_OPENMP)
   try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/MLBookProc/omp_test" "${PROJECT_SOURCE_DIR}/omp_test" OmpTest)
   if(OMP_TEST)
+    if(RUN_TESTS)
+      include(CTest)
+      add_test(NAME OpenMPTest COMMAND omp_test WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test")
+    endif()
     find_package(OpenMP REQUIRED)
+    option(USE_GPUOFFLOADING "Build with GPU offloading support" OFF)
     message(STATUS "OpenMP features are supported, ${PROJECT_NAME} will be built with OpenMP support")
   else()
     set(USE_OPENMP OFF)
-    try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test" "${PROJECT_SOURCE_DIR}/stdexecution_test" ExecTest)
+    try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
+      "${PROJECT_SOURCE_DIR}/stdexecution_test" ExecTest
+    )
     if(EXEC_TEST)
       message(STATUS "${PROJECT_NAME} C++ parallel execution features are supported")
       find_package(TBB QUIET)
@@ -40,7 +48,9 @@ if(USE_OPENMP)
     endif()
     find_package(Threads QUIET)
     find_library(ATOMIC atomic)
-    message(WARNING "Compiler does not support some OpenMP features. ${PROJECT_NAME} will be built without OpenMP support.")
+    message(WARNING "Compiler does not support some OpenMP features.
+      ${PROJECT_NAME} will be built without OpenMP support."
+    )
   endif()
 else()
   try_compile(EXEC_TEST "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test" "${PROJECT_SOURCE_DIR}/stdexecution_test" ExecTest)
@@ -52,6 +62,35 @@ else()
   endif()
   find_package(Threads QUIET)
   find_library(ATOMIC atomic)
+endif()
+
+if(NOT USE_OPENMP)
+  if(EXEC_TEST AND RUN_TESTS)
+    include(CTest)
+      add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
+    )
+  endif()
+endif()
+
+if(USE_OPENMP AND USE_GPUOFFLOADING)
+  try_compile(OMP_TEST_OFFLOADING
+    "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading"
+    "${PROJECT_SOURCE_DIR}/omp_test_offloading"
+    OmpTestOffloading
+  )
+  if(OMP_TEST_OFFLOADING)
+    message(STATUS "OpenMP GPU offloading features are supported, ${PROJECT_NAME} will be built with OpenMP GPU offloading support"
+    )
+    if(RUN_TESTS)
+      add_test(NAME OpenMPOffloadingTest COMMAND omp_test_offloading
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading")
+    endif()
+  else()
+    message(WARNING "Compiler does not support some OpenMP GPU offloading features. ${PROJECT_NAME} will be built without OpenMP GPU offloading support."
+    )
+    set(USE_GPUOFFLOADING OFF)
+  endif()
 endif()
 
 if(CREATE_HTML_DOCS_MLBOOKPROC OR CREATE_PDF_DOCS_MLBOOKPROC)
@@ -98,10 +137,19 @@ target_link_libraries(mlbookproc
 if(USE_OPENMP)
   target_compile_options(mlbookproc
     PUBLIC -DUSE_OPENMP
-  )
+  ) 
   target_link_libraries(mlbookproc
     PUBLIC OpenMP::OpenMP_CXX
   )
+
+  target_link_options(mlbookproc
+    PUBLIC ${OpenMP_CXX_FLAGS}
+  )
+  if(USE_GPUOFFLOADING)
+    target_compile_options(mlbookproc
+      PUBLIC -DUSE_GPUOFFLOADING
+    )
+  endif()
 else()
   if(ATOMIC)
     target_link_libraries(mlbookproc
@@ -211,4 +259,3 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 )
-

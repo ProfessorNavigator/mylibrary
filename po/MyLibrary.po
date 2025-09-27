@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2025-09-21 15:23+0400\n"
-"PO-Revision-Date: 2025-09-21 15:25+0400\n"
+"POT-Creation-Date: 2025-09-26 22:44+0400\n"
+"PO-Revision-Date: 2025-09-26 22:45+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -273,11 +273,11 @@ msgid "Book info"
 msgstr "Информация о книге"
 
 #: BookInfoGui.cpp:318 BookMarksGui.cpp:172 BookMarksShow.cpp:360
-#: LeftGrid.cpp:202 RightGrid.cpp:205 SearchResultShow.cpp:434
+#: LeftGrid.cpp:266 RightGrid.cpp:205 SearchResultShow.cpp:434
 msgid "Book"
 msgstr "Книга"
 
-#: BookInfoGui.cpp:328 BookInfoGui.cpp:651 EditBookGui.cpp:444 LeftGrid.cpp:210
+#: BookInfoGui.cpp:328 BookInfoGui.cpp:651 EditBookGui.cpp:444 LeftGrid.cpp:274
 msgid "Book name:"
 msgstr "Название книги:"
 
@@ -289,7 +289,7 @@ msgstr "Автор(ы):"
 msgid "Genre(s):"
 msgstr "Жанр(ы):"
 
-#: BookInfoGui.cpp:399 EditBookGui.cpp:480 LeftGrid.cpp:227
+#: BookInfoGui.cpp:399 EditBookGui.cpp:480 LeftGrid.cpp:291
 msgid "Series:"
 msgstr "Серия:"
 
@@ -385,12 +385,12 @@ msgstr "Операции с закладками"
 msgid "Filtering:"
 msgstr "Фильтр:"
 
-#: BookMarksGui.cpp:170 BookMarksShow.cpp:304 LeftGrid.cpp:71
+#: BookMarksGui.cpp:170 BookMarksShow.cpp:304 LeftGrid.cpp:84
 #: RemoveCollectionGui.cpp:62
 msgid "Collection"
 msgstr "Коллекция"
 
-#: BookMarksGui.cpp:171 BookMarksShow.cpp:332 LeftGrid.cpp:139
+#: BookMarksGui.cpp:171 BookMarksShow.cpp:332 LeftGrid.cpp:203
 #: RightGrid.cpp:204 SearchResultShow.cpp:398 SearchResultShow.cpp:749
 msgid "Author"
 msgstr "Автор"
@@ -572,7 +572,7 @@ msgstr "Удалить жанр"
 msgid "Author:"
 msgstr "Автор:"
 
-#: EditBookGui.cpp:498 LeftGrid.cpp:244
+#: EditBookGui.cpp:498 LeftGrid.cpp:308
 msgid "Genre:"
 msgstr "Жанр:"
 
@@ -704,44 +704,52 @@ msgstr "Ошибка! Неверный файл базы (2)!"
 msgid "Collection has been successfully imported."
 msgstr "Коллекция успешно импортирована."
 
-#: LeftGrid.cpp:147
+#: LeftGrid.cpp:105
+msgid "Books quantity:"
+msgstr "Количество книг:"
+
+#: LeftGrid.cpp:135
+msgid "loading"
+msgstr "загрузка"
+
+#: LeftGrid.cpp:211
 msgid "Surname:"
 msgstr "Фамилия:"
 
-#: LeftGrid.cpp:164
+#: LeftGrid.cpp:228
 msgid "Name:"
 msgstr "Имя:"
 
-#: LeftGrid.cpp:181
+#: LeftGrid.cpp:245
 msgid "Second name:"
 msgstr "Отчество:"
 
-#: LeftGrid.cpp:263 LeftGrid.cpp:275 LeftGrid.cpp:414
+#: LeftGrid.cpp:327 LeftGrid.cpp:339 LeftGrid.cpp:478
 msgid "<No>"
 msgstr "<Нет>"
 
-#: LeftGrid.cpp:272
+#: LeftGrid.cpp:336
 msgid "Clear genre"
 msgstr "Очистить жанр"
 
-#: LeftGrid.cpp:339 SearchProcessGui.cpp:42 SearchProcessGui.cpp:94
+#: LeftGrid.cpp:403 SearchProcessGui.cpp:42 SearchProcessGui.cpp:94
 #: SearchProcessGui.cpp:184
 msgid "Search"
 msgstr "Поиск"
 
-#: LeftGrid.cpp:349
+#: LeftGrid.cpp:413
 msgid "Clear"
 msgstr "Очистить"
 
-#: LeftGrid.cpp:363
+#: LeftGrid.cpp:427
 msgid "Show collection files"
 msgstr "Показать файлы коллекции"
 
-#: LeftGrid.cpp:372
+#: LeftGrid.cpp:436
 msgid "Show collection authors"
 msgstr "Показать авторов коллекции"
 
-#: LeftGrid.cpp:381
+#: LeftGrid.cpp:445
 msgid "Show books with notes"
 msgstr "Показать книги с заметками"
 

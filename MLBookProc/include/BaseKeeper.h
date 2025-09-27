@@ -131,12 +131,23 @@ public:
                  const std::shared_ptr<AuxFunc> &af);
 
   /*!
+   * \brief Returns total quantity of books in loaded collection.
+   *
+   * \note If this method is called during collection loading, it will
+   * block calling thread execution until collection is loaded.
+   *
+   * \return Total books quantity in loaded collection.
+   */
+  size_t
+  getBookQuantity();
+
+  /*!
    * \brief collectionAuthors() progress callback
    *
    * collectionAuthors() method execution can take some time. This callback
    * indicates progress.
    * \a progr is current progress in conventional units. \a sz is total
-   * conventional units to be processed.
+   * quantity of conventional units to be processed.
    */
   std::function<void(const double &progr, const double &sz)> auth_show_progr;
 
@@ -180,11 +191,51 @@ private:
   searchGenre(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
               const double &coef_coincidence);
 
+#ifdef USE_GPUOFFLOADING
+  bool
+  searchSurnameGPU(const BookBaseEntry &search,
+                   std::vector<BookBaseEntry> &result,
+                   const double &coef_coincidence);
+
+  bool
+  searchFirstNameGPU(const BookBaseEntry &search,
+                     std::vector<BookBaseEntry> &result,
+                     const double &coef_coincidence);
+
+  bool
+  searchLastNameGPU(const BookBaseEntry &search,
+                    std::vector<BookBaseEntry> &result,
+                    const double &coef_coincidence);
+
+  void
+  searchBookGPU(const BookBaseEntry &search,
+                std::vector<BookBaseEntry> &result,
+                const double &coef_coincidence);
+
+  void
+  searchSeriesGPU(const BookBaseEntry &search,
+                  std::vector<BookBaseEntry> &result,
+                  const double &coef_coincidence);
+
+  void
+  searchGenreGPU(const BookBaseEntry &search,
+                 std::vector<BookBaseEntry> &result,
+                 const double &coef_coincidence);
+
+#pragma omp declare target
+  bool
+  searchLineFuncGPU(const char *to_search, const size_t &to_search_size,
+                    const char *source, const size_t &source_sz,
+                    const double &coef_coincidence);
+#pragma omp end declare target
+#endif
+
   std::shared_ptr<AuxFunc> af;
 
   std::vector<FileParseEntry> base;
   std::string collection_name;
   std::filesystem::path collection_path;
+  size_t books_in_base = 0;
 #ifdef USE_OPENMP
   omp_lock_t basemtx;
   bool cancel_search;

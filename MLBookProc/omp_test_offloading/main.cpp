@@ -13,24 +13,32 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#include <algorithm>
-#include <execution>
-#include <vector>
+
+#include <cstddef>
+#include <omp.h>
 
 int
 main()
 {
-  std::vector<int> ch_v;
-  ch_v.reserve(10);
-  for(int i = 0; i < 1000; i++)
-    {
-      ch_v.push_back(i);
-    }
-  auto it = std::find(std::execution::par, ch_v.begin(), ch_v.end(), 500);
-  int result = 1;
-  if(it != ch_v.end())
-    {
-      result = 0;
-    }
+  size_t array_size = 1000;
+  int *array = new int[array_size];
+  int result = 0;
+
+#pragma omp target map(tofrom : array[0 : array_size], result)                \
+    map(to : array_size)
+  {
+    if(omp_is_initial_device())
+      {
+        result = 1;
+      }
+#pragma omp parallel
+#pragma omp for
+    for(size_t i = 0; i < array_size; i++)
+      {
+        array[i] = static_cast<int>(i + 1);
+      }
+  }
+
+  delete[] array;
   return result;
 }

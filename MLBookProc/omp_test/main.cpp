@@ -13,12 +13,12 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#include <iostream>
 #include <omp.h>
 
 int
 main()
 {
+  int result = 1;
 #pragma omp parallel
   {
 #pragma omp masked
@@ -26,11 +26,11 @@ main()
       omp_event_handle_t event;
 #pragma omp task detach(event)
       {
-        std::cout << "OpenMP task detach test" << std::endl;
+        result = 0;
         omp_fulfill_event(event);
       }
     }
   }
 
-  return 0;
+  return result;
 }
