@@ -15,3 +15,5 @@ target_link_libraries(omp_test_offloading
 target_link_options(omp_test_offloading
     PRIVATE ${OpenMP_CXX_FLAGS}
 )
+
+

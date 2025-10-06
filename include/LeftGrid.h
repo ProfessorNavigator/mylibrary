@@ -35,11 +35,8 @@
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <memory>
 #include <string>
-#include <vector>
-
-#ifndef USE_OPENMP
 #include <thread>
-#endif
+#include <vector>
 
 class LeftGrid
 {
@@ -131,7 +128,7 @@ private:
   formGenreExpanderGrid(const std::vector<Genre> &genre, Gtk::Popover *pop);
 
   void
-  readCoefCoincedence();
+  readSearchSettings();
 
   std::shared_ptr<AuxFunc> af;
   Gtk::Window *main_window = nullptr;
@@ -151,12 +148,8 @@ private:
 
   double coef_coincedence = 0.7;
 
-#ifdef USE_OPENMP
-  size_t total_books_num = 0;
-#else
   std::atomic<size_t> total_books_num;
   std::shared_ptr<std::thread> load_collection_thr;
-#endif
   Glib::Dispatcher *total_books_num_disp = nullptr;
   Glib::Dispatcher *total_books_num_load_disp = nullptr;
 };

@@ -20,6 +20,7 @@
 #include <Genre.h>
 #include <GenreGroup.h>
 #include <MLException.h>
+#include <atomic>
 #include <filesystem>
 #include <gcrypt.h>
 #include <libdjvu/ddjvuapi.h>
@@ -447,17 +448,24 @@ public:
   parallelRemove(InputIt start, InputIt end, const T &val)
   {
     start = parallelFind(start, end, val);
-    const T *val_ptr = &val;
     if(start != end)
       {
-        for(InputIt i = start + 1; i != end; i++)
+        T *s = start.base();
+        T *e = end.base();
+#pragma omp parallel
+#pragma omp for ordered
+        for(T *i = s + 1; i != e; i++)
           {
-            if(*i != *val_ptr)
+            if((*i) != val)
               {
-                *start = std::move(*i);
-                start++;
+#pragma omp ordered
+                {
+                  *s = std::move((*i));
+                  s++;
+                }
               }
           }
+        start = InputIt(s);
       }
     return start;
   }
@@ -477,21 +485,30 @@ public:
    * end, then it points to an unspecified value, and so do iterators to any
    * values between this iterator and end).
    */
-  template <class InputIt, class UnaryPred>
+  template <class InputIt, class UnaryPred,
+            class T = typename std::iterator_traits<InputIt>::value_type>
   static InputIt
   parallelRemoveIf(InputIt start, InputIt end, UnaryPred predicate)
   {
     start = parallelFindIf(start, end, predicate);
     if(start != end)
       {
-        for(InputIt i = start + 1; i != end; i++)
+        T *s = start.base();
+        T *e = end.base();
+#pragma omp parallel
+#pragma omp for ordered
+        for(T *i = s + 1; i != e; i++)
           {
-            if(!predicate(*i))
+            if(!predicate((*i)))
               {
-                *start = std::move(*i);
-                start++;
+#pragma omp ordered
+                {
+                  *s = std::move((*i));
+                  s++;
+                }
               }
           }
+        start = InputIt(s);
       }
     return start;
   }
@@ -508,13 +525,29 @@ public:
   static std::shared_ptr<AuxFunc>
   create();
 
+  // TODO correct docs
   /*!
    * \brief Returns smart pointer to djvu context object.
    *
    * \return Smart pointer to djvu context object.
    */
-  std::shared_ptr<ddjvu_context_t>
+  std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>>
   getDJVUContext();
+
+#ifdef USE_GPUOFFLOADING
+  // TODO docs
+  void
+  setCpuGpuBalance(const double &balance_authors,
+                   const double &balance_search);
+
+  // TODO docs
+  double
+  getCpuGpuBalanceAuthors();
+
+  // TODO docs
+  double
+  getCpuGpuBalanceSearch();
+#endif
 
 private:
   AuxFunc();
@@ -524,6 +557,9 @@ private:
 
   std::vector<GenreGroup>
   read_genre_groups(const bool &wrong_loc, const std::string &locname);
+
+  static void
+  djvuMessageCallback(ddjvu_context_t *context, void *closure);
 
   bool activated = true;
 
@@ -535,6 +571,12 @@ private:
   omp_lock_t djvu_context_mtx;
 #else
   std::mutex djvu_context_mtx;
+#endif
+  std::vector<std::weak_ptr<int>> djvu_pipes;
+
+#ifdef USE_GPUOFFLOADING
+  std::atomic<double> cpu_gpu_balance_authors = 0.95;
+  std::atomic<double> cpu_gpu_balance_search = 0.5;
 #endif
 };
 

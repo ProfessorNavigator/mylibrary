@@ -18,7 +18,6 @@
 
 BookBaseEntry::BookBaseEntry()
 {
-
 }
 
 BookBaseEntry::BookBaseEntry(const BookBaseEntry &other)
@@ -27,8 +26,8 @@ BookBaseEntry::BookBaseEntry(const BookBaseEntry &other)
   bpe = other.bpe;
 }
 
-BookBaseEntry&
-BookBaseEntry::operator =(const BookBaseEntry &other)
+BookBaseEntry &
+BookBaseEntry::operator=(const BookBaseEntry &other)
 {
   if(this != &other)
     {
@@ -44,8 +43,8 @@ BookBaseEntry::BookBaseEntry(BookBaseEntry &&other)
   bpe = std::move(other.bpe);
 }
 
-BookBaseEntry&
-BookBaseEntry::operator =(BookBaseEntry &&other)
+BookBaseEntry &
+BookBaseEntry::operator=(BookBaseEntry &&other)
 {
   if(this != &other)
     {
@@ -55,16 +54,15 @@ BookBaseEntry::operator =(BookBaseEntry &&other)
   return *this;
 }
 
-BookBaseEntry::BookBaseEntry(
-    const BookParseEntry &bpe,
-    const std::filesystem::path &book_file_path)
+BookBaseEntry::BookBaseEntry(const BookParseEntry &bpe,
+                             const std::filesystem::path &book_file_path)
 {
   file_path = book_file_path;
   this->bpe = bpe;
 }
 
 bool
-BookBaseEntry::operator ==(const BookBaseEntry &other)
+BookBaseEntry::operator==(const BookBaseEntry &other)
 {
   if(file_path == other.file_path && bpe == other.bpe)
     {

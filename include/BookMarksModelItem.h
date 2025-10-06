@@ -19,19 +19,12 @@
 #include <BookBaseEntry.h>
 #include <glibmm-2.68/glibmm/object.h>
 #include <gtkmm-4.0/gtkmm/label.h>
-#include <vector>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
+#include <vector>
 
 class BookMarksModelItem : public Glib::Object
 {
 public:
-  virtual ~BookMarksModelItem();
-
   static Glib::RefPtr<BookMarksModelItem>
   create(const std::string &coll_name, const BookBaseEntry &bbe);
 
@@ -53,11 +46,7 @@ protected:
   BookMarksModelItem(const std::string &coll_name, const BookBaseEntry &bbe);
 
   std::vector<Gtk::Label *> labels;
-#ifndef USE_OPENMP
   std::mutex labels_mtx;
-#else
-  omp_lock_t labels_mtx;
-#endif
 };
 
 #endif // BOOKMARKSMODELITEM_H

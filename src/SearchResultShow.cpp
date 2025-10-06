@@ -30,13 +30,7 @@
 #include <gtkmm-4.0/gtkmm/stringfilter.h>
 #include <gtkmm-4.0/gtkmm/stringsorter.h>
 #include <libintl.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#include <unistd.h>
-#else
 #include <thread>
-#endif
 
 SearchResultShow::SearchResultShow(const std::shared_ptr<AuxFunc> &af,
                                    Gtk::ColumnView *search_res)
@@ -233,24 +227,11 @@ SearchResultShow::searchResultShow(const std::vector<BookBaseEntry> &result)
       mc->iteration(true);
     }
 
-#ifndef USE_OPENMP
   std::thread thr([this] {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      usleep(50000);
-      disp_adjust->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void
@@ -301,24 +282,11 @@ SearchResultShow::searchResultShow(const std::vector<FileParseEntry> &result)
       mc->iteration(true);
     }
 
-#ifndef USE_OPENMP
   std::thread thr([this] {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      usleep(50000);
-      disp_adjust->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void
@@ -369,24 +337,11 @@ SearchResultShow::searchResultShow(const std::vector<std::string> &result)
       mc->iteration(true);
     }
 
-#ifndef USE_OPENMP
   std::thread thr([this] {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     disp_adjust->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      usleep(50000);
-      disp_adjust->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void

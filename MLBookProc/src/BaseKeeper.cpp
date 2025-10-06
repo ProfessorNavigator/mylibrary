@@ -19,9 +19,12 @@
 #include <ByteOrder.h>
 #include <MLException.h>
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <thread>
 
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
@@ -46,18 +49,33 @@ BaseKeeper::BaseKeeper(const std::shared_ptr<AuxFunc> &af)
 BaseKeeper::~BaseKeeper()
 {
 #ifdef USE_OPENMP
-#pragma omp taskwait
+  omp_set_lock(&basemtx);
+  omp_unset_lock(&basemtx);
   omp_destroy_lock(&basemtx);
+#ifdef USE_GPUOFFLOADING
+  unloadBaseFromGPUMemory();
+#endif
+#else
+  std::lock_guard<std::mutex> lglock(basemtx);
 #endif
 }
 
+#ifdef USE_GPUOFFLOADING
+void
+BaseKeeper::loadCollection(const std::string &col_name,
+                           const bool &offload_to_gpu)
+#else
 void
 BaseKeeper::loadCollection(const std::string &col_name)
+#endif
 {
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lock_base(basemtx);
 #else
   OmpLockGuard lock_base(basemtx);
+#ifdef USE_GPUOFFLOADING
+  unloadBaseFromGPUMemory();
+#endif
 #endif
   base.clear();
   books_in_base = 0;
@@ -135,8 +153,16 @@ BaseKeeper::loadCollection(const std::string &col_name)
               return void();
             }
         }
-      base.shrink_to_fit();
     }
+  base.shrink_to_fit();
+#ifdef USE_OPENMP
+#ifdef USE_GPUOFFLOADING
+  if(offload_to_gpu)
+    {
+      loadBaseToGPUMemory();
+    }
+#endif
+#endif
 }
 
 FileParseEntry
@@ -524,19 +550,17 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
 std::vector<std::string>
 BaseKeeper::collectionAuthors()
 {
+#ifdef USE_GPUOFFLOADING
+  return collectionAuthorsGPU();
+#endif
   std::vector<std::string> result;
+  std::string find_str = ", ";
 #ifdef USE_OPENMP
 #pragma omp atomic write
   cancel_search = false;
   omp_set_lock(&basemtx);
-#else
-  cancel_search.store(false);
-  basemtx.lock();
-#endif
-  result.reserve(books_in_base);
-  std::string find_str = ", ";
-#ifdef USE_OPENMP
-
+  std::vector<std::string> l_result;
+  l_result.reserve(books_in_base);
 #pragma omp parallel
 #pragma omp for
   for(auto it = base.begin(); it != base.end(); it++)
@@ -550,96 +574,99 @@ BaseKeeper::collectionAuthors()
           continue;
         }
 #pragma omp parallel
-      {
 #pragma omp for
-        for(auto it_b = it->books.begin(); it_b != it->books.end(); it_b++)
-          {
-            bool c_s2;
+      for(auto it_b = it->books.begin(); it_b != it->books.end(); it_b++)
+        {
+          bool c_s2;
 #pragma omp atomic read
-            c_s2 = cancel_search;
-            if(c_s2)
-              {
+          c_s2 = cancel_search;
+          if(c_s2)
+            {
 #pragma omp cancel for
-                continue;
-              }
-            std::string::size_type n_beg = 0;
-            std::string::size_type n_end;
-            bool stop = false;
-            for(;;)
-              {
+              continue;
+            }
+          std::string::size_type n_beg = 0;
+          std::string::size_type n_end;
+          bool stop = false;
+          for(;;)
+            {
 #pragma omp atomic read
-                c_s2 = cancel_search;
-                if(c_s2)
-                  {
-                    break;
-                  }
-                n_end = it_b->book_author.find(find_str, n_beg);
-                std::string auth;
-                if(n_end != std::string::npos)
-                  {
-                    auth = it_b->book_author.substr(n_beg, n_end - n_beg);
-                  }
-                else
-                  {
-                    if(n_beg < it_b->book_author.size())
-                      {
-                        std::copy(it_b->book_author.begin() + n_beg,
-                                  it_b->book_author.end(),
-                                  std::back_inserter(auth));
-                      }
-                    else
-                      {
-                        break;
-                      }
-                    stop = true;
-                  }
-                if(!auth.empty())
-                  {
-                    while(auth.size() > 0)
-                      {
-                        char ch = *auth.begin();
-                        if(ch >= 0 && ch <= 32)
-                          {
-                            auth.erase(auth.begin());
-                          }
-                        else
-                          {
-                            break;
-                          }
-                      }
-                    while(auth.size() > 0)
-                      {
-                        char ch = *auth.rbegin();
-                        if(ch >= 0 && ch <= 32)
-                          {
-                            auth.pop_back();
-                          }
-                        else
-                          {
-                            break;
-                          }
-                      }
-#pragma omp critical
+              c_s2 = cancel_search;
+              if(c_s2)
+                {
+                  break;
+                }
+              n_end = it_b->book_author.find(find_str, n_beg);
+              std::string auth;
+              if(n_end != std::string::npos)
+                {
+                  auth = it_b->book_author.substr(n_beg, n_end - n_beg);
+                }
+              else
+                {
+                  if(n_beg < it_b->book_author.size())
                     {
-                      result.push_back(auth);
+                      std::copy(it_b->book_author.begin() + n_beg,
+                                it_b->book_author.end(),
+                                std::back_inserter(auth));
                     }
-                  }
-                n_beg = n_end + find_str.size() - 1;
-                if(stop)
+                  else
+                    {
+                      break;
+                    }
+                  stop = true;
+                }
+              if(!auth.empty())
+                {
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.begin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.erase(auth.begin());
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.rbegin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.pop_back();
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+#pragma omp critical
                   {
-                    break;
+                    l_result.emplace_back(auth);
                   }
-              }
-          }
-      }
+                }
+              n_beg = n_end + find_str.size() - 1;
+              if(stop)
+                {
+                  break;
+                }
+            }
+        }
     }
-
 #else
+  cancel_search.store(false);
+  basemtx.lock();
+  // result.reserve(books_in_base);
+  // TODO check
+  std::vector<std::string> l_result;
+  l_result.reserve(books_in_base);
 #ifdef USE_PE
   std::mutex auth_v_mtx;
   std::for_each(
       std::execution::par, base.begin(), base.end(),
-      [this, &result, find_str, &auth_v_mtx](FileParseEntry &fpe) {
+      [this, &l_result, find_str, &auth_v_mtx](FileParseEntry &fpe) {
         if(cancel_search.load())
           {
             return void();
@@ -647,7 +674,7 @@ BaseKeeper::collectionAuthors()
 
         std::for_each(
             std::execution::par, fpe.books.begin(), fpe.books.end(),
-            [this, find_str, &result, &auth_v_mtx](BookParseEntry &bpe) {
+            [this, find_str, &l_result, &auth_v_mtx](BookParseEntry &bpe) {
               if(cancel_search.load())
                 {
                   return void();
@@ -707,8 +734,9 @@ BaseKeeper::collectionAuthors()
                               break;
                             }
                         }
+                      // TODO check
                       auth_v_mtx.lock();
-                      result.push_back(auth);
+                      l_result.emplace_back(auth);
                       auth_v_mtx.unlock();
                     }
                   n_beg = n_end + find_str.size() - 1;
@@ -721,7 +749,7 @@ BaseKeeper::collectionAuthors()
       });
 #else
   std::for_each(base.begin(), base.end(),
-                [this, &result, find_str](FileParseEntry &fpe) {
+                [this, &l_result, find_str](FileParseEntry &fpe) {
                   if(cancel_search.load())
                     {
                       return void();
@@ -729,7 +757,7 @@ BaseKeeper::collectionAuthors()
 
                   std::for_each(
                       fpe.books.begin(), fpe.books.end(),
-                      [this, find_str, &result](BookParseEntry &bpe) {
+                      [this, find_str, &l_result](BookParseEntry &bpe) {
                         if(cancel_search.load())
                           {
                             return void();
@@ -790,7 +818,7 @@ BaseKeeper::collectionAuthors()
                                         break;
                                       }
                                   }
-                                result.push_back(auth);
+                                l_result.emplace_back(auth);
                               }
                             n_beg = n_end + find_str.size() - 1;
                             if(stop)
@@ -805,15 +833,51 @@ BaseKeeper::collectionAuthors()
 #endif
 #ifdef USE_OPENMP
   omp_unset_lock(&basemtx);
-  std::vector<std::string>::iterator end_it = result.end();
-  double progr;
-  double sz;
 
+  double total_sz = 0;
+  size_t l_result_sz = l_result.size();
+  std::vector<std::string *> result_ptr;
+  result_ptr.reserve(l_result_sz);
+  for(size_t i = 0; i < l_result_sz; i++)
+    {
+      result_ptr.push_back(&l_result[i]);
+      total_sz += static_cast<double>(l_result_sz - (i + 1));
+    }
+
+  std::atomic<double> progr = 0.0;
+
+  bool stop_progr = false;
+  std::mutex stop_progr_mtx;
+  std::condition_variable stop_progr_var;
+
+  std::thread progr_thr(
+      [this, &stop_progr, &stop_progr_mtx, &stop_progr_var, &progr, total_sz] {
+        if(auth_cpu_show_progr)
+          {
+            for(;;)
+              {
+                std::unique_lock<std::mutex> ullock(stop_progr_mtx);
+                stop_progr_var.wait_for(ullock, std::chrono::milliseconds(300),
+                                        [&stop_progr] {
+                                          return stop_progr;
+                                        });
+                if(stop_progr)
+                  {
+                    break;
+                  }
+                else
+                  {
+                    auth_cpu_show_progr(progr.load(std::memory_order_relaxed),
+                                        total_sz);
+                  }
+              }
+          }
+      });
+
+  result.reserve(l_result_sz);
   bool c_s = false;
-
-  int lvls = omp_get_max_active_levels();
-  omp_set_max_active_levels(1);
-  for(auto it = result.begin(); it != end_it; it++)
+  double l_progr = -static_cast<double>(l_result_sz);
+  for(size_t i = 0; i < l_result_sz; i++)
     {
 #pragma omp atomic read
       c_s = cancel_search;
@@ -821,16 +885,31 @@ BaseKeeper::collectionAuthors()
         {
           break;
         }
-      end_it = AuxFunc::parallelRemove(it + 1, end_it, *it);
-      if(auth_show_progr)
+      l_progr += static_cast<double>(l_result_sz - i);
+      progr.store(l_progr, std::memory_order_relaxed);
+      if(result_ptr[i])
         {
-          progr = static_cast<double>(std::distance(result.begin(), it));
-          sz = static_cast<double>(std::distance(result.begin(), end_it));
-          auth_show_progr(progr, sz);
+#pragma omp parallel
+#pragma omp for
+          for(size_t j = i + 1; j < l_result_sz; j++)
+            {
+              if(result_ptr[j])
+                {
+                  if(*result_ptr[j] == *result_ptr[i])
+                    {
+                      result_ptr[j] = nullptr;
+                    }
+                }
+            }
+          result.emplace_back(*result_ptr[i]);
         }
     }
-  omp_set_max_active_levels(lvls);
-  result.erase(end_it, result.end());
+
+  stop_progr_mtx.lock();
+  stop_progr = true;
+  stop_progr_var.notify_all();
+  stop_progr_mtx.unlock();
+  progr_thr.join();
 
 #pragma omp atomic read
   c_s = cancel_search;
@@ -839,33 +918,160 @@ BaseKeeper::collectionAuthors()
       result.clear();
     }
 #else
-  std::vector<std::string>::iterator end_it = result.end();
-  double progr;
-  double sz;
-  for(auto it = result.begin(); it != end_it; it++)
+  size_t l_result_sz = l_result.size();
+  double total_sz = 0.0;
+  std::vector<std::string *> result_ptr;
+  result_ptr.reserve(l_result_sz);
+  for(size_t i = 0; i < l_result_sz; i++)
+    {
+      result_ptr.push_back(&l_result[i]);
+      total_sz += static_cast<double>(l_result_sz - (i + 1));
+    }
+
+  std::atomic<double> progr = 0.0;
+
+  bool stop_progr = false;
+  std::mutex stop_progr_mtx;
+  std::condition_variable stop_progr_var;
+
+  std::thread progr_thr(
+      [this, &stop_progr, &stop_progr_mtx, &stop_progr_var, &progr, total_sz] {
+        if(auth_cpu_show_progr)
+          {
+            for(;;)
+              {
+                std::unique_lock<std::mutex> ullock(stop_progr_mtx);
+                stop_progr_var.wait_for(ullock, std::chrono::milliseconds(300),
+                                        [&stop_progr] {
+                                          return stop_progr;
+                                        });
+                if(stop_progr)
+                  {
+                    break;
+                  }
+                else
+                  {
+                    auth_cpu_show_progr(progr.load(std::memory_order_relaxed),
+                                        total_sz);
+                  }
+              }
+          }
+      });
+
+  result.reserve(l_result_sz);
+  double l_progr = -static_cast<double>(l_result_sz);
+  for(size_t i = 0; i < l_result_sz; i++)
     {
       if(cancel_search.load())
         {
           break;
         }
-#ifdef USE_PE
-      end_it = std::remove(std::execution::par, it + 1, end_it, *it);
-#else
-      end_it = std::remove(it + 1, end_it, *it);
-#endif
-      if(auth_show_progr)
+      l_progr += static_cast<double>(l_result_sz - i);
+      progr.store(l_progr, std::memory_order_relaxed);
+      if(result_ptr[i])
         {
-          progr = static_cast<double>(std::distance(result.begin(), it));
-          sz = static_cast<double>(std::distance(result.begin(), end_it));
-          auth_show_progr(progr, sz);
+          std::string val = *result_ptr[i];
+#ifdef USE_PE
+          std::for_each(std::execution::par, result_ptr.begin() + i + 1,
+                        result_ptr.end(), [val](std::string *&el) {
+                          if(el)
+                            {
+                              if(*el == val)
+                                {
+                                  el = nullptr;
+                                }
+                            }
+                        });
+#else
+          std::for_each(result_ptr.begin() + i + 1, result_ptr.end(),
+                        [val](std::string *&el) {
+                          if(el)
+                            {
+                              if(*el == val)
+                                {
+                                  el = nullptr;
+                                }
+                            }
+                        });
+#endif
+          result.emplace_back(*result_ptr[i]);
         }
     }
-  result.erase(end_it, result.end());
+
+  stop_progr_mtx.lock();
+  stop_progr = true;
+  stop_progr_var.notify_all();
+  stop_progr_mtx.unlock();
+
+  progr_thr.join();
 
   if(cancel_search.load())
     {
       result.clear();
     }
+    /*std::vector<std::string>::iterator end_it = result.end();
+    std::atomic<double> progr = 0;
+    double sz = static_cast<double>(
+        std::ptrdiff_t(result.end().base() - result.data()));
+
+    bool stop_progr = false;
+    std::mutex stop_progr_mtx;
+    std::condition_variable stop_progr_var;
+
+    std::thread progr_thr(
+        [this, &stop_progr, &stop_progr_mtx, &stop_progr_var, &progr, sz] {
+          if(auth_show_progr)
+            {
+              for(;;)
+                {
+                  std::unique_lock<std::mutex> ullock(stop_progr_mtx);
+                  stop_progr_var.wait_for(ullock,
+  std::chrono::milliseconds(100),
+                                          [&stop_progr] {
+                                            return stop_progr;
+                                          });
+                  if(stop_progr)
+                    {
+                      break;
+                    }
+                  else
+                    {
+                      auth_show_progr(progr.load(std::memory_order_relaxed),
+  sz);
+                    }
+                }
+            }
+        });
+
+    std::ptrdiff_t dif;
+    for(auto it = result.begin(); it != end_it; it++)
+      {
+        if(cancel_search.load())
+          {
+            break;
+          }
+  #ifdef USE_PE
+        end_it = std::remove(std::execution::par, it + 1, end_it, *it);
+  #else
+        end_it = std::remove(it + 1, end_it, *it);
+  #endif
+        dif = end_it.base() - it.base();
+        progr.store(sz - static_cast<double>(dif), std::memory_order_relaxed);
+      }
+
+    stop_progr_mtx.lock();
+    stop_progr = true;
+    stop_progr_var.notify_all();
+    stop_progr_mtx.unlock();
+
+    progr_thr.join();
+
+    result.erase(end_it, result.end());
+
+    if(cancel_search.load())
+      {
+        result.clear();
+      }*/
 #endif
   result.shrink_to_fit();
   return result;
@@ -1028,6 +1234,17 @@ BaseKeeper::searchLineFunc(const std::string &to_search,
                            const double &coef_coincidence)
 {
   std::string loc_source = af->stringToLower(source);
+  for(auto it = loc_source.begin(); it != loc_source.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          loc_source.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
 
   if(loc_source.size() == 0 || to_search.size() == 0
      || to_search.size() > loc_source.size())
@@ -1108,7 +1325,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
           surname = af->stringToLower(surname);
           for(auto it = surname.begin(); it != surname.end();)
             {
-              if((*it) == ' ')
+              if(*it >= 0 && *it <= ' ')
                 {
                   surname.erase(it);
                 }
@@ -1119,47 +1336,33 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
             }
 #ifdef USE_OPENMP
 #pragma omp parallel
-          {
 #pragma omp for
-            for(auto it = base.begin(); it != base.end(); it++)
-              {
-                bool c_s;
+          for(auto it = base.begin(); it != base.end(); it++)
+            {
+              bool c_s;
 #pragma omp atomic read
-                c_s = cancel_search;
-                if(c_s)
-                  {
-#pragma omp cancel for
-                    continue;
-                  }
-                std::filesystem::path book_file_path = collection_path;
-                book_file_path /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+              c_s = cancel_search;
+              if(c_s)
                 {
-#pragma omp for
-                  for(auto itb = it->books.begin(); itb != it->books.end();
-                      itb++)
-                    {
-                      bool c_s2;
-#pragma omp atomic read
-                      c_s2 = cancel_search;
-                      if(c_s2)
-                        {
 #pragma omp cancel for
-                          continue;
-                        }
-                      if(searchLineFunc(surname, itb->book_author,
-                                        coef_coincidence))
-                        {
+                  continue;
+                }
+              std::filesystem::path book_file_path = collection_path;
+              book_file_path /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+              for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
+                {
+                  if(searchLineFunc(surname, itb->book_author,
+                                    coef_coincidence))
+                    {
 #pragma omp critical
-                          {
-                            result.emplace_back(
-                                BookBaseEntry(*itb, book_file_path));
-                          }
-                        }
+                      {
+                        result.emplace_back(
+                            BookBaseEntry(*itb, book_file_path));
+                      }
                     }
                 }
-              }
-          }
+            }
 #else
           std::mutex result_mtx;
 #ifdef USE_PE
@@ -1234,56 +1437,53 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                        std::vector<BookBaseEntry> &result,
                        const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_name);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
 #ifdef USE_OPENMP
 #pragma omp parallel
-      {
 #pragma omp for
-        for(auto it = base.begin(); it != base.end(); it++)
-          {
-            bool c_s;
+      for(auto it = base.begin(); it != base.end(); it++)
+        {
+          bool c_s;
 #pragma omp atomic read
-            c_s = cancel_search;
-            if(c_s)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            std::filesystem::path book_file_path = collection_path;
-            book_file_path /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+          c_s = cancel_search;
+          if(c_s)
             {
-#pragma omp for
-              for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
-                {
-                  bool c_s2;
-#pragma omp atomic read
-                  c_s2 = cancel_search;
-                  if(c_s2)
-                    {
 #pragma omp cancel for
-                      continue;
-                    }
-                  if(searchLineFunc(search.bpe.book_name, itb->book_name,
-                                    coef_coincidence))
-                    {
+              continue;
+            }
+          std::filesystem::path book_file_path = collection_path;
+          book_file_path /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+          for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
+            {
+              if(searchLineFunc(l_search, itb->book_name, coef_coincidence))
+                {
 #pragma omp critical
-                      {
-                        result.emplace_back(
-                            BookBaseEntry(*itb, book_file_path));
-                      }
-                    }
+                  {
+                    result.emplace_back(BookBaseEntry(*itb, book_file_path));
+                  }
                 }
             }
-          }
-      }
+        }
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1294,14 +1494,13 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
 
             std::for_each(
                 std::execution::par, el.books.begin(), el.books.end(),
-                [this, search, book_file_path, &result, &result_mtx,
+                [this, l_search, book_file_path, &result, &result_mtx,
                  coef_coincidence](BookParseEntry &el) {
                   if(cancel_search.load())
                     {
                       return void();
                     }
-                  if(searchLineFunc(search.bpe.book_name, el.book_name,
-                                    coef_coincidence))
+                  if(searchLineFunc(l_search, el.book_name, coef_coincidence))
                     {
                       result_mtx.lock();
                       result.emplace_back(BookBaseEntry(el, book_file_path));
@@ -1312,7 +1511,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
 #else
       std::for_each(
           base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1321,22 +1520,21 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
             std::filesystem::path book_file_path
                 = collection_path / std::filesystem::u8path(el.file_rel_path);
 
-            std::for_each(el.books.begin(), el.books.end(),
-                          [this, search, book_file_path, &result, &result_mtx,
-                           coef_coincidence](BookParseEntry &el) {
-                            if(cancel_search.load())
-                              {
-                                return void();
-                              }
-                            if(searchLineFunc(search.bpe.book_name,
-                                              el.book_name, coef_coincidence))
-                              {
-                                result_mtx.lock();
-                                result.emplace_back(
-                                    BookBaseEntry(el, book_file_path));
-                                result_mtx.unlock();
-                              }
-                          });
+            std::for_each(
+                el.books.begin(), el.books.end(),
+                [this, l_search, book_file_path, &result, &result_mtx,
+                 coef_coincidence](BookParseEntry &el) {
+                  if(cancel_search.load())
+                    {
+                      return void();
+                    }
+                  if(searchLineFunc(l_search, el.book_name, coef_coincidence))
+                    {
+                      result_mtx.lock();
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
+                      result_mtx.unlock();
+                    }
+                });
           });
 #endif
 #endif
@@ -1346,16 +1544,9 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_name,
-                                           el.bpe.book_name, coef_coincidence))
-                           {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         return !searchLineFunc(l_search, el.bpe.book_name,
+                                                coef_coincidence);
                        }),
                    result.end());
 #else
@@ -1399,56 +1590,53 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                          std::vector<BookBaseEntry> &result,
                          const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_series);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
 #ifdef USE_OPENMP
 #pragma omp parallel
-      {
 #pragma omp for
-        for(auto it = base.begin(); it != base.end(); it++)
-          {
-            bool c_s;
+      for(auto it = base.begin(); it != base.end(); it++)
+        {
+          bool c_s;
 #pragma omp atomic read
-            c_s = cancel_search;
-            if(c_s)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            std::filesystem::path book_file_path = collection_path;
-            book_file_path /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+          c_s = cancel_search;
+          if(c_s)
             {
-#pragma omp for
-              for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
-                {
-                  bool c_s2;
-#pragma omp atomic read
-                  c_s2 = cancel_search;
-                  if(c_s2)
-                    {
 #pragma omp cancel for
-                      continue;
-                    }
-                  if(searchLineFunc(search.bpe.book_series, itb->book_series,
-                                    coef_coincidence))
-                    {
+              continue;
+            }
+          std::filesystem::path book_file_path = collection_path;
+          book_file_path /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+          for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
+            {
+              if(searchLineFunc(l_search, itb->book_series, coef_coincidence))
+                {
 #pragma omp critical
-                      {
-                        result.emplace_back(
-                            BookBaseEntry(*itb, book_file_path));
-                      }
-                    }
+                  {
+                    result.emplace_back(BookBaseEntry(*itb, book_file_path));
+                  }
                 }
             }
-          }
-      }
+        }
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1459,13 +1647,13 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
 
             std::for_each(
                 std::execution::par, el.books.begin(), el.books.end(),
-                [this, search, &result, &result_mtx, book_file_path,
+                [this, l_search, &result, &result_mtx, book_file_path,
                  coef_coincidence](BookParseEntry &el) {
                   if(cancel_search.load())
                     {
                       return void();
                     }
-                  if(searchLineFunc(search.bpe.book_series, el.book_series,
+                  if(searchLineFunc(l_search, el.book_series,
                                     coef_coincidence))
                     {
                       result_mtx.lock();
@@ -1477,7 +1665,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
 #else
       std::for_each(
           base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1488,13 +1676,13 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
 
             std::for_each(
                 el.books.begin(), el.books.end(),
-                [this, search, &result, &result_mtx, book_file_path,
+                [this, l_search, &result, &result_mtx, book_file_path,
                  coef_coincidence](BookParseEntry &el) {
                   if(cancel_search.load())
                     {
                       return void();
                     }
-                  if(searchLineFunc(search.bpe.book_series, el.book_series,
+                  if(searchLineFunc(l_search, el.book_series,
                                     coef_coincidence))
                     {
                       result_mtx.lock();
@@ -1511,9 +1699,8 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_series,
-                                           el.bpe.book_series,
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_series,
                                            coef_coincidence))
                            {
                              return false;
@@ -1526,37 +1713,35 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(
-          std::remove_if(std::execution::par, result.begin(), result.end(),
-                         [search, this, coef_coincidence](BookBaseEntry &el) {
-                           if(searchLineFunc(search.bpe.book_series,
-                                             el.bpe.book_series,
-                                             coef_coincidence))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(
+                       std::execution::par, result.begin(), result.end(),
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_series,
+                                           coef_coincidence))
+                           {
+                             return false;
+                           }
+                         else
+                           {
+                             return true;
+                           }
+                       }),
+                   result.end());
 #else
-      result.erase(
-          std::remove_if(result.begin(), result.end(),
-                         [search, coef_coincidence, this](BookBaseEntry &el) {
-                           if(searchLineFunc(search.bpe.book_series,
-                                             el.bpe.book_series,
-                                             coef_coincidence))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(
+                       result.begin(), result.end(),
+                       [l_search, coef_coincidence, this](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_series,
+                                           coef_coincidence))
+                           {
+                             return false;
+                           }
+                         else
+                           {
+                             return true;
+                           }
+                       }),
+                   result.end());
 #endif
 #endif
     }
@@ -1646,7 +1831,7 @@ BaseKeeper::get_books_path(const std::string &collection_name,
 }
 
 size_t
-BaseKeeper::getBookQuantity()
+BaseKeeper::getBooksQuantity()
 {
 #ifdef USE_OPENMP
   OmpLockGuard olg(basemtx);
@@ -1661,56 +1846,53 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                         std::vector<BookBaseEntry> &result,
                         const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_genre);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
 #ifdef USE_OPENMP
 #pragma omp parallel
-      {
 #pragma omp for
-        for(auto it = base.begin(); it != base.end(); it++)
-          {
-            bool c_s;
+      for(auto it = base.begin(); it != base.end(); it++)
+        {
+          bool c_s;
 #pragma omp atomic read
-            c_s = cancel_search;
-            if(c_s)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            std::filesystem::path book_file_path = collection_path;
-            book_file_path /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+          c_s = cancel_search;
+          if(c_s)
             {
-#pragma omp for
-              for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
-                {
-                  bool c_s2;
-#pragma omp atomic read
-                  c_s2 = cancel_search;
-                  if(c_s2)
-                    {
 #pragma omp cancel for
-                      continue;
-                    }
-                  if(searchLineFunc(search.bpe.book_genre, itb->book_genre,
-                                    coef_coincidence))
-                    {
+              continue;
+            }
+          std::filesystem::path book_file_path = collection_path;
+          book_file_path /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+          for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
+            {
+              if(searchLineFunc(l_search, itb->book_genre, coef_coincidence))
+                {
 #pragma omp critical
-                      {
-                        result.emplace_back(
-                            BookBaseEntry(*itb, book_file_path));
-                      }
-                    }
+                  {
+                    result.emplace_back(BookBaseEntry(*itb, book_file_path));
+                  }
                 }
             }
-          }
-      }
+        }
 #else
       std::mutex result_mtx;
 #ifdef USE_PE
       std::for_each(
           std::execution::par, base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1720,14 +1902,13 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                 = collection_path / std::filesystem::u8path(el.file_rel_path);
             std::for_each(
                 std::execution::par, el.books.begin(), el.books.end(),
-                [this, search, &result, &result_mtx, book_file_path,
+                [this, l_search, &result, &result_mtx, book_file_path,
                  coef_coincidence](BookParseEntry &el) {
                   if(cancel_search.load())
                     {
                       return void();
                     }
-                  if(searchLineFunc(search.bpe.book_genre, el.book_genre,
-                                    coef_coincidence))
+                  if(searchLineFunc(l_search, el.book_genre, coef_coincidence))
                     {
                       result_mtx.lock();
                       result.emplace_back(BookBaseEntry(el, book_file_path));
@@ -1738,7 +1919,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
 #else
       std::for_each(
           base.begin(), base.end(),
-          [this, search, &result, &result_mtx,
+          [this, l_search, &result, &result_mtx,
            coef_coincidence](FileParseEntry &el) {
             if(cancel_search.load())
               {
@@ -1746,22 +1927,21 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
               }
             std::filesystem::path book_file_path
                 = collection_path / std::filesystem::u8path(el.file_rel_path);
-            std::for_each(el.books.begin(), el.books.end(),
-                          [this, search, &result, &result_mtx, book_file_path,
-                           coef_coincidence](BookParseEntry &el) {
-                            if(cancel_search.load())
-                              {
-                                return void();
-                              }
-                            if(searchLineFunc(search.bpe.book_genre,
-                                              el.book_genre, coef_coincidence))
-                              {
-                                result_mtx.lock();
-                                result.emplace_back(
-                                    BookBaseEntry(el, book_file_path));
-                                result_mtx.unlock();
-                              }
-                          });
+            std::for_each(
+                el.books.begin(), el.books.end(),
+                [this, l_search, &result, &result_mtx, book_file_path,
+                 coef_coincidence](BookParseEntry &el) {
+                  if(cancel_search.load())
+                    {
+                      return void();
+                    }
+                  if(searchLineFunc(l_search, el.book_genre, coef_coincidence))
+                    {
+                      result_mtx.lock();
+                      result.emplace_back(BookBaseEntry(el, book_file_path));
+                      result_mtx.unlock();
+                    }
+                });
           });
 #endif
 #endif
@@ -1771,9 +1951,8 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_genre,
-                                           el.bpe.book_genre,
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_genre,
                                            coef_coincidence))
                            {
                              return false;
@@ -1786,37 +1965,35 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(
-          std::remove_if(std::execution::par, result.begin(), result.end(),
-                         [search, this, coef_coincidence](BookBaseEntry &el) {
-                           if(searchLineFunc(search.bpe.book_genre,
-                                             el.bpe.book_genre,
-                                             coef_coincidence))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(
+                       std::execution::par, result.begin(), result.end(),
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_genre,
+                                           coef_coincidence))
+                           {
+                             return false;
+                           }
+                         else
+                           {
+                             return true;
+                           }
+                       }),
+                   result.end());
 #else
-      result.erase(
-          std::remove_if(result.begin(), result.end(),
-                         [search, coef_coincidence, this](BookBaseEntry &el) {
-                           if(searchLineFunc(search.bpe.book_genre,
-                                             el.bpe.book_genre,
-                                             coef_coincidence))
-                             {
-                               return false;
-                             }
-                           else
-                             {
-                               return true;
-                             }
-                         }),
-          result.end());
+      result.erase(std::remove_if(
+                       result.begin(), result.end(),
+                       [l_search, coef_coincidence, this](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_genre,
+                                           coef_coincidence))
+                           {
+                             return false;
+                           }
+                         else
+                           {
+                             return true;
+                           }
+                       }),
+                   result.end());
 #endif
 #endif
     }
@@ -1840,7 +2017,7 @@ BaseKeeper::searchSurnameGPU(const BookBaseEntry &search,
           surname = af->stringToLower(surname);
           for(auto it = surname.begin(); it != surname.end();)
             {
-              if((*it) == ' ')
+              if(*it >= 0 && *it <= ' ')
                 {
                   surname.erase(it);
                 }
@@ -1850,93 +2027,112 @@ BaseKeeper::searchSurnameGPU(const BookBaseEntry &search,
                 }
             }
 
-          std::string src_surnames;
-          std::vector<size_t> offset;
-          offset.reserve(books_in_base);
-          std::vector<size_t> auth_sz;
-          auth_sz.reserve(books_in_base);
-          struct index
-          {
-            size_t base_ind;
-            size_t book_ind;
-          };
-          std::vector<index> ind_v;
-          ind_v.reserve(books_in_base);
-          std::vector<int> use;
-          use.reserve(books_in_base);
+          omp_lock_t result_mtx;
+          omp_init_lock(&result_mtx);
+
+          std::thread gpu_thr;
+          if(gpu_base && surname.size() > 0)
+            {
+              std::thread thr([this, surname, &coef_coincidence, &result,
+                               &result_mtx] {
+                size_t surname_gpu_sz = surname.size();
+                char *surname_gpu = reinterpret_cast<char *>(omp_target_alloc(
+                    surname_gpu_sz, omp_get_default_device()));
+
+                int er = omp_target_memcpy(
+                    surname_gpu, surname.data(), surname_gpu_sz, 0, 0,
+                    omp_get_default_device(), omp_get_initial_device());
+                if(er != 0)
+                  {
+                    omp_target_free(surname_gpu, omp_get_default_device());
+                    return void();
+                  }
+
+                gpu_base_entry *result_gpu
+                    = reinterpret_cast<gpu_base_entry *>(
+                        omp_target_alloc(gpu_base_sz * sizeof(gpu_base_entry),
+                                         omp_get_default_device()));
+
+                size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, surname_gpu,               \
+                           surname_gpu_sz, result_gpu, coef_coincidence)      \
+    map(tofrom : result_gpu_sz)
+                {
+#pragma omp parallel for
+                  for(gpu_base_entry *i = gpu_base; i < gpu_base + gpu_base_sz;
+                      i++)
+                    {
+                      if(searchLineFuncGPU(surname_gpu, surname_gpu_sz,
+                                           i->book_author, i->book_author_sz,
+                                           coef_coincidence))
+                        {
+#pragma omp critical
+                          {
+                            result_gpu[result_gpu_sz] = *i;
+                            result_gpu_sz++;
+                          }
+                        }
+                    }
+                }
+
+                if(result_gpu_sz > 0)
+                  {
+                    std::vector<gpu_base_entry> gp;
+                    gp.resize(result_gpu_sz);
+
+                    er = omp_target_memcpy(
+                        gp.data(), result_gpu,
+                        result_gpu_sz * sizeof(gpu_base_entry), 0, 0,
+                        omp_get_initial_device(), omp_get_default_device());
+                    if(er != 0)
+                      {
+                        gp.clear();
+                      }
+#pragma omp parallel
+#pragma omp for
+                    for(auto it = gp.begin(); it != gp.end(); it++)
+                      {
+                        std::filesystem::path p
+                            = collection_path
+                              / std::filesystem::u8path(
+                                  it->base_entry->file_rel_path);
+                        BookBaseEntry bbe(*(it->book_entry), p);
+                        omp_set_lock(&result_mtx);
+                        result.emplace_back(bbe);
+                        omp_unset_lock(&result_mtx);
+                      }
+                  }
+
+                omp_target_free(result_gpu, omp_get_default_device());
+                omp_target_free(surname_gpu, omp_get_default_device());
+              });
+              gpu_thr = std::move(thr);
+            }
 
 #pragma omp parallel
 #pragma omp for
-          for(size_t i = 0; i < base.size(); i++)
+          for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
             {
-              for(size_t j = 0; j < base[i].books.size(); j++)
+              if(searchLineFunc(surname, it->book_entry->book_author,
+                                coef_coincidence))
                 {
-                  index ind;
-                  ind.base_ind = i;
-                  ind.book_ind = j;
-                  std::string lstr
-                      = af->stringToLower(base[i].books[j].book_author);
-#pragma omp critical
-                  {
-                    offset.push_back(src_surnames.size());
-                    auth_sz.push_back(lstr.size());
-                    ind_v.push_back(ind);
-                    use.push_back(false);
-                    src_surnames += lstr;
-                  }
+                  std::filesystem::path p = collection_path
+                                            / std::filesystem::u8path(
+                                                it->base_entry->file_rel_path);
+                  BookBaseEntry bbe(*(it->book_entry), p);
+                  omp_set_lock(&result_mtx);
+                  result.emplace_back(bbe);
+                  omp_unset_lock(&result_mtx);
                 }
             }
 
-          char *surname_gpu = surname.data();
-          size_t surname_gpu_sz = surname.size();
-          char *src_surnames_gpu = src_surnames.data();
-          size_t src_surnames_gpu_sz = src_surnames.size();
-          size_t *offset_gpu = offset.data();
-          size_t offset_gpu_sz = offset.size();
-          size_t *auth_sz_gpu = auth_sz.data();
-          int *use_gpu = use.data();
-#pragma omp target map(                                                       \
-        to : surname_gpu[0 : surname_gpu_sz], surname_gpu_sz,                 \
-            src_surnames_gpu[0 : src_surnames_gpu_sz], src_surnames_gpu_sz,   \
-            offset_gpu[0 : offset_gpu_sz], offset_gpu_sz,                     \
-            auth_sz_gpu[0 : offset_gpu_sz], coef_coincidence, cancel_search)  \
-    map(tofrom : use_gpu[0 : offset_gpu_sz])
-          {
-#pragma omp parallel
-#pragma omp for
-            for(size_t i = 0; i < offset_gpu_sz; i++)
-              {
-                if(cancel_search)
-                  {
-#pragma omp cancel for
-                    continue;
-                  }
-                use_gpu[i]
-                    = searchLineFuncGPU(surname_gpu, surname_gpu_sz,
-                                        (src_surnames_gpu + offset_gpu[i]),
-                                        auth_sz_gpu[i], coef_coincidence);
-              }
-          }
-
-#pragma omp parallel
-#pragma omp for
-          for(size_t i = 0; i < use.size(); i++)
+          if(gpu_thr.joinable())
             {
-              if(use[i])
-                {
-                  std::filesystem::path book_file_path
-                      = collection_path
-                        / std::filesystem::u8path(
-                            base[ind_v[i].base_ind].file_rel_path);
-                  BookBaseEntry bbe(
-                      base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                      book_file_path);
-#pragma omp critical
-                  {
-                    result.emplace_back(bbe);
-                  }
-                }
+              gpu_thr.join();
             }
+
+          omp_destroy_lock(&result_mtx);
         }
     }
   return all_empty;
@@ -1964,7 +2160,7 @@ BaseKeeper::searchFirstNameGPU(const BookBaseEntry &search,
               first_name = af->stringToLower(first_name);
               for(auto it = first_name.begin(); it != first_name.end();)
                 {
-                  if((*it) == ' ')
+                  if(*it >= 0 && *it <= ' ')
                     {
                       first_name.erase(it);
                     }
@@ -1975,93 +2171,121 @@ BaseKeeper::searchFirstNameGPU(const BookBaseEntry &search,
                 }
               if(result.size() == 0)
                 {
-                  std::string src_names;
-                  std::vector<size_t> offset;
-                  offset.reserve(books_in_base);
-                  std::vector<size_t> auth_sz;
-                  auth_sz.reserve(books_in_base);
-                  struct index
-                  {
-                    size_t base_ind;
-                    size_t book_ind;
-                  };
-                  std::vector<index> ind_v;
-                  ind_v.reserve(books_in_base);
-                  std::vector<int> use;
-                  use.reserve(books_in_base);
+                  omp_lock_t result_mtx;
+                  omp_init_lock(&result_mtx);
 
+                  std::thread gpu_thr;
+                  if(gpu_base && first_name.size() > 0)
+                    {
+                      std::thread thr([this, first_name, &coef_coincidence,
+                                       &result, &result_mtx] {
+                        size_t first_name_gpu_sz = first_name.size();
+                        char *first_name_gpu
+                            = reinterpret_cast<char *>(omp_target_alloc(
+                                first_name_gpu_sz, omp_get_default_device()));
+
+                        int er = omp_target_memcpy(
+                            first_name_gpu, first_name.data(),
+                            first_name_gpu_sz, 0, 0, omp_get_default_device(),
+                            omp_get_initial_device());
+                        if(er != 0)
+                          {
+                            omp_target_free(first_name_gpu,
+                                            omp_get_default_device());
+                            return void();
+                          }
+
+                        gpu_base_entry *result_gpu
+                            = reinterpret_cast<gpu_base_entry *>(
+                                omp_target_alloc(gpu_base_sz
+                                                     * sizeof(gpu_base_entry),
+                                                 omp_get_default_device()));
+
+                        size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, first_name_gpu,            \
+                           first_name_gpu_sz, result_gpu, coef_coincidence)   \
+    map(tofrom : result_gpu_sz)
+                        {
+#pragma omp parallel for
+                          for(gpu_base_entry *i = gpu_base;
+                              i < gpu_base + gpu_base_sz; i++)
+                            {
+                              if(searchLineFuncGPU(
+                                     first_name_gpu, first_name_gpu_sz,
+                                     i->book_author, i->book_author_sz,
+                                     coef_coincidence))
+                                {
+#pragma omp critical
+                                  {
+                                    result_gpu[result_gpu_sz] = *i;
+                                    result_gpu_sz++;
+                                  }
+                                }
+                            }
+                        }
+
+                        if(result_gpu_sz > 0)
+                          {
+                            std::vector<gpu_base_entry> gp;
+                            gp.resize(result_gpu_sz);
+
+                            er = omp_target_memcpy(
+                                gp.data(), result_gpu,
+                                result_gpu_sz * sizeof(gpu_base_entry), 0, 0,
+                                omp_get_initial_device(),
+                                omp_get_default_device());
+                            if(er != 0)
+                              {
+                                gp.clear();
+                              }
 #pragma omp parallel
 #pragma omp for
-                  for(size_t i = 0; i < base.size(); i++)
-                    {
-                      for(size_t j = 0; j < base[i].books.size(); j++)
-                        {
-                          index ind;
-                          ind.base_ind = i;
-                          ind.book_ind = j;
-                          std::string lstr = af->stringToLower(
-                              base[i].books[j].book_author);
-#pragma omp critical
-                          {
-                            offset.push_back(src_names.size());
-                            auth_sz.push_back(lstr.size());
-                            ind_v.push_back(ind);
-                            use.push_back(false);
-                            src_names += lstr;
+                            for(auto it = gp.begin(); it != gp.end(); it++)
+                              {
+                                std::filesystem::path p
+                                    = collection_path
+                                      / std::filesystem::u8path(
+                                          it->base_entry->file_rel_path);
+                                BookBaseEntry bbe(*(it->book_entry), p);
+                                omp_set_lock(&result_mtx);
+                                result.emplace_back(bbe);
+                                omp_unset_lock(&result_mtx);
+                              }
                           }
-                        }
+
+                        omp_target_free(result_gpu, omp_get_default_device());
+                        omp_target_free(first_name_gpu,
+                                        omp_get_default_device());
+                      });
+                      gpu_thr = std::move(thr);
                     }
 
-                  char *name_gpu = first_name.data();
-                  size_t name_gpu_sz = first_name.size();
-                  char *src_names_gpu = src_names.data();
-                  size_t src_names_gpu_sz = src_names.size();
-                  size_t *offset_gpu = offset.data();
-                  size_t offset_gpu_sz = offset.size();
-                  size_t *auth_sz_gpu = auth_sz.data();
-                  int *use_gpu = use.data();
-#pragma omp target map(to : name_gpu[0 : name_gpu_sz], name_gpu_sz,           \
-                           src_names_gpu[0 : src_names_gpu_sz],               \
-                           src_names_gpu_sz, offset_gpu[0 : offset_gpu_sz],   \
-                           offset_gpu_sz, auth_sz_gpu[0 : offset_gpu_sz],     \
-                           coef_coincidence, cancel_search)                   \
-    map(tofrom : use_gpu[0 : offset_gpu_sz])
-                  {
 #pragma omp parallel
 #pragma omp for
-                    for(size_t i = 0; i < offset_gpu_sz; i++)
-                      {
-                        if(cancel_search)
-                          {
-#pragma omp cancel for
-                            continue;
-                          }
-                        use_gpu[i] = searchLineFuncGPU(
-                            name_gpu, name_gpu_sz,
-                            (src_names_gpu + offset_gpu[i]), auth_sz_gpu[i],
-                            coef_coincidence);
-                      }
-                  }
-
-#pragma omp parallel
-#pragma omp for
-                  for(size_t i = 0; i < use.size(); i++)
+                  for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
                     {
-                      if(use[i])
+                      if(searchLineFunc(first_name,
+                                        it->book_entry->book_author,
+                                        coef_coincidence))
                         {
-                          std::filesystem::path book_file_path
+                          std::filesystem::path p
                               = collection_path
                                 / std::filesystem::u8path(
-                                    base[ind_v[i].base_ind].file_rel_path);
-                          BookBaseEntry bbe(
-                              base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                              book_file_path);
-#pragma omp critical
-                          {
-                            result.emplace_back(bbe);
-                          }
+                                    it->base_entry->file_rel_path);
+                          BookBaseEntry bbe(*(it->book_entry), p);
+                          omp_set_lock(&result_mtx);
+                          result.emplace_back(bbe);
+                          omp_unset_lock(&result_mtx);
                         }
                     }
+
+                  if(gpu_thr.joinable())
+                    {
+                      gpu_thr.join();
+                    }
+
+                  omp_destroy_lock(&result_mtx);
                 }
               else
                 {
@@ -2110,7 +2334,7 @@ BaseKeeper::searchLastNameGPU(const BookBaseEntry &search,
               last_name = af->stringToLower(last_name);
               for(auto it = last_name.begin(); it != last_name.end();)
                 {
-                  if((*it) == ' ')
+                  if(*it >= 0 && *it <= ' ')
                     {
                       last_name.erase(it);
                     }
@@ -2121,93 +2345,120 @@ BaseKeeper::searchLastNameGPU(const BookBaseEntry &search,
                 }
               if(result.size() == 0)
                 {
-                  std::string src_lastnames;
-                  std::vector<size_t> offset;
-                  offset.reserve(books_in_base);
-                  std::vector<size_t> auth_sz;
-                  auth_sz.reserve(books_in_base);
-                  struct index
-                  {
-                    size_t base_ind;
-                    size_t book_ind;
-                  };
-                  std::vector<index> ind_v;
-                  ind_v.reserve(books_in_base);
-                  std::vector<int> use;
-                  use.reserve(books_in_base);
+                  omp_lock_t result_mtx;
+                  omp_init_lock(&result_mtx);
 
+                  std::thread gpu_thr;
+                  if(gpu_base && last_name.size() > 0)
+                    {
+                      std::thread thr([this, last_name, &coef_coincidence,
+                                       &result, &result_mtx] {
+                        size_t last_name_gpu_sz = last_name.size();
+                        char *last_name_gpu
+                            = reinterpret_cast<char *>(omp_target_alloc(
+                                last_name_gpu_sz, omp_get_default_device()));
+
+                        int er = omp_target_memcpy(
+                            last_name_gpu, last_name.data(), last_name_gpu_sz,
+                            0, 0, omp_get_default_device(),
+                            omp_get_initial_device());
+                        if(er != 0)
+                          {
+                            omp_target_free(last_name_gpu,
+                                            omp_get_default_device());
+                            return void();
+                          }
+
+                        gpu_base_entry *result_gpu
+                            = reinterpret_cast<gpu_base_entry *>(
+                                omp_target_alloc(gpu_base_sz
+                                                     * sizeof(gpu_base_entry),
+                                                 omp_get_default_device()));
+
+                        size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, last_name_gpu,             \
+                           last_name_gpu_sz, result_gpu, coef_coincidence)    \
+    map(tofrom : result_gpu_sz)
+                        {
+#pragma omp parallel for
+                          for(gpu_base_entry *i = gpu_base;
+                              i < gpu_base + gpu_base_sz; i++)
+                            {
+                              if(searchLineFuncGPU(
+                                     last_name_gpu, last_name_gpu_sz,
+                                     i->book_author, i->book_author_sz,
+                                     coef_coincidence))
+                                {
+#pragma omp critical
+                                  {
+                                    result_gpu[result_gpu_sz] = *i;
+                                    result_gpu_sz++;
+                                  }
+                                }
+                            }
+                        }
+
+                        if(result_gpu_sz > 0)
+                          {
+                            std::vector<gpu_base_entry> gp;
+                            gp.resize(result_gpu_sz);
+
+                            er = omp_target_memcpy(
+                                gp.data(), result_gpu,
+                                result_gpu_sz * sizeof(gpu_base_entry), 0, 0,
+                                omp_get_initial_device(),
+                                omp_get_default_device());
+                            if(er != 0)
+                              {
+                                gp.clear();
+                              }
 #pragma omp parallel
 #pragma omp for
-                  for(size_t i = 0; i < base.size(); i++)
-                    {
-                      for(size_t j = 0; j < base[i].books.size(); j++)
-                        {
-                          index ind;
-                          ind.base_ind = i;
-                          ind.book_ind = j;
-                          std::string lstr = af->stringToLower(
-                              base[i].books[j].book_author);
-#pragma omp critical
-                          {
-                            offset.push_back(src_lastnames.size());
-                            auth_sz.push_back(lstr.size());
-                            ind_v.push_back(ind);
-                            use.push_back(false);
-                            src_lastnames += lstr;
+                            for(auto it = gp.begin(); it != gp.end(); it++)
+                              {
+                                std::filesystem::path p
+                                    = collection_path
+                                      / std::filesystem::u8path(
+                                          it->base_entry->file_rel_path);
+                                BookBaseEntry bbe(*(it->book_entry), p);
+                                omp_set_lock(&result_mtx);
+                                result.emplace_back(bbe);
+                                omp_unset_lock(&result_mtx);
+                              }
                           }
-                        }
+
+                        omp_target_free(result_gpu, omp_get_default_device());
+                        omp_target_free(last_name_gpu,
+                                        omp_get_default_device());
+                      });
+                      gpu_thr = std::move(thr);
                     }
 
-                  char *lastname_gpu = last_name.data();
-                  size_t lastname_gpu_sz = last_name.size();
-                  char *src_lastnames_gpu = src_lastnames.data();
-                  size_t src_lastnames_gpu_sz = src_lastnames.size();
-                  size_t *offset_gpu = offset.data();
-                  size_t offset_gpu_sz = offset.size();
-                  size_t *auth_sz_gpu = auth_sz.data();
-                  int *use_gpu = use.data();
-#pragma omp target map(                                                       \
-        to : lastname_gpu[0 : lastname_gpu_sz], lastname_gpu_sz,              \
-            src_lastnames_gpu[0 : src_lastnames_gpu_sz],                      \
-            src_lastnames_gpu_sz, offset_gpu[0 : offset_gpu_sz],              \
-            offset_gpu_sz, auth_sz_gpu[0 : offset_gpu_sz], coef_coincidence,  \
-            cancel_search) map(tofrom : use_gpu[0 : offset_gpu_sz])
-                  {
 #pragma omp parallel
 #pragma omp for
-                    for(size_t i = 0; i < offset_gpu_sz; i++)
-                      {
-                        if(cancel_search)
-                          {
-#pragma omp cancel for
-                            continue;
-                          }
-                        use_gpu[i] = searchLineFuncGPU(
-                            lastname_gpu, lastname_gpu_sz,
-                            (src_lastnames_gpu + offset_gpu[i]),
-                            auth_sz_gpu[i], coef_coincidence);
-                      }
-                  }
-
-#pragma omp parallel
-#pragma omp for
-                  for(size_t i = 0; i < use.size(); i++)
+                  for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
                     {
-                      if(use[i])
+                      if(searchLineFunc(last_name, it->book_entry->book_author,
+                                        coef_coincidence))
                         {
-                          std::filesystem::path book_file_path
+                          std::filesystem::path p
                               = collection_path
                                 / std::filesystem::u8path(
-                                    base[ind_v[i].base_ind].file_rel_path);
-                          BookBaseEntry bbe(
-                              base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                              book_file_path);
-#pragma omp critical
-                          {
-                            result.emplace_back(bbe);
-                          }
+                                    it->base_entry->file_rel_path);
+                          BookBaseEntry bbe(*(it->book_entry), p);
+                          omp_set_lock(&result_mtx);
+                          result.emplace_back(bbe);
+                          omp_unset_lock(&result_mtx);
                         }
                     }
+
+                  if(gpu_thr.joinable())
+                    {
+                      gpu_thr.join();
+                    }
+
+                  omp_destroy_lock(&result_mtx);
                 }
               else
                 {
@@ -2239,110 +2490,143 @@ BaseKeeper::searchBookGPU(const BookBaseEntry &search,
                           std::vector<BookBaseEntry> &result,
                           const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_name);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
-      std::string src_books;
-      std::vector<size_t> offset;
-      offset.reserve(books_in_base);
-      std::vector<size_t> auth_sz;
-      auth_sz.reserve(books_in_base);
-      struct index
-      {
-        size_t base_ind;
-        size_t book_ind;
-      };
-      std::vector<index> ind_v;
-      ind_v.reserve(books_in_base);
-      std::vector<int> use;
-      use.reserve(books_in_base);
+      omp_lock_t result_mtx;
+      omp_init_lock(&result_mtx);
 
+      std::thread gpu_thr;
+      if(gpu_base && l_search.size() > 0)
+        {
+          std::thread thr([this, l_search, &coef_coincidence, &result,
+                           &result_mtx] {
+            size_t l_search_gpu_sz = l_search.size();
+            char *l_search_gpu = reinterpret_cast<char *>(
+                omp_target_alloc(l_search_gpu_sz, omp_get_default_device()));
+
+            int er = omp_target_memcpy(
+                l_search_gpu, l_search.data(), l_search_gpu_sz, 0, 0,
+                omp_get_default_device(), omp_get_initial_device());
+            if(er != 0)
+              {
+                omp_target_free(l_search_gpu, omp_get_default_device());
+                return void();
+              }
+
+            gpu_base_entry *result_gpu = reinterpret_cast<gpu_base_entry *>(
+                omp_target_alloc(gpu_base_sz * sizeof(gpu_base_entry),
+                                 omp_get_default_device()));
+
+            size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, l_search_gpu,              \
+                           l_search_gpu_sz, result_gpu, coef_coincidence)     \
+    map(tofrom : result_gpu_sz)
+            {
+#pragma omp parallel for
+              for(gpu_base_entry *i = gpu_base; i < gpu_base + gpu_base_sz;
+                  i++)
+                {
+                  if(searchLineFuncGPU(l_search_gpu, l_search_gpu_sz,
+                                       i->book_name, i->book_name_sz,
+                                       coef_coincidence))
+                    {
+#pragma omp critical
+                      {
+                        result_gpu[result_gpu_sz] = *i;
+                        result_gpu_sz++;
+                      }
+                    }
+                }
+            }
+
+            if(result_gpu_sz > 0)
+              {
+                std::vector<gpu_base_entry> gp;
+                gp.resize(result_gpu_sz);
+
+                er = omp_target_memcpy(gp.data(), result_gpu,
+                                       result_gpu_sz * sizeof(gpu_base_entry),
+                                       0, 0, omp_get_initial_device(),
+                                       omp_get_default_device());
+                if(er != 0)
+                  {
+                    gp.clear();
+                  }
 #pragma omp parallel
 #pragma omp for
-      for(size_t i = 0; i < base.size(); i++)
-        {
-          for(size_t j = 0; j < base[i].books.size(); j++)
-            {
-              index ind;
-              ind.base_ind = i;
-              ind.book_ind = j;
-              std::string lstr = af->stringToLower(base[i].books[j].book_name);
-#pragma omp critical
-              {
-                offset.push_back(src_books.size());
-                auth_sz.push_back(lstr.size());
-                ind_v.push_back(ind);
-                use.push_back(false);
-                src_books += lstr;
+                for(auto it = gp.begin(); it != gp.end(); it++)
+                  {
+                    std::filesystem::path p
+                        = collection_path
+                          / std::filesystem::u8path(
+                              it->base_entry->file_rel_path);
+                    BookBaseEntry bbe(*(it->book_entry), p);
+                    omp_set_lock(&result_mtx);
+                    result.emplace_back(bbe);
+                    omp_unset_lock(&result_mtx);
+                  }
               }
-            }
+
+            omp_target_free(result_gpu, omp_get_default_device());
+            omp_target_free(l_search_gpu, omp_get_default_device());
+          });
+          gpu_thr = std::move(thr);
         }
 
-      char *searchbook_gpu = const_cast<char *>(search.bpe.book_name.data());
-      size_t searchbook_gpu_sz = search.bpe.book_name.size();
-      char *src_books_gpu = src_books.data();
-      size_t src_books_gpu_sz = src_books.size();
-      size_t *offset_gpu = offset.data();
-      size_t offset_gpu_sz = offset.size();
-      size_t *auth_sz_gpu = auth_sz.data();
-      int *use_gpu = use.data();
-#pragma omp target map(                                                       \
-        to : searchbook_gpu[0 : searchbook_gpu_sz], searchbook_gpu_sz,        \
-            src_books_gpu[0 : src_books_gpu_sz], src_books_gpu_sz,            \
-            offset_gpu[0 : offset_gpu_sz], offset_gpu_sz,                     \
-            auth_sz_gpu[0 : offset_gpu_sz], coef_coincidence, cancel_search)  \
-    map(tofrom : use_gpu[0 : offset_gpu_sz])
-      {
 #pragma omp parallel
 #pragma omp for
-        for(size_t i = 0; i < offset_gpu_sz; i++)
-          {
-            if(cancel_search)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            use_gpu[i] = searchLineFuncGPU(searchbook_gpu, searchbook_gpu_sz,
-                                           (src_books_gpu + offset_gpu[i]),
-                                           auth_sz_gpu[i], coef_coincidence);
-          }
-      }
-
-#pragma omp parallel
-#pragma omp for
-      for(size_t i = 0; i < use.size(); i++)
+      for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
         {
-          if(use[i])
+          if(searchLineFunc(l_search, it->book_entry->book_name,
+                            coef_coincidence))
             {
-              std::filesystem::path book_file_path
+              std::filesystem::path p
                   = collection_path
-                    / std::filesystem::u8path(
-                        base[ind_v[i].base_ind].file_rel_path);
-              BookBaseEntry bbe(
-                  base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                  book_file_path);
-#pragma omp critical
-              {
-                result.emplace_back(bbe);
-              }
+                    / std::filesystem::u8path(it->base_entry->file_rel_path);
+              BookBaseEntry bbe(*(it->book_entry), p);
+              omp_set_lock(&result_mtx);
+              result.emplace_back(bbe);
+              omp_unset_lock(&result_mtx);
             }
         }
+
+      if(gpu_thr.joinable())
+        {
+          gpu_thr.join();
+        }
+
+      omp_destroy_lock(&result_mtx);
     }
   else
     {
-      result.erase(AuxFunc::parallelRemoveIf(
-                       result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_name,
-                                           el.bpe.book_name, coef_coincidence))
-                           {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+      result.erase(
+          AuxFunc::parallelRemoveIf(
+              result.begin(), result.end(),
+              [l_search, this, coef_coincidence](const BookBaseEntry &el) {
+                if(searchLineFunc(l_search, el.bpe.book_name,
+                                  coef_coincidence))
+                  {
+                    return false;
+                  }
+                else
+                  {
+                    return true;
+                  }
+              }),
+          result.end());
     }
 }
 
@@ -2351,104 +2635,132 @@ BaseKeeper::searchSeriesGPU(const BookBaseEntry &search,
                             std::vector<BookBaseEntry> &result,
                             const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_series);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
-      std::string src_series;
-      std::vector<size_t> offset;
-      offset.reserve(books_in_base);
-      std::vector<size_t> auth_sz;
-      auth_sz.reserve(books_in_base);
-      struct index
-      {
-        size_t base_ind;
-        size_t book_ind;
-      };
-      std::vector<index> ind_v;
-      ind_v.reserve(books_in_base);
-      std::vector<int> use;
-      use.reserve(books_in_base);
+      omp_lock_t result_mtx;
+      omp_init_lock(&result_mtx);
 
+      std::thread gpu_thr;
+      if(gpu_base && l_search.size() > 0)
+        {
+          std::thread thr([this, l_search, &coef_coincidence, &result,
+                           &result_mtx] {
+            size_t l_search_gpu_sz = l_search.size();
+            char *l_search_gpu = reinterpret_cast<char *>(
+                omp_target_alloc(l_search_gpu_sz, omp_get_default_device()));
+
+            int er = omp_target_memcpy(
+                l_search_gpu, l_search.data(), l_search_gpu_sz, 0, 0,
+                omp_get_default_device(), omp_get_initial_device());
+            if(er != 0)
+              {
+                omp_target_free(l_search_gpu, omp_get_default_device());
+                return void();
+              }
+
+            gpu_base_entry *result_gpu = reinterpret_cast<gpu_base_entry *>(
+                omp_target_alloc(gpu_base_sz * sizeof(gpu_base_entry),
+                                 omp_get_default_device()));
+
+            size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, l_search_gpu,              \
+                           l_search_gpu_sz, result_gpu, coef_coincidence)     \
+    map(tofrom : result_gpu_sz)
+            {
+#pragma omp parallel for
+              for(gpu_base_entry *i = gpu_base; i < gpu_base + gpu_base_sz;
+                  i++)
+                {
+                  if(searchLineFuncGPU(l_search_gpu, l_search_gpu_sz,
+                                       i->book_series, i->book_series_sz,
+                                       coef_coincidence))
+                    {
+#pragma omp critical
+                      {
+                        result_gpu[result_gpu_sz] = *i;
+                        result_gpu_sz++;
+                      }
+                    }
+                }
+            }
+
+            if(result_gpu_sz > 0)
+              {
+                std::vector<gpu_base_entry> gp;
+                gp.resize(result_gpu_sz);
+
+                er = omp_target_memcpy(gp.data(), result_gpu,
+                                       result_gpu_sz * sizeof(gpu_base_entry),
+                                       0, 0, omp_get_initial_device(),
+                                       omp_get_default_device());
+                if(er != 0)
+                  {
+                    gp.clear();
+                  }
 #pragma omp parallel
 #pragma omp for
-      for(size_t i = 0; i < base.size(); i++)
-        {
-          for(size_t j = 0; j < base[i].books.size(); j++)
-            {
-              index ind;
-              ind.base_ind = i;
-              ind.book_ind = j;
-              std::string lstr
-                  = af->stringToLower(base[i].books[j].book_series);
-#pragma omp critical
-              {
-                offset.push_back(src_series.size());
-                auth_sz.push_back(lstr.size());
-                ind_v.push_back(ind);
-                use.push_back(false);
-                src_series += lstr;
+                for(auto it = gp.begin(); it != gp.end(); it++)
+                  {
+                    std::filesystem::path p
+                        = collection_path
+                          / std::filesystem::u8path(
+                              it->base_entry->file_rel_path);
+                    BookBaseEntry bbe(*(it->book_entry), p);
+                    omp_set_lock(&result_mtx);
+                    result.emplace_back(bbe);
+                    omp_unset_lock(&result_mtx);
+                  }
               }
-            }
+
+            omp_target_free(result_gpu, omp_get_default_device());
+            omp_target_free(l_search_gpu, omp_get_default_device());
+          });
+          gpu_thr = std::move(thr);
         }
 
-      char *searchseries_gpu
-          = const_cast<char *>(search.bpe.book_series.data());
-      size_t searchseries_gpu_sz = search.bpe.book_series.size();
-      char *src_series_gpu = src_series.data();
-      size_t src_series_gpu_sz = src_series.size();
-      size_t *offset_gpu = offset.data();
-      size_t offset_gpu_sz = offset.size();
-      size_t *auth_sz_gpu = auth_sz.data();
-      int *use_gpu = use.data();
-#pragma omp target map(                                                       \
-        to : searchseries_gpu[0 : searchseries_gpu_sz], searchseries_gpu_sz,  \
-            src_series_gpu[0 : src_series_gpu_sz], src_series_gpu_sz,         \
-            offset_gpu[0 : offset_gpu_sz], offset_gpu_sz,                     \
-            auth_sz_gpu[0 : offset_gpu_sz], coef_coincidence, cancel_search)  \
-    map(tofrom : use_gpu[0 : offset_gpu_sz])
-      {
 #pragma omp parallel
 #pragma omp for
-        for(size_t i = 0; i < offset_gpu_sz; i++)
-          {
-            if(cancel_search)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            use_gpu[i]
-                = searchLineFuncGPU(searchseries_gpu, searchseries_gpu_sz,
-                                    (src_series_gpu + offset_gpu[i]),
-                                    auth_sz_gpu[i], coef_coincidence);
-          }
-      }
-
-#pragma omp parallel
-#pragma omp for
-      for(size_t i = 0; i < use.size(); i++)
+      for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
         {
-          if(use[i])
+          if(searchLineFunc(l_search, it->book_entry->book_series,
+                            coef_coincidence))
             {
-              std::filesystem::path book_file_path
+              std::filesystem::path p
                   = collection_path
-                    / std::filesystem::u8path(
-                        base[ind_v[i].base_ind].file_rel_path);
-              BookBaseEntry bbe(
-                  base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                  book_file_path);
-#pragma omp critical
-              {
-                result.emplace_back(bbe);
-              }
+                    / std::filesystem::u8path(it->base_entry->file_rel_path);
+              BookBaseEntry bbe(*(it->book_entry), p);
+              omp_set_lock(&result_mtx);
+              result.emplace_back(bbe);
+              omp_unset_lock(&result_mtx);
             }
         }
+
+      if(gpu_thr.joinable())
+        {
+          gpu_thr.join();
+        }
+
+      omp_destroy_lock(&result_mtx);
     }
   else
     {
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_series,
-                                           el.bpe.book_series,
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_series,
                                            coef_coincidence))
                            {
                              return false;
@@ -2467,104 +2779,132 @@ BaseKeeper::searchGenreGPU(const BookBaseEntry &search,
                            std::vector<BookBaseEntry> &result,
                            const double &coef_coincidence)
 {
+  std::string l_search = af->stringToLower(search.bpe.book_genre);
+  for(auto it = l_search.begin(); it != l_search.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          l_search.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
   if(result.size() == 0)
     {
-      std::string src_genres;
-      std::vector<size_t> offset;
-      offset.reserve(books_in_base);
-      std::vector<size_t> auth_sz;
-      auth_sz.reserve(books_in_base);
-      struct index
-      {
-        size_t base_ind;
-        size_t book_ind;
-      };
-      std::vector<index> ind_v;
-      ind_v.reserve(books_in_base);
-      std::vector<int> use;
-      use.reserve(books_in_base);
+      omp_lock_t result_mtx;
+      omp_init_lock(&result_mtx);
 
+      std::thread gpu_thr;
+      if(gpu_base && l_search.size() > 0)
+        {
+          std::thread thr([this, l_search, &coef_coincidence, &result,
+                           &result_mtx] {
+            size_t l_search_gpu_sz = l_search.size();
+            char *l_search_gpu = reinterpret_cast<char *>(
+                omp_target_alloc(l_search_gpu_sz, omp_get_default_device()));
+
+            int er = omp_target_memcpy(
+                l_search_gpu, l_search.data(), l_search_gpu_sz, 0, 0,
+                omp_get_default_device(), omp_get_initial_device());
+            if(er != 0)
+              {
+                omp_target_free(l_search_gpu, omp_get_default_device());
+                return void();
+              }
+
+            gpu_base_entry *result_gpu = reinterpret_cast<gpu_base_entry *>(
+                omp_target_alloc(gpu_base_sz * sizeof(gpu_base_entry),
+                                 omp_get_default_device()));
+
+            size_t result_gpu_sz = 0;
+
+#pragma omp target map(to : gpu_base, gpu_base_sz, l_search_gpu,              \
+                           l_search_gpu_sz, result_gpu, coef_coincidence)     \
+    map(tofrom : result_gpu_sz)
+            {
+#pragma omp parallel for
+              for(gpu_base_entry *i = gpu_base; i < gpu_base + gpu_base_sz;
+                  i++)
+                {
+                  if(searchLineFuncGPU(l_search_gpu, l_search_gpu_sz,
+                                       i->book_genre, i->book_genre_sz,
+                                       coef_coincidence))
+                    {
+#pragma omp critical
+                      {
+                        result_gpu[result_gpu_sz] = *i;
+                        result_gpu_sz++;
+                      }
+                    }
+                }
+            }
+
+            if(result_gpu_sz > 0)
+              {
+                std::vector<gpu_base_entry> gp;
+                gp.resize(result_gpu_sz);
+
+                er = omp_target_memcpy(gp.data(), result_gpu,
+                                       result_gpu_sz * sizeof(gpu_base_entry),
+                                       0, 0, omp_get_initial_device(),
+                                       omp_get_default_device());
+                if(er != 0)
+                  {
+                    gp.clear();
+                  }
 #pragma omp parallel
 #pragma omp for
-      for(size_t i = 0; i < base.size(); i++)
-        {
-          for(size_t j = 0; j < base[i].books.size(); j++)
-            {
-              index ind;
-              ind.base_ind = i;
-              ind.book_ind = j;
-              std::string lstr
-                  = af->stringToLower(base[i].books[j].book_genre);
-#pragma omp critical
-              {
-                offset.push_back(src_genres.size());
-                auth_sz.push_back(lstr.size());
-                ind_v.push_back(ind);
-                use.push_back(false);
-                src_genres += lstr;
+                for(auto it = gp.begin(); it != gp.end(); it++)
+                  {
+                    std::filesystem::path p
+                        = collection_path
+                          / std::filesystem::u8path(
+                              it->base_entry->file_rel_path);
+                    BookBaseEntry bbe(*(it->book_entry), p);
+                    omp_set_lock(&result_mtx);
+                    result.emplace_back(bbe);
+                    omp_unset_lock(&result_mtx);
+                  }
               }
-            }
+
+            omp_target_free(result_gpu, omp_get_default_device());
+            omp_target_free(l_search_gpu, omp_get_default_device());
+          });
+          gpu_thr = std::move(thr);
         }
 
-      char *searchgenres_gpu
-          = const_cast<char *>(search.bpe.book_genre.data());
-      size_t searchgenres_gpu_sz = search.bpe.book_genre.size();
-      char *src_genres_gpu = src_genres.data();
-      size_t src_genres_gpu_sz = src_genres.size();
-      size_t *offset_gpu = offset.data();
-      size_t offset_gpu_sz = offset.size();
-      size_t *auth_sz_gpu = auth_sz.data();
-      int *use_gpu = use.data();
-#pragma omp target map(                                                       \
-        to : searchgenres_gpu[0 : searchgenres_gpu_sz], searchgenres_gpu_sz,  \
-            src_genres_gpu[0 : src_genres_gpu_sz], src_genres_gpu_sz,         \
-            offset_gpu[0 : offset_gpu_sz], offset_gpu_sz,                     \
-            auth_sz_gpu[0 : offset_gpu_sz], coef_coincidence, cancel_search)  \
-    map(tofrom : use_gpu[0 : offset_gpu_sz])
-      {
 #pragma omp parallel
 #pragma omp for
-        for(size_t i = 0; i < offset_gpu_sz; i++)
-          {
-            if(cancel_search)
-              {
-#pragma omp cancel for
-                continue;
-              }
-            use_gpu[i]
-                = searchLineFuncGPU(searchgenres_gpu, searchgenres_gpu_sz,
-                                    (src_genres_gpu + offset_gpu[i]),
-                                    auth_sz_gpu[i], coef_coincidence);
-          }
-      }
-
-#pragma omp parallel
-#pragma omp for
-      for(size_t i = 0; i < use.size(); i++)
+      for(auto it = cpu_base.begin(); it != cpu_base.end(); it++)
         {
-          if(use[i])
+          if(searchLineFunc(l_search, it->book_entry->book_genre,
+                            coef_coincidence))
             {
-              std::filesystem::path book_file_path
+              std::filesystem::path p
                   = collection_path
-                    / std::filesystem::u8path(
-                        base[ind_v[i].base_ind].file_rel_path);
-              BookBaseEntry bbe(
-                  base[ind_v[i].base_ind].books[ind_v[i].book_ind],
-                  book_file_path);
-#pragma omp critical
-              {
-                result.emplace_back(bbe);
-              }
+                    / std::filesystem::u8path(it->base_entry->file_rel_path);
+              BookBaseEntry bbe(*(it->book_entry), p);
+              omp_set_lock(&result_mtx);
+              result.emplace_back(bbe);
+              omp_unset_lock(&result_mtx);
             }
         }
+
+      if(gpu_thr.joinable())
+        {
+          gpu_thr.join();
+        }
+
+      omp_destroy_lock(&result_mtx);
     }
   else
     {
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_genre,
-                                           el.bpe.book_genre,
+                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
+                         if(searchLineFunc(l_search, el.bpe.book_genre,
                                            coef_coincidence))
                            {
                              return false;
@@ -2576,6 +2916,627 @@ BaseKeeper::searchGenreGPU(const BookBaseEntry &search,
                        }),
                    result.end());
     }
+}
+
+std::vector<std::string>
+BaseKeeper::collectionAuthorsGPU()
+{
+  std::vector<std::string> result;
+  OmpLockGuard olg(basemtx);
+  if(base.size() == 0)
+    {
+      return result;
+    }
+  unloadBaseFromGPUMemory();
+  std::string find_str = ", ";
+#pragma omp atomic write
+  cancel_search = false;
+  std::vector<std::string> result_str;
+  result_str.reserve(books_in_base);
+#pragma omp parallel
+#pragma omp for
+  for(auto it = base.begin(); it != base.end(); it++)
+    {
+      bool c_s;
+#pragma omp atomic read
+      c_s = cancel_search;
+      if(c_s)
+        {
+#pragma omp cancel for
+          continue;
+        }
+#pragma omp parallel
+#pragma omp for
+      for(auto it_b = it->books.begin(); it_b != it->books.end(); it_b++)
+        {
+          bool c_s2;
+#pragma omp atomic read
+          c_s2 = cancel_search;
+          if(c_s2)
+            {
+#pragma omp cancel for
+              continue;
+            }
+          std::string::size_type n_beg = 0;
+          std::string::size_type n_end;
+          bool stop = false;
+          for(;;)
+            {
+#pragma omp atomic read
+              c_s2 = cancel_search;
+              if(c_s2)
+                {
+                  break;
+                }
+              n_end = it_b->book_author.find(find_str, n_beg);
+              std::string auth;
+              if(n_end != std::string::npos)
+                {
+                  auth = it_b->book_author.substr(n_beg, n_end - n_beg);
+                }
+              else
+                {
+                  if(n_beg < it_b->book_author.size())
+                    {
+                      std::copy(it_b->book_author.begin() + n_beg,
+                                it_b->book_author.end(),
+                                std::back_inserter(auth));
+                    }
+                  else
+                    {
+                      break;
+                    }
+                  stop = true;
+                }
+              if(!auth.empty())
+                {
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.begin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.erase(auth.begin());
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  while(auth.size() > 0)
+                    {
+                      char ch = *auth.rbegin();
+                      if(ch >= 0 && ch <= 32)
+                        {
+                          auth.pop_back();
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+#pragma omp critical
+                  {
+                    result_str.emplace_back(auth);
+                  }
+                }
+              n_beg = n_end + find_str.size() - 1;
+              if(stop)
+                {
+                  break;
+                }
+            }
+        }
+    }
+
+  struct gpu_string
+  {
+    char *data = nullptr;
+    size_t size = 0;
+    std::string *str = nullptr;
+  };
+
+  std::vector<std::string *> result_ptr;
+  std::vector<gpu_string> for_gpu;
+  size_t cpu_limit = result_str.size() * af->getCpuGpuBalanceAuthors();
+  result_ptr.reserve(cpu_limit);
+  for_gpu.reserve(result_str.size() - cpu_limit);
+  int def_device = omp_get_default_device();
+  int init_device = omp_get_initial_device();
+  for(auto it = result_str.begin(); it != result_str.end(); it++)
+    {
+      if(result_ptr.size() < cpu_limit || it->empty())
+        {
+          result_ptr.push_back(it.base());
+        }
+      else
+        {
+          gpu_string gp;
+          gp.size = it->size();
+          gp.data = reinterpret_cast<char *>(
+              omp_target_alloc(gp.size, def_device));
+          int er = omp_target_memcpy(gp.data, it->data(), gp.size, 0, 0,
+                                     def_device, init_device);
+          if(er != 0)
+            {
+              throw MLException(
+                  std::string("BaseKeeper::collectionAuthorsGPU: ")
+                  + std::strerror(er));
+            }
+          gp.str = it.base();
+          for_gpu.emplace_back(gp);
+        }
+    }
+
+  double sz_gpu = 0.0;
+  size_t for_gpu_sz = for_gpu.size();
+  for(size_t i = 0; i < for_gpu.size(); i++)
+    {
+      sz_gpu += static_cast<double>(for_gpu_sz - (i + 1));
+    }
+
+  std::atomic<double> progr_gpu = 0;
+
+  std::thread gpu_thr(
+      [this, &for_gpu, def_device, init_device, &progr_gpu, for_gpu_sz] {
+        size_t *for_gpu_sz_gpu = reinterpret_cast<size_t *>(
+            omp_target_alloc(sizeof(size_t), def_device));
+        int er = omp_target_memcpy(for_gpu_sz_gpu, &for_gpu_sz, sizeof(size_t),
+                                   0, 0, def_device, init_device);
+        if(er != 0)
+          {
+            throw MLException(std::string("BaseKeeper::collectionAuthorsGPU: ")
+                              + std::strerror(er));
+          }
+        gpu_string *for_gpu_gpu = reinterpret_cast<gpu_string *>(
+            omp_target_alloc(for_gpu_sz * sizeof(gpu_string), def_device));
+
+        er = omp_target_memcpy(for_gpu_gpu, for_gpu.data(),
+                               for_gpu_sz * sizeof(gpu_string), 0, 0,
+                               def_device, init_device);
+        if(er != 0)
+          {
+            throw MLException(std::string("BaseKeeper::collectionAuthorsGPU: ")
+                              + std::strerror(er));
+          }
+
+        bool cncl = false;
+        double l_sz = -static_cast<double>(for_gpu_sz);
+        for(size_t i = 0; i < for_gpu_sz; i++)
+          {
+#pragma omp atomic read
+            cncl = cancel_search;
+            if(cncl)
+              {
+                break;
+              }
+            l_sz += static_cast<double>(for_gpu_sz - i);
+            progr_gpu.store(l_sz, std::memory_order_relaxed);
+#pragma omp target map(to : i, for_gpu_gpu)
+            {
+              gpu_string *l_ptr = for_gpu_gpu + i;
+              if(l_ptr->str)
+                {
+#pragma omp parallel for
+                  for(gpu_string *j = l_ptr + 1;
+                      j < for_gpu_gpu + *for_gpu_sz_gpu; j++)
+                    {
+                      if(j->str)
+                        {
+                          if(j->size == l_ptr->size)
+                            {
+                              bool equal = true;
+                              for(size_t e = 0; e < j->size; e++)
+                                {
+                                  if(l_ptr->data[e] != j->data[e])
+                                    {
+                                      equal = false;
+                                      break;
+                                    }
+                                }
+                              if(equal)
+                                {
+                                  j->str = nullptr;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+          }
+
+        er = omp_target_memcpy(for_gpu.data(), for_gpu_gpu,
+                               for_gpu_sz * sizeof(gpu_string), 0, 0,
+                               init_device, def_device);
+        if(er != 0)
+          {
+            throw MLException(std::string("BaseKeeper::collectionAuthorsGPU: ")
+                              + std::strerror(er));
+          }
+        omp_target_free(for_gpu_gpu, def_device);
+        omp_target_free(for_gpu_sz_gpu, def_device);
+      });
+
+  result.reserve(result_str.size());
+  size_t result_ptr_sz = result_ptr.size();
+  double sz_cpu = 0.0;
+  for(size_t i = 0; i < result_ptr_sz; i++)
+    {
+      sz_cpu += static_cast<double>(result_ptr_sz - (i + 1));
+    }
+  std::atomic<double> progr_cpu = 0.0;
+
+  bool stop_progr = false;
+  std::mutex stop_progr_mtx;
+  std::condition_variable stop_progr_var;
+
+  std::thread progr_thr([this, sz_gpu, sz_cpu, &progr_gpu, &progr_cpu,
+                         &stop_progr, &stop_progr_mtx, &stop_progr_var] {
+    for(;;)
+      {
+        std::unique_lock<std::mutex> ullock(stop_progr_mtx);
+        stop_progr_var.wait_for(ullock, std::chrono::milliseconds(300),
+                                [&stop_progr] {
+                                  return stop_progr;
+                                });
+        if(stop_progr)
+          {
+            break;
+          }
+        else
+          {
+            if(auth_gpu_show_progr)
+              {
+                auth_gpu_show_progr(progr_gpu.load(std::memory_order_relaxed),
+                                    sz_gpu);
+              }
+            if(auth_cpu_show_progr)
+              {
+                auth_cpu_show_progr(static_cast<double>(progr_cpu.load(
+                                        std::memory_order_relaxed)),
+                                    sz_cpu);
+              }
+          }
+      }
+  });
+
+  double l_sz = -static_cast<double>(result_ptr_sz);
+  for(size_t i = 0; i < result_ptr_sz; i++)
+    {
+      bool cncl = false;
+#pragma atomic read
+      cncl = cancel_search;
+      if(cncl)
+        {
+          break;
+        }
+      l_sz += static_cast<double>(result_ptr_sz - i);
+      progr_cpu.store(l_sz, std::memory_order_relaxed);
+      if(result_ptr[i])
+        {
+#pragma omp parallel
+#pragma omp for
+          for(size_t j = i + 1; j < result_ptr_sz; j++)
+            {
+              if(result_ptr[j])
+                {
+                  if(*result_ptr[j] == *result_ptr[i])
+                    {
+                      result_ptr[j] = nullptr;
+                    }
+                }
+            }
+          result.emplace_back(*result_ptr[i]);
+        }
+    }
+
+  gpu_thr.join();
+
+  stop_progr_mtx.lock();
+  stop_progr = true;
+  stop_progr_var.notify_all();
+  stop_progr_mtx.unlock();
+
+  progr_thr.join();
+
+  size_t cpu_res_size = result.size();
+
+  if(auth_collecting_results)
+    {
+      auth_collecting_results();
+    }
+
+  bool cncl;
+#pragma omp atomic read
+  cncl = cancel_search;
+  if(cncl)
+    {
+#pragma omp parallel
+#pragma omp for
+      for(auto it = for_gpu.begin(); it != for_gpu.end(); it++)
+        {
+          omp_target_free(it->data, def_device);
+        }
+    }
+  else
+    {
+#pragma omp parallel
+#pragma omp for
+      for(auto it = for_gpu.begin(); it != for_gpu.end(); it++)
+        {
+          if(it->str)
+            {
+              auto it_res = AuxFunc::parallelFind(
+                  result.begin(), result.begin() + cpu_res_size, *(it->str));
+              if(it_res == result.begin() + cpu_res_size)
+                {
+#pragma omp critical
+                  {
+                    result.emplace_back(*(it->str));
+                  }
+                }
+            }
+          omp_target_free(it->data, def_device);
+        }
+    }
+
+#pragma omp atomic read
+  cncl = cancel_search;
+  if(cncl)
+    {
+      result.clear();
+    }
+  result.shrink_to_fit();
+
+  loadBaseToGPUMemory();
+
+  return result;
+}
+
+void
+BaseKeeper::loadBaseToGPUMemory()
+{
+  if(books_in_base > 0)
+    {
+      size_t cpu_size = books_in_base * af->getCpuGpuBalanceSearch();
+      cpu_base.reserve(cpu_size);
+      size_t gpu_size = books_in_base - cpu_size;
+      std::vector<gpu_base_entry> gp;
+      gp.reserve(gpu_size);
+
+      int def_device = omp_get_default_device();
+      int init_device = omp_get_initial_device();
+      int er;
+      for(auto it_base = base.begin(); it_base != base.end(); it_base++)
+        {
+          for(auto it_books = it_base->books.begin();
+              it_books != it_base->books.end(); it_books++)
+            {
+              if(gp.size() < gpu_size)
+                {
+                  gpu_base_entry gp_e;
+                  gp_e.base_entry = it_base.base();
+                  gp_e.book_entry = it_books.base();
+
+                  std::string l_val = af->stringToLower(it_books->book_author);
+                  for(auto it = l_val.begin(); it != l_val.end();)
+                    {
+                      if(*it >= 0 && *it <= ' ')
+                        {
+                          l_val.erase(it);
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  gp_e.book_author_sz = l_val.size();
+                  if(gp_e.book_author_sz > 0)
+                    {
+                      gp_e.book_author = reinterpret_cast<char *>(
+                          omp_target_alloc(gp_e.book_author_sz, def_device));
+                      er = omp_target_memcpy(gp_e.book_author, l_val.data(),
+                                             gp_e.book_author_sz, 0, 0,
+                                             def_device, init_device);
+                      if(er)
+                        {
+                          throw MLException(
+                              std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                              + std::strerror(er));
+                        }
+                    }
+
+                  l_val = af->stringToLower(it_books->book_name);
+                  for(auto it = l_val.begin(); it != l_val.end();)
+                    {
+                      if(*it >= 0 && *it <= ' ')
+                        {
+                          l_val.erase(it);
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  gp_e.book_name_sz = l_val.size();
+                  if(gp_e.book_name_sz > 0)
+                    {
+                      gp_e.book_name = reinterpret_cast<char *>(
+                          omp_target_alloc(gp_e.book_name_sz, def_device));
+                      er = omp_target_memcpy(gp_e.book_name, l_val.data(),
+                                             gp_e.book_name_sz, 0, 0,
+                                             def_device, init_device);
+                      if(er)
+                        {
+                          throw MLException(
+                              std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                              + std::strerror(er));
+                        }
+                    }
+
+                  l_val = af->stringToLower(it_books->book_series);
+                  for(auto it = l_val.begin(); it != l_val.end();)
+                    {
+                      if(*it >= 0 && *it <= ' ')
+                        {
+                          l_val.erase(it);
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  gp_e.book_series_sz = l_val.size();
+                  if(gp_e.book_series_sz > 0)
+                    {
+                      gp_e.book_series = reinterpret_cast<char *>(
+                          omp_target_alloc(gp_e.book_series_sz, def_device));
+                      er = omp_target_memcpy(gp_e.book_series, l_val.data(),
+                                             gp_e.book_series_sz, 0, 0,
+                                             def_device, init_device);
+                      if(er)
+                        {
+                          throw MLException(
+                              std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                              + std::strerror(er));
+                        }
+                    }
+
+                  l_val = af->stringToLower(it_books->book_genre);
+                  for(auto it = l_val.begin(); it != l_val.end();)
+                    {
+                      if(*it >= 0 && *it <= ' ')
+                        {
+                          l_val.erase(it);
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  gp_e.book_genre_sz = l_val.size();
+                  if(gp_e.book_genre_sz > 0)
+                    {
+                      gp_e.book_genre = reinterpret_cast<char *>(
+                          omp_target_alloc(gp_e.book_genre_sz, def_device));
+                      er = omp_target_memcpy(gp_e.book_genre, l_val.data(),
+                                             gp_e.book_genre_sz, 0, 0,
+                                             def_device, init_device);
+                      if(er)
+                        {
+                          throw MLException(
+                              std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                              + std::strerror(er));
+                        }
+                    }
+
+                  l_val = af->stringToLower(it_books->book_date);
+                  for(auto it = l_val.begin(); it != l_val.end();)
+                    {
+                      if(*it >= 0 && *it <= ' ')
+                        {
+                          l_val.erase(it);
+                        }
+                      else
+                        {
+                          break;
+                        }
+                    }
+                  gp_e.book_date_sz = l_val.size();
+                  if(gp_e.book_date_sz > 0)
+                    {
+                      gp_e.book_date = reinterpret_cast<char *>(
+                          omp_target_alloc(gp_e.book_date_sz, def_device));
+                      er = omp_target_memcpy(gp_e.book_date, l_val.data(),
+                                             gp_e.book_date_sz, 0, 0,
+                                             def_device, init_device);
+                      if(er)
+                        {
+                          throw MLException(
+                              std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                              + std::strerror(er));
+                        }
+                    }
+
+                  gp.emplace_back(gp_e);
+                }
+              else
+                {
+                  cpu_base_entry cp_e;
+                  cp_e.base_entry = it_base.base();
+                  cp_e.book_entry = it_books.base();
+                  cpu_base.emplace_back(cp_e);
+                }
+            }
+        }
+
+      gpu_size = gp.size();
+      if(gpu_size > 0)
+        {
+          gpu_base = reinterpret_cast<gpu_base_entry *>(
+              omp_target_alloc(gpu_size * sizeof(gpu_base_entry), def_device));
+          er = omp_target_memcpy(gpu_base, gp.data(),
+                                 gpu_size * sizeof(gpu_base_entry), 0, 0,
+                                 def_device, init_device);
+          if(er)
+            {
+              omp_target_free(gpu_base, def_device);
+              gpu_base = nullptr;
+              gpu_base_sz = 0;
+              throw MLException(
+                  std::string("BaseKeeper::loadBaseToGPUMemory: ")
+                  + std::strerror(er));
+            }
+          gpu_base_sz = gpu_size;
+        }
+    }
+  cpu_base.shrink_to_fit();
+}
+
+void
+BaseKeeper::unloadBaseFromGPUMemory()
+{
+  if(gpu_base)
+    {
+      std::vector<gpu_base_entry> gp;
+      gp.resize(gpu_base_sz);
+      int er = omp_target_memcpy(
+          gp.data(), gpu_base, gpu_base_sz * sizeof(gpu_base_entry), 0, 0,
+          omp_get_initial_device(), omp_get_default_device());
+      if(er != 0)
+        {
+          std::cout << "BaseKeeper::unloadBaseFromGPUMemory: "
+                    << std::strerror(er);
+          gp.clear();
+        }
+      omp_target_free(gpu_base, omp_get_default_device());
+      gpu_base = nullptr;
+      gpu_base_sz = 0;
+
+      for(auto it = gp.begin(); it != gp.end(); it++)
+        {
+          if(it->book_author)
+            {
+              omp_target_free(it->book_author, omp_get_default_device());
+            }
+          if(it->book_name)
+            {
+              omp_target_free(it->book_name, omp_get_default_device());
+            }
+          if(it->book_series)
+            {
+              omp_target_free(it->book_series, omp_get_default_device());
+            }
+          if(it->book_genre)
+            {
+              omp_target_free(it->book_genre, omp_get_default_device());
+            }
+          if(it->book_date)
+            {
+              omp_target_free(it->book_date, omp_get_default_device());
+            }
+        }
+    }
+  cpu_base.clear();
 }
 
 #pragma omp declare target
@@ -2653,9 +3614,6 @@ BaseKeeper::stopSearch()
 #ifdef USE_OPENMP
 #pragma atomic write
   cancel_search = true;
-#ifdef USE_GPUOFFLOADING
-#pragma omp target update to(cancel_search)
-#endif
 #else
   cancel_search.store(true);
 #endif
@@ -2680,7 +3638,7 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
           last_name = af->stringToLower(last_name);
           for(auto it = last_name.begin(); it != last_name.end();)
             {
-              if((*it) == ' ')
+              if(*it >= 0 && *it <= ' ')
                 {
                   last_name.erase(it);
                 }
@@ -2696,48 +3654,35 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
 #pragma omp parallel
-                  {
 #pragma omp for
-                    for(auto it = base.begin(); it != base.end(); it++)
-                      {
-                        bool c_s;
+                  for(auto it = base.begin(); it != base.end(); it++)
+                    {
+                      bool c_s;
 #pragma omp atomic read
-                        c_s = cancel_search;
-                        if(c_s)
-                          {
-#pragma omp cancel for
-                            continue;
-                          }
-                        std::filesystem::path book_file_path = collection_path;
-                        book_file_path
-                            /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+                      c_s = cancel_search;
+                      if(c_s)
                         {
-#pragma omp for
-                          for(auto itb = it->books.begin();
-                              itb != it->books.end(); itb++)
-                            {
-                              bool c_s2;
-#pragma omp atomic read
-                              c_s2 = cancel_search;
-                              if(c_s2)
-                                {
 #pragma omp cancel for
-                                  continue;
-                                }
-                              if(searchLineFunc(last_name, itb->book_author,
-                                                coef_coincidence))
-                                {
+                          continue;
+                        }
+                      std::filesystem::path book_file_path = collection_path;
+                      book_file_path
+                          /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+                      for(auto itb = it->books.begin(); itb != it->books.end();
+                          itb++)
+                        {
+                          if(searchLineFunc(last_name, itb->book_author,
+                                            coef_coincidence))
+                            {
 #pragma omp critical
-                                  {
-                                    result.emplace_back(
-                                        BookBaseEntry(*itb, book_file_path));
-                                  }
-                                }
+                              {
+                                result.emplace_back(
+                                    BookBaseEntry(*itb, book_file_path));
+                              }
                             }
                         }
-                      }
-                  }
+                    }
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE
@@ -2893,7 +3838,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
               first_name = af->stringToLower(first_name);
               for(auto it = first_name.begin(); it != first_name.end();)
                 {
-                  if((*it) == ' ')
+                  if(*it >= 0 && *it <= ' ')
                     {
                       first_name.erase(it);
                     }
@@ -2907,48 +3852,35 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                 {
 #ifdef USE_OPENMP
 #pragma omp parallel
-                  {
 #pragma omp for
-                    for(auto it = base.begin(); it != base.end(); it++)
-                      {
-                        bool c_s;
+                  for(auto it = base.begin(); it != base.end(); it++)
+                    {
+                      bool c_s;
 #pragma omp atomic read
-                        c_s = cancel_search;
-                        if(c_s)
-                          {
-#pragma omp cancel for
-                            continue;
-                          }
-                        std::filesystem::path book_file_path = collection_path;
-                        book_file_path
-                            /= std::filesystem::u8path(it->file_rel_path);
-#pragma omp parallel
+                      c_s = cancel_search;
+                      if(c_s)
                         {
-#pragma omp for
-                          for(auto itb = it->books.begin();
-                              itb != it->books.end(); itb++)
-                            {
-                              bool c_s2;
-#pragma omp atomic read
-                              c_s2 = cancel_search;
-                              if(c_s2)
-                                {
 #pragma omp cancel for
-                                  continue;
-                                }
-                              if(searchLineFunc(first_name, itb->book_author,
-                                                coef_coincidence))
-                                {
+                          continue;
+                        }
+                      std::filesystem::path book_file_path = collection_path;
+                      book_file_path
+                          /= std::filesystem::u8path(it->file_rel_path);
+#pragma omp parallel for
+                      for(auto itb = it->books.begin(); itb != it->books.end();
+                          itb++)
+                        {
+                          if(searchLineFunc(first_name, itb->book_author,
+                                            coef_coincidence))
+                            {
 #pragma omp critical
-                                  {
-                                    result.emplace_back(
-                                        BookBaseEntry(*itb, book_file_path));
-                                  }
-                                }
+                              {
+                                result.emplace_back(
+                                    BookBaseEntry(*itb, book_file_path));
+                              }
                             }
                         }
-                      }
-                  }
+                    }
 #else
                   std::mutex result_mtx;
 #ifdef USE_PE

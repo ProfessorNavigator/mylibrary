@@ -16,19 +16,11 @@
 
 #include <MyLibraryApplication.h>
 
-#ifndef USE_OPENMP
-MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af) :
-    Gtk::Application("ru.mail.bobilev_yury.MyLibrary")
-{
-  this->af = af;
-}
-#else
 MyLibraryApplication::MyLibraryApplication(const std::shared_ptr<AuxFunc> &af)
-    : Gtk::Application("ru.mail.bobilev_yury.MyLibrary.omp")
+    : Gtk::Application("ru.mail.bobilev_yury.MyLibrary")
 {
   this->af = af;
 }
-#endif
 
 MyLibraryApplication::~MyLibraryApplication()
 {
@@ -42,23 +34,22 @@ MyLibraryApplication::create(const std::shared_ptr<AuxFunc> &af)
       new MyLibraryApplication(af));
 }
 
-MainWindow*
+MainWindow *
 MyLibraryApplication::create_appwindow()
 {
   mw = new MainWindow(af);
   add_window(*mw);
-  mw->signal_hide().connect([this]
-  {
-    std::vector<Gtk::Window*> wv;
+  mw->signal_hide().connect([this] {
+    std::vector<Gtk::Window *> wv;
     wv = get_windows();
     for(size_t i = 0; i < wv.size(); i++)
       {
-	Gtk::Window *win = wv[i];
+        Gtk::Window *win = wv[i];
         if(win != mw)
           {
-	    win->set_visible(false);
-	    delete win;
-	  }
+            win->set_visible(false);
+            delete win;
+          }
       }
   });
 
@@ -68,7 +59,7 @@ MyLibraryApplication::create_appwindow()
 void
 MyLibraryApplication::on_activate()
 {
-  std::vector<Gtk::Window*> winv;
+  std::vector<Gtk::Window *> winv;
   winv = get_windows();
   if(winv.size() == 0)
     {

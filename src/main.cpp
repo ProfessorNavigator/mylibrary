@@ -19,10 +19,6 @@
 #include <iostream>
 #include <libintl.h>
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-
 int
 main(int argc, char *argv[])
 {
@@ -49,21 +45,9 @@ main(int argc, char *argv[])
         }
 
       int result;
-#ifdef USE_OPENMP
-#pragma omp parallel
-      {
-#pragma omp masked
-        {
-          auto app = MyLibraryApplication::create(af);
-          result = app->run(argc, argv);
-        }
-      }
-#else
       auto app = MyLibraryApplication::create(af);
       result = app->run(argc, argv);
       app.reset();
-
-#endif
       af.reset();
       return result;
     }

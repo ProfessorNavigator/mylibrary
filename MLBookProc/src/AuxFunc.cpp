@@ -35,6 +35,11 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
+#ifdef __linux
+#include <fcntl.h>
+#include <poll.h>
+#include <unistd.h>
+#endif
 
 AuxFunc::AuxFunc()
 {
@@ -93,9 +98,15 @@ AuxFunc::AuxFunc()
           std::cout << "MLBookProc OMP_CANCELLATION: "
                     << omp_get_cancellation() << std::endl;
           omp_set_max_active_levels(omp_get_supported_active_levels());
+          std::cout << "MLBookProc supported nested parllelization levels: "
+                    << omp_get_max_active_levels() << std::endl;
           omp_set_dynamic(true);
           std::cout << "MLBookProc omp dynamic: " << omp_get_dynamic()
                     << std::endl;
+#ifdef USE_GPUOFFLOADING
+          std::cout << "MLBookProc omp devices quantity: "
+                    << omp_get_device_num() << std::endl;
+#endif
           omp_init_lock(&djvu_context_mtx);
 #endif
         }
@@ -838,15 +849,78 @@ AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
   return gg;
 }
 
+void
+AuxFunc::djvuMessageCallback(ddjvu_context_t *context, void *closure)
+{
+#ifdef USE_OPENMP
+  std::tuple<omp_lock_t *, std::vector<std::weak_ptr<int>> *> *djvu_tup
+      = reinterpret_cast<
+          std::tuple<omp_lock_t *, std::vector<std::weak_ptr<int>> *> *>(
+          closure);
+  OmpLockGuard olg(*std::get<0>(*djvu_tup));
+#else
+  std::tuple<std::mutex *, std::vector<std::weak_ptr<int>> *> *djvu_tup
+      = reinterpret_cast<
+          std::tuple<std::mutex *, std::vector<std::weak_ptr<int>> *> *>(
+          closure);
+  std::lock_guard<std::mutex> lglock(*std::get<0>(*djvu_tup));
+#endif
+  uint8_t signal = 1;
+  for(auto it = std::get<1>(*djvu_tup)->begin();
+      it != std::get<1>(*djvu_tup)->end();)
+    {
+      std::shared_ptr<int> pipe = it->lock();
+      if(pipe)
+        {
+          pollfd fd;
+          fd.fd = *(pipe.get() + 1);
+          fd.events = POLLOUT;
+          int respol = poll(&fd, 1, 1000);
+          if(respol > 0)
+            {
+              if(fd.revents & POLLERR)
+                {
+                  throw MLException(
+                      "AuxFunc::djvuMessageCallback: poll error");
+                }
+              if(fd.revents & POLLOUT)
+                {
+                  write(fd.fd, &signal, sizeof(signal));
+                }
+            }
+          else
+            {
+              if(respol == 0)
+                {
+                  throw MLException(
+                      "AuxFunc::djvuMessageCallback: poll timeout exceeded");
+                }
+              else
+                {
+                  std::string str = std::strerror(errno);
+                  str = "AuxFunc::djvuMessageCallback: " + str;
+                  throw MLException(str);
+                }
+            }
+          it++;
+        }
+      else
+        {
+          std::get<1>(*djvu_tup)->erase(it);
+        }
+    }
+}
+
 std::shared_ptr<AuxFunc>
 AuxFunc::create()
 {
   return std::shared_ptr<AuxFunc>(new AuxFunc);
 }
 
-std::shared_ptr<ddjvu_context_t>
+std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>>
 AuxFunc::getDJVUContext()
 {
+  std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>> result;
 #ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(djvu_context_mtx);
 #else
@@ -855,14 +929,92 @@ AuxFunc::getDJVUContext()
   std::shared_ptr<ddjvu_context_t> context = djvu_context.lock();
   if(context.get() == nullptr)
     {
+#ifdef USE_OPENMP
+      std::tuple<omp_lock_t *, std::vector<std::weak_ptr<int>> *> *djvu_tup
+          = new std::tuple<omp_lock_t *, std::vector<std::weak_ptr<int>> *>;
+      std::get<0>(*djvu_tup) = &djvu_context_mtx;
+      std::get<1>(*djvu_tup) = &djvu_pipes;
+#else
+      std::tuple<std::mutex *, std::vector<std::weak_ptr<int>> *> *djvu_tup
+          = new std::tuple<std::mutex *, std::vector<std::weak_ptr<int>> *>;
+      std::get<0>(*djvu_tup) = &djvu_context_mtx;
+      std::get<1>(*djvu_tup) = &djvu_pipes;
+#endif
       context = std::shared_ptr<ddjvu_context_t>(
-          ddjvu_context_create("MLBookProc"), [](ddjvu_context_t *ctx) {
+          ddjvu_context_create("MLBookProc"),
+          [djvu_tup, this](ddjvu_context_t *ctx) {
             ddjvu_context_release(ctx);
+            djvu_pipes.clear();
+            delete djvu_tup;
           });
+
+      ddjvu_message_set_callback(context.get(), &AuxFunc::djvuMessageCallback,
+                                 djvu_tup);
       djvu_context = context;
     }
-  return context;
+  std::get<0>(result) = context;
+  std::shared_ptr<int> pipe(new int[2], [](int *pipe) {
+#ifdef __linux
+    for(size_t i = 0; i < 2; i++)
+      {
+        if(pipe[i] >= 0)
+          {
+            close(pipe[i]);
+          }
+      }
+#endif
+    delete[] pipe;
+  });
+
+#ifdef __linux
+  if(pipe2(pipe.get(), O_NONBLOCK) < 0)
+    {
+      std::string str = std::strerror(errno);
+      str = "AuxFunc::getDJVUContext: " + str;
+      throw MLException(str);
+    }
+#endif
+  djvu_pipes.push_back(pipe);
+  std::get<1>(result) = pipe;
+  return result;
 }
+
+#ifdef USE_GPUOFFLOADING
+void
+AuxFunc::setCpuGpuBalance(const double &balance_authors,
+                          const double &balance_search)
+{
+  if(balance_authors > 1.0 || balance_authors < 0.0)
+    {
+      cpu_gpu_balance_authors.store(0.95);
+    }
+  else
+    {
+      cpu_gpu_balance_authors.store(balance_authors);
+    }
+
+  if(balance_search > 1.0 || balance_search < 0.0)
+    {
+      cpu_gpu_balance_search.store(0.5);
+    }
+  else
+    {
+      cpu_gpu_balance_search.store(balance_search);
+    }
+}
+
+double
+AuxFunc::getCpuGpuBalanceAuthors()
+{
+  return cpu_gpu_balance_authors.load();
+}
+
+double
+AuxFunc::getCpuGpuBalanceSearch()
+{
+  return cpu_gpu_balance_search.load();
+}
+#endif
 
 std::string
 AuxFunc::libgcrypt_error_handling(const gcry_error_t &err)

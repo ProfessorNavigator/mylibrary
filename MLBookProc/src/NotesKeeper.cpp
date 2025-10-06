@@ -454,7 +454,11 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
       BaseKeeper bk(af);
       try
         {
+#ifdef USE_GPUOFFLOADING
+          bk.loadCollection(collection_name, false);
+#else
           bk.loadCollection(collection_name);
+#endif
         }
       catch(MLException &e)
         {

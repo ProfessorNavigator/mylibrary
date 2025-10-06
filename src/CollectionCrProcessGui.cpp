@@ -22,12 +22,7 @@
 #include <libintl.h>
 #include <locale>
 #include <sstream>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <thread>
-#endif
 
 CollectionCrProcessGui::CollectionCrProcessGui(
     const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
@@ -237,27 +232,6 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
       }
   });
 
-#ifdef USE_OPENMP
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      try
-        {
-          cc->createCollection();
-          new_collection_name_disp->emit();
-        }
-      catch(MLException &e)
-        {
-          std::cout << e.what() << std::endl;
-        }
-      creation_finished_disp->emit();
-      delete cc;
-      omp_fulfill_event(event);
-    }
-  }
-#else
   std::thread thr([cc, this] {
     try
       {
@@ -272,7 +246,6 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
     delete cc;
   });
   thr.detach();
-#endif
 }
 
 void
@@ -365,25 +338,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
         collection_refreshed(coll_name);
       }
   });
-#ifdef USE_OPENMP
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      try
-        {
-          rfr->refreshCollection();
-        }
-      catch(MLException &e)
-        {
-          std::cout << e.what() << std::endl;
-        }
-      creation_finished_disp->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#else
+
   std::thread thr([rfr, this] {
     try
       {
@@ -396,7 +351,6 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
     creation_finished_disp->emit();
   });
   thr.detach();
-#endif
 }
 
 void

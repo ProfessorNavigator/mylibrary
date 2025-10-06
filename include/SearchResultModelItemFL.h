@@ -19,18 +19,11 @@
 #include <FileParseEntry.h>
 #include <glibmm-2.68/glibmm/object.h>
 #include <gtkmm-4.0/gtkmm/label.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
 
 class SearchResultModelItemFL : public Glib::Object
 {
 public:
-  virtual ~SearchResultModelItemFL();
-
   static Glib::RefPtr<SearchResultModelItemFL>
   create(const FileParseEntry &entry);
 
@@ -52,11 +45,7 @@ protected:
   SearchResultModelItemFL(const FileParseEntry &entry);
 
   Gtk::Label *l_lab = nullptr;
-#ifndef USE_OPENMP
   std::mutex l_lab_mtx;
-#else
-  omp_lock_t l_lab_mtx;
-#endif
 };
 
 #endif // SEARCHRESULTMODELITEMFL_H

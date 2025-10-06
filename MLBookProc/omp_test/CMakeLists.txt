@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenMP REQUIRED)
+find_package(Threads QUIET)
 
 add_executable(omp_test main.cpp)
 
@@ -16,3 +17,9 @@ target_link_libraries(omp_test
 target_link_options(omp_test
     PRIVATE ${OpenMP_CXX_FLAGS}
 )
+
+if(Threads_FOUND)
+    target_link_libraries(omp_test
+        PRIVATE Threads::Threads
+    )
+endif()

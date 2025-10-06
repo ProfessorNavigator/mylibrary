@@ -20,12 +20,7 @@
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <libintl.h>
 #include <memory>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <thread>
-#endif
 
 SearchProcessGui::SearchProcessGui(BaseKeeper *bk, Gtk::Window *main_window)
 {
@@ -105,19 +100,63 @@ SearchProcessGui::createWindow(const std::string &collection_name,
 
   int row = 0;
 
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(5);
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_expand(true);
-  lab->set_text(gettext("Reading base..."));
-  lab->set_name("windowLabel");
-  grid->attach(*lab, 0, row, 1, 1);
+  Gtk::Label *operation_name_lab = Gtk::make_managed<Gtk::Label>();
+  operation_name_lab->set_margin(5);
+  operation_name_lab->set_halign(Gtk::Align::CENTER);
+  operation_name_lab->set_expand(true);
+  operation_name_lab->set_text(gettext("Reading base..."));
+  operation_name_lab->set_name("windowLabel");
+  grid->attach(*operation_name_lab, 0, row, 1, 1);
   row++;
 
-  Gtk::ProgressBar *prog = nullptr;
-  Gtk::Label *progr_val = nullptr;
+  AuthShowStruct s_struct;
+  s_struct.operation_name_lab = operation_name_lab;
+
   if(variant == 2)
     {
+#ifdef USE_GPUOFFLOADING
+      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_margin(5);
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_expand(true);
+      lab->set_use_markup(true);
+      lab->set_markup(Glib::ustring("<i>") + gettext("CPU progress") + "</i>");
+      lab->set_name("windowLabel");
+      lab->set_visible(false);
+      grid->attach(*lab, 0, row, 1, 1);
+      row++;
+      s_struct.cpu_label = lab;
+#endif
+      Gtk::Label *progr_val = Gtk::make_managed<Gtk::Label>();
+      progr_val->set_margin(5);
+      progr_val->set_halign(Gtk::Align::CENTER);
+      progr_val->set_name("windowLabel");
+      progr_val->set_visible(false);
+      grid->attach(*progr_val, 0, row, 1, 1);
+      row++;
+      s_struct.cpu_progr_val = progr_val;
+
+      Gtk::ProgressBar *prog = Gtk::make_managed<Gtk::ProgressBar>();
+      prog->set_margin(5);
+      prog->set_show_text(false);
+      prog->set_name("progressBars");
+      prog->set_visible(false);
+      grid->attach(*prog, 0, row, 1, 1);
+      row++;
+      s_struct.cpu_progr_bar = prog;
+#ifdef USE_GPUOFFLOADING
+      lab = Gtk::make_managed<Gtk::Label>();
+      lab->set_margin(5);
+      lab->set_halign(Gtk::Align::CENTER);
+      lab->set_expand(true);
+      lab->set_use_markup(true);
+      lab->set_markup(Glib::ustring("<i>") + gettext("GPU progress") + "</i>");
+      lab->set_name("windowLabel");
+      lab->set_visible(false);
+      grid->attach(*lab, 0, row, 1, 1);
+      row++;
+      s_struct.gpu_label = lab;
+
       progr_val = Gtk::make_managed<Gtk::Label>();
       progr_val->set_margin(5);
       progr_val->set_halign(Gtk::Align::CENTER);
@@ -125,6 +164,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       progr_val->set_visible(false);
       grid->attach(*progr_val, 0, row, 1, 1);
       row++;
+      s_struct.gpu_progr_val = progr_val;
 
       prog = Gtk::make_managed<Gtk::ProgressBar>();
       prog->set_margin(5);
@@ -133,6 +173,8 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       prog->set_visible(false);
       grid->attach(*prog, 0, row, 1, 1);
       row++;
+      s_struct.gpu_progr_bar = prog;
+#endif
     }
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -140,14 +182,39 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   cancel->set_halign(Gtk::Align::CENTER);
   cancel->set_label(gettext("Cancel"));
   cancel->set_name("cancelBut");
-  cancel->signal_clicked().connect([this, lab, cancel, prog] {
+  cancel->signal_clicked().connect([this, cancel, s_struct] {
     bk->stopSearch();
     cancel->set_visible(false);
-    if(prog)
+    if(s_struct.cpu_label)
       {
-        prog->set_visible(false);
+        s_struct.cpu_label->set_visible(false);
       }
-    lab->set_text(gettext("Reading interrupting..."));
+    if(s_struct.cpu_progr_bar)
+      {
+        s_struct.cpu_progr_bar->set_visible(false);
+      }
+    if(s_struct.cpu_progr_val)
+      {
+        s_struct.cpu_progr_val->set_visible(false);
+      }
+    if(s_struct.gpu_label)
+      {
+        s_struct.gpu_label->set_visible(false);
+      }
+    if(s_struct.gpu_progr_bar)
+      {
+        s_struct.gpu_progr_bar->set_visible(false);
+      }
+    if(s_struct.gpu_progr_val)
+      {
+        s_struct.gpu_progr_val->set_visible(false);
+      }
+    s_struct.operation_name_lab->set_text(gettext("Reading interrupting..."));
+    Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
+    while(mc->pending())
+      {
+        mc->iteration(true);
+      }
   });
   grid->attach(*cancel, 0, row, 1, 1);
 
@@ -169,7 +236,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       }
     case 2:
       {
-        showAuthors(window, prog, progr_val, lab, collection_name);
+        showAuthors(window, s_struct, collection_name);
         break;
       }
     }
@@ -242,24 +309,11 @@ SearchProcessGui::startSearch(Gtk::Window *win, const BookBaseEntry &search,
     win->close();
   });
 
-#ifndef USE_OPENMP
   std::thread thr([this, search, search_finished, coef_coincedence] {
     search_result = bk->searchBook(search, coef_coincedence);
     search_finished->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      search_result = bk->searchBook(search, coef_coincedence);
-      search_finished->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void
@@ -277,86 +331,52 @@ SearchProcessGui::copyFiles(Gtk::Window *win,
     win->close();
   });
 
-#ifndef USE_OPENMP
   std::thread thr([this, collection_name, af, copy_proc_finished] {
     files = bk->get_base_vector();
     std::filesystem::path book_p = bk->get_books_path(collection_name, af);
+#ifdef USE_OPENMP
+#pragma omp parallel
+#pragma omp for
     for(auto it = files.begin(); it != files.end(); it++)
       {
         std::filesystem::path p = book_p;
         p /= std::filesystem::u8path(it->file_rel_path);
         it->file_rel_path = p.u8string();
       }
+#else
+    for(auto it = files.begin(); it != files.end(); it++)
+      {
+        std::filesystem::path p = book_p;
+        p /= std::filesystem::u8path(it->file_rel_path);
+        it->file_rel_path = p.u8string();
+      }
+#endif
     copy_proc_finished->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      files = bk->get_base_vector();
-      std::filesystem::path book_p = bk->get_books_path(collection_name, af);
-      for(auto it = files.begin(); it != files.end(); it++)
-        {
-          std::filesystem::path p = book_p;
-          p /= std::filesystem::u8path(it->file_rel_path);
-          it->file_rel_path = p.u8string();
-        }
-      copy_proc_finished->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void
-SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
-                              Gtk::Label *progr_val, Gtk::Label *lab,
+SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
                               const std::string &collection_name)
 {
-  double *pr = new double(0.0);
-  double *sz = new double(1.0);
-#ifdef USE_OPENMP
-  omp_lock_t *prog_mtx = new omp_lock_t;
-  omp_init_lock(prog_mtx);
-#else
+  double *progr_cpu = new double(0.0);
+  double *progr_cpu_sz = new double(1.0);
   std::mutex *prog_mtx = new std::mutex;
-#endif
-
+#ifndef USE_GPUOFFLOADING
   Glib::Dispatcher *progr_disp = new Glib::Dispatcher;
   std::shared_ptr<std::stringstream> strm(new std::stringstream);
-  progr_disp->connect([pr, sz, prog_mtx, prog, progr_val, strm] {
-#ifdef USE_OPENMP
-    omp_set_lock(prog_mtx);
-    double frac = (*pr) / (*sz);
-    omp_unset_lock(prog_mtx);
-    if(!prog->get_visible())
-      {
-        prog->set_visible(true);
-        progr_val->set_visible(true);
-      }
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(2) << frac * 100.0;
-    progr_val->set_text(Glib::ustring(strm->str()) + "%");
-    prog->set_fraction(frac);
-#else
+  progr_disp->connect([progr_cpu, progr_cpu_sz, prog_mtx, s_struct, strm] {
     prog_mtx->lock();
-    double frac = (*pr) / (*sz);
+    double frac = (*progr_cpu) / (*progr_cpu_sz);
     prog_mtx->unlock();
-    if(!prog->get_visible())
-      {
-        prog->set_visible(true);
-        progr_val->set_visible(true);
-      }
     strm->clear();
     strm->str("");
     *strm << std::fixed << std::setprecision(2) << frac * 100.0;
-    progr_val->set_text(Glib::ustring(strm->str()) + "%");
-    prog->set_fraction(frac);
-#endif
+    s_struct.cpu_progr_val->set_visible(true);
+    s_struct.cpu_progr_bar->set_visible(true);
+    s_struct.cpu_progr_val->set_text(Glib::ustring(strm->str()) + "%");
+    s_struct.cpu_progr_bar->set_fraction(frac);
   });
 
   Glib::Dispatcher *show_res = new Glib::Dispatcher;
@@ -370,71 +390,158 @@ SearchProcessGui::showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog,
   });
 
   Glib::Dispatcher *search_finished = new Glib::Dispatcher;
-  search_finished->connect([search_finished, progr_disp, pr, sz, prog_mtx,
-                            prog, progr_val, lab, show_res] {
+  search_finished->connect([search_finished, progr_cpu, progr_cpu_sz, prog_mtx,
+                            s_struct, show_res, progr_disp] {
     std::unique_ptr<Glib::Dispatcher> disp(search_finished);
-    prog->set_visible(false);
-    progr_val->set_visible(false);
-    lab->set_text(gettext("Sorting..."));
+    s_struct.cpu_progr_bar->set_visible(false);
+    s_struct.cpu_progr_val->set_visible(false);
+    s_struct.operation_name_lab->set_text(gettext("Sorting..."));
     delete progr_disp;
-    delete pr;
-    delete sz;
-#ifdef USE_OPENMP
-    omp_destroy_lock(prog_mtx);
-#pragma omp masked
-    {
-      omp_event_handle_t event;
-#pragma omp task detach(event)
-      {
-        show_res->emit();
-        omp_fulfill_event(event);
-      }
-    }
-#else
+    delete progr_cpu;
+    delete progr_cpu_sz;
+
     std::thread thr([show_res] {
       show_res->emit();
     });
     thr.detach();
-#endif
     delete prog_mtx;
   });
 
-#ifndef USE_OPENMP
-  bk->auth_show_progr = [pr, sz, prog_mtx, progr_disp](const double &progr,
-                                                       const double &size) {
+  bk->auth_cpu_show_progr = [progr_cpu, progr_cpu_sz, prog_mtx, progr_disp](
+                                const double &progr, const double &size) {
     prog_mtx->lock();
-    *pr = progr;
-    *sz = size;
+    *progr_cpu = progr;
+    *progr_cpu_sz = size;
     prog_mtx->unlock();
     progr_disp->emit();
   };
   std::thread thr([this, search_finished] {
     authors = bk->collectionAuthors();
-    bk->auth_show_progr = nullptr;
+    bk->auth_cpu_show_progr = nullptr;
     search_finished->emit();
   });
   thr.detach();
 #else
-  bk->auth_show_progr = [pr, sz, prog_mtx, progr_disp](const double &progr,
-                                                       const double &size) {
-    omp_set_lock(prog_mtx);
-    *pr = progr;
-    *sz = size;
-    omp_unset_lock(prog_mtx);
-    progr_disp->emit();
+  double *progr_gpu = new double(0.0);
+  double *progr_gpu_sz = new double(1.0);
+  std::mutex *progr_gpu_mtx = new std::mutex;
+
+  Glib::Dispatcher *progr_disp_cpu = new Glib::Dispatcher;
+  std::shared_ptr<std::stringstream> strm(new std::stringstream);
+  progr_disp_cpu->connect([progr_cpu, progr_cpu_sz, prog_mtx, s_struct, strm] {
+    prog_mtx->lock();
+    double frac = (*progr_cpu) / (*progr_cpu_sz);
+    prog_mtx->unlock();
+    strm->clear();
+    strm->str("");
+    *strm << std::fixed << std::setprecision(2) << frac * 100.0;
+    s_struct.cpu_label->set_visible(true);
+    s_struct.cpu_progr_val->set_visible(true);
+    s_struct.cpu_progr_bar->set_visible(true);
+    s_struct.cpu_progr_val->set_text(Glib::ustring(strm->str()) + "%");
+    s_struct.cpu_progr_bar->set_fraction(frac);
+  });
+
+  Glib::Dispatcher *progr_disp_gpu = new Glib::Dispatcher;
+  std::shared_ptr<std::stringstream> strm_gpu(new std::stringstream);
+  progr_disp_gpu->connect(
+      [progr_gpu, progr_gpu_sz, progr_gpu_mtx, s_struct, strm_gpu] {
+        progr_gpu_mtx->lock();
+        double frac = (*progr_gpu) / (*progr_gpu_sz);
+        progr_gpu_mtx->unlock();
+        strm_gpu->clear();
+        strm_gpu->str("");
+        *strm_gpu << std::fixed << std::setprecision(2) << frac * 100.0;
+        s_struct.gpu_label->set_visible(true);
+        s_struct.gpu_progr_val->set_visible(true);
+        s_struct.gpu_progr_bar->set_visible(true);
+        s_struct.gpu_progr_val->set_text(Glib::ustring(strm_gpu->str()) + "%");
+        s_struct.gpu_progr_bar->set_fraction(frac);
+      });
+
+  Glib::Dispatcher *show_res = new Glib::Dispatcher;
+  show_res->connect([show_res, win, this] {
+    std::unique_ptr<Glib::Dispatcher> disp(show_res);
+    if(search_result_authors)
+      {
+        search_result_authors(authors);
+      }
+    win->close();
+  });
+
+  Glib::Dispatcher *result_creating_disp = new Glib::Dispatcher;
+  result_creating_disp->connect([s_struct] {
+    s_struct.operation_name_lab->set_text(gettext("Collecting results..."));
+    s_struct.cpu_label->set_visible(false);
+    s_struct.cpu_progr_val->set_visible(false);
+    s_struct.cpu_progr_bar->set_visible(false);
+    s_struct.gpu_label->set_visible(false);
+    s_struct.gpu_progr_bar->set_visible(false);
+    s_struct.gpu_progr_val->set_visible(false);
+  });
+
+  Glib::Dispatcher *search_finished = new Glib::Dispatcher;
+  search_finished->connect([search_finished, progr_cpu, progr_cpu_sz, prog_mtx,
+                            progr_gpu, progr_gpu_sz, progr_gpu_mtx, s_struct,
+                            show_res, progr_disp_gpu, progr_disp_cpu,
+                            result_creating_disp] {
+    std::unique_ptr<Glib::Dispatcher> disp(search_finished);
+    s_struct.cpu_label->set_visible(false);
+    s_struct.cpu_progr_bar->set_visible(false);
+    s_struct.cpu_progr_val->set_visible(false);
+    s_struct.gpu_label->set_visible(false);
+    s_struct.gpu_progr_bar->set_visible(false);
+    s_struct.gpu_progr_val->set_visible(false);
+    s_struct.operation_name_lab->set_text(gettext("Sorting..."));
+    delete progr_disp_gpu;
+    delete progr_disp_cpu;
+    delete progr_cpu;
+    delete progr_cpu_sz;
+    delete progr_gpu;
+    delete progr_gpu_sz;
+
+    delete result_creating_disp;
+
+    std::thread thr([show_res] {
+      show_res->emit();
+    });
+    thr.detach();
+    delete prog_mtx;
+    delete progr_gpu_mtx;
+  });
+
+  bk->auth_cpu_show_progr
+      = [progr_cpu, progr_cpu_sz, prog_mtx, progr_disp_cpu,
+         result_creating_disp](const double &progr, const double &size) {
+          prog_mtx->lock();
+          *progr_cpu = progr;
+          *progr_cpu_sz = size;
+          prog_mtx->unlock();
+          progr_disp_cpu->emit();
+        };
+
+  bk->auth_gpu_show_progr
+      = [progr_gpu, progr_gpu_sz, progr_gpu_mtx,
+         progr_disp_gpu](const double &progr, const double &size) {
+          progr_gpu_mtx->lock();
+          *progr_gpu = progr;
+          *progr_gpu_sz = size;
+          progr_gpu_mtx->unlock();
+          progr_disp_gpu->emit();
+        };
+
+  bk->auth_collecting_results = [result_creating_disp] {
+    result_creating_disp->emit();
   };
 
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      authors = bk->collectionAuthors();
-      search_finished->emit();
-      bk->auth_show_progr = nullptr;
-      omp_fulfill_event(event);
-    }
-  }
+  std::thread thr([this, search_finished] {
+    authors = bk->collectionAuthors();
+    bk->auth_cpu_show_progr = nullptr;
+    bk->auth_gpu_show_progr = nullptr;
+    bk->auth_collecting_results = nullptr;
+    search_finished->emit();
+  });
+  thr.detach();
 #endif
 }
 
@@ -453,26 +560,9 @@ SearchProcessGui::showBooksWithNotes(Gtk::Window *win,
     win->close();
   });
 
-#ifdef USE_OPENMP
-// TODO GCC bug
-#ifdef GNU_COMPILER
-#pragma omp parallel
-#endif
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      search_result = bk->booksWithNotes(notes);
-      search_finished->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#else
   std::thread thr([this, notes, search_finished] {
     search_result = bk->booksWithNotes(notes);
     search_finished->emit();
   });
   thr.detach();
-#endif
 }

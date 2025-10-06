@@ -15,13 +15,6 @@
  */
 #include <SearchResultModelItemFL.h>
 
-SearchResultModelItemFL::~SearchResultModelItemFL()
-{
-#ifdef USE_OPENMP
-  omp_destroy_lock(&l_lab_mtx);
-#endif
-}
-
 Glib::RefPtr<SearchResultModelItemFL>
 SearchResultModelItemFL::create(const FileParseEntry &entry)
 {
@@ -32,73 +25,42 @@ SearchResultModelItemFL::create(const FileParseEntry &entry)
 void
 SearchResultModelItemFL::setLabel(Gtk::Label *lab)
 {
-#ifndef USE_OPENMP
   l_lab_mtx.lock();
   l_lab = lab;
   l_lab_mtx.unlock();
-#else
-  omp_set_lock(&l_lab_mtx);
-  l_lab = lab;
-  omp_unset_lock(&l_lab_mtx);
-#endif
 }
 
 void
 SearchResultModelItemFL::unsetLabel()
 {
-#ifndef USE_OPENMP
   l_lab_mtx.lock();
   l_lab = nullptr;
   l_lab_mtx.unlock();
-#else
-  omp_set_lock(&l_lab_mtx);
-  l_lab = nullptr;
-  omp_unset_lock(&l_lab_mtx);
-#endif
 }
 
 void
 SearchResultModelItemFL::activateLab()
 {
-#ifndef USE_OPENMP
   l_lab_mtx.lock();
-#else
-  omp_set_lock(&l_lab_mtx);
-#endif
   if(l_lab)
     {
       l_lab->set_name("selectedLab");
     }
-#ifndef USE_OPENMP
   l_lab_mtx.unlock();
-#else
-  omp_unset_lock(&l_lab_mtx);
-#endif
 }
 
 void
 SearchResultModelItemFL::deactivateLab()
 {
-#ifndef USE_OPENMP
   l_lab_mtx.lock();
-#else
-  omp_set_lock(&l_lab_mtx);
-#endif
   if(l_lab)
     {
       l_lab->set_name("windowLabel");
     }
-#ifndef USE_OPENMP
   l_lab_mtx.unlock();
-#else
-  omp_unset_lock(&l_lab_mtx);
-#endif
 }
 
 SearchResultModelItemFL::SearchResultModelItemFL(const FileParseEntry &entry)
 {
-#ifdef USE_OPENMP
-  omp_init_lock(&l_lab_mtx);
-#endif
   this->entry = entry;
 }

@@ -18,18 +18,11 @@
 
 #include <glibmm-2.68/glibmm/object.h>
 #include <gtkmm-4.0/gtkmm/label.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
 
 class SearchResultModelItemAuth : public Glib::Object
 {
 public:
-  virtual ~SearchResultModelItemAuth();
-
   static Glib::RefPtr<SearchResultModelItemAuth>
   create(const std::string &auth);
 
@@ -52,11 +45,7 @@ protected:
 
   Gtk::Label *l_lab = nullptr;
 
-#ifndef USE_OPENMP
   std::mutex l_lab_mtx;
-#else
-  omp_lock_t l_lab_mtx;
-#endif
 };
 
 #endif // SEARCHRESULTMODELITEMAUTH_H

@@ -32,11 +32,10 @@
 #include <gtkmm-4.0/gtkmm/signallistitemfactory.h>
 #include <iostream>
 #include <libintl.h>
+#include <thread>
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#else
-#include <thread>
 #endif
 
 EditBookGui::EditBookGui(const std::shared_ptr<AuxFunc> &af,
@@ -606,22 +605,10 @@ EditBookGui::form_window_grid(Gtk::Window *window)
   restore->set_name("operationBut");
   restore->set_label(gettext("Restore"));
   restore->signal_clicked().connect([this] {
-#ifndef USE_OPENMP
     std::thread thr([this] {
       restore_disp->emit();
     });
     thr.detach();
-#else
-#pragma omp masked
-    {
-      omp_event_handle_t event;
-#pragma omp task detach(event)
-      {
-        restore_disp->emit();
-        omp_fulfill_event(event);
-      }
-    }
-#endif
   });
   grid->attach(*restore, 1, row_num, 1, 1);
 
@@ -773,14 +760,15 @@ EditBookGui::edit_book(Gtk::Window *win)
             }
         }
     }
-#ifndef USE_OPENMP
-  std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
-      af, collection_name, std::thread::hardware_concurrency(), false, true,
-      true, bookmarks);
+
+  int num_threads;
+#ifdef USE_OPENMP
+  num_threads = omp_get_max_threads();
 #else
-  std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
-      af, collection_name, omp_get_num_procs(), false, true, true, bookmarks);
+  num_threads = std::thread::hardware_concurrency();
 #endif
+  std::shared_ptr<RefreshCollection> rfr = std::make_shared<RefreshCollection>(
+      af, collection_name, num_threads, false, true, true, bookmarks);
   try
     {
       if(rfr->editBook(bbe, bbe_new))

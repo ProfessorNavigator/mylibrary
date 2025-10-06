@@ -20,19 +20,12 @@
 #include <BookBaseEntry.h>
 #include <glibmm-2.68/glibmm/object.h>
 #include <gtkmm-4.0/gtkmm/label.h>
-#include <vector>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
+#include <vector>
 
 class SearchResultModelItem : public Glib::Object
 {
 public:
-  virtual ~SearchResultModelItem();
-
   static Glib::RefPtr<SearchResultModelItem>
   create(const BookBaseEntry &bbe);
 
@@ -54,11 +47,7 @@ protected:
   SearchResultModelItem(const BookBaseEntry &bbe);
 
   std::vector<Gtk::Label *> labels;
-#ifndef USE_OPENMP
   std::mutex labels_mtx;
-#else
-  omp_lock_t labels_mtx;
-#endif
 };
 
 #endif // SEARCHRESULTMODELITEM_H

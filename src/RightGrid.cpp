@@ -48,12 +48,7 @@
 #include <gtkmm-4.0/gtkmm/textmark.h>
 #include <iostream>
 #include <libintl.h>
-
-#ifndef USE_OPENMP
 #include <thread>
-#else
-#include <omp.h>
-#endif
 
 RightGrid::RightGrid(const std::shared_ptr<AuxFunc> &af,
                      Gtk::Window *main_window,
@@ -380,22 +375,10 @@ RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result)
     window->close();
   });
 
-#ifndef USE_OPENMP
   std::thread thr([result_disp] {
     result_disp->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      result_disp->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void

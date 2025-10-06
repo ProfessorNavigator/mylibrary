@@ -59,9 +59,20 @@ private:
   copyFiles(Gtk::Window *win, const std::string &collection_name,
             std::shared_ptr<AuxFunc> af);
 
+  struct AuthShowStruct
+  {
+    Gtk::Label *operation_name_lab = nullptr;
+    Gtk::Label *cpu_label = nullptr;
+    Gtk::Label *gpu_label = nullptr;
+    Gtk::Label *cpu_progr_val = nullptr;
+    Gtk::Label *gpu_progr_val = nullptr;
+    Gtk::ProgressBar *cpu_progr_bar = nullptr;
+    Gtk::ProgressBar *gpu_progr_bar = nullptr;
+  };
+
   void
-  showAuthors(Gtk::Window *win, Gtk::ProgressBar *prog, Gtk::Label *progr_val,
-              Gtk::Label *lab, const std::string &collection_name);
+  showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
+              const std::string &collection_name);
 
   void
   showBooksWithNotes(Gtk::Window *win,

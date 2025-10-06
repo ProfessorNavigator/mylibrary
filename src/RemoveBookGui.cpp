@@ -25,12 +25,7 @@
 #include <gtkmm-4.0/gtkmm/label.h>
 #include <iostream>
 #include <libintl.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <thread>
-#endif
 
 RemoveBookGui::RemoveBookGui(const std::shared_ptr<AuxFunc> &af,
                              Gtk::Window *parent_window,
@@ -290,7 +285,6 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
   lab->set_name("windowLabel");
   grid->attach(*lab, 0, 0, 1, 1);
 
-#ifndef USE_OPENMP
   std::thread thr([this] {
     RemoveBook *rb = new RemoveBook(af, bbe, col_name, bookmarks);
     try
@@ -307,29 +301,6 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
     remove_callback_disp->emit();
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      RemoveBook *rb = new RemoveBook(af, bbe, col_name, bookmarks);
-      try
-        {
-          rb->removeBook();
-          remove_result = 1;
-        }
-      catch(MLException &er)
-        {
-          std::cout << er.what() << std::endl;
-          remove_result = -1;
-        }
-      delete rb;
-      remove_callback_disp->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void

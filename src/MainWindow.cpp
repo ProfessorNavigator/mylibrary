@@ -483,24 +483,35 @@ void
 MainWindow::collectionRemoveSlot(const std::string &filename)
 {
   Gtk::DropDown *col_sel = lg->get_collection_select();
+  Glib::RefPtr<Gtk::StringObject> sel
+      = std::dynamic_pointer_cast<Gtk::StringObject>(
+          col_sel->get_selected_item());
   Glib::RefPtr<Gtk::StringList> list
       = std::dynamic_pointer_cast<Gtk::StringList>(col_sel->get_model());
   if(list)
     {
       Glib::ustring search(filename);
-      guint selected = col_sel->get_selected();
-      if(list->get_string(selected) == search)
-        {
-          lg->clearCollectionBase();
-          lg->clear_all_search_fields();
-          rg->clearSearchResult();
-        }
       for(guint i = 0; i < list->get_n_items(); i++)
         {
           if(list->get_string(i) == search)
             {
               list->remove(i);
               break;
+            }
+        }
+      if(sel)
+        {
+          if(sel->get_string() == search)
+            {
+              lg->clearCollectionBase();
+              lg->clear_all_search_fields();
+              rg->clearSearchResult();
+              sel = std::dynamic_pointer_cast<Gtk::StringObject>(
+                  col_sel->get_selected_item());
+              if(sel)
+                {
+                  lg->reloadCollection(std::string(sel->get_string()));
+                }
             }
         }
     }

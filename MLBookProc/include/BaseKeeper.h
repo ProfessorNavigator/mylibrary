@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,6 @@
 #include <omp.h>
 #else
 #include <atomic>
-#include <mutex>
 #endif
 
 /*!
@@ -54,6 +54,19 @@ public:
    */
   virtual ~BaseKeeper();
 
+#ifdef USE_GPUOFFLOADING
+  // TODO docs
+  /*!
+   * \brief Loads collection database to memory.
+   *
+   * \note This method can throw MLException in case of errors.
+   *
+   * \param col_name collection name.
+   */
+  void
+  loadCollection(const std::string &col_name,
+                 const bool &offload_to_gpu = bool(true));
+#else
   /*!
    * \brief Loads collection database to memory.
    *
@@ -63,6 +76,7 @@ public:
    */
   void
   loadCollection(const std::string &col_name);
+#endif
 
   /*!
    * \brief Searches book in collection.
@@ -139,7 +153,7 @@ public:
    * \return Total books quantity in loaded collection.
    */
   size_t
-  getBookQuantity();
+  getBooksQuantity();
 
   /*!
    * \brief collectionAuthors() progress callback
@@ -149,7 +163,14 @@ public:
    * \a progr is current progress in conventional units. \a sz is total
    * quantity of conventional units to be processed.
    */
-  std::function<void(const double &progr, const double &sz)> auth_show_progr;
+  std::function<void(const double &progr, const double &sz)>
+      auth_cpu_show_progr;
+
+#ifdef USE_GPUOFFLOADING
+  std::function<void(const double &progr, const double &sz)>
+      auth_gpu_show_progr;
+  std::function<void()> auth_collecting_results;
+#endif
 
 private:
   FileParseEntry
@@ -191,6 +212,7 @@ private:
   searchGenre(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
               const double &coef_coincidence);
 
+#ifdef USE_OPENMP
 #ifdef USE_GPUOFFLOADING
   bool
   searchSurnameGPU(const BookBaseEntry &search,
@@ -222,12 +244,49 @@ private:
                  std::vector<BookBaseEntry> &result,
                  const double &coef_coincidence);
 
+  std::vector<std::string>
+  collectionAuthorsGPU();
+
+  void
+  loadBaseToGPUMemory();
+
+  void
+  unloadBaseFromGPUMemory();
+
 #pragma omp declare target
   bool
   searchLineFuncGPU(const char *to_search, const size_t &to_search_size,
                     const char *source, const size_t &source_sz,
                     const double &coef_coincidence);
+
 #pragma omp end declare target
+
+  struct gpu_base_entry
+  {
+    FileParseEntry *base_entry;
+    BookParseEntry *book_entry;
+    char *book_author = nullptr;
+    size_t book_author_sz = 0;
+    char *book_name = nullptr;
+    size_t book_name_sz = 0;
+    char *book_series = nullptr;
+    size_t book_series_sz = 0;
+    char *book_genre = nullptr;
+    size_t book_genre_sz = 0;
+    char *book_date = nullptr;
+    size_t book_date_sz = 0;
+  };
+
+  struct cpu_base_entry
+  {
+    FileParseEntry *base_entry;
+    BookParseEntry *book_entry;
+  };
+
+  gpu_base_entry *gpu_base = nullptr;
+  size_t gpu_base_sz = 0;
+  std::vector<cpu_base_entry> cpu_base;
+#endif
 #endif
 
   std::shared_ptr<AuxFunc> af;

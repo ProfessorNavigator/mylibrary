@@ -24,6 +24,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif()
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  message(WARNING "Compiler type is ${CMAKE_CXX_COMPILER_ID}. It is recommended to disable OpenMP support.")
+endif()
+
 if(USE_OPENMP)
   try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/MLBookProc/omp_test" "${PROJECT_SOURCE_DIR}/omp_test" OmpTest)
   if(OMP_TEST)
@@ -44,10 +48,7 @@ if(USE_OPENMP)
     else()
       message(STATUS "${PROJECT_NAME} C++ parallel features are not supported")
     endif()
-    find_package(Threads QUIET)
-    find_library(ATOMIC atomic)
-    message(WARNING "Compiler does not support some OpenMP features.
-      ${PROJECT_NAME} will be built without OpenMP support."
+    message(WARNING "Compiler does not support some OpenMP features. ${PROJECT_NAME} will be built without OpenMP support."
     )
   endif()
 else()
@@ -58,9 +59,10 @@ else()
   else()
     message(STATUS "${PROJECT_NAME} C++ parallel features are not supported")
   endif()
-  find_package(Threads QUIET)
-  find_library(ATOMIC atomic)
 endif()
+
+find_library(ATOMIC atomic)
+find_package(Threads QUIET)
 
 if(NOT USE_OPENMP)
   if(EXEC_TEST)
@@ -79,14 +81,12 @@ if(USE_OPENMP AND USE_GPUOFFLOADING)
     OmpTestOffloading
   )
   if(OMP_TEST_OFFLOADING)
-    message(STATUS "OpenMP GPU offloading features are supported, ${PROJECT_NAME} will be built with OpenMP GPU offloading support"
-    )
+    message(STATUS "OpenMP GPU offloading features are supported, ${PROJECT_NAME} will be built with OpenMP GPU offloading support")
   add_subdirectory("${PROJECT_SOURCE_DIR}/omp_test_offloading")
   add_test(NAME OpenMPOffloadingTest COMMAND omp_test_offloading
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading")
   else()
-    message(WARNING "Compiler does not support some OpenMP GPU offloading features. ${PROJECT_NAME} will be built without OpenMP GPU offloading support."
-    )
+    message(WARNING "Compiler does not support some OpenMP GPU offloading features. ${PROJECT_NAME} will be built without OpenMP GPU offloading support.")
     set(USE_GPUOFFLOADING OFF)
   endif()
 endif()
@@ -148,17 +148,18 @@ if(USE_OPENMP)
       PUBLIC -DUSE_GPUOFFLOADING
     )
   endif()
-else()
-  if(ATOMIC)
-    target_link_libraries(mlbookproc
-      PUBLIC ${ATOMIC}
-    )
-  endif()
+else()  
   if(EXEC_TEST)
     target_compile_options(mlbookproc
       PRIVATE -DUSE_PE
     )
   endif()
+endif()
+
+if(ATOMIC)
+  target_link_libraries(mlbookproc
+    PUBLIC ${ATOMIC}
+  )
 endif()
 
 if(Threads_FOUND)
@@ -190,6 +191,9 @@ if(DOXYGEN_FOUND)
   endif()
   if(USE_OPENMP)
     set(DOXYGEN_PREDEFINED USE_OPENMP)
+    if(USE_GPUOFFLOADING)
+      set(DOXYGEN_PREDEFINED USE_GPUOFFLOADING)
+    endif()
   endif()
   set(DOXYGEN_SHOW_USED_FILES NO)
   set(DOXYGEN_SHOW_FILES NO)

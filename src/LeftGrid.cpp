@@ -32,12 +32,7 @@
 #include <gtkmm-4.0/gtkmm/separator.h>
 #include <iostream>
 #include <libintl.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <thread>
-#endif
 
 LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
                    Gtk::Window *main_window,
@@ -49,21 +44,14 @@ LeftGrid::LeftGrid(const std::shared_ptr<AuxFunc> &af,
   base_keeper = new BaseKeeper(af);
   total_books_num_disp = new Glib::Dispatcher;
   total_books_num_load_disp = new Glib::Dispatcher;
-#ifndef USE_OPENMP
   total_books_num.store(0);
-#endif
-  readCoefCoincedence();
+  readSearchSettings();
 }
 
 LeftGrid::~LeftGrid()
 {
-  delete base_keeper;
-
-#ifdef USE_OPENMP
-#pragma omp taskwait
-#else
   load_collection_thr.reset();
-#endif
+  delete base_keeper;
   delete total_books_num_disp;
   delete total_books_num_load_disp;
 }
@@ -115,20 +103,10 @@ LeftGrid::createGrid()
   col_grid->attach(*total_books_num_lab, 1, 1, 1, 1);
 
   total_books_num_disp->connect([this, total_books_num_lab] {
-#ifdef USE_OPENMP
-    size_t total;
-#pragma omp atomic read
-    total = total_books_num;
-    std::stringstream strm;
-    strm.imbue(std::locale("C"));
-    strm << total;
-    total_books_num_lab->set_text(Glib::ustring(strm.str()));
-#else
     std::stringstream strm;
     strm.imbue(std::locale("C"));
     strm << total_books_num.load();
     total_books_num_lab->set_text(Glib::ustring(strm.str()));
-#endif
   });
 
   total_books_num_load_disp->connect([total_books_num_lab] {
@@ -551,7 +529,6 @@ LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
   if(selected)
     {
       std::string col(selected->get_string());
-#ifndef USE_OPENMP
       if(load_collection_thr)
         {
           if(load_collection_thr->joinable())
@@ -567,13 +544,13 @@ LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
             try
               {
                 base_keeper->loadCollection(col);
-                total_books_num.store(base_keeper->getBookQuantity());
-                total_books_num_disp->emit();
               }
             catch(MLException &e)
               {
                 std::cout << e.what() << std::endl;
               }
+            total_books_num.store(base_keeper->getBooksQuantity());
+            total_books_num_disp->emit();
           }),
           [](std::thread *thr) {
             if(thr->joinable())
@@ -582,30 +559,6 @@ LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
               }
             delete thr;
           });
-#else
-#pragma omp atomic write
-      total_books_num = 0;
-      total_books_num_load_disp->emit();
-#pragma omp masked
-      {
-        omp_event_handle_t event;
-#pragma omp task detach(event)
-        {
-          try
-            {
-              base_keeper->loadCollection(col);
-#pragma omp atomic write
-              total_books_num = base_keeper->getBookQuantity();
-              total_books_num_disp->emit();
-            }
-          catch(MLException &e)
-            {
-              std::cout << e.what() << std::endl;
-            }
-          omp_fulfill_event(event);
-        }
-      }
-#endif
     }
 }
 
@@ -689,7 +642,6 @@ LeftGrid::reloadCollection(const std::string &col_name)
       if(std::string(obj->get_string()) == col_name)
         {
           base_keeper->clearBase();
-#ifndef USE_OPENMP
           if(load_collection_thr)
             {
               if(load_collection_thr->joinable())
@@ -706,14 +658,14 @@ LeftGrid::reloadCollection(const std::string &col_name)
                 try
                   {
                     base_keeper->loadCollection(col_name);
-                    total_books_num.store(base_keeper->getBookQuantity());
-                    total_books_num_disp->emit();
                   }
                 catch(MLException &e)
                   {
                     std::cout << "LeftGrid::reloadCollection: " << e.what()
                               << std::endl;
                   }
+                total_books_num.store(base_keeper->getBooksQuantity());
+                total_books_num_disp->emit();
               }),
               [](std::thread *thr) {
                 if(thr->joinable())
@@ -722,31 +674,6 @@ LeftGrid::reloadCollection(const std::string &col_name)
                   }
                 delete thr;
               });
-#else
-#pragma atomic write
-          total_books_num = 0;
-          total_books_num_load_disp->emit();
-#pragma omp masked
-          {
-            omp_event_handle_t event;
-#pragma omp task detach(event)
-            {
-              try
-                {
-                  base_keeper->loadCollection(col_name);
-#pragma omp atomic write
-                  total_books_num = base_keeper->getBookQuantity();
-                  total_books_num_disp->emit();
-                }
-              catch(MLException &e)
-                {
-                  std::cout << "LeftGrid::reloadCollection: " << e.what()
-                            << std::endl;
-                }
-              omp_fulfill_event(event);
-            }
-          }
-#endif
           result = true;
         }
     }
@@ -832,7 +759,7 @@ LeftGrid::formGenreExpanderGrid(const std::vector<Genre> &genre,
 }
 
 void
-LeftGrid::readCoefCoincedence()
+LeftGrid::readSearchSettings()
 {
   std::filesystem::path p = af->homePath();
   p /= std::filesystem::u8path(".config");
@@ -842,16 +769,32 @@ LeftGrid::readCoefCoincedence()
   f.open(p, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
     {
-      size_t sz = sizeof(coef_coincedence);
+      double val;
+      size_t sz = sizeof(val);
       f.seekg(0, std::ios_base::end);
       size_t fsz = f.tellg();
       if(fsz >= sz)
         {
           f.seekg(0, std::ios_base::beg);
-          f.read(reinterpret_cast<char *>(&coef_coincedence), sz);
+          f.read(reinterpret_cast<char *>(&val), sz);
           ByteOrder bo;
-          bo.set_little(coef_coincedence);
+          bo.set_little(val);
           coef_coincedence = bo;
+
+#ifdef USE_GPUOFFLOADING
+          if(fsz >= sz * 3)
+            {
+              f.read(reinterpret_cast<char *>(&val), sz);
+              bo.set_little(val);
+              double cpu_gpu_balance_auth = bo;
+
+              f.read(reinterpret_cast<char *>(&val), sz);
+              bo.set_little(val);
+              val = bo;
+
+              af->setCpuGpuBalance(cpu_gpu_balance_auth, val);
+            }
+#endif
         }
       f.close();
     }

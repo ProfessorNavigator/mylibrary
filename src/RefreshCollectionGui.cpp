@@ -95,10 +95,10 @@ RefreshCollectionGui::createWindow()
   lab->set_halign(Gtk::Align::START);
   std::stringstream strm;
   strm.imbue(std::locale("C"));
-#ifndef USE_OPENMP
-  strm << std::thread::hardware_concurrency();
+#ifdef USE_OPENMP
+  strm << omp_get_max_threads();
 #else
-  strm << omp_get_num_procs();
+  strm << std::thread::hardware_concurrency();
 #endif
   lab->set_text(gettext("Thread number (recommended max value: ")
                 + Glib::ustring(strm.str()) + ")");

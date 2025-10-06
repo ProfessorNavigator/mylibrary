@@ -15,13 +15,6 @@
  */
 #include <BookMarksModelItem.h>
 
-BookMarksModelItem::~BookMarksModelItem()
-{
-#ifdef USE_OPENMP
-  omp_destroy_lock(&labels_mtx);
-#endif
-}
-
 Glib::RefPtr<BookMarksModelItem>
 BookMarksModelItem::create(const std::string &coll_name,
                            const BookBaseEntry &bbe)
@@ -33,11 +26,7 @@ BookMarksModelItem::create(const std::string &coll_name,
 void
 BookMarksModelItem::addLabel(Gtk::Label *lab)
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   auto it = std::find(labels.begin(), labels.end(), lab);
   if(it == labels.end())
     {
@@ -47,21 +36,13 @@ BookMarksModelItem::addLabel(Gtk::Label *lab)
         }
       labels.push_back(lab);
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 BookMarksModelItem::removeLabel(Gtk::Label *lab)
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   auto it = std::find(labels.begin(), labels.end(), lab);
   if(it != labels.end())
     {
@@ -71,56 +52,33 @@ BookMarksModelItem::removeLabel(Gtk::Label *lab)
           labels.shrink_to_fit();
         }
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 BookMarksModelItem::activateLabels()
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   for(size_t i = 0; i < labels.size(); i++)
     {
       labels[i]->set_name("selectedLab");
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 BookMarksModelItem::deactivateLabels()
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   for(size_t i = 0; i < labels.size(); i++)
     {
       labels[i]->set_name("windowLabel");
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 BookMarksModelItem::BookMarksModelItem(const std::string &coll_name,
                                        const BookBaseEntry &bbe)
 {
-#ifdef USE_OPENMP
-  omp_init_lock(&labels_mtx);
-#endif
   element = std::make_tuple(coll_name, bbe);
 }

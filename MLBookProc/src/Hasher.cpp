@@ -129,50 +129,43 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
       f.close();
       thr.join();
 #else
-#pragma omp parallel
+#pragma omp parallel masked
       {
-#pragma omp masked
-        {
-          for(;;)
-            {
-              bool cncl;
+        for(;;)
+          {
+            bool cncl;
 #pragma omp atomic read
-              cncl = cancel;
-              if(cncl)
-                {
-                  break;
-                }
-
-              std::string buf;
-              dif = fsz - read_b;
-              if(dif > 10485760)
-                {
-                  buf.resize(10485760);
-                }
-              else if(dif > 0)
-                {
-                  buf.resize(dif);
-                }
-              else
-                {
-                  break;
-                }
-              f.read(buf.data(), buf.size());
-              read_b += static_cast<uintmax_t>(buf.size());
-
-#pragma omp taskwait
-#pragma omp masked
+            cncl = cancel;
+            if(cncl)
               {
-                omp_event_handle_t event;
-#pragma omp task detach(event)
-                {
-                  gcry_md_write(hd, buf.c_str(), buf.size());
-                  omp_fulfill_event(event);
-                }
+                break;
               }
-            }
-        }
+
+            std::string buf;
+            dif = fsz - read_b;
+            if(dif > 10485760)
+              {
+                buf.resize(10485760);
+              }
+            else if(dif > 0)
+              {
+                buf.resize(dif);
+              }
+            else
+              {
+                break;
+              }
+            f.read(buf.data(), buf.size());
+            read_b += static_cast<uintmax_t>(buf.size());
+
 #pragma omp taskwait
+            omp_event_handle_t event;
+#pragma omp task detach(event)
+            {
+              gcry_md_write(hd, buf.c_str(), buf.size());
+              omp_fulfill_event(event);
+            }
+          }
       }
       f.close();
 #endif

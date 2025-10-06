@@ -51,12 +51,6 @@ if(GTKMM_VERSION VERSION_LESS "4.10")
     )
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(mylibrary
-        PRIVATE -DGNU_COMPILER
-    )
-endif()
-
 target_link_libraries(mylibrary
     PRIVATE mlbookproc
     PRIVATE PkgConfig::GTKMM

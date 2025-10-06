@@ -19,17 +19,7 @@
 
 SearchResultModelItem::SearchResultModelItem(const BookBaseEntry &bbe)
 {
-#ifdef USE_OPENMP
-  omp_init_lock(&labels_mtx);
-#endif
   this->bbe = bbe;
-}
-
-SearchResultModelItem::~SearchResultModelItem()
-{
-#ifdef USE_OPENMP
-  omp_destroy_lock(&labels_mtx);
-#endif
 }
 
 Glib::RefPtr<SearchResultModelItem>
@@ -42,11 +32,7 @@ SearchResultModelItem::create(const BookBaseEntry &bbe)
 void
 SearchResultModelItem::addLabel(Gtk::Label *lab)
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   auto it = std::find(labels.begin(), labels.end(), lab);
   if(it == labels.end())
     {
@@ -56,21 +42,13 @@ SearchResultModelItem::addLabel(Gtk::Label *lab)
         }
       labels.push_back(lab);
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 SearchResultModelItem::removeLabel(Gtk::Label *lab)
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   auto it = std::find(labels.begin(), labels.end(), lab);
   if(it != labels.end())
     {
@@ -80,47 +58,27 @@ SearchResultModelItem::removeLabel(Gtk::Label *lab)
           labels.shrink_to_fit();
         }
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 SearchResultModelItem::activateLabels()
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   for(size_t i = 0; i < labels.size(); i++)
     {
       labels[i]->set_name("selectedLab");
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }
 
 void
 SearchResultModelItem::deactivateLabels()
 {
-#ifndef USE_OPENMP
   labels_mtx.lock();
-#else
-  omp_set_lock(&labels_mtx);
-#endif
   for(size_t i = 0; i < labels.size(); i++)
     {
       labels[i]->set_name("windowLabel");
     }
-#ifndef USE_OPENMP
   labels_mtx.unlock();
-#else
-  omp_unset_lock(&labels_mtx);
-#endif
 }

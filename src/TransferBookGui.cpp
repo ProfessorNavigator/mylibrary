@@ -33,13 +33,12 @@
 #include <gtkmm-4.0/gtkmm/stringobject.h>
 #include <iostream>
 #include <libintl.h>
+#include <thread>
 #include <tuple>
 #include <vector>
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#else
-#include <thread>
 #endif
 
 #ifndef ML_GTK_OLD
@@ -704,7 +703,6 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                     }
                 }
             });
-#ifndef USE_OPENMP
             std::thread thr([variant, res_var, this] {
               try
                 {
@@ -718,26 +716,6 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                 }
             });
             thr.detach();
-#else
-#pragma omp masked
-            {
-              omp_event_handle_t event;
-#pragma omp task detach(event)
-              {
-                try
-                  {
-                    copy_overwrite(variant, res_var);
-                  }
-                catch(MLException &er)
-                  {
-                    std::cout << er.what() << std::endl;
-                    *res_var = 1;
-                    copy_result_disp->emit();
-                  }
-                omp_fulfill_event(event);
-              }
-            }
-#endif
             break;
           }
         case 2:
@@ -885,17 +863,15 @@ TransferBookGui::copy_overwrite(const int &variant,
 
   if(std::filesystem::exists(out_file_path))
     {
-#ifndef USE_OPENMP
-      std::shared_ptr<RefreshCollection> rfr
-          = std::make_shared<RefreshCollection>(
-              af, collection_to, std::thread::hardware_concurrency(), false,
-              true, false, bookmarks);
+      int num_threads;
+#ifdef USE_OPENMP
+      num_threads = omp_get_max_threads();
 #else
-      std::shared_ptr<RefreshCollection> rfr
-          = std::make_shared<RefreshCollection>(af, collection_to,
-                                                omp_get_num_procs(), false,
-                                                true, false, bookmarks);
+      num_threads = std::thread::hardware_concurrency();
 #endif
+      std::shared_ptr<RefreshCollection> rfr
+          = std::make_shared<RefreshCollection>(af, collection_to, num_threads,
+                                                false, true, false, bookmarks);
 
       if(rfr->refreshBook(bbe_out))
         {
@@ -1146,7 +1122,6 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       }
   });
 
-#ifndef USE_OPENMP
   std::thread thr([res_var, this, variant] {
     try
       {
@@ -1160,26 +1135,6 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       }
   });
   thr.detach();
-#else
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      try
-        {
-          copy_overwrite(variant, res_var);
-        }
-      catch(MLException &er)
-        {
-          std::cout << er.what() << std::endl;
-          *res_var = 1;
-          copy_result_disp->emit();
-        }
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 #ifndef ML_GTK_OLD
@@ -1230,24 +1185,11 @@ TransferBookGui::path_choose_dialog_add_slot(
         path_in_archive_window(win, 3);
       });
 
-#ifndef USE_OPENMP
       std::thread thr([this] {
         arch_filelist = AddBook::archive_filenames(out_file_path, af);
         form_arch_filelist_disp->emit();
       });
       thr.detach();
-#else
-#pragma omp masked
-      {
-        omp_event_handle_t event;
-#pragma omp task detach(event)
-        {
-          arch_filelist = AddBook::archive_filenames(out_file_path, af);
-          form_arch_filelist_disp->emit();
-          omp_fulfill_event(event);
-        }
-      }
-#endif
     }
 }
 #endif
@@ -1285,7 +1227,6 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
                     }
                 });
 
-#ifndef USE_OPENMP
                 std::thread thr([variant, res_var, this] {
                   try
                     {
@@ -1299,26 +1240,6 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
                     }
                 });
                 thr.detach();
-#else
-#pragma omp masked
-                {
-                  omp_event_handle_t event;
-#pragma omp task detach(event)
-                  {
-                    try
-                      {
-                        copy_overwrite(variant, res_var);
-                      }
-                    catch(MLException &er)
-                      {
-                        std::cout << er.what() << std::endl;
-                        *res_var = 1;
-                        copy_result_disp->emit();
-                      }
-                    omp_fulfill_event(event);
-                  }
-                }
-#endif
                 break;
               }
             case 2:
@@ -1372,24 +1293,11 @@ TransferBookGui::path_choose_dialog_add_slot(int resp,
             path_in_archive_window(win, 3);
           });
 
-#ifndef USE_OPENMP
           std::thread thr([this] {
             arch_filelist = AddBook::archive_filenames(out_file_path, af);
             form_arch_filelist_disp->emit();
           });
           thr.detach();
-#else
-#pragma omp masked
-          {
-            omp_event_handle_t event;
-#pragma omp task detach(event)
-            {
-              arch_filelist = AddBook::archive_filenames(out_file_path, af);
-              form_arch_filelist_disp->emit();
-              omp_fulfill_event(event);
-            }
-          }
-#endif
         }
     }
 

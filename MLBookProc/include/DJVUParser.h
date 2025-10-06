@@ -57,10 +57,10 @@ public:
   djvu_book_info(const std::filesystem::path &filepath);
 
 private:
-  void
+  ddjvu_message_t *
   handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
                  const std::shared_ptr<ddjvu_document_t> &doc,
-                 const bool &wait);
+                 const int &pipe);
 
   void
   getTag(const std::string &exp, const std::string &tag, std::string &line);

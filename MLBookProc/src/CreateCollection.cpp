@@ -242,29 +242,27 @@ CreateCollection::threadRegulator()
   int num_threads_default = omp_get_num_threads();
   omp_set_num_threads(num_threads);
 #pragma omp parallel
-  {
 #pragma omp for
-    for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
-      {
-        bool cncl;
+  for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
+    {
+      bool cncl;
 #pragma omp atomic read
-        cncl = cancel;
-        if(cncl)
-          {
+      cncl = cancel;
+      if(cncl)
+        {
 #pragma omp cancel for
-            continue;
-          }
-#pragma omp critical
-        {
-          std::cout << "Start parsing: " << *it << std::endl;
+          continue;
         }
-        threadFunc(*it);
 #pragma omp critical
-        {
-          std::cout << "Parsing finished: " << *it << std::endl;
-        }
+      {
+        std::cout << "Start parsing: " << *it << std::endl;
       }
-  }
+      threadFunc(*it);
+#pragma omp critical
+      {
+        std::cout << "Parsing finished: " << *it << std::endl;
+      }
+    }
   omp_set_num_threads(num_threads_default);
 #endif
   if(base_strm.is_open())

@@ -130,7 +130,11 @@ void
 RefreshCollection::refreshCollection()
 {
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
+#ifdef USE_GPUOFFLOADING
+  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
+#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
+#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
   if(std::filesystem::exists(books_path))
     {
@@ -315,7 +319,11 @@ void
 RefreshCollection::refreshFile(const BookBaseEntry &bbe)
 {
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
+#ifdef USE_GPUOFFLOADING
+  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
+#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
+#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
   for(auto it = base.begin(); it != base.end();)
     {
@@ -567,7 +575,11 @@ RefreshCollection::editBook(const BookBaseEntry &bbe_old,
 {
   bool result = false;
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
+#ifdef USE_GPUOFFLOADING
+  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
+#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
+#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   auto itbase
@@ -635,7 +647,11 @@ RefreshCollection::refreshBook(const BookBaseEntry &bbe)
   bool result = false;
 
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
+#ifdef USE_GPUOFFLOADING
+  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
+#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
+#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   auto itbase
@@ -674,7 +690,11 @@ RefreshCollection::set_rar_support(const bool &rar_support)
 void
 RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
 {
+#ifdef USE_GPUOFFLOADING
+  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
+#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
+#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   std::vector<std::tuple<std::string, BookBaseEntry>> bmv
