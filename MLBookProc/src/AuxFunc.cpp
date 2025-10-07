@@ -872,6 +872,7 @@ AuxFunc::djvuMessageCallback(ddjvu_context_t *context, void *closure)
       std::shared_ptr<int> pipe = it->lock();
       if(pipe)
         {
+#if defined(__linux)
           pollfd fd;
           fd.fd = *(pipe.get() + 1);
           fd.events = POLLOUT;
@@ -902,6 +903,11 @@ AuxFunc::djvuMessageCallback(ddjvu_context_t *context, void *closure)
                   throw MLException(str);
                 }
             }
+#elif defined(_WIN32)
+          HANDLE *handles = reinterpret_cast<HANDLE *>(pipe.get());
+          DWORD wb;
+          WriteFile(*(handles + 1), &signal, sizeof(signal), &wb, nullptr);
+#endif
           it++;
         }
       else
@@ -953,8 +959,9 @@ AuxFunc::getDJVUContext()
       djvu_context = context;
     }
   std::get<0>(result) = context;
-  std::shared_ptr<int> pipe(new int[2], [](int *pipe) {
-#ifdef __linux
+  std::shared_ptr<int> pipe;
+#if defined(__linux)
+  pipe = std::shared_ptr<int>(new int[2], [](int *pipe) {
     for(size_t i = 0; i < 2; i++)
       {
         if(pipe[i] >= 0)
@@ -962,16 +969,35 @@ AuxFunc::getDJVUContext()
             close(pipe[i]);
           }
       }
-#endif
     delete[] pipe;
   });
-
-#ifdef __linux
   if(pipe2(pipe.get(), O_NONBLOCK) < 0)
     {
       std::string str = std::strerror(errno);
       str = "AuxFunc::getDJVUContext: " + str;
       throw MLException(str);
+    }
+#elif defined(_WIN32)
+  HANDLE *handles = new HANDLE[2];
+  pipe = std::shared_ptr<int>(reinterpret_cast<int *>(handles), [](int *ptr) {
+    HANDLE *handles = reinterpret_cast<HANDLE *>(ptr);
+    for(size_t i = 0; i < 2; i++)
+      {
+        if(handles[i])
+          {
+            CloseHandle(handles[i]);
+          }
+      }
+    delete[] handles;
+  });
+  SECURITY_ATTRIBUTES sa;
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.lpSecurityDescriptor = nullptr;
+  sa.bInheritHandle = true;
+
+  if(!CreatePipe(handles, (handles + 1), &sa, 0))
+    {
+      throw MLException("AuxFunc::getDJVUContext: cannot create pipe");
     }
 #endif
   djvu_pipes.push_back(pipe);

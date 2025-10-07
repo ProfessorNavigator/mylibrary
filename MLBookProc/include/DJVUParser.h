@@ -59,8 +59,7 @@ public:
 private:
   ddjvu_message_t *
   handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-                 const std::shared_ptr<ddjvu_document_t> &doc,
-                 const int &pipe);
+                 const std::shared_ptr<ddjvu_document_t> &doc, int *pipe);
 
   void
   getTag(const std::string &exp, const std::string &tag, std::string &line);

@@ -25,10 +25,12 @@
 #include <thread>
 #endif
 
-#ifdef __linux
+#if defined(__linux)
 #include <cstring>
 #include <poll.h>
 #include <unistd.h>
+#elif defined(_WIN32)
+#include <fileapi.h>
 #endif
 
 DJVUParser::DJVUParser(const std::shared_ptr<AuxFunc> &af)
@@ -57,7 +59,7 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
   std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>> djvu_tup
       = af->getDJVUContext();
   std::shared_ptr<ddjvu_context_t> context = std::get<0>(djvu_tup);
-  int pipe = *std::get<1>(djvu_tup);
+  int *pipe = std::get<1>(djvu_tup).get();
   if(context)
     {
       std::shared_ptr<ddjvu_document_t> doc(
@@ -256,6 +258,12 @@ DJVUParser::djvu_parser(const std::filesystem::path &filepath)
       std::cout << "DJVUParser::djvu_parser: context has not been created"
                 << std::endl;
     }
+#if defined(_WIN32)
+  HANDLE handle = *reinterpret_cast<HANDLE *>(pipe + 1);
+  uint8_t write = 255;
+  DWORD wb;
+  WriteFile(handle, &write, sizeof(write), &wb, nullptr);
+#endif
   return bpe;
 }
 
@@ -268,7 +276,7 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
   std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>> djvu_tup
       = af->getDJVUContext();
   std::shared_ptr<ddjvu_context_t> context = std::get<0>(djvu_tup);
-  int pipe = *std::get<1>(djvu_tup);
+  int *pipe = std::get<1>(djvu_tup).get();
   if(context)
     {
       std::shared_ptr<ddjvu_document_t> doc(
@@ -457,13 +465,19 @@ DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
       std::cout << "DJVUParser::djvu_cover: context has not been created"
                 << std::endl;
     }
+#if defined(_WIN32)
+  HANDLE handle = *reinterpret_cast<HANDLE *>(pipe + 1);
+  uint8_t write = 255;
+  DWORD wb;
+  WriteFile(handle, &write, sizeof(write), &wb, nullptr);
+#endif
   return result;
 }
 
 ddjvu_message_t *
 DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
                            const std::shared_ptr<ddjvu_document_t> &doc,
-                           const int &pipe)
+                           int *pipe)
 {
   ddjvu_message_t *result = nullptr;
   std::chrono::time_point<std::chrono::system_clock> start
@@ -472,8 +486,9 @@ DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
   std::chrono::time_point<std::chrono::system_clock> end = start + dif;
   for(;;)
     {
+#if defined(__linux)
       pollfd fd;
-      fd.fd = pipe;
+      fd.fd = *pipe;
       fd.events = POLLIN;
       int respol = poll(&fd, 1, dif.count());
       if(respol > 0)
@@ -485,7 +500,7 @@ DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
           if(fd.events & POLLIN)
             {
               uint8_t val;
-              read(pipe, &val, sizeof(val));
+              read(*pipe, &val, sizeof(val));
               if(val == 1)
                 {
                   result = ddjvu_message_peek(ctx.get());
@@ -516,6 +531,31 @@ DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
             }
           break;
         }
+#elif defined(_WIN32)
+      uint8_t val;
+      HANDLE handle = *reinterpret_cast<HANDLE *>(pipe);
+      DWORD rb;
+      ReadFile(handle, &val, sizeof(val), &rb, nullptr);
+      if(val == 1)
+        {
+          result = ddjvu_message_peek(ctx.get());
+          if(result)
+            {
+              if(result->m_any.document == doc.get())
+                {
+                  break;
+                }
+              else
+                {
+                  result = nullptr;
+                }
+            }
+        }
+      else if(val == 255)
+        {
+          break;
+        }
+#endif
       std::chrono::time_point<std::chrono::system_clock> now
           = std::chrono::system_clock::now();
       if(now < end)
