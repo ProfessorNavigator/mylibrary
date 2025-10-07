@@ -23,12 +23,13 @@
 
 #ifndef USE_OPENMP
 #include <thread>
+#else
+#include <unistd.h>
 #endif
 
 #if defined(__linux)
 #include <cstring>
 #include <poll.h>
-#include <unistd.h>
 #elif defined(_WIN32)
 #include <fileapi.h>
 #endif
