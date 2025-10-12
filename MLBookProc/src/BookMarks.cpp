@@ -24,12 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-
-#ifdef USE_OPENMP
-#include <OmpLockGuard.h>
-#else
 #include <thread>
-#endif
 
 BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
 {
@@ -40,7 +35,7 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
             / std::filesystem::u8path("MyLibrary")
             / std::filesystem::u8path("BookMarks")
             / std::filesystem::u8path("bookmarks");
-#ifndef USE_OPENMP
+
   std::thread thr([this] {
     try
       {
@@ -52,43 +47,17 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
       };
   });
   thr.detach();
-#else
-  omp_init_lock(&bookmarksmtx);
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      try
-        {
-          loadBookMarks();
-        }
-      catch(MLException &e)
-        {
-          std::cout << e.what() << std::endl;
-        };
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 BookMarks::~BookMarks()
 {
   saveBookMarks();
-#ifdef USE_OPENMP
-  omp_destroy_lock(&bookmarksmtx);
-#endif
 }
 
 void
 BookMarks::loadBookMarks()
 {
-#ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bookmarksmtx);
-#else
-  OmpLockGuard olg(bookmarksmtx);
-#endif
   std::fstream f;
   f.open(bookmp, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
@@ -237,11 +206,7 @@ BookMarks::saveBookMarks()
 {
   bool result = false;
 
-#ifndef USE_OPENMP
   bookmarksmtx.lock();
-#else
-  omp_set_lock(&bookmarksmtx);
-#endif
   if(bookmarks.size() > 0)
     {
       std::filesystem::create_directories(bookmp.parent_path());
@@ -271,11 +236,7 @@ BookMarks::saveBookMarks()
     {
       std::filesystem::remove_all(bookmp);
     }
-#ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#else
-  omp_unset_lock(&bookmarksmtx);
-#endif
 
   return result;
 }
@@ -290,11 +251,7 @@ BookMarks::createBookMark(const std::string &col_name,
 
   std::tuple<std::string, BookBaseEntry> bm_tup
       = std::make_tuple(col_name, bbe);
-#ifndef USE_OPENMP
   bookmarksmtx.lock();
-#else
-  omp_set_lock(&bookmarksmtx);
-#endif
   auto itbm
       = std::find_if(bookmarks.begin(), bookmarks.end(),
                      [bm_tup](std::tuple<std::string, BookBaseEntry> &el) {
@@ -313,11 +270,7 @@ BookMarks::createBookMark(const std::string &col_name,
       bookmarks.emplace_back(bm_tup);
       save = true;
     }
-#ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#else
-  omp_unset_lock(&bookmarksmtx);
-#endif
 
   if(save)
     {
@@ -337,11 +290,7 @@ BookMarks::createBookMark(const std::string &col_name,
 std::vector<std::tuple<std::string, BookBaseEntry>>
 BookMarks::getBookMarks()
 {
-#ifndef USE_OPENMP
   std::lock_guard<std::mutex> lglock(bookmarksmtx);
-#else
-  OmpLockGuard olg(bookmarksmtx);
-#endif
   return bookmarks;
 }
 
@@ -354,11 +303,7 @@ BookMarks::removeBookMark(const std::string &col_name,
   std::tuple<std::string, BookBaseEntry> bm_tup
       = std::make_tuple(col_name, bbe);
 
-#ifndef USE_OPENMP
   bookmarksmtx.lock();
-#else
-  omp_set_lock(&bookmarksmtx);
-#endif
   auto itbm
       = std::find_if(bookmarks.begin(), bookmarks.end(),
                      [bm_tup](std::tuple<std::string, BookBaseEntry> &el) {
@@ -377,11 +322,7 @@ BookMarks::removeBookMark(const std::string &col_name,
       bookmarks.erase(itbm);
       save = true;
     }
-#ifndef USE_OPENMP
   bookmarksmtx.unlock();
-#else
-  omp_unset_lock(&bookmarksmtx);
-#endif
 
   if(save)
     {

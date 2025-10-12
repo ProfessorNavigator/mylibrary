@@ -25,6 +25,7 @@
 #include <atomic>
 #include <functional>
 #include <glibmm-2.68/glibmm/dispatcher.h>
+#include <gtkmm-4.0/gtkmm/checkbutton.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
 #include <gtkmm-4.0/gtkmm/entry.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
@@ -64,8 +65,14 @@ public:
   bool
   reloadCollection(const std::string &col_name);
 
+  enum ShowBooks
+  {
+    MainWindow,
+    SeparateWindow
+  };
+
   void
-  searchAuth(const std::string &auth);
+  searchAuth(const std::string &auth, const ShowBooks &variant);
 
   void
   reloadCollectionList();
@@ -80,6 +87,9 @@ public:
 
   std::function<void(const std::vector<BookBaseEntry> &result)>
       search_result_show;
+
+  std::function<void(const std::vector<BookBaseEntry> &result)>
+      search_result_show_separate_window;
 
   std::function<void(const std::vector<FileParseEntry> &result)>
       search_result_show_files;
@@ -152,6 +162,8 @@ private:
   std::shared_ptr<std::thread> load_collection_thr;
   Glib::Dispatcher *total_books_num_disp = nullptr;
   Glib::Dispatcher *total_books_num_load_disp = nullptr;
+
+  Gtk::CheckButton *exact_search_match;
 };
 
 #endif // LEFTGRID_H

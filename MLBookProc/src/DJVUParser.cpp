@@ -20,11 +20,10 @@
 #include <iostream>
 #include <libdjvu/miniexp.h>
 #include <string>
+#include <unistd.h>
 
 #ifndef USE_OPENMP
 #include <thread>
-#else
-#include <unistd.h>
 #endif
 
 #if defined(__linux)

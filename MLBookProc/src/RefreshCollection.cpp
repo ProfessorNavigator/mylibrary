@@ -130,11 +130,7 @@ void
 RefreshCollection::refreshCollection()
 {
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-#ifdef USE_GPUOFFLOADING
-  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
-#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
-#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
   if(std::filesystem::exists(books_path))
     {
@@ -319,11 +315,7 @@ void
 RefreshCollection::refreshFile(const BookBaseEntry &bbe)
 {
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-#ifdef USE_GPUOFFLOADING
-  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
-#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
-#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
   for(auto it = base.begin(); it != base.end();)
     {
@@ -382,7 +374,7 @@ RefreshCollection::check_hashes(
   run_threads = 0;
   for(auto it = books_files->begin(); it != books_files->end(); it++)
     {
-      if(cancel.load())
+      if(cancel.load(std::memory_order_relaxed))
         {
           break;
         }
@@ -408,24 +400,22 @@ RefreshCollection::check_hashes(
     return run_threads <= 0;
   });
 #else
-  int num_threads_default = omp_get_num_threads();
+  int num_threads_default = omp_get_max_threads();
   omp_set_num_threads(num_threads);
 #pragma omp parallel
-  {
 #pragma omp for
-    for(auto it = books_files->begin(); it != books_files->end(); it++)
-      {
-        bool cncl;
+  for(auto it = books_files->begin(); it != books_files->end(); it++)
+    {
+      bool cncl;
 #pragma omp atomic read
-        cncl = cancel;
-        if(cncl)
-          {
+      cncl = cancel;
+      if(cncl)
+        {
 #pragma omp cancel for
-            continue;
-          }
-        hash_thread(*it, base);
-      }
-  }
+          continue;
+        }
+      hash_thread(*it, base);
+    }
   omp_set_num_threads(num_threads_default);
 #endif
 }
@@ -575,11 +565,7 @@ RefreshCollection::editBook(const BookBaseEntry &bbe_old,
 {
   bool result = false;
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-#ifdef USE_GPUOFFLOADING
-  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
-#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
-#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   auto itbase
@@ -647,11 +633,7 @@ RefreshCollection::refreshBook(const BookBaseEntry &bbe)
   bool result = false;
 
   std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-#ifdef USE_GPUOFFLOADING
-  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
-#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
-#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   auto itbase
@@ -690,11 +672,7 @@ RefreshCollection::set_rar_support(const bool &rar_support)
 void
 RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
 {
-#ifdef USE_GPUOFFLOADING
-  bk->loadCollection(base_path.parent_path().filename().u8string(), false);
-#else
   bk->loadCollection(base_path.parent_path().filename().u8string());
-#endif
   std::vector<FileParseEntry> base = bk->get_base_vector();
 
   std::vector<std::tuple<std::string, BookBaseEntry>> bmv

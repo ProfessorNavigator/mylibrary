@@ -5,6 +5,7 @@ target_sources(mylibrary
     PRIVATE BookMarksGui.cpp
     PRIVATE BookMarksModelItem.cpp
     PRIVATE BookMarksShow.cpp
+    PRIVATE BooksWindow.cpp
     PRIVATE CollectionCrProcessGui.cpp
     PRIVATE CopyBookGui.cpp
     PRIVATE CoverPixBuf.cpp

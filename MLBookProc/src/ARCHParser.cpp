@@ -106,7 +106,7 @@ ARCHParser::stopAll()
       archp_obj[i]->stopAll();
     }
   archp_obj_mtx.unlock();
-  cancel.store(true);
+  cancel.store(true, std::memory_order_relaxed);
 #else
   omp_set_lock(&archp_obj_mtx);
   for(size_t i = 0; i < archp_obj.size(); i++)
@@ -135,7 +135,7 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
 #ifndef USE_OPENMP
   while(!interrupt)
     {
-      if(cancel.load())
+      if(cancel.load(std::memory_order_relaxed))
         {
           break;
         }
@@ -203,87 +203,83 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
         }
     }
 #else
-#pragma omp parallel
+#pragma omp parallel masked
   {
-#pragma omp masked
-    {
-      while(!interrupt)
-        {
-          bool cncl;
+    while(!interrupt)
+      {
+        bool cncl;
 #pragma omp atomic read
-          cncl = cancel;
-          if(cncl)
-            {
-              break;
-            }
-          archive_entry_clear(entry.get());
-          try
-            {
-              er = archive_read_next_header2(a.get(), entry.get());
-            }
-          catch(MLException &ml_e)
-            {
-              std::cout << "ARCHParser::arch_process: " << ml_e.what()
-                        << std::endl;
-              break;
-            }
+        cncl = cancel;
+        if(cncl)
+          {
+            break;
+          }
+        archive_entry_clear(entry.get());
+        try
+          {
+            er = archive_read_next_header2(a.get(), entry.get());
+          }
+        catch(MLException &ml_e)
+          {
+            std::cout << "ARCHParser::arch_process: " << ml_e.what()
+                      << std::endl;
+            break;
+          }
 
-          switch(er)
+        switch(er)
+          {
+          case ARCHIVE_OK:
             {
-            case ARCHIVE_OK:
-              {
-                filename.clear();
-                char *fnm = const_cast<char *>(
-                    archive_entry_pathname_utf8(entry.get()));
-                if(fnm)
-                  {
-                    filename = fnm;
-                  }
-                else
-                  {
-                    fnm = const_cast<char *>(
-                        archive_entry_pathname(entry.get()));
-                    if(fnm)
-                      {
-                        filename = fnm;
-                      }
-                    else
-                      {
-                        std::cout << "ARCHParser::arch_process file name error"
-                                  << std::endl;
-                      }
-                  }
-                if(archive_entry_filetype(entry.get()) == AE_IFREG
-                   && !filename.empty())
-                  {
-                    std::filesystem::path ch_p
-                        = std::filesystem::u8path(filename);
-                    unpack_entry(ch_p, a, entry);
-                  }
-                break;
-              }
-            case ARCHIVE_EOF:
-              {
-                interrupt = true;
-                break;
-              }
-            case ARCHIVE_FATAL:
-              {
-                libarchive_error(
-                    a, "ARCHParser::arch_process fatal read error:", er);
-                interrupt = true;
-                break;
-              }
-            default:
-              {
-                libarchive_error(a,
-                                 "ARCHParser::arch_process read error:", er);
-                break;
-              }
+              filename.clear();
+              char *fnm = const_cast<char *>(
+                  archive_entry_pathname_utf8(entry.get()));
+              if(fnm)
+                {
+                  filename = fnm;
+                }
+              else
+                {
+                  fnm = const_cast<char *>(
+                      archive_entry_pathname(entry.get()));
+                  if(fnm)
+                    {
+                      filename = fnm;
+                    }
+                  else
+                    {
+                      std::cout << "ARCHParser::arch_process file name error"
+                                << std::endl;
+                    }
+                }
+              if(archive_entry_filetype(entry.get()) == AE_IFREG
+                 && !filename.empty())
+                {
+                  std::filesystem::path ch_p
+                      = std::filesystem::u8path(filename);
+                  unpack_entry(ch_p, a, entry);
+                }
+              break;
             }
-        }
+          case ARCHIVE_EOF:
+            {
+              interrupt = true;
+              break;
+            }
+          case ARCHIVE_FATAL:
+            {
+              libarchive_error(
+                  a, "ARCHParser::arch_process fatal read error:", er);
+              interrupt = true;
+              break;
+            }
+          default:
+            {
+              libarchive_error(a, "ARCHParser::arch_process read error:", er);
+              break;
+            }
+          }
+      }
 #pragma omp taskwait
-    }
   }
 #endif
 }

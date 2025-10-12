@@ -132,11 +132,6 @@ private:
   std::vector<section> settings_v;
 
   double coef_coincedence_val = 0.7;
-
-#ifdef USE_GPUOFFLOADING
-  double cpu_gpu_balance_auth;
-  double cpu_gpu_balance_search;
-#endif
 };
 
 #endif // SETTINGSWINDOW_H

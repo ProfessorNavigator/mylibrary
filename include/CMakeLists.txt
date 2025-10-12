@@ -5,6 +5,7 @@ target_sources (mylibrary
     PRIVATE BookMarksGui.h
     PRIVATE BookMarksModelItem.h
     PRIVATE BookMarksShow.h
+    PRIVATE BooksWindow.h
     PRIVATE CollectionCrProcessGui.h
     PRIVATE CopyBookGui.h
     PRIVATE CoverPixBuf.h

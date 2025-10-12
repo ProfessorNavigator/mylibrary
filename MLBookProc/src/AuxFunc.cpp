@@ -97,16 +97,6 @@ AuxFunc::AuxFunc()
 #ifdef USE_OPENMP
           std::cout << "MLBookProc OMP_CANCELLATION: "
                     << omp_get_cancellation() << std::endl;
-          omp_set_max_active_levels(omp_get_supported_active_levels());
-          std::cout << "MLBookProc supported nested parllelization levels: "
-                    << omp_get_max_active_levels() << std::endl;
-          omp_set_dynamic(true);
-          std::cout << "MLBookProc omp dynamic: " << omp_get_dynamic()
-                    << std::endl;
-#ifdef USE_GPUOFFLOADING
-          std::cout << "MLBookProc omp devices quantity: "
-                    << omp_get_device_num() << std::endl;
-#endif
           omp_init_lock(&djvu_context_mtx);
 #endif
         }
@@ -1004,43 +994,6 @@ AuxFunc::getDJVUContext()
   std::get<1>(result) = pipe;
   return result;
 }
-
-#ifdef USE_GPUOFFLOADING
-void
-AuxFunc::setCpuGpuBalance(const double &balance_authors,
-                          const double &balance_search)
-{
-  if(balance_authors > 1.0 || balance_authors < 0.0)
-    {
-      cpu_gpu_balance_authors.store(0.95);
-    }
-  else
-    {
-      cpu_gpu_balance_authors.store(balance_authors);
-    }
-
-  if(balance_search > 1.0 || balance_search < 0.0)
-    {
-      cpu_gpu_balance_search.store(0.5);
-    }
-  else
-    {
-      cpu_gpu_balance_search.store(balance_search);
-    }
-}
-
-double
-AuxFunc::getCpuGpuBalanceAuthors()
-{
-  return cpu_gpu_balance_authors.load();
-}
-
-double
-AuxFunc::getCpuGpuBalanceSearch()
-{
-  return cpu_gpu_balance_search.load();
-}
-#endif
 
 std::string
 AuxFunc::libgcrypt_error_handling(const gcry_error_t &err)

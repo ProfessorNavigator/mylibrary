@@ -212,9 +212,9 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
     creation_progress->set_fraction(progress_count / total_bytes);
   });
   cc->progress = [this](const double &prog) {
-    if(prog > progress_count.load())
+    if(prog > progress_count.load(std::memory_order_relaxed))
       {
-        progress_count.store(prog);
+        progress_count.store(prog, std::memory_order_relaxed);
       }
     progress_disp->emit();
   };
@@ -323,9 +323,9 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
     creation_progress->set_fraction(progress_count / total_bytes);
   });
   rfr->progress = [this](const double &prog) {
-    if(prog > progress_count.load())
+    if(prog > progress_count.load(std::memory_order_relaxed))
       {
-        progress_count.store(prog);
+        progress_count.store(prog, std::memory_order_relaxed);
       }
     progress_disp->emit();
   };

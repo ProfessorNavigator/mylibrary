@@ -18,12 +18,7 @@
 
 #include <AuxFunc.h>
 #include <NotesBaseEntry.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
 
 /*!
  * \brief The NotesKeeper class.
@@ -175,11 +170,7 @@ private:
   std::filesystem::path base_directory_path;
 
   std::vector<NotesBaseEntry> base;
-#ifndef USE_OPENMP
   std::mutex base_mtx;
-#else
-  omp_lock_t base_mtx;
-#endif
 };
 
 #endif // NOTESKEEPER_H

@@ -57,9 +57,7 @@
  * endif()
  * \endcode
  *
- * \note MLBookProc sets USE_OPENMP build variable in case of OpenMP usage. If
- * USE_OPENMP is set, it is highly recommended to use only OpenMP for
- * multithreading in your application.
+ * \note MLBookProc sets USE_OPENMP build variable in case of OpenMP usage.
  *
  * Then create AuxFunc object. Further reading: CreateCollection,
  * RefreshCollection, BaseKeeper, BookMarks, NotesKeeper, BookInfo, OpenBook.
@@ -499,11 +497,11 @@ public:
 #pragma omp for ordered
         for(T *i = s + 1; i != e; i++)
           {
-            if(!predicate((*i)))
+            if(!predicate(*i))
               {
 #pragma omp ordered
                 {
-                  *s = std::move((*i));
+                  *s = std::move(*i);
                   s++;
                 }
               }
@@ -525,29 +523,42 @@ public:
   static std::shared_ptr<AuxFunc>
   create();
 
-  // TODO correct docs
   /*!
-   * \brief Returns smart pointer to djvu context object.
+   * \brief Returns tuple with smart pointer to djvu context object and smart
+   * pointer to djvu context signal pipe.
    *
-   * \return Smart pointer to djvu context object.
+   * First element of returned tuple is the smart pointer to djvu context
+   * object. Second element is smart pointer to array, containing signal pipe
+   * file descriptors. This descriptors can be used to obtain signals, emitted
+   * by djvu contex on new message existance (see <A
+   * HREF="https://djvu.sourceforge.net/">DjVuLibre</A> documentation). First
+   * element of array is a reading end of pipe (can be accessed by \a read OS
+   * function), second element is the writing end of pipe (can be accessed by
+   * \a write OS function).
+   *
+   * \warning On Windows you must convert pointer to pipe array to HANDLE
+   * pointer befor use:
+   * \code{.cpp}
+   * std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>>
+   * context_tuple;
+   *
+   * context_tuple = getDJVUContext();
+   *
+   * HANDLE *handles = reinterpret_cast<HANDLE
+   * *>(std::get<1>(context_tuple).get());
+   * \endcode
+   *
+   * \parblock
+   * \warning In case of multiply documents are processed by djvu context, pipe
+   * signals are emited for all pipes at once. It means, that you must check
+   * document object on receiving signal by the pipe.
+   * \endparblock
+   *
+   * \return Tuple with the smart pointer to djvu context object and smart
+   * pointer to pipe file descriptors.
    */
   std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>>
   getDJVUContext();
-
-#ifdef USE_GPUOFFLOADING
-  // TODO docs
-  void
-  setCpuGpuBalance(const double &balance_authors,
-                   const double &balance_search);
-
-  // TODO docs
-  double
-  getCpuGpuBalanceAuthors();
-
-  // TODO docs
-  double
-  getCpuGpuBalanceSearch();
-#endif
 
 private:
   AuxFunc();
@@ -573,11 +584,6 @@ private:
   std::mutex djvu_context_mtx;
 #endif
   std::vector<std::weak_ptr<int>> djvu_pipes;
-
-#ifdef USE_GPUOFFLOADING
-  std::atomic<double> cpu_gpu_balance_authors = 0.95;
-  std::atomic<double> cpu_gpu_balance_search = 0.5;
-#endif
 };
 
 #endif // AUXFUNC_H

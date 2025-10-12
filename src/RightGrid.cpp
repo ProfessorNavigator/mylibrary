@@ -15,6 +15,7 @@
  */
 
 #include <BookInfoGui.h>
+#include <BooksWindow.h>
 #include <CopyBookGui.h>
 #include <EditBookGui.h>
 #include <FullSizeCover.h>
@@ -53,12 +54,14 @@
 RightGrid::RightGrid(const std::shared_ptr<AuxFunc> &af,
                      Gtk::Window *main_window,
                      const std::shared_ptr<BookMarks> &bookmarks,
-                     const std::shared_ptr<NotesKeeper> &notes)
+                     const std::shared_ptr<NotesKeeper> &notes,
+                     const ShowVariant &sv)
 {
   this->af = af;
   this->main_window = main_window;
   this->bookmarks = bookmarks;
   this->notes = notes;
+  show_variant = sv;
   bi = new BookInfo(af);
   formatter = new FormatAnnotation(af);
   std::vector<ReplaceTagItem> tag_replacement_table;
@@ -307,6 +310,8 @@ RightGrid::createGrid()
                 std::placeholders::_2, std::placeholders::_3, pop_menu));
   cover_area->add_controller(clck);
 
+  created_grid = grid;
+
   return grid;
 }
 
@@ -329,56 +334,84 @@ RightGrid::clearSearchResult()
 }
 
 void
-RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result)
+RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result,
+                            const ShowVariant &sv)
 {
-  Gtk::Window *window = new Gtk::Window;
-  window->set_application(main_window->get_application());
-  window->set_transient_for(*main_window);
-  window->set_name("MLwindow");
-  window->set_modal(true);
-  window->set_deletable(false);
-
-  Gtk::Box *box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
-  box->set_halign(Gtk::Align::FILL);
-  box->set_valign(Gtk::Align::FILL);
-  window->set_child(*box);
-
-  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(5);
-  lab->set_halign(Gtk::Align::CENTER);
-  lab->set_valign(Gtk::Align::CENTER);
-  lab->set_name("windowLabel");
-  lab->set_text(gettext("Sorting..."));
-  box->append(*lab);
-
-  window->signal_close_request().connect(
-      [window, this] {
-        std::unique_ptr<Gtk::Window> win(window);
-        win->set_visible(false);
-        return true;
-      },
-      false);
-
-  window->present();
-
-  Glib::Dispatcher *result_disp = new Glib::Dispatcher;
-  result_disp->connect([this, result, result_disp, window] {
-    std::unique_ptr<Glib::Dispatcher> disp(result_disp);
-    srs->searchResultShow(result);
-    if(get_current_collection_name)
+  switch(sv)
+    {
+    case ShowVariant::MainWindow:
       {
-        current_collection = get_current_collection_name();
-      }
-    bookMenu(menu_sr);
-    filter_selection->set_visible(true);
-    book_ops->set_label(gettext("Book operations"));
-    window->close();
-  });
+        Gtk::Window *window = new Gtk::Window;
+        window->set_application(main_window->get_application());
+        window->set_transient_for(*main_window);
+        window->set_name("MLwindow");
+        window->set_modal(true);
+        window->set_deletable(false);
 
-  std::thread thr([result_disp] {
-    result_disp->emit();
-  });
-  thr.detach();
+        Gtk::Box *box
+            = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL);
+        box->set_halign(Gtk::Align::FILL);
+        box->set_valign(Gtk::Align::FILL);
+        window->set_child(*box);
+
+        Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+        lab->set_margin(5);
+        lab->set_halign(Gtk::Align::CENTER);
+        lab->set_valign(Gtk::Align::CENTER);
+        lab->set_name("windowLabel");
+        lab->set_text(gettext("Sorting..."));
+        box->append(*lab);
+
+        window->signal_close_request().connect(
+            [window, this] {
+              std::unique_ptr<Gtk::Window> win(window);
+              win->set_visible(false);
+              return true;
+            },
+            false);
+
+        Glib::Dispatcher *result_disp = new Glib::Dispatcher;
+        result_disp->connect([this, result, result_disp, window] {
+          std::unique_ptr<Glib::Dispatcher> disp(result_disp);
+          srs->searchResultShow(result);
+          if(get_current_collection_name)
+            {
+              current_collection = get_current_collection_name();
+            }
+          bookMenu(menu_sr);
+          filter_selection->set_visible(true);
+          book_ops->set_label(gettext("Book operations"));
+          window->close();
+        });
+
+        window->present();
+
+        std::thread thr([result_disp] {
+          result_disp->emit();
+        });
+        thr.detach();
+        break;
+      }
+    case ShowVariant::SeparateWindow:
+      {
+        BooksWindow *bw = new BooksWindow(
+            main_window, af, get_current_collection_name(), bookmarks, notes);
+        bw->set_default_size(created_grid->get_width(),
+                             created_grid->get_height());
+        bw->createWindow(result);
+        bw->signal_close_request().connect(
+            [bw] {
+              std::unique_ptr<BooksWindow> ubw(bw);
+              ubw->set_visible(false);
+              return true;
+            },
+            false);
+        bw->present();
+        break;
+      }
+    default:
+      break;
+    }
 }
 
 void
@@ -714,8 +747,37 @@ RightGrid::bookOperationsActionGroup()
             bbe_v.emplace_back(bbe);
           }
         srs->searchResultShow(bbe_v);
+        book_ops->set_label(gettext("Book operations"));
         bookMenu(menu_sr);
         filter_selection->set_visible(true);
+      }
+  });
+
+  file_actions->add_action("list_books_separate_window", [this] {
+    Glib::RefPtr<SearchResultModelItemFL> f_item
+        = srs->get_selected_item_file();
+    if(f_item)
+      {
+        BooksWindow *bw = new BooksWindow(
+            main_window, af, get_current_collection_name(), bookmarks, notes);
+        bw->set_default_size(created_grid->get_width(),
+                             created_grid->get_height());
+        std::vector<BookBaseEntry> bbe_v;
+        for(auto it = f_item->entry.books.begin();
+            it != f_item->entry.books.end(); it++)
+          {
+            BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
+            bbe_v.emplace_back(bbe);
+          }
+        bw->createWindow(bbe_v);
+        bw->signal_close_request().connect(
+            [bw] {
+              std::unique_ptr<BooksWindow> ubw(bw);
+              ubw->set_visible(false);
+              return true;
+            },
+            false);
+        bw->present();
       }
   });
 
@@ -732,6 +794,18 @@ RightGrid::bookOperationsActionGroup()
         if(search_books_callback)
           {
             search_books_callback(auth_item->auth);
+          }
+      }
+  });
+
+  auth_actions->add_action("list_books_separate_window", [this] {
+    Glib::RefPtr<SearchResultModelItemAuth> auth_item
+        = srs->get_selected_item_auth();
+    if(auth_item)
+      {
+        if(search_books_callback_separate_window)
+          {
+            search_books_callback_separate_window(auth_item->auth);
           }
       }
   });
@@ -766,8 +840,12 @@ RightGrid::bookMenu(Glib::RefPtr<Gio::Menu> &result)
                                "book_ops.copy_book");
   result->append_item(item);
 
-  item = Gio::MenuItem::create(gettext("Remove book"), "book_ops.remove_book");
-  result->append_item(item);
+  if(show_variant == ShowVariant::MainWindow)
+    {
+      item = Gio::MenuItem::create(gettext("Remove book"),
+                                   "book_ops.remove_book");
+      result->append_item(item);
+    }
 
   item = Gio::MenuItem::create(gettext("Edit book entry"),
                                "book_ops.edit_book");
@@ -776,9 +854,12 @@ RightGrid::bookMenu(Glib::RefPtr<Gio::Menu> &result)
   item = Gio::MenuItem::create(gettext("Notes"), "book_ops.book_notes");
   result->append_item(item);
 
-  item = Gio::MenuItem::create(gettext("Move to another collection"),
-                               "book_ops.move_to_another_col");
-  result->append_item(item);
+  if(show_variant == ShowVariant::MainWindow)
+    {
+      item = Gio::MenuItem::create(gettext("Move to another collection"),
+                                   "book_ops.move_to_another_col");
+      result->append_item(item);
+    }
 }
 
 void
@@ -792,8 +873,13 @@ RightGrid::filesMenu(Glib::RefPtr<Gio::Menu> &result)
     {
       result = Gio::Menu::create();
     }
+
   Glib::RefPtr<Gio::MenuItem> item
       = Gio::MenuItem::create(gettext("Show books"), "file_ops.list_books");
+  result->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Show books in separate window"),
+                               "file_ops.list_books_separate_window");
   result->append_item(item);
 }
 
@@ -808,8 +894,13 @@ RightGrid::authMenu(Glib::RefPtr<Gio::Menu> &result)
     {
       result = Gio::Menu::create();
     }
+
   Glib::RefPtr<Gio::MenuItem> item
       = Gio::MenuItem::create(gettext("Show books"), "auth_ops.list_books");
+  result->append_item(item);
+
+  item = Gio::MenuItem::create(gettext("Show books in separate window"),
+                               "auth_ops.list_books_separate_window");
   result->append_item(item);
 }
 
@@ -1067,8 +1158,9 @@ RightGrid::editBookSuccessSlot(const BookBaseEntry &bbe_old,
           if(item->bbe == bbe_old)
             {
               item->bbe = bbe_new;
-              model->insert(i, item);
               model->remove(i);
+              model->insert(i, item);
+              break;
             }
         }
     }

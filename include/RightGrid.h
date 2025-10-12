@@ -46,9 +46,16 @@
 class RightGrid
 {
 public:
+  enum ShowVariant
+  {
+    MainWindow,
+    SeparateWindow
+  };
+
   RightGrid(const std::shared_ptr<AuxFunc> &af, Gtk::Window *main_window,
             const std::shared_ptr<BookMarks> &bookmarks,
-            const std::shared_ptr<NotesKeeper> &notes);
+            const std::shared_ptr<NotesKeeper> &notes,
+            const ShowVariant &sv = ShowVariant::MainWindow);
 
   virtual ~RightGrid();
 
@@ -62,7 +69,8 @@ public:
   clearSearchResult();
 
   void
-  searchResultShow(const std::vector<BookBaseEntry> &result);
+  searchResultShow(const std::vector<BookBaseEntry> &result,
+                   const ShowVariant &sv);
 
   void
   searchResultShowFiles(const std::vector<FileParseEntry> &result);
@@ -75,6 +83,9 @@ public:
   std::function<void(const std::string &col_name)> reload_collection_base;
 
   std::function<void(const std::string &auth)> search_books_callback;
+
+  std::function<void(const std::string &auth)>
+      search_books_callback_separate_window;
 
 private:
   void
@@ -146,6 +157,7 @@ private:
   Gtk::Window *main_window = nullptr;
   std::shared_ptr<BookMarks> bookmarks;
   std::shared_ptr<NotesKeeper> notes;
+  ShowVariant show_variant;
 
   Gtk::ColumnView *search_res = nullptr;
   SearchResultShow *srs = nullptr;
@@ -164,6 +176,8 @@ private:
   Gtk::DropDown *filter_selection;
 
   Gtk::MenuButton *book_ops;
+
+  Gtk::Grid *created_grid = nullptr;
 };
 
 #endif // RIGHTGRID_H

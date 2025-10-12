@@ -206,7 +206,7 @@ CreateCollection::threadRegulator()
   run_threads = 0;
   for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
     {
-      if(cancel.load())
+      if(cancel.load(std::memory_order_relaxed))
         {
           break;
         }
@@ -239,8 +239,10 @@ CreateCollection::threadRegulator()
     return run_threads <= 0;
   });
 #else
-  int num_threads_default = omp_get_num_threads();
+  int num_threads_default = omp_get_max_threads();
   omp_set_num_threads(num_threads);
+  omp_set_max_active_levels(omp_get_supported_active_levels());
+  omp_set_dynamic(true);
 #pragma omp parallel
 #pragma omp for
   for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
@@ -272,8 +274,8 @@ CreateCollection::threadRegulator()
 }
 
 void
-CreateCollection::fb2_thread(const std::filesystem::path &file_col_path,
-                             const std::filesystem::path &resolved)
+CreateCollection::fb2Thread(const std::filesystem::path &file_col_path,
+                            const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -394,8 +396,8 @@ CreateCollection::closeBaseFile()
 }
 
 void
-CreateCollection::book_entry_to_file_entry(std::string &file_entry,
-                                           const std::string &book_entry)
+CreateCollection::bookEntryToFileEntry(std::string &file_entry,
+                                       const std::string &book_entry)
 {
   uint16_t val16 = static_cast<uint16_t>(book_entry.size());
   ByteOrder bo(val16);
@@ -409,8 +411,8 @@ CreateCollection::book_entry_to_file_entry(std::string &file_entry,
 }
 
 void
-CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
-                              const std::filesystem::path &resolved)
+CreateCollection::epubThread(const std::filesystem::path &file_col_path,
+                             const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -459,7 +461,7 @@ CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
       fe.file_hash = file_hashing(filepath);
     }
 #ifndef USE_OPENMP
-  if(!cancel.load())
+  if(!cancel.load(std::memory_order_relaxed))
 #else
   bool cncl;
 #pragma atomic read
@@ -483,8 +485,8 @@ CreateCollection::epub_thread(const std::filesystem::path &file_col_path,
 }
 
 void
-CreateCollection::pdf_thread(const std::filesystem::path &file_col_path,
-                             const std::filesystem::path &resolved)
+CreateCollection::pdfThread(const std::filesystem::path &file_col_path,
+                            const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -546,8 +548,8 @@ CreateCollection::pdf_thread(const std::filesystem::path &file_col_path,
 }
 
 void
-CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
-                              const std::filesystem::path &resolved)
+CreateCollection::archThread(const std::filesystem::path &file_col_path,
+                             const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -597,7 +599,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
 #ifndef USE_OPENMP
   thr_finish.reset();
 
-  if(fe.books.size() > 0 && !cancel.load())
+  if(fe.books.size() > 0 && !cancel.load(std::memory_order_relaxed))
     {
       fe.file_rel_path
           = file_col_path.lexically_proximate(books_path).u8string();
@@ -620,7 +622,7 @@ CreateCollection::arch_thread(const std::filesystem::path &file_col_path,
           fe.file_hash = file_hashing(filepath);
           thr_finish.reset();
         }
-      if(!cancel.load())
+      if(!cancel.load(std::memory_order_relaxed))
         {
           write_file_to_base(fe);
         }
@@ -699,7 +701,7 @@ CreateCollection::write_file_to_base(const FileParseEntry &fe)
   std::copy(sep_cor.begin(), sep_cor.end(), std::back_inserter(file_entry));
 
   // Book hash
-  book_entry_to_file_entry(file_entry, fe.file_hash);
+  bookEntryToFileEntry(file_entry, fe.file_hash);
   uint64_t val64;
   size_t sz;
   for(auto it = fe.books.begin(); it != fe.books.end(); it++)
@@ -718,12 +720,12 @@ CreateCollection::write_file_to_base(const FileParseEntry &fe)
       std::memcpy(&file_entry[sz], &val64, sizeof(val64));
 
       // Book entries
-      book_entry_to_file_entry(file_entry, be.book_path);
-      book_entry_to_file_entry(file_entry, be.book_author);
-      book_entry_to_file_entry(file_entry, be.book_name);
-      book_entry_to_file_entry(file_entry, be.book_series);
-      book_entry_to_file_entry(file_entry, be.book_genre);
-      book_entry_to_file_entry(file_entry, be.book_date);
+      bookEntryToFileEntry(file_entry, be.book_path);
+      bookEntryToFileEntry(file_entry, be.book_author);
+      bookEntryToFileEntry(file_entry, be.book_name);
+      bookEntryToFileEntry(file_entry, be.book_series);
+      bookEntryToFileEntry(file_entry, be.book_genre);
+      bookEntryToFileEntry(file_entry, be.book_date);
     }
   val64 = static_cast<uint64_t>(file_entry.size());
   bo = val64;
@@ -765,7 +767,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          fb2_thread(p, resolved);
+          fb2Thread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -786,7 +788,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -812,7 +814,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          epub_thread(p, resolved);
+          epubThread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -833,7 +835,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -859,7 +861,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          pdf_thread(p, resolved);
+          pdfThread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -880,7 +882,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -906,7 +908,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          djvu_thread(p, resolved);
+          djvuThread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -927,7 +929,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -953,7 +955,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          odt_thread(p, resolved);
+          odtThread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -974,7 +976,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -1021,7 +1023,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -1047,7 +1049,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
     {
       try
         {
-          arch_thread(p, resolved);
+          archThread(p, resolved);
         }
       catch(MLException &er)
         {
@@ -1068,7 +1070,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
               current_bytes.store(current_bytes.load()
                                   + static_cast<double>(sz));
             }
-          progress(current_bytes.load());
+          progress(current_bytes.load(std::memory_order_relaxed));
 #else
           double cb_val;
           if(ec)
@@ -1093,8 +1095,8 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
 }
 
 void
-CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
-                              const std::filesystem::path &resolved)
+CreateCollection::djvuThread(const std::filesystem::path &file_col_path,
+                             const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -1144,7 +1146,7 @@ CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
       });
       fe.file_hash = file_hashing(filepath);
     }
-  if(!cancel.load())
+  if(!cancel.load(std::memory_order_relaxed))
     {
       fe.books.emplace_back(be);
       write_file_to_base(fe);
@@ -1178,8 +1180,8 @@ CreateCollection::djvu_thread(const std::filesystem::path &file_col_path,
 }
 
 void
-CreateCollection::odt_thread(const std::filesystem::path &file_col_path,
-                             const std::filesystem::path &resolved)
+CreateCollection::odtThread(const std::filesystem::path &file_col_path,
+                            const std::filesystem::path &resolved)
 {
   std::filesystem::path filepath;
   if(std::filesystem::exists(resolved))
@@ -1229,7 +1231,7 @@ CreateCollection::odt_thread(const std::filesystem::path &file_col_path,
       });
       fe.file_hash = file_hashing(filepath);
     }
-  if(!cancel.load())
+  if(!cancel.load(std::memory_order_relaxed))
     {
       fe.books.emplace_back(be);
       write_file_to_base(fe);
@@ -1313,7 +1315,7 @@ CreateCollection::txtThread(const std::filesystem::path &file_col_path,
       });
       fe.file_hash = file_hashing(filepath);
     }
-  if(!cancel.load())
+  if(!cancel.load(std::memory_order_relaxed))
     {
       fe.books.emplace_back(be);
       write_file_to_base(fe);

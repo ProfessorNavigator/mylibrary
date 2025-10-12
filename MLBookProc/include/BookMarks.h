@@ -20,13 +20,8 @@
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <memory>
-#include <vector>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
 #include <mutex>
-#endif
+#include <vector>
 
 /*!
  * \brief The BookMarks class.
@@ -96,11 +91,7 @@ private:
   std::filesystem::path bookmp;
 
   std::vector<std::tuple<std::string, BookBaseEntry>> bookmarks;
-#ifndef USE_OPENMP
   std::mutex bookmarksmtx;
-#else
-  omp_lock_t bookmarksmtx;
-#endif
 };
 
 #endif // BOOKMARKS_H

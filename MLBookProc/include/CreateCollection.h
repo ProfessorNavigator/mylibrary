@@ -204,23 +204,23 @@ private:
   threadFunc(const std::filesystem::path &need_to_parse);
 
   void
-  fb2_thread(const std::filesystem::path &file_col_path,
+  fb2Thread(const std::filesystem::path &file_col_path,
              const std::filesystem::path &resolved);
 
   void
-  epub_thread(const std::filesystem::path &file_col_path,
+  epubThread(const std::filesystem::path &file_col_path,
               const std::filesystem::path &resolved);
 
   void
-  pdf_thread(const std::filesystem::path &file_col_path,
+  pdfThread(const std::filesystem::path &file_col_path,
              const std::filesystem::path &resolved);
 
   void
-  djvu_thread(const std::filesystem::path &file_col_path,
+  djvuThread(const std::filesystem::path &file_col_path,
               const std::filesystem::path &resolved);
 
   void
-  odt_thread(const std::filesystem::path &file_col_path,
+  odtThread(const std::filesystem::path &file_col_path,
              const std::filesystem::path &resolved);
 
   void
@@ -228,11 +228,11 @@ private:
             const std::filesystem::path &resolved);
 
   void
-  arch_thread(const std::filesystem::path &file_col_path,
+  archThread(const std::filesystem::path &file_col_path,
               const std::filesystem::path &resolved);
 
   void
-  book_entry_to_file_entry(std::string &file_entry,
+  bookEntryToFileEntry(std::string &file_entry,
                            const std::string &book_entry);
 
   std::shared_ptr<AuxFunc> af;

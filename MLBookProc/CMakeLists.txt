@@ -35,7 +35,6 @@ if(USE_OPENMP)
     add_subdirectory("${PROJECT_SOURCE_DIR}/omp_test")
     add_test(NAME OpenMPTest COMMAND omp_test WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test")
     find_package(OpenMP REQUIRED)
-    option(USE_GPUOFFLOADING "Build with GPU offloading support" OFF)
     message(STATUS "OpenMP features are supported, ${PROJECT_NAME} will be built with OpenMP support")
   else()
     set(USE_OPENMP OFF)
@@ -71,23 +70,6 @@ if(NOT USE_OPENMP)
     add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
     )
-  endif()
-endif()
-
-if(USE_OPENMP AND USE_GPUOFFLOADING)
-  try_compile(OMP_TEST_OFFLOADING
-    "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading"
-    "${PROJECT_SOURCE_DIR}/omp_test_offloading"
-    OmpTestOffloading
-  )
-  if(OMP_TEST_OFFLOADING)
-    message(STATUS "OpenMP GPU offloading features are supported, ${PROJECT_NAME} will be built with OpenMP GPU offloading support")
-  add_subdirectory("${PROJECT_SOURCE_DIR}/omp_test_offloading")
-  add_test(NAME OpenMPOffloadingTest COMMAND omp_test_offloading
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/omp_test_offloading")
-  else()
-    message(WARNING "Compiler does not support some OpenMP GPU offloading features. ${PROJECT_NAME} will be built without OpenMP GPU offloading support.")
-    set(USE_GPUOFFLOADING OFF)
   endif()
 endif()
 
@@ -139,15 +121,9 @@ if(USE_OPENMP)
   target_link_libraries(mlbookproc
     PUBLIC OpenMP::OpenMP_CXX
   )
-
   target_link_options(mlbookproc
     PUBLIC ${OpenMP_CXX_FLAGS}
   )
-  if(USE_GPUOFFLOADING)
-    target_compile_options(mlbookproc
-      PUBLIC -DUSE_GPUOFFLOADING
-    )
-  endif()
 else()  
   if(EXEC_TEST)
     target_compile_options(mlbookproc
@@ -191,9 +167,6 @@ if(DOXYGEN_FOUND)
   endif()
   if(USE_OPENMP)
     set(DOXYGEN_PREDEFINED USE_OPENMP)
-    if(USE_GPUOFFLOADING)
-      set(DOXYGEN_PREDEFINED USE_GPUOFFLOADING)
-    endif()
   endif()
   set(DOXYGEN_SHOW_USED_FILES NO)
   set(DOXYGEN_SHOW_FILES NO)

@@ -100,7 +100,7 @@ Hasher::file_hashing(const std::filesystem::path &filepath)
 
       for(;;)
         {
-          if(cancel.load())
+          if(cancel.load(std::memory_order_relaxed))
             {
               break;
             }
@@ -201,7 +201,7 @@ void
 Hasher::cancelAll()
 {
 #ifndef USE_OPENMP
-  cancel.store(true);
+  cancel.store(true, std::memory_order_relaxed);
 #else
 #pragma omp atomic write
   cancel = true;

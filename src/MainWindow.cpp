@@ -141,7 +141,12 @@ MainWindow::formMainWindow()
   lg->clear_search_result = std::bind(&RightGrid::clearSearchResult, rg);
 
   lg->search_result_show
-      = std::bind(&RightGrid::searchResultShow, rg, std::placeholders::_1);
+      = std::bind(&RightGrid::searchResultShow, rg, std::placeholders::_1,
+                  RightGrid::MainWindow);
+
+  lg->search_result_show_separate_window
+      = std::bind(&RightGrid::searchResultShow, rg, std::placeholders::_1,
+                  RightGrid::SeparateWindow);
 
   lg->search_result_show_files = std::bind(&RightGrid::searchResultShowFiles,
                                            rg, std::placeholders::_1);
@@ -157,7 +162,12 @@ MainWindow::formMainWindow()
   };
 
   rg->search_books_callback
-      = std::bind(&LeftGrid::searchAuth, lg, std::placeholders::_1);
+      = std::bind(&LeftGrid::searchAuth, lg, std::placeholders::_1,
+                  LeftGrid::ShowBooks::MainWindow);
+
+  rg->search_books_callback_separate_window
+      = std::bind(&LeftGrid::searchAuth, lg, std::placeholders::_1,
+                  LeftGrid::ShowBooks::SeparateWindow);
 
 #ifdef USE_PLUGINS
   plugins_keeper->signal_reload_collection_list

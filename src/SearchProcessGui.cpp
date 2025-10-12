@@ -114,19 +114,6 @@ SearchProcessGui::createWindow(const std::string &collection_name,
 
   if(variant == 2)
     {
-#ifdef USE_GPUOFFLOADING
-      Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-      lab->set_margin(5);
-      lab->set_halign(Gtk::Align::CENTER);
-      lab->set_expand(true);
-      lab->set_use_markup(true);
-      lab->set_markup(Glib::ustring("<i>") + gettext("CPU progress") + "</i>");
-      lab->set_name("windowLabel");
-      lab->set_visible(false);
-      grid->attach(*lab, 0, row, 1, 1);
-      row++;
-      s_struct.cpu_label = lab;
-#endif
       Gtk::Label *progr_val = Gtk::make_managed<Gtk::Label>();
       progr_val->set_margin(5);
       progr_val->set_halign(Gtk::Align::CENTER);
@@ -134,7 +121,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       progr_val->set_visible(false);
       grid->attach(*progr_val, 0, row, 1, 1);
       row++;
-      s_struct.cpu_progr_val = progr_val;
+      s_struct.progr_val = progr_val;
 
       Gtk::ProgressBar *prog = Gtk::make_managed<Gtk::ProgressBar>();
       prog->set_margin(5);
@@ -143,38 +130,7 @@ SearchProcessGui::createWindow(const std::string &collection_name,
       prog->set_visible(false);
       grid->attach(*prog, 0, row, 1, 1);
       row++;
-      s_struct.cpu_progr_bar = prog;
-#ifdef USE_GPUOFFLOADING
-      lab = Gtk::make_managed<Gtk::Label>();
-      lab->set_margin(5);
-      lab->set_halign(Gtk::Align::CENTER);
-      lab->set_expand(true);
-      lab->set_use_markup(true);
-      lab->set_markup(Glib::ustring("<i>") + gettext("GPU progress") + "</i>");
-      lab->set_name("windowLabel");
-      lab->set_visible(false);
-      grid->attach(*lab, 0, row, 1, 1);
-      row++;
-      s_struct.gpu_label = lab;
-
-      progr_val = Gtk::make_managed<Gtk::Label>();
-      progr_val->set_margin(5);
-      progr_val->set_halign(Gtk::Align::CENTER);
-      progr_val->set_name("windowLabel");
-      progr_val->set_visible(false);
-      grid->attach(*progr_val, 0, row, 1, 1);
-      row++;
-      s_struct.gpu_progr_val = progr_val;
-
-      prog = Gtk::make_managed<Gtk::ProgressBar>();
-      prog->set_margin(5);
-      prog->set_show_text(false);
-      prog->set_name("progressBars");
-      prog->set_visible(false);
-      grid->attach(*prog, 0, row, 1, 1);
-      row++;
-      s_struct.gpu_progr_bar = prog;
-#endif
+      s_struct.progr_bar = prog;
     }
 
   Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
@@ -185,29 +141,13 @@ SearchProcessGui::createWindow(const std::string &collection_name,
   cancel->signal_clicked().connect([this, cancel, s_struct] {
     bk->stopSearch();
     cancel->set_visible(false);
-    if(s_struct.cpu_label)
+    if(s_struct.progr_bar)
       {
-        s_struct.cpu_label->set_visible(false);
+        s_struct.progr_bar->set_visible(false);
       }
-    if(s_struct.cpu_progr_bar)
+    if(s_struct.progr_val)
       {
-        s_struct.cpu_progr_bar->set_visible(false);
-      }
-    if(s_struct.cpu_progr_val)
-      {
-        s_struct.cpu_progr_val->set_visible(false);
-      }
-    if(s_struct.gpu_label)
-      {
-        s_struct.gpu_label->set_visible(false);
-      }
-    if(s_struct.gpu_progr_bar)
-      {
-        s_struct.gpu_progr_bar->set_visible(false);
-      }
-    if(s_struct.gpu_progr_val)
-      {
-        s_struct.gpu_progr_val->set_visible(false);
+        s_struct.progr_val->set_visible(false);
       }
     s_struct.operation_name_lab->set_text(gettext("Reading interrupting..."));
     Glib::RefPtr<Glib::MainContext> mc = Glib::MainContext::get_default();
@@ -363,7 +303,6 @@ SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
   double *progr_cpu = new double(0.0);
   double *progr_cpu_sz = new double(1.0);
   std::mutex *prog_mtx = new std::mutex;
-#ifndef USE_GPUOFFLOADING
   Glib::Dispatcher *progr_disp = new Glib::Dispatcher;
   std::shared_ptr<std::stringstream> strm(new std::stringstream);
   progr_disp->connect([progr_cpu, progr_cpu_sz, prog_mtx, s_struct, strm] {
@@ -373,10 +312,10 @@ SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
     strm->clear();
     strm->str("");
     *strm << std::fixed << std::setprecision(2) << frac * 100.0;
-    s_struct.cpu_progr_val->set_visible(true);
-    s_struct.cpu_progr_bar->set_visible(true);
-    s_struct.cpu_progr_val->set_text(Glib::ustring(strm->str()) + "%");
-    s_struct.cpu_progr_bar->set_fraction(frac);
+    s_struct.progr_val->set_visible(true);
+    s_struct.progr_bar->set_visible(true);
+    s_struct.progr_val->set_text(Glib::ustring(strm->str()) + "%");
+    s_struct.progr_bar->set_fraction(frac);
   });
 
   Glib::Dispatcher *show_res = new Glib::Dispatcher;
@@ -393,8 +332,8 @@ SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
   search_finished->connect([search_finished, progr_cpu, progr_cpu_sz, prog_mtx,
                             s_struct, show_res, progr_disp] {
     std::unique_ptr<Glib::Dispatcher> disp(search_finished);
-    s_struct.cpu_progr_bar->set_visible(false);
-    s_struct.cpu_progr_val->set_visible(false);
+    s_struct.progr_bar->set_visible(false);
+    s_struct.progr_val->set_visible(false);
     s_struct.operation_name_lab->set_text(gettext("Sorting..."));
     delete progr_disp;
     delete progr_cpu;
@@ -407,8 +346,8 @@ SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
     delete prog_mtx;
   });
 
-  bk->auth_cpu_show_progr = [progr_cpu, progr_cpu_sz, prog_mtx, progr_disp](
-                                const double &progr, const double &size) {
+  bk->auth_show_progr = [progr_cpu, progr_cpu_sz, prog_mtx,
+                         progr_disp](const double &progr, const double &size) {
     prog_mtx->lock();
     *progr_cpu = progr;
     *progr_cpu_sz = size;
@@ -417,132 +356,10 @@ SearchProcessGui::showAuthors(Gtk::Window *win, AuthShowStruct &s_struct,
   };
   std::thread thr([this, search_finished] {
     authors = bk->collectionAuthors();
-    bk->auth_cpu_show_progr = nullptr;
+    bk->auth_show_progr = nullptr;
     search_finished->emit();
   });
   thr.detach();
-#else
-  double *progr_gpu = new double(0.0);
-  double *progr_gpu_sz = new double(1.0);
-  std::mutex *progr_gpu_mtx = new std::mutex;
-
-  Glib::Dispatcher *progr_disp_cpu = new Glib::Dispatcher;
-  std::shared_ptr<std::stringstream> strm(new std::stringstream);
-  progr_disp_cpu->connect([progr_cpu, progr_cpu_sz, prog_mtx, s_struct, strm] {
-    prog_mtx->lock();
-    double frac = (*progr_cpu) / (*progr_cpu_sz);
-    prog_mtx->unlock();
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(2) << frac * 100.0;
-    s_struct.cpu_label->set_visible(true);
-    s_struct.cpu_progr_val->set_visible(true);
-    s_struct.cpu_progr_bar->set_visible(true);
-    s_struct.cpu_progr_val->set_text(Glib::ustring(strm->str()) + "%");
-    s_struct.cpu_progr_bar->set_fraction(frac);
-  });
-
-  Glib::Dispatcher *progr_disp_gpu = new Glib::Dispatcher;
-  std::shared_ptr<std::stringstream> strm_gpu(new std::stringstream);
-  progr_disp_gpu->connect(
-      [progr_gpu, progr_gpu_sz, progr_gpu_mtx, s_struct, strm_gpu] {
-        progr_gpu_mtx->lock();
-        double frac = (*progr_gpu) / (*progr_gpu_sz);
-        progr_gpu_mtx->unlock();
-        strm_gpu->clear();
-        strm_gpu->str("");
-        *strm_gpu << std::fixed << std::setprecision(2) << frac * 100.0;
-        s_struct.gpu_label->set_visible(true);
-        s_struct.gpu_progr_val->set_visible(true);
-        s_struct.gpu_progr_bar->set_visible(true);
-        s_struct.gpu_progr_val->set_text(Glib::ustring(strm_gpu->str()) + "%");
-        s_struct.gpu_progr_bar->set_fraction(frac);
-      });
-
-  Glib::Dispatcher *show_res = new Glib::Dispatcher;
-  show_res->connect([show_res, win, this] {
-    std::unique_ptr<Glib::Dispatcher> disp(show_res);
-    if(search_result_authors)
-      {
-        search_result_authors(authors);
-      }
-    win->close();
-  });
-
-  Glib::Dispatcher *result_creating_disp = new Glib::Dispatcher;
-  result_creating_disp->connect([s_struct] {
-    s_struct.operation_name_lab->set_text(gettext("Collecting results..."));
-    s_struct.cpu_label->set_visible(false);
-    s_struct.cpu_progr_val->set_visible(false);
-    s_struct.cpu_progr_bar->set_visible(false);
-    s_struct.gpu_label->set_visible(false);
-    s_struct.gpu_progr_bar->set_visible(false);
-    s_struct.gpu_progr_val->set_visible(false);
-  });
-
-  Glib::Dispatcher *search_finished = new Glib::Dispatcher;
-  search_finished->connect([search_finished, progr_cpu, progr_cpu_sz, prog_mtx,
-                            progr_gpu, progr_gpu_sz, progr_gpu_mtx, s_struct,
-                            show_res, progr_disp_gpu, progr_disp_cpu,
-                            result_creating_disp] {
-    std::unique_ptr<Glib::Dispatcher> disp(search_finished);
-    s_struct.cpu_label->set_visible(false);
-    s_struct.cpu_progr_bar->set_visible(false);
-    s_struct.cpu_progr_val->set_visible(false);
-    s_struct.gpu_label->set_visible(false);
-    s_struct.gpu_progr_bar->set_visible(false);
-    s_struct.gpu_progr_val->set_visible(false);
-    s_struct.operation_name_lab->set_text(gettext("Sorting..."));
-    delete progr_disp_gpu;
-    delete progr_disp_cpu;
-    delete progr_cpu;
-    delete progr_cpu_sz;
-    delete progr_gpu;
-    delete progr_gpu_sz;
-
-    delete result_creating_disp;
-
-    std::thread thr([show_res] {
-      show_res->emit();
-    });
-    thr.detach();
-    delete prog_mtx;
-    delete progr_gpu_mtx;
-  });
-
-  bk->auth_cpu_show_progr
-      = [progr_cpu, progr_cpu_sz, prog_mtx, progr_disp_cpu,
-         result_creating_disp](const double &progr, const double &size) {
-          prog_mtx->lock();
-          *progr_cpu = progr;
-          *progr_cpu_sz = size;
-          prog_mtx->unlock();
-          progr_disp_cpu->emit();
-        };
-
-  bk->auth_gpu_show_progr
-      = [progr_gpu, progr_gpu_sz, progr_gpu_mtx,
-         progr_disp_gpu](const double &progr, const double &size) {
-          progr_gpu_mtx->lock();
-          *progr_gpu = progr;
-          *progr_gpu_sz = size;
-          progr_gpu_mtx->unlock();
-          progr_disp_gpu->emit();
-        };
-
-  bk->auth_collecting_results = [result_creating_disp] {
-    result_creating_disp->emit();
-  };
-
-  std::thread thr([this, search_finished] {
-    authors = bk->collectionAuthors();
-    bk->auth_cpu_show_progr = nullptr;
-    bk->auth_gpu_show_progr = nullptr;
-    bk->auth_collecting_results = nullptr;
-    search_finished->emit();
-  });
-  thr.detach();
-#endif
 }
 
 void

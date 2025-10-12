@@ -54,19 +54,6 @@ public:
    */
   virtual ~BaseKeeper();
 
-#ifdef USE_GPUOFFLOADING
-  // TODO docs
-  /*!
-   * \brief Loads collection database to memory.
-   *
-   * \note This method can throw MLException in case of errors.
-   *
-   * \param col_name collection name.
-   */
-  void
-  loadCollection(const std::string &col_name,
-                 const bool &offload_to_gpu = bool(true));
-#else
   /*!
    * \brief Loads collection database to memory.
    *
@@ -76,7 +63,6 @@ public:
    */
   void
   loadCollection(const std::string &col_name);
-#endif
 
   /*!
    * \brief Searches book in collection.
@@ -86,9 +72,14 @@ public:
    * particular result. Otherwise complete collection book list will be
    * returned.
    *
-   * \param search BookBaseEntry object.
+   * \param search BookBaseEntry object. If author search is needed
+   * bpe.book_author field must be in the following form: "Surname\7First
+   * Name\7Second name".
    * \param coef_coincedence Required coefficent of coincedence for search
    * result. Allowed values are from \a 0.0 to \a 1.0. Default value is \a 0.7.
+   * If value is greater then 1.0, it means "exact match". In that case this
+   * method will return only results with the exact match for all search fields
+   * (empty search parameters are ignored).
    * \return Vector of BookBaseEntry objects, containing search results.
    */
   std::vector<BookBaseEntry>
@@ -163,14 +154,7 @@ public:
    * \a progr is current progress in conventional units. \a sz is total
    * quantity of conventional units to be processed.
    */
-  std::function<void(const double &progr, const double &sz)>
-      auth_cpu_show_progr;
-
-#ifdef USE_GPUOFFLOADING
-  std::function<void(const double &progr, const double &sz)>
-      auth_gpu_show_progr;
-  std::function<void()> auth_collecting_results;
-#endif
+  std::function<void(const double &progr, const double &sz)> auth_show_progr;
 
 private:
   FileParseEntry
@@ -212,82 +196,8 @@ private:
   searchGenre(const BookBaseEntry &search, std::vector<BookBaseEntry> &result,
               const double &coef_coincidence);
 
-#ifdef USE_OPENMP
-#ifdef USE_GPUOFFLOADING
   bool
-  searchSurnameGPU(const BookBaseEntry &search,
-                   std::vector<BookBaseEntry> &result,
-                   const double &coef_coincidence);
-
-  bool
-  searchFirstNameGPU(const BookBaseEntry &search,
-                     std::vector<BookBaseEntry> &result,
-                     const double &coef_coincidence);
-
-  bool
-  searchLastNameGPU(const BookBaseEntry &search,
-                    std::vector<BookBaseEntry> &result,
-                    const double &coef_coincidence);
-
-  void
-  searchBookGPU(const BookBaseEntry &search,
-                std::vector<BookBaseEntry> &result,
-                const double &coef_coincidence);
-
-  void
-  searchSeriesGPU(const BookBaseEntry &search,
-                  std::vector<BookBaseEntry> &result,
-                  const double &coef_coincidence);
-
-  void
-  searchGenreGPU(const BookBaseEntry &search,
-                 std::vector<BookBaseEntry> &result,
-                 const double &coef_coincidence);
-
-  std::vector<std::string>
-  collectionAuthorsGPU();
-
-  void
-  loadBaseToGPUMemory();
-
-  void
-  unloadBaseFromGPUMemory();
-
-#pragma omp declare target
-  bool
-  searchLineFuncGPU(const char *to_search, const size_t &to_search_size,
-                    const char *source, const size_t &source_sz,
-                    const double &coef_coincidence);
-
-#pragma omp end declare target
-
-  struct gpu_base_entry
-  {
-    FileParseEntry *base_entry;
-    BookParseEntry *book_entry;
-    char *book_author = nullptr;
-    size_t book_author_sz = 0;
-    char *book_name = nullptr;
-    size_t book_name_sz = 0;
-    char *book_series = nullptr;
-    size_t book_series_sz = 0;
-    char *book_genre = nullptr;
-    size_t book_genre_sz = 0;
-    char *book_date = nullptr;
-    size_t book_date_sz = 0;
-  };
-
-  struct cpu_base_entry
-  {
-    FileParseEntry *base_entry;
-    BookParseEntry *book_entry;
-  };
-
-  gpu_base_entry *gpu_base = nullptr;
-  size_t gpu_base_sz = 0;
-  std::vector<cpu_base_entry> cpu_base;
-#endif
-#endif
+  exactMatchSearchFunc(const BookBaseEntry &el, const BookBaseEntry &search);
 
   std::shared_ptr<AuxFunc> af;
 

@@ -49,10 +49,6 @@ SettingsWindow::SettingsWindow(const std::shared_ptr<AuxFunc> &af,
   save_path = af->homePath();
   save_path /= std::filesystem::u8path(".config")
                / std::filesystem::u8path("MyLibrary");
-#ifdef USE_GPUOFFLOADING
-  cpu_gpu_balance_auth = af->getCpuGpuBalanceAuthors();
-  cpu_gpu_balance_search = af->getCpuGpuBalanceSearch();
-#endif
   readSettings();
   readSearchSettings();
   createWindow();
@@ -205,92 +201,6 @@ SettingsWindow::searchTab()
     return Glib::ustring(strm->str()) + "%";
   });
   box->append(*coef_coincidence);
-
-#ifdef USE_GPUOFFLOADING
-  Gtk::Separator *sep
-      = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::HORIZONTAL);
-  sep->set_margin(5);
-  sep->set_halign(Gtk::Align::FILL);
-  sep->set_hexpand(true);
-  box->append(*sep);
-
-  lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(5);
-  lab->set_halign(Gtk::Align::START);
-  lab->set_name("windowLabel");
-  lab->set_text(
-      gettext("CPU/GPU operations balans on showing collection authors:"));
-  box->append(*lab);
-
-  Gtk::Scale *cpu_gpu_auth = Gtk::make_managed<Gtk::Scale>();
-  cpu_gpu_auth->set_margin(5);
-  cpu_gpu_auth->set_halign(Gtk::Align::FILL);
-  cpu_gpu_auth->set_name("MLscale");
-  cpu_gpu_auth->set_range(0.0, 100.0);
-  cpu_gpu_auth->set_value(cpu_gpu_balance_auth * 100.0);
-  cpu_gpu_auth->add_mark(25.0, Gtk::PositionType::BOTTOM, "CPU/GPU 25%/75%");
-  cpu_gpu_auth->add_mark(50.0, Gtk::PositionType::BOTTOM, "CPU/GPU 50%/50%");
-  cpu_gpu_auth->add_mark(75.0, Gtk::PositionType::BOTTOM, "CPU/GPU 75%/25%");
-  cpu_gpu_auth->set_draw_value(true);
-  cpu_gpu_auth->set_value_pos(Gtk::PositionType::TOP);
-  cpu_gpu_auth->signal_value_changed().connect([this, cpu_gpu_auth] {
-    cpu_gpu_balance_auth = cpu_gpu_auth->get_value() * 0.01;
-  });
-  cpu_gpu_auth->set_format_value_func([strm](const double &val) {
-    double gpu = 100.0 - val;
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(1) << gpu;
-    Glib::ustring gpu_str(strm->str());
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(1) << val;
-    return Glib::ustring("CPU/GPU ") + Glib::ustring(strm->str()) + "% / "
-           + gpu_str + "%";
-  });
-  box->append(*cpu_gpu_auth);
-
-  sep = Gtk::make_managed<Gtk::Separator>(Gtk::Orientation::HORIZONTAL);
-  sep->set_margin(5);
-  sep->set_halign(Gtk::Align::FILL);
-  sep->set_hexpand(true);
-  box->append(*sep);
-
-  lab = Gtk::make_managed<Gtk::Label>();
-  lab->set_margin(5);
-  lab->set_halign(Gtk::Align::START);
-  lab->set_name("windowLabel");
-  lab->set_text(gettext("CPU/GPU operations balans on books search:"));
-  box->append(*lab);
-
-  Gtk::Scale *cpu_gpu_search = Gtk::make_managed<Gtk::Scale>();
-  cpu_gpu_search->set_margin(5);
-  cpu_gpu_search->set_halign(Gtk::Align::FILL);
-  cpu_gpu_search->set_name("MLscale");
-  cpu_gpu_search->set_range(0.0, 100.0);
-  cpu_gpu_search->set_value(cpu_gpu_balance_search * 100.0);
-  cpu_gpu_search->add_mark(25.0, Gtk::PositionType::BOTTOM, "CPU/GPU 25%/75%");
-  cpu_gpu_search->add_mark(50.0, Gtk::PositionType::BOTTOM, "CPU/GPU 50%/50%");
-  cpu_gpu_search->add_mark(75.0, Gtk::PositionType::BOTTOM, "CPU/GPU 75%/25%");
-  cpu_gpu_search->set_draw_value(true);
-  cpu_gpu_search->set_value_pos(Gtk::PositionType::TOP);
-  cpu_gpu_search->signal_value_changed().connect([this, cpu_gpu_search] {
-    cpu_gpu_balance_search = cpu_gpu_search->get_value() * 0.01;
-  });
-  cpu_gpu_search->set_format_value_func([strm](const double &val) {
-    double gpu = 100.0 - val;
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(1) << gpu;
-    Glib::ustring gpu_str(strm->str());
-    strm->clear();
-    strm->str("");
-    *strm << std::fixed << std::setprecision(1) << val;
-    return Glib::ustring("CPU/GPU ") + Glib::ustring(strm->str()) + "% / "
-           + gpu_str + "%";
-  });
-  box->append(*cpu_gpu_search);
-#endif
 
   return box;
 }
@@ -1576,15 +1486,6 @@ SettingsWindow::applySearchSettings()
       ByteOrder bo(cc);
       bo.get_little(cc);
       f.write(reinterpret_cast<char *>(&cc), sizeof(cc));
-#ifdef USE_GPUOFFLOADING
-      bo = cpu_gpu_balance_auth;
-      bo.get_little(cc);
-      f.write(reinterpret_cast<char *>(&cc), sizeof(cc));
-      bo = cpu_gpu_balance_search;
-      bo.get_little(cc);
-      f.write(reinterpret_cast<char *>(&cc), sizeof(cc));
-      af->setCpuGpuBalance(cpu_gpu_balance_auth, cpu_gpu_balance_search);
-#endif
       f.close();
     }
   if(signal_coef_coincedence)

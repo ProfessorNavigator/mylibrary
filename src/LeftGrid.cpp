@@ -375,13 +375,21 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   grid->attach(*search_grid, 0, row, 1, 1);
   row++;
 
+  exact_search_match = Gtk::make_managed<Gtk::CheckButton>();
+  exact_search_match->set_margin(5);
+  exact_search_match->set_halign(Gtk::Align::START);
+  exact_search_match->set_active(false);
+  exact_search_match->set_label(gettext("Exact search match"));
+  exact_search_match->set_name("windowLabel");
+  search_grid->attach(*exact_search_match, 0, 0, 2, 1);
+
   Gtk::Button *search = Gtk::make_managed<Gtk::Button>();
   search->set_halign(Gtk::Align::CENTER);
   search->set_margin(5);
   search->set_label(gettext("Search"));
   search->set_name("applyBut");
   search->signal_clicked().connect(std::bind(&LeftGrid::searchBook, this));
-  search_grid->attach(*search, 0, 0, 1, 1);
+  search_grid->attach(*search, 0, 1, 1, 1);
 
   main_window->set_default_widget(*search);
 
@@ -392,12 +400,12 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   clear->set_name("cancelBut");
   clear->signal_clicked().connect(
       std::bind(&LeftGrid::clear_all_search_fields, this));
-  search_grid->attach(*clear, 1, 0, 1, 1);
+  search_grid->attach(*clear, 1, 1, 1, 1);
 
   Gtk::Separator *sep = Gtk::make_managed<Gtk::Separator>();
   sep->set_margin(5);
   sep->set_halign(Gtk::Align::FILL);
-  search_grid->attach(*sep, 0, 1, 2, 1);
+  search_grid->attach(*sep, 0, 2, 2, 1);
 
   Gtk::Button *show_files = Gtk::make_managed<Gtk::Button>();
   show_files->set_halign(Gtk::Align::CENTER);
@@ -406,7 +414,7 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   show_files->set_name("applyBut");
   show_files->signal_clicked().connect(
       std::bind(&LeftGrid::showCollectionFiles, this));
-  search_grid->attach(*show_files, 0, 2, 1, 1);
+  search_grid->attach(*show_files, 0, 3, 1, 1);
 
   Gtk::Button *show_authors = Gtk::make_managed<Gtk::Button>();
   show_authors->set_halign(Gtk::Align::CENTER);
@@ -415,7 +423,7 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   show_authors->set_name("applyBut");
   show_authors->signal_clicked().connect(
       std::bind(&LeftGrid::showCollectionAuthors, this));
-  search_grid->attach(*show_authors, 1, 2, 1, 1);
+  search_grid->attach(*show_authors, 1, 3, 1, 1);
 
   Gtk::Button *show_books_with_notes = Gtk::make_managed<Gtk::Button>();
   show_books_with_notes->set_halign(Gtk::Align::CENTER);
@@ -424,7 +432,7 @@ LeftGrid::formSearchSection(Gtk::Grid *grid, int &row)
   show_books_with_notes->set_name("applyBut");
   show_books_with_notes->signal_clicked().connect(
       std::bind(&LeftGrid::showBooksWithNotes, this));
-  search_grid->attach(*show_books_with_notes, 0, 3, 2, 1);
+  search_grid->attach(*show_books_with_notes, 0, 4, 2, 1);
 }
 
 void
@@ -566,15 +574,22 @@ void
 LeftGrid::searchBook()
 {
   BookBaseEntry bbe;
-  bbe.bpe.book_author = std::string(surname->get_text()) + "\n"
-                        + std::string(name->get_text()) + "\n"
+  bbe.bpe.book_author = std::string(surname->get_text()) + "\7"
+                        + std::string(name->get_text()) + "\7"
                         + std::string(sec_name->get_text());
   bbe.bpe.book_name = std::string(book_name->get_text());
   bbe.bpe.book_series = std::string(series->get_text());
   bbe.bpe.book_genre = selected_genre.genre_code;
   SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
   spg->search_result_show = search_result_show;
-  spg->createWindow(bbe, coef_coincedence);
+  if(exact_search_match->get_active())
+    {
+      spg->createWindow(bbe, 2.0);
+    }
+  else
+    {
+      spg->createWindow(bbe, coef_coincedence);
+    }
 }
 
 void
@@ -682,13 +697,29 @@ LeftGrid::reloadCollection(const std::string &col_name)
 }
 
 void
-LeftGrid::searchAuth(const std::string &auth)
+LeftGrid::searchAuth(const std::string &auth, const ShowBooks &variant)
 {
   BookBaseEntry bbe;
-  bbe.bpe.book_author = auth + "\n\n";
-  SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
-  spg->search_result_show = search_result_show;
-  spg->createWindow(bbe, 0.99);
+  bbe.bpe.book_author = auth + "\7\7";
+  switch(variant)
+    {
+    case ShowBooks::MainWindow:
+      {
+        SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+        spg->search_result_show = search_result_show;
+        spg->createWindow(bbe, 2.0);
+        break;
+      }
+    case ShowBooks::SeparateWindow:
+      {
+        SearchProcessGui *spg = new SearchProcessGui(base_keeper, main_window);
+        spg->search_result_show = search_result_show_separate_window;
+        spg->createWindow(bbe, 2.0);
+        break;
+      }
+    default:
+      break;
+    }
 }
 
 void
@@ -780,21 +811,6 @@ LeftGrid::readSearchSettings()
           ByteOrder bo;
           bo.set_little(val);
           coef_coincedence = bo;
-
-#ifdef USE_GPUOFFLOADING
-          if(fsz >= sz * 3)
-            {
-              f.read(reinterpret_cast<char *>(&val), sz);
-              bo.set_little(val);
-              double cpu_gpu_balance_auth = bo;
-
-              f.read(reinterpret_cast<char *>(&val), sz);
-              bo.set_little(val);
-              val = bo;
-
-              af->setCpuGpuBalance(cpu_gpu_balance_auth, val);
-            }
-#endif
         }
       f.close();
     }

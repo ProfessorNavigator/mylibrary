@@ -62,12 +62,8 @@ private:
   struct AuthShowStruct
   {
     Gtk::Label *operation_name_lab = nullptr;
-    Gtk::Label *cpu_label = nullptr;
-    Gtk::Label *gpu_label = nullptr;
-    Gtk::Label *cpu_progr_val = nullptr;
-    Gtk::Label *gpu_progr_val = nullptr;
-    Gtk::ProgressBar *cpu_progr_bar = nullptr;
-    Gtk::ProgressBar *gpu_progr_bar = nullptr;
+    Gtk::Label *progr_val = nullptr;
+    Gtk::ProgressBar *progr_bar = nullptr;
   };
 
   void
