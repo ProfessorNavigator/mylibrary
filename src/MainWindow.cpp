@@ -570,7 +570,7 @@ MainWindow::aboutDialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("4.2");
+  about->set_version("4.2.1");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 

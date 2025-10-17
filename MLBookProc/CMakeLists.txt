@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(MLBookProc VERSION 1.2 LANGUAGES CXX)
+project(MLBookProc VERSION 1.2.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,7 +56,7 @@ else()
     message(STATUS "${PROJECT_NAME} C++ parallel execution features are supported")
     find_package(TBB QUIET)
   else()
-    message(STATUS "${PROJECT_NAME} C++ parallel features are not supported")
+    message(STATUS "${PROJECT_NAME} C++ parallel features are not supported")    
   endif()
 endif()
 
@@ -64,11 +64,17 @@ find_library(ATOMIC atomic)
 find_package(Threads QUIET)
 
 if(NOT USE_OPENMP)
+  include(CTest)
   if(EXEC_TEST)
-    include(CTest)
     add_subdirectory("${PROJECT_SOURCE_DIR}/stdexecution_test")
     add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
+    )
+  else()
+    add_subdirectory("${PROJECT_SOURCE_DIR}/vector_test")
+    try_compile(VECTOR_TEST "${CMAKE_BINARY_DIR}/MLBookProc/vector_test" "${PROJECT_SOURCE_DIR}/vector_test" vector_test)
+    add_test(NAME VectorTest COMMAND vector_test
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/vector_test"
     )
   endif()
 endif()

@@ -1850,8 +1850,9 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
                           break;
                         }
                     }
-                  for(auto it_str = str.rbegin(); it_str != str.rend();)
+                  while(str.size() > 0)
                     {
+                      auto it_str = str.rbegin();
                       if(*it_str == ' ')
                         {
                           str.pop_back();
@@ -1882,8 +1883,9 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
                           break;
                         }
                     }
-                  for(auto it_str = str.rbegin(); it_str != str.rend();)
+                  while(str.size() > 0)
                     {
+                      auto it_str = str.rbegin();
                       if(*it_str >= 0 && *it_str <= ' ')
                         {
                           str.pop_back();
