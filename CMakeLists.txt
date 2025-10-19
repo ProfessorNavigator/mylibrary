@@ -51,6 +51,12 @@ if(GTKMM_VERSION VERSION_LESS "4.10")
     )
 endif()
 
+if(GTKMM_VERSION VERSION_LESS "4.12")
+    target_compile_options(mylibrary
+        PRIVATE -DML_GTK_OLD_STYLES
+    )
+endif()
+
 target_link_libraries(mylibrary
     PRIVATE mlbookproc
     PRIVATE PkgConfig::GTKMM

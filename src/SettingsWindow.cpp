@@ -1457,7 +1457,7 @@ SettingsWindow::applySettings()
 
       Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
       Glib::RefPtr<Gdk::Display> disp = parent_window->get_display();
-#ifndef ML_GTK_OLD
+#ifndef ML_GTK_OLD_STYLES
       css_provider->load_from_string(loadStyles(sp));
       Gtk::StyleProvider::add_provider_for_display(
           disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);

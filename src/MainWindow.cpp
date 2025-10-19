@@ -54,7 +54,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
 
   Glib::RefPtr<Gtk::CssProvider> css_provider = Gtk::CssProvider::create();
   Glib::RefPtr<Gdk::Display> disp = get_display();
-#ifndef ML_GTK_OLD
+#ifndef ML_GTK_OLD_STYLES
   css_provider->load_from_string(loadStyles());
   Gtk::StyleProvider::add_provider_for_display(
       disp, css_provider, GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -570,7 +570,7 @@ MainWindow::aboutDialog()
 
   about->set_logo(icon_t);
 
-  about->set_version("4.2.1");
+  about->set_version("4.2.2");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
