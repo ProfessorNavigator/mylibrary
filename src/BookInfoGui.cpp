@@ -80,7 +80,7 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
     {
       try
         {
-          bie = bi->get_book_info(bbe);
+          bie = bi->getBookInfo(bbe);
         }
       catch(std::exception &e)
         {

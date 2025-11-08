@@ -17,10 +17,10 @@
 #ifndef BOOKINFO_H
 #define BOOKINFO_H
 
+#include <ArchEntry.h>
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookInfoEntry.h>
-#include <ArchEntry.h>
 #include <memory>
 #include <string>
 
@@ -43,12 +43,27 @@ public:
    * \brief Retruns information about book.
    *
    * See also set_dpi().
+   *
+   * \deprecated This method is deprecated and will be removed infuture
+   * releases. Use getBookInfo() instead.
+   *
+   * \param bbe search result, returned by BaseKeeper::searchBook() method.
+   * \return Smart pointer to BookInfoEntry object containing various
+   * information about book.
+   */
+  __attribute__((deprecated)) std::shared_ptr<BookInfoEntry>
+  get_book_info(const BookBaseEntry &bbe);
+
+  /*!
+   * \brief Retruns information about book.
+   *
+   * See also setDpi().
    * \param bbe search result, returned by BaseKeeper::searchBook() method.
    * \return Smart pointer to BookInfoEntry object containing various
    * information about book.
    */
   std::shared_ptr<BookInfoEntry>
-  get_book_info(const BookBaseEntry &bbe);
+  getBookInfo(const BookBaseEntry &bbe);
 
   /*!
    * \brief Sets DPI.
@@ -63,17 +78,32 @@ public:
    * \param v_dpi vertical
    * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
    */
-  void
+  __attribute__((deprecated)) void
   set_dpi(const double &h_dpi, const double &v_dpi);
+
+  /*!
+   * \brief Sets DPI.
+   *
+   * This method should be called before getBookInfo(). It sets <A
+   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A> to display
+   * books cover correctly. Default values are 72.0 and 72.0. It is not
+   * compulsory to call this method, but it is highly recommended.
+   *
+   * \param h_dpi horizontal
+   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
+   * \param v_dpi vertical
+   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
+   */
+  void
+  setDpi(const double &h_dpi, const double &v_dpi);
 
 private:
   std::shared_ptr<BookInfoEntry>
-  get_from_archive(const BookBaseEntry &bbe, const std::string &ext);
+  getFromArchive(const BookBaseEntry &bbe, const std::string &ext);
 
   bool
-  compare_func(const ArchEntry &ent, const bool &encoding,
-               const std::string &conv_nm,
-               const std::filesystem::path &ch_fbd);
+  compareFunc(const ArchEntry &ent, const bool &encoding,
+              const std::string &conv_nm, const std::filesystem::path &ch_fbd);
 
   std::shared_ptr<AuxFunc> af;
   double h_dpi = 72.0;

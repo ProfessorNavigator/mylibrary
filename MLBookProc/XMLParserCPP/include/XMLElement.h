@@ -78,8 +78,9 @@ public:
    */
   enum Type
   {
-    /*! \"Header\" XML elements like \code{.unparsed}<?xml version="1.0"
-       encoding="UTF-8"?>\endcode*/
+    /*! \"Header\" XML elements like
+     * \code{.unparsed}<?xml version="1.0" encoding="UTF-8"?>\endcode
+     */
     ProgramControlElement,
 
     /*! Char data elements \code{.unparsed}<![CDATA[]]>\endcode*/

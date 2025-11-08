@@ -524,7 +524,7 @@ RightGrid::setAnnotationNCover(const Glib::RefPtr<SearchResultModelItem> &item)
   cover_buf = CoverPixBuf();
   try
     {
-      bie = bi->get_book_info(item->bbe);
+      bie = bi->getBookInfo(item->bbe);
     }
   catch(std::exception &e)
     {
@@ -688,7 +688,7 @@ RightGrid::getDpi()
   double y_mm = static_cast<double>(monitor->get_height_mm());
   x_mm = x_mm * 0.039370079;
   y_mm = y_mm * 0.039370079;
-  bi->set_dpi(x_pix / x_mm, y_pix / y_mm);
+  bi->setDpi(x_pix / x_mm, y_pix / y_mm);
 }
 
 void

@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: MyLibrary\n"
-"POT-Creation-Date: 2025-11-08 13:54+0400\n"
-"PO-Revision-Date: 2025-11-08 13:54+0400\n"
+"POT-Creation-Date: 2025-11-08 15:12+0400\n"
+"PO-Revision-Date: 2025-11-08 15:13+0400\n"
 "Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
 "Language-Team: bobilev_yury@mail.ru\n"
 "Language: ru\n"
@@ -373,7 +373,7 @@ msgstr "Показать в натуральную величину"
 msgid "Save cover"
 msgstr "Сохранить обложку"
 
-#: BookMarksGui.cpp:75 MainWindow.cpp:234
+#: BookMarksGui.cpp:75 MainWindow.cpp:247
 msgid "Bookmarks"
 msgstr "Закладки"
 
@@ -509,7 +509,7 @@ msgstr "Сохранить как..."
 msgid "Book successfully saved!"
 msgstr "Книга успешно сохранена!"
 
-#: CreateCollectionGui.cpp:52 MainWindow.cpp:201
+#: CreateCollectionGui.cpp:52 MainWindow.cpp:214
 msgid "Create collection"
 msgstr "Создать коллекцию"
 
@@ -596,7 +596,7 @@ msgstr "Ошибка! Запись о книге не была найдена в
 msgid "Critical error! See system log for details."
 msgstr "Критическая ошибка! См. системный журнал."
 
-#: EmptyCollectionGui.cpp:44 MainWindow.cpp:229
+#: EmptyCollectionGui.cpp:44 MainWindow.cpp:242
 msgid "Create empty collection"
 msgstr "Создать пустую коллекцию"
 
@@ -620,7 +620,7 @@ msgstr "Ошибка! Файл базы не был открыт для запи
 msgid "Collection has been successfully created."
 msgstr "Коллекция успешно создана."
 
-#: ExportCollectionGui.cpp:48 MainWindow.cpp:221
+#: ExportCollectionGui.cpp:48 MainWindow.cpp:234
 msgid "Export collection base"
 msgstr "Экспортировать базу коллекции"
 
@@ -660,7 +660,7 @@ msgstr "База коллекции успешно экспортирована!
 msgid "Cover"
 msgstr "Обложка"
 
-#: ImportCollectionGui.cpp:44 MainWindow.cpp:225
+#: ImportCollectionGui.cpp:44 MainWindow.cpp:238
 msgid "Import collection base"
 msgstr "Импортировать базу коллекции"
 
@@ -757,71 +757,75 @@ msgstr "Показать авторов коллекции"
 msgid "Show books with notes"
 msgstr "Показать книги с заметками"
 
-#: MainWindow.cpp:198
+#: MainWindow.cpp:211
 msgid "Collections"
 msgstr "Коллекции"
 
-#: MainWindow.cpp:205
+#: MainWindow.cpp:218
 msgid "Remove collection"
 msgstr "Удалить коллекцию"
 
-#: MainWindow.cpp:209 RefreshCollectionGui.cpp:60
+#: MainWindow.cpp:222 RefreshCollectionGui.cpp:60
 msgid "Refresh collection"
 msgstr "Обновить коллекцию"
 
-#: MainWindow.cpp:213
+#: MainWindow.cpp:226
 msgid "Add books to collection"
 msgstr "Добавить книги в коллекцию"
 
-#: MainWindow.cpp:217
+#: MainWindow.cpp:230
 msgid "Add directories with books"
 msgstr "Добавить папки с книгами"
 
-#: MainWindow.cpp:237
+#: MainWindow.cpp:250
 msgid "Show bookmarks"
 msgstr "Показать закладки"
 
-#: MainWindow.cpp:243 PluginsKeeper.cpp:51
+#: MainWindow.cpp:256 PluginsKeeper.cpp:51
 msgid "Plugins"
 msgstr "Плагины"
 
-#: MainWindow.cpp:246
+#: MainWindow.cpp:259
 msgid "Show plugins"
 msgstr "Показать плагины"
 
-#: MainWindow.cpp:252 MainWindow.cpp:255 SettingsWindow.cpp:61
+#: MainWindow.cpp:265 MainWindow.cpp:268 SettingsWindow.cpp:61
 msgid "Settings"
 msgstr "Настройки"
 
-#: MainWindow.cpp:259
+#: MainWindow.cpp:272
 msgid "About"
 msgstr "О программе"
 
-#: MainWindow.cpp:262
+#: MainWindow.cpp:275
 msgid "About MyLibrary"
 msgstr "О MyLibrary"
 
-#: MainWindow.cpp:268
+#: MainWindow.cpp:281
 msgid "MLBookProc documentation"
 msgstr "Документация MLBookProc"
 
-#: MainWindow.cpp:275
+#: MainWindow.cpp:288
 msgid "MLPluginIfc documentation"
 msgstr "Документация MLPluginIfc"
 
-#: MainWindow.cpp:604
+#: MainWindow.cpp:295
+msgid "XMLParserCPP documentation"
+msgstr "Документация XMLParserCPP"
+
+#: MainWindow.cpp:634
 msgid "Icon designed by: "
 msgstr "Дизайн иконки: "
 
-#: MainWindow.cpp:662
+#: MainWindow.cpp:692
 msgid "MyLibrary is a home librarian"
 msgstr "MyLibrary - домашний библиотекарь"
 
-#: MainWindow.cpp:663
+#: MainWindow.cpp:693
 msgid "Author Yury Bobylev"
 msgstr "Автор Юрий Бобылев"
 
-#: MainWindow.cpp:665
+#: MainWindow.cpp:695
 msgid "Program uses next libraries:"
 msgstr "В программе используются следующие библиотеки:"
 

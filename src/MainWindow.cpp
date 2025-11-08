@@ -93,6 +93,19 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
       mlpluginifc_docs_path /= std::filesystem::u8path("refman.pdf");
     }
 
+  xmlparsercpp_docs_path = af->share_path();
+  xmlparsercpp_docs_path /= std::filesystem::u8path("doc");
+  xmlparsercpp_docs_path /= std::filesystem::u8path("XMLParserCPP");
+  xmlparsercpp_docs_path /= std::filesystem::u8path("html");
+  xmlparsercpp_docs_path /= std::filesystem::u8path("index.html");
+  if(!std::filesystem::exists(xmlparsercpp_docs_path))
+    {
+      xmlparsercpp_docs_path
+          = xmlparsercpp_docs_path.parent_path().parent_path()
+            / std::filesystem::u8path("pdf");
+      xmlparsercpp_docs_path /= std::filesystem::u8path("refman.pdf");
+    }
+
   Glib::RefPtr<Gtk::Settings> settings = this->get_settings();
   Glib::PropertyProxy<Glib::ustring> them_name
       = settings->property_gtk_theme_name();
@@ -274,6 +287,13 @@ MainWindow::createMainMenu()
     {
       item = Gio::MenuItem::create(gettext("MLPluginIfc documentation"),
                                    "main_menu.mlpluginifc_doc");
+      about_menu->append_item(item);
+    }
+
+  if(std::filesystem::exists(xmlparsercpp_docs_path))
+    {
+      item = Gio::MenuItem::create(gettext("XMLParserCPP documentation"),
+                                   "main_menu.xmlparsercpp_doc");
       about_menu->append_item(item);
     }
 
@@ -494,6 +514,16 @@ MainWindow::createMainMenuActionGroup()
           if(std::filesystem::exists(mlpluginifc_docs_path))
             {
               af->open_book_callback(mlpluginifc_docs_path);
+            }
+        });
+
+  main_menu_actions->add_action(
+      "xmlparsercpp_doc",
+      [this]
+        {
+          if(std::filesystem::exists(xmlparsercpp_docs_path))
+            {
+              af->open_book_callback(xmlparsercpp_docs_path);
             }
         });
 

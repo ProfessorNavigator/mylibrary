@@ -52,6 +52,14 @@ public:
    */
   ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support);
 #else
+  /*!
+   * \brief ARCHParser constructor.
+   * \param af smart pointer to AuxFunc object.
+   * \param rar_support if \a true, ARCHParser will parse rar archives,
+   * otherwise not.
+   * \param processor_num Processor number on wich extra thread should be run
+   * on. If negative, extra thread will not be used.
+   */
   ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support,
              const int &processor_num);
 #endif

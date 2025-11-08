@@ -80,6 +80,7 @@ private:
 
   std::filesystem::path mlbookproc_docs_path;
   std::filesystem::path mlpluginifc_docs_path;
+  std::filesystem::path xmlparsercpp_docs_path;
 
   std::filesystem::path temp_background_path;
 

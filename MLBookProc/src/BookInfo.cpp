@@ -38,6 +38,12 @@ BookInfo::BookInfo(const std::shared_ptr<AuxFunc> &af)
 std::shared_ptr<BookInfoEntry>
 BookInfo::get_book_info(const BookBaseEntry &bbe)
 {
+  return getBookInfo(bbe);
+}
+
+std::shared_ptr<BookInfoEntry>
+BookInfo::getBookInfo(const BookBaseEntry &bbe)
+{
   std::shared_ptr<BookInfoEntry> result;
 
   std::string ext;
@@ -46,8 +52,8 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
       = std::filesystem::symlink_status(bbe.file_path, ec);
   if(ec)
     {
-      throw std::runtime_error("BookInfo::get_book_info error: " + ec.message()
-                               + " " + bbe.file_path.u8string());
+      throw std::runtime_error("BookInfo::getBookInfo error: \"" + ec.message()
+                               + "\" " + bbe.file_path.u8string());
     }
   if(fstat.type() == std::filesystem::file_type::symlink)
     {
@@ -80,7 +86,7 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
             }
           catch(std::exception &er)
             {
-              std::cout << "BookInfo::get_book_info: \"" << er.what() << "\""
+              std::cout << "BookInfo::getBookInfo: \"" << er.what() << "\""
                         << std::endl;
             }
         }
@@ -94,7 +100,7 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
         }
       catch(std::exception &er)
         {
-          std::cout << "BookInfo::get_book_info: \"" << er.what() << "\""
+          std::cout << "BookInfo::getBookInfo: \"" << er.what() << "\""
                     << std::endl;
           result = std::make_shared<BookInfoEntry>();
         }
@@ -133,7 +139,7 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
     }
   else
     {
-      result = get_from_archive(bbe, ext);
+      result = getFromArchive(bbe, ext);
     }
 
   return result;
@@ -142,12 +148,18 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
 void
 BookInfo::set_dpi(const double &h_dpi, const double &v_dpi)
 {
+  setDpi(h_dpi, v_dpi);
+}
+
+void
+BookInfo::setDpi(const double &h_dpi, const double &v_dpi)
+{
   this->h_dpi = h_dpi;
   this->v_dpi = v_dpi;
 }
 
 std::shared_ptr<BookInfoEntry>
-BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
+BookInfo::getFromArchive(const BookBaseEntry &bbe, const std::string &ext)
 {
   std::shared_ptr<BookInfoEntry> result;
   LibArchive la(af);
@@ -229,7 +241,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
                   encoding = true;
                 }
               auto it2 = std::find_if(files.begin(), files.end(),
-                                      std::bind(&BookInfo::compare_func, this,
+                                      std::bind(&BookInfo::compareFunc, this,
                                                 std::placeholders::_1,
                                                 encoding, conv_nm, ch_fbd));
               if(it2 != files.end())
@@ -244,7 +256,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
                 }
 
               BookInfo *bi = new BookInfo(af);
-              result = bi->get_book_info(bber);
+              result = bi->getBookInfo(bber);
               delete bi;
               break;
             }
@@ -261,7 +273,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
           la.fileNamesStream(bbe.file_path, files);
           ch_fbd.replace_extension(".fbd");
           auto it2 = std::find_if(files.begin(), files.end(),
-                                  std::bind(&BookInfo::compare_func, this,
+                                  std::bind(&BookInfo::compareFunc, this,
                                             std::placeholders::_1, false, "",
                                             ch_fbd));
           if(it2 != files.end())
@@ -269,7 +281,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
               bber.file_path = la.unpackByFileNameStream(bbe.file_path, tmp,
                                                          it2->filename);
               BookInfo *bi = new BookInfo(af);
-              result = bi->get_book_info(bber);
+              result = bi->getBookInfo(bber);
               delete bi;
             }
           else
@@ -277,7 +289,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
               bber.file_path
                   = la.unpackByFileNameStream(bbe.file_path, tmp, unpack_path);
               BookInfo *bi = new BookInfo(af);
-              result = bi->get_book_info(bber);
+              result = bi->getBookInfo(bber);
               delete bi;
             }
         }
@@ -286,7 +298,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
           bber.file_path
               = la.unpackByFileNameStream(bbe.file_path, tmp, unpack_path);
           BookInfo *bi = new BookInfo(af);
-          result = bi->get_book_info(bber);
+          result = bi->getBookInfo(bber);
           delete bi;
         }
     }
@@ -294,7 +306,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
 }
 
 bool
-BookInfo::compare_func(const ArchEntry &ent, const bool &encoding,
+BookInfo::compareFunc(const ArchEntry &ent, const bool &encoding,
                        const std::string &conv_nm,
                        const std::filesystem::path &ch_fbd)
 {
