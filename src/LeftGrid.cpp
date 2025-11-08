@@ -18,7 +18,6 @@
 #include <Genre.h>
 #include <GenreGroup.h>
 #include <LeftGrid.h>
-#include <MLException.h>
 #include <SearchProcessGui.h>
 #include <filesystem>
 #include <fstream>
@@ -553,7 +552,7 @@ LeftGrid::loadCollection(const Glib::RefPtr<Gtk::StringObject> &selected)
               {
                 base_keeper->loadCollection(col);
               }
-            catch(MLException &e)
+            catch(std::exception &e)
               {
                 std::cout << e.what() << std::endl;
               }
@@ -674,7 +673,7 @@ LeftGrid::reloadCollection(const std::string &col_name)
                   {
                     base_keeper->loadCollection(col_name);
                   }
-                catch(MLException &e)
+                catch(std::exception &e)
                   {
                     std::cout << "LeftGrid::reloadCollection: " << e.what()
                               << std::endl;

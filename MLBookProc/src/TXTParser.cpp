@@ -77,8 +77,8 @@ TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
 
   if(bie->cover.size() > 0)
     {
-      std::string enc = af->detect_encoding(bie->cover);
-      bie->cover = af->to_utf_8(bie->cover, enc.c_str());
+      std::string enc = af->detectEncoding(bie->cover);
+      bie->cover = af->toUTF8(bie->cover, enc.c_str());
       bie->cover_type = BookInfoEntry::cover_types::text;
     }
 

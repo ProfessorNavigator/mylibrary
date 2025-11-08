@@ -37,7 +37,7 @@
 /*!
  * \brief The CreateCollection class.
  *
- * This class containes methods for collection database creation.
+ * This class contains methods for collection database creation.
  */
 class CreateCollection : public Hasher
 {
@@ -65,7 +65,7 @@ public:
   /*!
    * \brief Starts collection creation.
    *
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    */
   void
   createCollection();
@@ -243,9 +243,13 @@ private:
 
 #ifndef USE_OPENMP
   std::mutex archp_obj_mtx;
-  int run_threads = 0;
+  std::vector<std::tuple<unsigned, bool>> thr_pool;
   std::mutex run_threads_mtx;
   std::condition_variable run_threads_var;
+
+  std::vector<unsigned> reserved;
+  std::mutex reserved_mtx;
+
   std::mutex base_strm_mtx;
 #else
   omp_lock_t archp_obj_mtx;

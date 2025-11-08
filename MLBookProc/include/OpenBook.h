@@ -55,7 +55,7 @@ public:
    *
    * If \b open_callback is not \a nullptr, calls it.
    *
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    * \param bbe BookBaseEntry object.
    * \param copy if set to \a true, copy of book file will be created.
    * \param copy_path absolute path to directory book to be copied to.

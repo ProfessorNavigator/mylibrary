@@ -15,310 +15,292 @@
  */
 
 #include <FB2Parser.h>
-#include <MLException.h>
+#include <XMLAlgorithms.h>
 #include <algorithm>
+#include <iostream>
 
-FB2Parser::FB2Parser(const std::shared_ptr<AuxFunc> &af) : XMLParser(af)
+FB2Parser::FB2Parser(const std::shared_ptr<AuxFunc> &af)
 {
   this->af = af;
+  xml_parser = new XMLParserCPP;
+}
+
+FB2Parser::~FB2Parser()
+{
+  delete xml_parser;
 }
 
 BookParseEntry
 FB2Parser::fb2_parser(const std::string &book)
 {
+  return fb2Parser(book);
+}
+
+BookParseEntry
+FB2Parser::fb2Parser(const std::string &book)
+{
+  BookParseEntry result;
   if(book.empty())
     {
-      throw MLException("FB2Parser::fb2_parser: book is empty");
+      return result;
+    }
+  std::string book_code_page = getBookEncoding(book);
+  if(book_code_page.empty())
+    {
+      book_code_page = af->detectEncoding(book);
+    }
+  std::string l_book = af->toUTF8(book, book_code_page.c_str());
+  try
+    {
+      book_xml = xml_parser->parseDocument(l_book);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "FB2Parser::fb2Parser: \"" << er.what() << "\""
+                << std::endl;
+      std::string find_str1 = "<description>";
+      std::string::size_type n1 = l_book.find(find_str1);
+      if(n1 == std::string::npos)
+        {
+          throw std::runtime_error("FB2Parser::fb2Parser: critical error(1)");
+        }
+      std::string find_str2 = "</description>";
+      std::string::size_type n2
+          = l_book.find(find_str2, n1 + find_str1.size());
+      if(n2 == std::string::npos)
+        {
+          throw std::runtime_error("FB2Parser::fb2Parser: critical error(2)");
+        }
+      std::string description(l_book.begin() + n1,
+                              l_book.begin() + n2 + find_str2.size());
+      book_xml = xml_parser->parseDocument(description);
     }
 
-  BookParseEntry result;
+  result = fb2Description();
 
-  std::string code_page = get_book_encoding(book);
-  std::string loc_book;
-  if(code_page.empty())
+  return result;
+}
+
+std::string
+FB2Parser::fb2Author(const std::vector<XMLElement *> &author)
+{
+  std::string result;
+  std::vector<XMLElement *> res;
+  std::vector<XMLElement *> res2;
+  std::string l_result;
+  for(size_t i = 0; i < author.size(); i++)
     {
-      code_page = af->detect_encoding(book);
-    }
-  loc_book = af->to_utf_8(book, code_page.c_str());
+      l_result.clear();
 
-  result = fb2_description(loc_book);
+      res.clear();
+      res2.clear();
+      XMLAlgorithms::searchElement(author[i]->elements, "last-name", res);
+      XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+      if(res2.size() > 0)
+        {
+          l_result = res2[0]->content;
+        }
 
-  if(result.book_name.empty())
-    {
-      loc_book = book;
-      loc_book.erase(
-          std::remove_if(loc_book.begin(), loc_book.end(), [](char &el) {
-            switch(el)
-              {
-              case 0 ... 8:
-              case 10 ... 31:
-                return true;
-              default:
-                return false;
-              }
-          }));
-      code_page = af->detect_encoding(loc_book);
-      loc_book = af->to_utf_8(book, code_page.c_str());
-      result = fb2_description(loc_book);
+      res.clear();
+      res2.clear();
+      XMLAlgorithms::searchElement(author[i]->elements, "first-name", res);
+      XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+      if(res2.size() > 0)
+        {
+          if(!l_result.empty())
+            {
+              l_result += " ";
+            }
+          l_result += res2[0]->content;
+        }
+
+      res.clear();
+      res2.clear();
+      XMLAlgorithms::searchElement(author[i]->elements, "middle-name", res);
+      XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+      if(res2.size() > 0)
+        {
+          if(!l_result.empty())
+            {
+              l_result += " ";
+            }
+          l_result += res2[0]->content;
+        }
+
+      res.clear();
+      res2.clear();
+      XMLAlgorithms::searchElement(author[i]->elements, "nickname", res);
+      XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+      if(res2.size() > 0)
+        {
+          if(!l_result.empty())
+            {
+              l_result += " aka ";
+            }
+          l_result += res2[0]->content;
+        }
+      normalizeString(l_result);
+      if(!result.empty() && !l_result.empty())
+        {
+          result += ", ";
+        }
+      result += l_result;
     }
 
   return result;
 }
 
 std::string
-FB2Parser::fb2_author(const std::string &book,
-                      const std::vector<XMLTag> &author)
+FB2Parser::fb2Series(const std::vector<XMLElement *> &sequence)
 {
-  std::string elstr;
-  for(auto it = author.begin(); it != author.end(); it++)
+  std::string result;
+  std::string l_result;
+
+  for(size_t i = 0; i < sequence.size(); i++)
     {
-      std::string auth;
-      auto it_t = std::find_if(it->tag_list.begin(), it->tag_list.end(),
-                               [](const XMLTag &el) {
-                                 return el.tag_id == "last-name";
+      l_result.clear();
+      auto it = std::find_if(sequence[i]->element_attributes.begin(),
+                             sequence[i]->element_attributes.end(),
+                             [](const XMLElementAttribute &el)
+                               {
+                                 return el.attribute_id == "name";
                                });
-      if(it_t != it->tag_list.end())
+      if(it != sequence[i]->element_attributes.end())
         {
-          if(it_t->hasContent())
-            {
-              std::copy(book.begin() + it_t->content_start,
-                        book.begin() + it_t->content_end,
-                        std::back_inserter(auth));
-            }
+          l_result += it->attribute_value;
         }
-      it_t = std::find_if(it->tag_list.begin(), it->tag_list.end(),
-                          [](const XMLTag &el) {
-                            return el.tag_id == "first-name";
-                          });
-      if(it_t != it->tag_list.end())
+
+      if(!l_result.empty())
         {
-          if(it_t->hasContent())
+          it = std::find_if(sequence[i]->element_attributes.begin(),
+                            sequence[i]->element_attributes.end(),
+                            [](const XMLElementAttribute &el)
+                              {
+                                return el.attribute_id == "number";
+                              });
+          if(it != sequence[i]->element_attributes.end())
             {
-              if(!auth.empty())
-                {
-                  auth += " ";
-                }
-              std::copy(book.begin() + it_t->content_start,
-                        book.begin() + it_t->content_end,
-                        std::back_inserter(auth));
+              l_result += " ";
+              l_result += it->attribute_value;
             }
         }
 
-      it_t = std::find_if(it->tag_list.begin(), it->tag_list.end(),
-                          [](const XMLTag &el) {
-                            return el.tag_id == "middle-name";
-                          });
-      if(it_t != it->tag_list.end())
-        {
-          if(it_t->hasContent())
-            {
-              if(!auth.empty())
-                {
-                  auth += " ";
-                }
-              std::copy(book.begin() + it_t->content_start,
-                        book.begin() + it_t->content_end,
-                        std::back_inserter(auth));
-            }
-        }
+      normalizeString(l_result);
 
-      it_t = std::find_if(it->tag_list.begin(), it->tag_list.end(),
-                          [](const XMLTag &el) {
-                            return el.tag_id == "nickname";
-                          });
-      if(it_t != it->tag_list.end())
+      if(!result.empty() && !l_result.empty())
         {
-          if(it_t->hasContent())
-            {
-              if(!auth.empty())
-                {
-                  auth += " aka ";
-                }
-              std::copy(book.begin() + it_t->content_start,
-                        book.begin() + it_t->content_end,
-                        std::back_inserter(auth));
-            }
+          result += ", ";
         }
-
-      if(elstr.empty())
-        {
-          elstr = auth;
-        }
-      else
-        {
-          elstr += ", " + auth;
-        }
+      result += l_result;
     }
-
-  htmlSymbolsReplacement(elstr);
-
-  std::string::size_type n = 0;
-  std::string find_str = "  ";
-  for(;;)
-    {
-      n = elstr.find(find_str, n);
-      if(n != std::string::npos)
-        {
-          elstr.erase(elstr.begin() + n);
-        }
-      else
-        {
-          break;
-        }
-    }
-  bool stop = false;
-
-  while(elstr.size() > 0)
-    {
-      switch(*elstr.rbegin())
-        {
-        case 0 ... 32:
-          {
-            elstr.pop_back();
-            break;
-          }
-        default:
-          {
-            stop = true;
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-
-  stop = false;
-  while(elstr.size() > 0)
-    {
-      switch(*elstr.begin())
-        {
-        case 0 ... 32:
-          {
-            elstr.erase(elstr.begin());
-            break;
-          }
-        default:
-          {
-            stop = true;
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-
-  return elstr;
-}
-
-std::string
-FB2Parser::fb2_series(const std::vector<XMLTag> &sequence)
-{
-  std::string result;
-
-  for(auto it = sequence.begin(); it != sequence.end(); it++)
-    {
-      std::string seq = it->element;
-      std::string name = get_element_attribute(seq, "name");
-      std::string number = get_element_attribute(seq, "number");
-      if(!number.empty())
-        {
-          name = name + " " + number;
-        }
-      if(result.size() > 0)
-        {
-          result = result + ", " + name;
-        }
-      else
-        {
-          result = name;
-        }
-    }
-
-  htmlSymbolsReplacement(result);
 
   return result;
 }
 
 std::string
-FB2Parser::fb2_genres(const std::string &book,
-                      const std::vector<XMLTag> &genres)
+FB2Parser::fb2Genres(const std::vector<XMLElement *> &genres)
 {
   std::string result;
-
-  for(auto it = genres.begin(); it != genres.end(); it++)
+  std::string l_result;
+  std::vector<XMLElement *> res;
+  for(size_t i = 0; i < genres.size(); i++)
     {
-      if(it->hasContent())
+      l_result.clear();
+      res.clear();
+      XMLAlgorithms::searchElement(genres[i]->elements,
+                                   XMLElement::ElementContent, res);
+      if(res.size() > 0)
         {
-          if(!result.empty())
-            {
-              result += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result));
+          l_result += res[0]->content;
         }
+
+      normalizeString(l_result);
+
+      if(!result.empty() && !l_result.empty())
+        {
+          result += ", ";
+        }
+      result += l_result;
     }
 
-  htmlSymbolsReplacement(result);
+  return result;
+}
+
+std::string
+FB2Parser::fb2Date(const std::vector<XMLElement *> &date)
+{
+  std::string result;
+  std::string l_result;
+  std::vector<XMLElement *> res;
+  for(size_t i = 0; i < date.size(); i++)
+    {
+      l_result.clear();
+      res.clear();
+      XMLAlgorithms::searchElement(date[i]->elements,
+                                   XMLElement::ElementContent, res);
+      if(res.size() > 0)
+        {
+          l_result += res[0]->content;
+        }
+
+      normalizeString(l_result);
+
+      if(!result.empty() && !l_result.empty())
+        {
+          result += ", ";
+        }
+      result += l_result;
+    }
 
   return result;
 }
 
 BookParseEntry
-FB2Parser::fb2_description(const std::string &book)
+FB2Parser::fb2Description()
 {
   BookParseEntry result;
-  std::vector<XMLTag> tgv = get_tag(book, "title-info");
 
-  std::vector<XMLTag> res;
-  searchTag(tgv, "author", res);
-  result.book_author = fb2_author(book, res);
+  XMLAlgorithms::searchElement(book_xml, "title-info", title_info);
+
+  std::vector<XMLElement *> res;
+  XMLAlgorithms::searchElement(title_info, "author", res);
+  result.book_author = fb2Author(res);
 
   res.clear();
-  searchTag(tgv, "book-title", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(title_info, "book-title", res);
+  std::string l_result;
+  std::vector<XMLElement *> res2;
+  for(size_t i = 0; i < res.size(); i++)
     {
-      if(it->hasContent())
+      l_result.clear();
+      res2.clear();
+      XMLAlgorithms::searchElement(res[i]->elements,
+                                   XMLElement::ElementContent, res2);
+      if(res2.size() > 0)
         {
-          if(!result.book_name.empty())
-            {
-              result.book_name += ". ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.book_name));
+          l_result = res2[0]->content;
         }
-    }
-  htmlSymbolsReplacement(result.book_name);
 
-  res.clear();
-  searchTag(tgv, "sequence", res);
-  result.book_series = fb2_series(res);
+      normalizeString(l_result);
 
-  res.clear();
-  searchTag(tgv, "genre", res);
-  result.book_genre = fb2_genres(book, res);
-
-  res.clear();
-  searchTag(tgv, "date", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
+      if(!result.book_name.empty() && !l_result.empty())
         {
-          if(!result.book_date.empty())
-            {
-              result.book_date += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.book_date));
+          result.book_name += ". ";
         }
+      result.book_name += l_result;
     }
-  htmlSymbolsReplacement(result.book_date);
+
+  res.clear();
+  XMLAlgorithms::searchElement(title_info, "sequence", res);
+  result.book_series = fb2Series(res);
+
+  res.clear();
+  XMLAlgorithms::searchElement(title_info, "genre", res);
+  result.book_genre = fb2Genres(res);
+
+  res.clear();
+  XMLAlgorithms::searchElement(title_info, "date", res);
+  result.book_date = fb2Date(res);
 
   return result;
 }
@@ -326,493 +308,569 @@ FB2Parser::fb2_description(const std::string &book)
 std::shared_ptr<BookInfoEntry>
 FB2Parser::fb2_book_info(const std::string &book)
 {
+  return fb2BookInfo(book);
+}
+
+std::shared_ptr<BookInfoEntry>
+FB2Parser::fb2BookInfo(const std::string &book)
+{
   std::shared_ptr<BookInfoEntry> result = std::make_shared<BookInfoEntry>();
 
-  std::string code_page = get_book_encoding(book);
-  std::string loc_book;
-  if(code_page.empty())
+  if(book.empty())
     {
-      code_page = af->detect_encoding(book);
+      return result;
     }
-  loc_book = af->to_utf_8(book, code_page.c_str());
+  std::string book_code_page = getBookEncoding(book);
 
-  fb2_annotation_decode(loc_book, result->annotation);
-  result->cover_type = fb2_cover(loc_book, result->cover);
-  fb2_extra_info(loc_book, *result);
+  if(book_code_page.empty())
+    {
+      book_code_page = af->detectEncoding(book);
+    }
+  std::string l_book = af->toUTF8(book, book_code_page.c_str());
+  try
+    {
+      book_xml = xml_parser->parseDocument(l_book);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "FB2Parser::fb2BookInfo: \"" << er.what() << "\""
+                << std::endl;
+      std::string find_str1 = "<description>";
+      std::string::size_type n1 = l_book.find(find_str1);
+      if(n1 == std::string::npos)
+        {
+          throw std::runtime_error(
+              "FB2Parser::fb2BookInfo: critical error(1)");
+        }
+      std::string find_str2 = "</description>";
+      std::string::size_type n2
+          = l_book.find(find_str2, n1 + find_str1.size());
+      if(n2 == std::string::npos)
+        {
+          throw std::runtime_error(
+              "FB2Parser::fb2BookInfo: critical error(2)");
+        }
+      std::string description(l_book.begin() + n1,
+                              l_book.begin() + n2 + find_str2.size());
+      book_xml = xml_parser->parseDocument(description);
+    }
+
+  fb2AnnotationDecode(result->annotation);
+  result->cover_type = fb2Cover(result->cover);
+
+  fb2ExtraInfo(*result);
 
   return result;
 }
 
 void
-FB2Parser::fb2_annotation_decode(const std::string &book, std::string &result)
+FB2Parser::fb2AnnotationDecode(std::string &result)
 {
-  std::vector<XMLTag> tgv = get_tag(book, "annotation");
-  for(auto it = tgv.begin(); it != tgv.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          if(!result.empty())
-            {
-              result += "\n\n";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result));
-        }
-    }
-  htmlSymbolsReplacement(result);
+  std::vector<XMLElement *> annotation;
+  XMLAlgorithms::searchElement(book_xml, "annotation", annotation);
+  XMLAlgorithms::writeXML(annotation, result);
 }
 
 BookInfoEntry::cover_types
-FB2Parser::fb2_cover(const std::string &book, std::string &cover)
+FB2Parser::fb2Cover(std::string &cover)
 {
   BookInfoEntry::cover_types result = BookInfoEntry::cover_types::error;
-  std::vector<XMLTag> tgv = get_tag(book, "title-info");
-  if(tgv.size() > 0)
-    {
-      auto it = std::find_if(tgv.begin()->tag_list.begin(),
-                             tgv.begin()->tag_list.end(), [](XMLTag &el) {
-                               return el.tag_id == "coverpage";
-                             });
-      if(it != tgv.begin()->tag_list.end())
-        {
-          if(it->tag_list.size() > 0)
-            {
-              std::string attr
-                  = get_element_attribute(it->tag_list[0].element, "l:href");
-              if(attr.empty())
-                {
-                  attr
-                      = get_element_attribute(it->tag_list[0].element, "href");
-                }
-              attr.erase(std::remove_if(attr.begin(), attr.end(),
-                                        [](char &el) {
-                                          return el == '#';
-                                        }),
-                         attr.end());
-              tgv = get_tag(book, "binary");
-              it = std::find_if(
-                  tgv.begin(), tgv.end(), [attr, this](XMLTag &el) {
-                    return attr == get_element_attribute(el.element, "id");
-                  });
-              if(it != tgv.end())
-                {
-                  if(it->hasContent())
-                    {
-                      std::copy(book.begin() + it->content_start,
-                                book.begin() + it->content_end,
-                                std::back_inserter(cover));
-                      result = BookInfoEntry::cover_types::base64;
-                    }
-                }
-            }
-        }
-    }
+  std::vector<XMLElement *> coverpage;
+  XMLAlgorithms::searchElement(book_xml, "coverpage", coverpage);
+  std::vector<XMLElement *> image;
+  XMLAlgorithms::searchElement(coverpage, "image", "l:href", image);
+  fb2CoverGetImage(image, cover, result);
   if(cover.empty())
     {
-      tgv = get_tag(book, "src-title-info");
-      if(tgv.size() > 0)
+      image.clear();
+      coverpage.clear();
+      XMLAlgorithms::searchElement(book_xml, "body", coverpage);
+      XMLAlgorithms::searchElement(coverpage, "p", image);
+      if(image.size() > 0)
         {
-          auto it = std::find_if(tgv.begin()->tag_list.begin(),
-                                 tgv.begin()->tag_list.end(), [](XMLTag &el) {
-                                   return el.tag_id == "coverpage";
-                                 });
-          if(it != tgv.begin()->tag_list.end())
+          if(image.size() > 50)
             {
-              if(it->tag_list.size() > 0)
-                {
-                  std::string attr = get_element_attribute(
-                      it->tag_list[0].element, "l:href");
-                  if(attr.empty())
-                    {
-                      attr = get_element_attribute(it->tag_list[0].element,
-                                                   "href");
-                    }
-                  attr.erase(std::remove_if(attr.begin(), attr.end(),
-                                            [](char &el) {
-                                              return el == '#';
-                                            }),
-                             attr.end());
-                  tgv = get_tag(book, "binary");
-                  it = std::find_if(
-                      tgv.begin(), tgv.end(), [attr, this](XMLTag &el) {
-                        return attr == get_element_attribute(el.element, "id");
-                      });
-                  if(it != tgv.end())
-                    {
-                      if(it->hasContent())
-                        {
-                          std::copy(book.begin() + it->content_start,
-                                    book.begin() + it->content_end,
-                                    std::back_inserter(cover));
-                          result = BookInfoEntry::cover_types::base64;
-                        }
-                    }
-                }
+              image.resize(50);
             }
+          XMLAlgorithms::writeXML(image, cover);
         }
-    }
-  if(cover.empty())
-    {
-      tgv = get_tag(book, "body");
-      if(tgv.size() > 0)
+      else if(coverpage.size() > 0)
         {
-          XMLTag tag = *tgv.begin();
-          if(tag.hasContent())
-            {
-              cover = std::string(book.begin() + tag.content_start,
-                                  book.begin() + tag.content_end);
-              result = BookInfoEntry::cover_types::text;
-              htmlSymbolsReplacement(cover);
-            }
+          XMLAlgorithms::writeXML(coverpage, cover);
+        }
+      if(!cover.empty())
+        {
+          result = BookInfoEntry::cover_types::text;
         }
     }
   return result;
 }
 
 void
-FB2Parser::fb2_extra_info(const std::string &book, BookInfoEntry &result)
+FB2Parser::fb2CoverGetImage(const std::vector<XMLElement *> &image,
+                            std::string &cover,
+                            BookInfoEntry::cover_types &result)
 {
-  std::vector<XMLTag> tgv;
-  tgv = get_tag(book, "title-info");
-  if(tgv.size() > 0)
+  if(image.size() > 0)
     {
-      std::vector<XMLTag> res;
-      searchTag(tgv, "lang", res);
-      for(auto it = res.begin(); it != res.end(); it++)
+      auto it_attr = std::find_if(image[0]->element_attributes.begin(),
+                                  image[0]->element_attributes.end(),
+                                  [](const XMLElementAttribute &el)
+                                    {
+                                      return el.attribute_id == "l:href";
+                                    });
+      if(it_attr != image[0]->element_attributes.end())
         {
-          if(it->hasContent())
+          std::string cover_name = it_attr->attribute_value;
+          for(auto it = cover_name.begin(); it != cover_name.end();)
             {
-              if(!result.language.empty())
+              char ch = *it;
+              if(ch >= 0 && ch <= 32)
                 {
-                  result.language += ", ";
+                  cover_name.erase(it);
                 }
-              std::copy(book.begin() + it->content_start,
-                        book.begin() + it->content_end,
-                        std::back_inserter(result.language));
+              else if(ch == '#')
+                {
+                  cover_name.erase(it);
+                }
+              else
+                {
+                  break;
+                }
+            }
+          std::vector<XMLElement *> binary;
+          XMLAlgorithms::searchElement(book_xml, "binary", "id", cover_name,
+                                       binary);
+          if(binary.size() > 0)
+            {
+              for(auto it = binary[0]->elements.begin();
+                  it != binary[0]->elements.end(); it++)
+                {
+                  if(it->element_type == XMLElement::ElementContent)
+                    {
+                      cover += it->content;
+                    }
+                }
+              if(!cover.empty())
+                {
+                  result = BookInfoEntry::cover_types::base64;
+                }
             }
         }
-      htmlSymbolsReplacement(result.language);
-
-      res.clear();
-      searchTag(tgv, "src-lang", res);
-      for(auto it = res.begin(); it != res.end(); it++)
-        {
-          if(it->hasContent())
-            {
-              if(!result.src_language.empty())
-                {
-                  result.src_language += ", ";
-                }
-              std::copy(book.begin() + it->content_start,
-                        book.begin() + it->content_end,
-                        std::back_inserter(result.src_language));
-            }
-        }
-      htmlSymbolsReplacement(result.src_language);
-
-      res.clear();
-      searchTag(tgv, "translator", res);
-      result.translator = fb2_author(book, res);
-
-      fb2_publisher_info(book, result);
-      fb2_electro_doc_info(book, result);
     }
 }
 
 void
-FB2Parser::fb2_publisher_info(const std::string &book, BookInfoEntry &result)
+FB2Parser::fb2ExtraInfo(BookInfoEntry &result)
 {
-  std::vector<XMLTag> tgv = get_tag(book, "publish-info");
+  std::vector<XMLElement *> res;
+  std::vector<XMLElement *> res2;
 
-  std::vector<XMLTag> res;
-  searchTag(tgv, "book-name", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          result.paper->available = true;
-          if(!result.paper->book_name.empty())
-            {
-              result.paper->book_name += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.paper->book_name));
-        }
-    }
-  htmlSymbolsReplacement(result.paper->book_name);
+  XMLAlgorithms::searchElement(book_xml, "title-info", title_info);
+  XMLAlgorithms::searchElement(title_info, "lang", res);
+  XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+  fb2Language(res2, result.language);
 
   res.clear();
-  searchTag(tgv, "publisher", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          result.paper->available = true;
-          if(!result.paper->publisher.empty())
-            {
-              result.paper->publisher += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.paper->publisher));
-        }
-    }
-  htmlSymbolsReplacement(result.paper->publisher);
+  res2.clear();
+  XMLAlgorithms::searchElement(title_info, "src-lang", res);
+  XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
+  fb2Language(res2, result.src_language);
 
   res.clear();
-  searchTag(tgv, "city", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          result.paper->available = true;
-          if(!result.paper->city.empty())
-            {
-              result.paper->city += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.paper->city));
-        }
-    }
-  htmlSymbolsReplacement(result.paper->city);
+  XMLAlgorithms::searchElement(title_info, "translator", res);
+  result.translator = fb2Author(res);
 
-  res.clear();
-  searchTag(tgv, "year", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          result.paper->available = true;
-          if(!result.paper->year.empty())
-            {
-              result.paper->year += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.paper->year));
-        }
-    }
-  htmlSymbolsReplacement(result.paper->year);
+  fb2PublisherInfo(result);
 
-  res.clear();
-  searchTag(tgv, "isbn", res);
-  for(auto it = res.begin(); it != res.end(); it++)
-    {
-      if(it->hasContent())
-        {
-          result.paper->available = true;
-          if(!result.paper->isbn.empty())
-            {
-              result.paper->isbn += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.paper->isbn));
-        }
-    }
-  htmlSymbolsReplacement(result.paper->isbn);
+  fb2ElectroDocInfo(result);
 }
 
 void
-FB2Parser::fb2_electro_doc_info(const std::string &book, BookInfoEntry &result)
+FB2Parser::fb2Language(const std::vector<XMLElement *> &lang,
+                       std::string &result)
 {
-  std::vector<XMLTag> tgv = get_tag(book, "document-info");
+  for(size_t i = 0; i < lang.size(); i++)
+    {
+      if(!result.empty())
+        {
+          result += ", ";
+        }
+      result += lang[i]->content;
+    }
+}
 
-  std::vector<XMLTag> res;
-  searchTag(tgv, "author", res);
-  if(res.size() > 0)
+void
+FB2Parser::fb2PublisherInfo(BookInfoEntry &result)
+{
+  std::vector<XMLElement *> publish_info;
+  std::vector<XMLElement *> res;
+  XMLAlgorithms::searchElement(book_xml, "publish-info", publish_info);
+
+  XMLAlgorithms::searchElement(publish_info, "book-name", res);
+  fb2PublisherInfoString(res, result.paper->book_name);
+  if(!result.paper->book_name.empty())
+    {
+      result.paper->available = true;
+    }
+
+  res.clear();
+  XMLAlgorithms::searchElement(publish_info, "publisher", res);
+  fb2PublisherInfoString(res, result.paper->publisher);
+  if(!result.paper->publisher.empty())
+    {
+      result.paper->available = true;
+    }
+
+  res.clear();
+  XMLAlgorithms::searchElement(publish_info, "city", res);
+  fb2PublisherInfoString(res, result.paper->city);
+  if(!result.paper->city.empty())
+    {
+      result.paper->available = true;
+    }
+
+  res.clear();
+  XMLAlgorithms::searchElement(publish_info, "year", res);
+  fb2PublisherInfoString(res, result.paper->year);
+  if(!result.paper->year.empty())
+    {
+      result.paper->available = true;
+    }
+
+  res.clear();
+  XMLAlgorithms::searchElement(publish_info, "isbn", res);
+  fb2PublisherInfoString(res, result.paper->isbn);
+  if(!result.paper->isbn.empty())
+    {
+      result.paper->available = true;
+    }
+}
+
+void
+FB2Parser::fb2PublisherInfoString(const std::vector<XMLElement *> &source,
+                                  std::string &result)
+{
+  for(size_t i = 0; i < source.size(); i++)
+    {
+      if(source[i]->element_type == XMLElement::ElementContent)
+        {
+          if(!result.empty())
+            {
+              result += ", ";
+            }
+          result += source[i]->content;
+        }
+      fb2PublisherInfoString(source[i]->elements, result);
+    }
+}
+
+void
+FB2Parser::fb2PublisherInfoString(const std::vector<XMLElement> &source,
+                                  std::string &result)
+{
+  for(auto it = source.begin(); it != source.end(); it++)
+    {
+      if(it->element_type == XMLElement::ElementContent)
+        {
+          if(!result.empty())
+            {
+              result += ", ";
+            }
+          result += it->content;
+        }
+      fb2PublisherInfoString(it->elements, result);
+    }
+}
+
+void
+FB2Parser::fb2ElectroDocInfo(BookInfoEntry &result)
+{
+  std::vector<XMLElement *> document_info;
+  XMLAlgorithms::searchElement(book_xml, "document-info", document_info);
+
+  std::vector<XMLElement *> res;
+  XMLAlgorithms::searchElement(document_info, "author", res);
+  result.electro->author = fb2Author(res);
+  if(!result.electro->author.empty())
     {
       result.electro->available = true;
-      result.electro->author = fb2_author(book, res);
     }
 
   res.clear();
-  searchTag(tgv, "program-used", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "program-used", res);
+  fb2PublisherInfoString(res, result.electro->program_used);
+  if(!result.electro->program_used.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->program_used.empty())
-            {
-              result.electro->program_used += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->program_used));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->program_used);
 
   res.clear();
-  searchTag(tgv, "date", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "date", res);
+  fb2PublisherInfoString(res, result.electro->date);
+  if(!result.electro->date.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->date.empty())
-            {
-              result.electro->date += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->date));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->date);
 
   res.clear();
-  searchTag(tgv, "src-url", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "src-url", res);
+  fb2PublisherInfoString(res, result.electro->src_url);
+  if(!result.electro->src_url.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->src_url.empty())
-            {
-              result.electro->src_url += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->src_url));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->src_url);
 
   res.clear();
-  searchTag(tgv, "src-ocr", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "src-ocr", res);
+  fb2PublisherInfoString(res, result.electro->src_ocr);
+  if(!result.electro->src_ocr.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->src_ocr.empty())
-            {
-              result.electro->src_ocr += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->src_ocr));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->src_ocr);
 
   res.clear();
-  searchTag(tgv, "id", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "id", res);
+  fb2PublisherInfoString(res, result.electro->id);
+  if(!result.electro->id.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->id.empty())
-            {
-              result.electro->id += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->id));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->id);
 
   res.clear();
-  searchTag(tgv, "version", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "version", res);
+  fb2PublisherInfoString(res, result.electro->version);
+  if(!result.electro->version.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->version.empty())
-            {
-              result.electro->version += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->version));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->version);
 
   res.clear();
-  searchTag(tgv, "history", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "history", res);
+  XMLAlgorithms::writeXML(res, result.electro->history);
+  if(!result.electro->history.empty())
     {
-      if(it->hasContent())
-        {
-          result.electro->available = true;
-          if(!result.electro->history.empty())
-            {
-              result.electro->history += ", ";
-            }
-          std::copy(book.begin() + it->content_start,
-                    book.begin() + it->content_end,
-                    std::back_inserter(result.electro->history));
-        }
+      result.electro->available = true;
     }
-  htmlSymbolsReplacement(result.electro->history);
 
   res.clear();
-  searchTag(tgv, "publisher", res);
-  for(auto it = res.begin(); it != res.end(); it++)
+  XMLAlgorithms::searchElement(document_info, "publisher", res);
+  std::vector<XMLElement *> res2;
+  XMLAlgorithms::searchElement(res, "author", res2);
+  result.electro->publisher = fb2Author(res2);
+  if(!result.electro->publisher.empty())
     {
-      if(it->tag_list.size() > 0)
+      result.electro->available = true;
+    }
+}
+
+std::string
+FB2Parser::getBookEncoding()
+{
+  std::string result;
+  std::vector<XMLElement *> search_res;
+  XMLAlgorithms::searchElement(book_xml, "xml", "encoding", search_res);
+  if(search_res.size() > 0)
+    {
+      auto it = std::find_if(search_res[0]->element_attributes.begin(),
+                             search_res[0]->element_attributes.end(),
+                             [](const XMLElementAttribute &el)
+                               {
+                                 return el.attribute_id == "encoding";
+                               });
+      if(it != search_res[0]->element_attributes.end())
         {
-          fb2_elctor_publisher(book, it->tag_list, result);
-        }
-      else
-        {
-          if(it->hasContent())
-            {
-              result.electro->available = true;
-              if(!result.electro->publisher.empty())
-                {
-                  result.electro->publisher += ", ";
-                }
-              std::copy(book.begin() + it->content_start,
-                        book.begin() + it->content_end,
-                        std::back_inserter(result.electro->publisher));
-            }
+          result = it->attribute_value;
         }
     }
-  htmlSymbolsReplacement(result.electro->publisher);
+  return result;
+}
+
+std::string
+FB2Parser::getBookEncoding(const std::string &book)
+{
+  std::string result;
+
+  std::string find_str1("<?xml");
+  std::string::size_type n1 = book.find(find_str1);
+  if(n1 == std::string::npos)
+    {
+      return result;
+    }
+  std::string find_str2("?>");
+  std::string::size_type n2 = book.find(find_str2, n1 + find_str1.size());
+  if(n2 == std::string::npos)
+    {
+      return result;
+    }
+
+  bool s_quot = false;
+  bool d_quot = false;
+  bool stop = false;
+  bool attr_name_finished = false;
+  std::string attribute_name;
+  for(size_t i = n1 + find_str1.size(); i < n2; i++)
+    {
+      switch(book[i])
+        {
+        case '\'':
+          {
+            if(s_quot)
+              {
+                if(attribute_name == "encoding")
+                  {
+                    stop = true;
+                  }
+                else
+                  {
+                    s_quot = false;
+                    attribute_name.clear();
+                    result.clear();
+                  }
+              }
+            else if(d_quot)
+              {
+                result.push_back(book[i]);
+              }
+            else
+              {
+                s_quot = true;
+              }
+            break;
+          }
+        case '\"':
+          {
+            if(d_quot)
+              {
+                if(attribute_name == "encoding")
+                  {
+                    stop = true;
+                  }
+                else
+                  {
+                    d_quot = false;
+                    attribute_name.clear();
+                    result.clear();
+                  }
+              }
+            else if(s_quot)
+              {
+                result.push_back(book[i]);
+              }
+            else
+              {
+                d_quot = true;
+              }
+            break;
+          }
+        case ' ':
+          {
+            if(s_quot || d_quot)
+              {
+                result.push_back(book[i]);
+              }
+            else
+              {
+                attr_name_finished = false;
+              }
+            break;
+          }
+        case '=':
+          {
+            if(!s_quot && !d_quot)
+              {
+                attr_name_finished = true;
+              }
+            else
+              {
+                result.push_back(book[i]);
+              }
+            break;
+          }
+        default:
+          {
+            if(attr_name_finished)
+              {
+                result.push_back(book[i]);
+              }
+            else
+              {
+                attribute_name.push_back(book[i]);
+              }
+            break;
+          }
+        }
+
+      if(stop)
+        {
+          break;
+        }
+    }
+  if(!stop)
+    {
+      result.clear();
+    }
+  return result;
 }
 
 void
-FB2Parser::fb2_elctor_publisher(const std::string &book,
-                                const std::vector<XMLTag> &tgv,
-                                BookInfoEntry &result)
+FB2Parser::findAnnotationFallback(const std::string &book,
+                                  BookInfoEntry &result)
 {
-  recursiveGetTags(book, tgv, result.electro->publisher);
-  htmlSymbolsReplacement(result.electro->publisher);
+  std::string find_str1("<annotation>");
+  std::string::size_type n1 = book.find(find_str1);
+  if(n1 == std::string::npos)
+    {
+      return void();
+    }
+  std::string find_str2("</annotation>");
+  std::string::size_type n2 = book.find(find_str2, n1 + find_str1.size());
+  if(n2 == std::string::npos)
+    {
+      return void();
+    }
+  std::copy(book.begin() + n1, book.begin() + n2 + find_str2.size(),
+            std::back_inserter(result.annotation));
 }
 
 void
-FB2Parser::recursiveGetTags(const std::string &book,
-                            const std::vector<XMLTag> &tgv,
-                            std::string &result)
+FB2Parser::normalizeString(std::string &str)
 {
-  for(auto it = tgv.begin(); it != tgv.end(); it++)
+  for(auto it = str.begin(); it != str.end();)
     {
-      if(it->tag_list.size() > 0)
+      char el = *it;
+      if(el >= 0 && el <= 32)
         {
-          recursiveGetTags(book, it->tag_list, result);
+          str.erase(it);
         }
       else
         {
-          if(it->hasContent())
-            {
-              if(!result.empty())
-                {
-                  result += " ";
-                }
-              std::copy(book.begin() + it->content_start,
-                        book.begin() + it->content_end,
-                        std::back_inserter(result));
-            }
+          break;
         }
+    }
+
+  while(str.size() > 0)
+    {
+      char el = *str.rbegin();
+      if(el >= 0 && el <= 32)
+        {
+          str.pop_back();
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  std::string find_str = "  ";
+  std::string::size_type n = 0;
+  for(;;)
+    {
+      n = str.find(find_str, n);
+      if(n == std::string::npos)
+        {
+          break;
+        }
+      str.erase(str.begin() + n);
     }
 }

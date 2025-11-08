@@ -43,7 +43,7 @@ public:
   /*!
    * \brief Creates hash sum for given buffer.
    *
-   * \note This method can throw MLException in case of error.
+   * \note This method can throw std::exception in case of error.
    * \param buf source buffer.
    * \return 32 bytes of hash sum value.
    */
@@ -53,7 +53,7 @@ public:
   /*!
    * \brief Creates hash sum for given file.
    *
-   * \note This method can throw MLException in case of error.
+   * \note This method can throw std::exception in case of error.
    * \param filepath absolute path to file to be hashed.
    * \return 32 bytes of hash sum value.
    */

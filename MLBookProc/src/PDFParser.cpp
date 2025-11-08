@@ -14,7 +14,6 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <MLException.h>
 #include <PDFParser.h>
 #include <algorithm>
 #include <cstring>
@@ -35,7 +34,7 @@ PDFParser::pdf_parser(const std::string &file)
 {
   if(file.empty())
     {
-      throw MLException("PDFParser::pdf_parser: enpty file");
+      throw std::runtime_error("PDFParser::pdf_parser: enpty file");
     }
   BookParseEntry bpe;
 
@@ -120,7 +119,8 @@ PDFParser::pdf_parser(const std::string &file)
     }
   else
     {
-      throw MLException("PDFParser::pdf_parser: pdf file has not been opened");
+      throw std::runtime_error(
+          "PDFParser::pdf_parser: pdf file has not been opened");
     }
 
   return bpe;
@@ -167,7 +167,7 @@ PDFParser::pdf_annotation_n_cover(const std::string &file, const double &x_dpi,
     }
   else
     {
-      throw MLException(
+      throw std::runtime_error(
           "PDFParser::pdf_annotation_n_cover: pdf file has not been opened");
     }
 

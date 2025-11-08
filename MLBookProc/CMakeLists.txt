@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(MLBookProc VERSION 1.2.1 LANGUAGES CXX)
+project(MLBookProc VERSION 1.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
 option(CREATE_HTML_DOCS_MLBOOKPROC "Build html documentation for MLBookProc" OFF)
 option(CREATE_PDF_DOCS_MLBOOKPROC "Build pdf documentation for MLBookProc" OFF)
+option(BUILD_DEPRECATED_CLASSES "Build deprecated classes" OFF)
 
 find_package(PkgConfig REQUIRED)
 
@@ -18,9 +19,10 @@ pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
 pkg_check_modules(Gcrypt REQUIRED IMPORTED_TARGET libgcrypt)
 pkg_check_modules(GPG-ERROR REQUIRED IMPORTED_TARGET gpg-error)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    pkg_check_modules(DJVU REQUIRED IMPORTED_TARGET ddjvuapi)
+  pkg_check_modules(DJVU REQUIRED IMPORTED_TARGET ddjvuapi)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    find_library(DJVU djvulibre REQUIRED)
+  set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
+  find_package(DJVU REQUIRED)
 endif()
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 
@@ -100,9 +102,11 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(include)
+add_subdirectory(XMLParserCPP)
 
 target_include_directories(mlbookproc
   PRIVATE include
+  PRIVATE XMLParserCPP/include
 )
 
 if(POPPLER_VERSION VERSION_LESS "22.05")
@@ -118,6 +122,7 @@ target_link_libraries(mlbookproc
   PUBLIC PkgConfig::ICUUC
   PUBLIC PkgConfig::Gcrypt
   PUBLIC PkgConfig::GPG-ERROR
+  PRIVATE XMLParserCPP
 )
 
 if(USE_OPENMP)
@@ -154,8 +159,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(mlbookproc
       PUBLIC PkgConfig::DJVU
     )
-elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")    
-    target_link_libraries(mlbookproc PUBLIC ${DJVU})
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    target_include_directories(mlbookproc PUBLIC ${DJVU_INCLUDE_DIR})
+    target_link_libraries(mlbookproc PUBLIC ${DJVU_DLL})
 endif()
 
 if(TBB_FOUND) 
@@ -174,6 +180,10 @@ if(DOXYGEN_FOUND)
   if(USE_OPENMP)
     set(DOXYGEN_PREDEFINED USE_OPENMP)
   endif()
+  set(DOXYGEN_ENABLE_PREPROCESSING YES)
+  set(DOXYGEN_MACRO_EXPANSION YES)
+  set(DOXYGEN_EXPAND_ONLY_PREDEF YES)
+  set(DOXYGEN_PREDEFINED "__attribute__(x)=")
   set(DOXYGEN_SHOW_USED_FILES NO)
   set(DOXYGEN_SHOW_FILES NO)
 

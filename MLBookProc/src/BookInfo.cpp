@@ -19,7 +19,6 @@
 #include <DJVUParser.h>
 #include <EPUBParser.h>
 #include <FB2Parser.h>
-#include <MLException.h>
 #include <ODTParser.h>
 #include <PDFParser.h>
 #include <SelfRemovingPath.h>
@@ -28,6 +27,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <vector>
 
 BookInfo::BookInfo(const std::shared_ptr<AuxFunc> &af)
@@ -46,8 +46,8 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
       = std::filesystem::symlink_status(bbe.file_path, ec);
   if(ec)
     {
-      throw MLException("BookInfo::get_book_info error: " + ec.message() + " "
-                        + bbe.file_path.u8string());
+      throw std::runtime_error("BookInfo::get_book_info error: " + ec.message()
+                               + " " + bbe.file_path.u8string());
     }
   if(fstat.type() == std::filesystem::file_type::symlink)
     {
@@ -74,13 +74,30 @@ BookInfo::get_book_info(const BookBaseEntry &bbe)
           f.close();
 
           FB2Parser fb2(af);
-          result = fb2.fb2_book_info(book);
+          try
+            {
+              result = fb2.fb2BookInfo(book);
+            }
+          catch(std::exception &er)
+            {
+              std::cout << "BookInfo::get_book_info: \"" << er.what() << "\""
+                        << std::endl;
+            }
         }
     }
   else if(ext == ".epub")
     {
       EPUBParser epub(af);
-      result = epub.epub_book_info(bbe.file_path);
+      try
+        {
+          result = epub.epubBookInfo(bbe.file_path);
+        }
+      catch(std::exception &er)
+        {
+          std::cout << "BookInfo::get_book_info: \"" << er.what() << "\""
+                    << std::endl;
+          result = std::make_shared<BookInfoEntry>();
+        }
     }
   else if(ext == ".pdf")
     {
@@ -191,9 +208,10 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
               search_p = af->utf_8_to(unpack_path, conv_nm.c_str());
             }
           auto it = std::find_if(files.begin(), files.end(),
-                                 [search_p](ArchEntry &el) {
-                                   return el.filename == search_p;
-                                 });
+                                 [search_p](ArchEntry &el)
+                                   {
+                                     return el.filename == search_p;
+                                   });
           if(it != files.end())
             {
               std::filesystem::path ch_fbd;
@@ -206,7 +224,7 @@ BookInfo::get_from_archive(const BookBaseEntry &bbe, const std::string &ext)
               else
                 {
                   ch_fbd = std::filesystem::u8path(
-                      af->to_utf_8(it->filename, conv_nm.c_str()));
+                      af->toUTF8(it->filename, conv_nm.c_str()));
                   ch_fbd.replace_extension(".fbd");
                   encoding = true;
                 }
@@ -283,7 +301,7 @@ BookInfo::compare_func(const ArchEntry &ent, const bool &encoding,
   std::string val;
   if(encoding)
     {
-      val = af->to_utf_8(ent.filename, conv_nm.c_str());
+      val = af->toUTF8(ent.filename, conv_nm.c_str());
     }
   else
     {

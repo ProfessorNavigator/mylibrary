@@ -117,7 +117,7 @@ AuxFunc::~AuxFunc()
 }
 
 std::string
-AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
+AuxFunc::toUTF8(const std::string &input, const char *conv_name)
 {
   std::string result;
   if(input.size() == 0)
@@ -127,12 +127,13 @@ AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
 
   UErrorCode status = U_ZERO_ERROR;
   std::shared_ptr<UConverter> conv(ucnv_open(conv_name, &status),
-                                   [](UConverter *c) {
-                                     ucnv_close(c);
-                                   });
+                                   [](UConverter *c)
+                                     {
+                                       ucnv_close(c);
+                                     });
   if(!U_SUCCESS(status))
     {
-      std::cout << "AuxFunc::to_utf_8 converter " << conv_name
+      std::cout << "AuxFunc::toUTF8 converter " << conv_name
                 << " ucnv_open: " << u_errorName(status) << std::endl;
       result = input;
       return result;
@@ -171,6 +172,12 @@ AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
     }
 
   return result;
+}
+
+std::string
+AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
+{
+  return toUTF8(input, conv_name);
 }
 
 std::filesystem::path
@@ -217,9 +224,9 @@ AuxFunc::homePath()
     }
   if(result.empty())
     {
-      throw MLException("MLBookProc cannot find user home directory");
+      throw std::runtime_error("MLBookProc cannot find user home directory");
     }
-  result = to_utf_8(result, nullptr);
+  result = toUTF8(result, nullptr);
   return std::filesystem::u8path(result);
 }
 
@@ -540,6 +547,12 @@ AuxFunc::ifSupportedArchivePackingType(const std::filesystem::path &ch_p)
 std::string
 AuxFunc::detect_encoding(const std::string &buf)
 {
+  return detectEncoding(buf);
+}
+
+std::string
+AuxFunc::detectEncoding(const std::string &buf)
+{
   std::string result;
 
   UErrorCode status = U_ZERO_ERROR;
@@ -547,20 +560,22 @@ AuxFunc::detect_encoding(const std::string &buf)
   UCharsetDetector *det = ucsdet_open(&status);
   if(!U_SUCCESS(status))
     {
-      std::cout << "AuxFunc::detect_encoding detector initialization error: "
+      std::cout << "AuxFunc::detectEncoding detector initialization error: "
                 << u_errorName(status) << std::endl;
       return result;
     }
 
-  std::shared_ptr<UCharsetDetector> detector(det, [](UCharsetDetector *det) {
-    ucsdet_close(det);
-  });
+  std::shared_ptr<UCharsetDetector> detector(det,
+                                             [](UCharsetDetector *det)
+                                               {
+                                                 ucsdet_close(det);
+                                               });
 
   ucsdet_setText(det, buf.c_str(), static_cast<int32_t>(buf.size()), &status);
 
   if(!U_SUCCESS(status))
     {
-      std::cout << "AuxFunc::detect_encoding set text error: "
+      std::cout << "AuxFunc::detectEncoding set text error: "
                 << u_errorName(status) << std::endl;
       return result;
     }
@@ -569,7 +584,7 @@ AuxFunc::detect_encoding(const std::string &buf)
 
   if(!U_SUCCESS(status))
     {
-      std::cout << "AuxFunc::detect_encoding detecting error: "
+      std::cout << "AuxFunc::detectEncoding detecting error: "
                 << u_errorName(status) << std::endl;
       return result;
     }
@@ -577,7 +592,7 @@ AuxFunc::detect_encoding(const std::string &buf)
 
   if(!U_SUCCESS(status))
     {
-      std::cout << "AuxFunc::detect_encoding get name error: "
+      std::cout << "AuxFunc::detectEncoding get name error: "
                 << u_errorName(status) << std::endl;
       return result;
     }
@@ -871,7 +886,7 @@ AuxFunc::djvuMessageCallback(ddjvu_context_t *context, void *closure)
             {
               if(fd.revents & POLLERR)
                 {
-                  throw MLException(
+                  throw std::runtime_error(
                       "AuxFunc::djvuMessageCallback: poll error");
                 }
               if(fd.revents & POLLOUT)
@@ -883,14 +898,14 @@ AuxFunc::djvuMessageCallback(ddjvu_context_t *context, void *closure)
             {
               if(respol == 0)
                 {
-                  throw MLException(
+                  throw std::runtime_error(
                       "AuxFunc::djvuMessageCallback: poll timeout exceeded");
                 }
               else
                 {
                   std::string str = std::strerror(errno);
                   str = "AuxFunc::djvuMessageCallback: " + str;
-                  throw MLException(str);
+                  throw std::runtime_error(str);
                 }
             }
 #elif defined(_WIN32)
@@ -965,7 +980,7 @@ AuxFunc::getDJVUContext()
     {
       std::string str = std::strerror(errno);
       str = "AuxFunc::getDJVUContext: " + str;
-      throw MLException(str);
+      throw std::runtime_error(str);
     }
 #elif defined(_WIN32)
   HANDLE *handles = new HANDLE[2];
@@ -987,7 +1002,7 @@ AuxFunc::getDJVUContext()
 
   if(!CreatePipe(handles, (handles + 1), &sa, 0))
     {
-      throw MLException("AuxFunc::getDJVUContext: cannot create pipe");
+      throw std::runtime_error("AuxFunc::getDJVUContext: cannot create pipe");
     }
 #endif
   djvu_pipes.push_back(pipe);
@@ -1089,7 +1104,8 @@ AuxFunc::copy_book_callback(const std::filesystem::path &source,
   std::filesystem::copy(source, out, ec);
   if(ec)
     {
-      throw MLException("AuxFunc::copy_book_callback error: " + ec.message());
+      throw std::runtime_error("AuxFunc::copy_book_callback error: "
+                               + ec.message());
     }
 }
 

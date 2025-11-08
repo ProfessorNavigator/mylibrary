@@ -19,7 +19,6 @@
 #include <ElectroBookInfoEntry.h>
 #include <FullSizeCover.h>
 #include <Genre.h>
-#include <MLException.h>
 #include <PaperBookInfoEntry.h>
 #include <SaveCover.h>
 #include <filesystem>
@@ -48,8 +47,9 @@ BookInfoGui::BookInfoGui(const std::shared_ptr<AuxFunc> &af,
 
   formatter = new FormatAnnotation(af);
   std::vector<ReplaceTagItem> tag_repl;
-  BookInfoGui::formReplacementTable(tag_repl);
-  formatter->setTagReplacementTable(tag_repl);
+  std::vector<std::tuple<std::string, std::string>> symbols_replacement;
+  BookInfoGui::formReplacementTable(tag_repl, symbols_replacement);
+  formatter->setTagReplacementTable(tag_repl, symbols_replacement);
 }
 
 BookInfoGui::~BookInfoGui()
@@ -68,8 +68,9 @@ BookInfoGui::BookInfoGui(const std::shared_ptr<AuxFunc> &af,
 
   formatter = new FormatAnnotation(af);
   std::vector<ReplaceTagItem> tag_repl;
-  BookInfoGui::formReplacementTable(tag_repl);
-  formatter->setTagReplacementTable(tag_repl);
+  std::vector<std::tuple<std::string, std::string>> symbols_replacement;
+  BookInfoGui::formReplacementTable(tag_repl, symbols_replacement);
+  formatter->setTagReplacementTable(tag_repl, symbols_replacement);
 }
 
 void
@@ -81,7 +82,7 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
         {
           bie = bi->get_book_info(bbe);
         }
-      catch(MLException &e)
+      catch(std::exception &e)
         {
           bie.reset();
           std::cout << e.what() << std::endl;
@@ -124,7 +125,7 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
 
   formBookSection(bbe, info_scrl_grid, row_num);
 
-  formEectordocInfoSection(bbe, info_scrl_grid, row_num);
+  formElectordocInfoSection(bbe, info_scrl_grid, row_num);
 
   formPaperBookInfoSection(bbe, info_scrl_grid, row_num);
 
@@ -168,9 +169,11 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
   Gtk::PopoverMenu *pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu);
   pop_menu->set_parent(*cover);
-  cover->signal_unrealize().connect([pop_menu] {
-    pop_menu->unparent();
-  });
+  cover->signal_unrealize().connect(
+      [pop_menu]
+        {
+          pop_menu->unparent();
+        });
 
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(1);
@@ -186,12 +189,13 @@ BookInfoGui::creatWindow(const BookBaseEntry &bbe)
   cover->add_controller(clck);
 
   window->signal_close_request().connect(
-      [window, this] {
-        std::unique_ptr<Gtk::Window> win(window);
-        window->set_visible(false);
-        delete this;
-        return true;
-      },
+      [window, this]
+        {
+          std::unique_ptr<Gtk::Window> win(window);
+          window->set_visible(false);
+          delete this;
+          return true;
+        },
       false);
 
   window->present();
@@ -679,6 +683,9 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               lab->set_expand(true);
               lab->set_selectable(true);
               lab->set_text(Glib::ustring(bie->paper->publisher));
+              lab->set_max_width_chars(50);
+              lab->set_wrap(true);
+              lab->set_wrap_mode(Pango::WrapMode::WORD);
               lab->set_name("windowLabel");
               grid->attach(*lab, 1, row_num, 1, 1);
               row_num++;
@@ -751,8 +758,8 @@ BookInfoGui::formPaperBookInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
 }
 
 void
-BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
-                                      int &row_num)
+BookInfoGui::formElectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
+                                       int &row_num)
 {
   if(bie)
     {
@@ -975,13 +982,9 @@ BookInfoGui::formEectordocInfoSection(const BookBaseEntry &, Gtk::Grid *grid,
               grid->attach(*lab, 0, row_num, 1, 1);
 
               std::string hist = bie->electro->history;
-              FormatAnnotation fa(af);
-              std::vector<ReplaceTagItem> tag_replacement_table;
-              formReplacementTable(tag_replacement_table);
-              fa.setTagReplacementTable(tag_replacement_table);
-              fa.remove_escape_sequences(hist);
-              fa.replace_tags(hist);
-              fa.final_cleaning(hist);
+              formatter->removeEscapeSequences(hist);
+              formatter->replaceTags(hist);
+              formatter->finalCleaning(hist);
 
               lab = Gtk::make_managed<Gtk::Label>();
               lab->set_margin(5);
@@ -1079,11 +1082,12 @@ BookInfoGui::coverFullSize(Gtk::Window *win)
     {
       FullSizeCover *fsc = new FullSizeCover(win, cover_buf);
       fsc->signal_close_request().connect(
-          [fsc] {
-            std::unique_ptr<FullSizeCover> f(fsc);
-            f->set_visible(false);
-            return true;
-          },
+          [fsc]
+            {
+              std::unique_ptr<FullSizeCover> f(fsc);
+              f->set_visible(false);
+              return true;
+            },
           false);
       fsc->present();
     }
@@ -1099,11 +1103,12 @@ BookInfoGui::saveCover(Gtk::Window *win)
         {
           SaveCover *sc = new SaveCover(bie, win, af);
           sc->signal_close_request().connect(
-              [sc] {
-                std::unique_ptr<SaveCover> s(sc);
-                s->set_visible(false);
-                return true;
-              },
+              [sc]
+                {
+                  std::unique_ptr<SaveCover> s(sc);
+                  s->set_visible(false);
+                  return true;
+                },
               false);
           sc->present();
         }
@@ -1112,7 +1117,8 @@ BookInfoGui::saveCover(Gtk::Window *win)
 
 void
 BookInfoGui::formReplacementTable(
-    std::vector<ReplaceTagItem> &replacement_table)
+    std::vector<ReplaceTagItem> &replacement_table,
+    std::vector<std::tuple<std::string, std::string>> &symbols_replacement)
 {
   ReplaceTagItem tag;
 
@@ -1150,4 +1156,7 @@ BookInfoGui::formReplacementTable(
   tag.begin_replacement = "<span strikethrough=\"true\">";
   tag.end_replacement = "</span>";
   replacement_table.emplace_back(tag);
+
+  symbols_replacement.push_back(std::make_tuple("<", "&lt;"));
+  symbols_replacement.push_back(std::make_tuple(">", "&gt;"));
 }

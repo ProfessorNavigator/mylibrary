@@ -12,9 +12,9 @@ target_sources (mlbookproc
     PRIVATE BookMarks.cpp
     PRIVATE BookParseEntry.cpp
     PRIVATE ByteOrder.cpp
-    PRIVATE CreateCollection.cpp
-    PRIVATE DCParser.cpp
+    PRIVATE CreateCollection.cpp    
     PRIVATE DJVUParser.cpp
+    PRIVATE DublinCoreParser.cpp
     PRIVATE ElectroBookInfoEntry.cpp
     PRIVATE EPUBParser.cpp
     PRIVATE FB2Parser.cpp
@@ -23,8 +23,7 @@ target_sources (mlbookproc
     PRIVATE Genre.cpp
     PRIVATE GenreGroup.cpp
     PRIVATE Hasher.cpp
-    PRIVATE LibArchive.cpp
-    PRIVATE MLException.cpp
+    PRIVATE LibArchive.cpp    
     PRIVATE NotesBaseEntry.cpp
     PRIVATE NotesKeeper.cpp
     PRIVATE ODTParser.cpp
@@ -35,11 +34,18 @@ target_sources (mlbookproc
     PRIVATE RemoveBook.cpp
     PRIVATE ReplaceTagItem.cpp
     PRIVATE SelfRemovingPath.cpp
-    PRIVATE TXTParser.cpp
-    PRIVATE XMLParser.cpp
-    PRIVATE XMLTag.cpp
+    PRIVATE TXTParser.cpp    
 )
 
 if(USE_OPENMP)
     target_sources(mlbookproc PRIVATE OmpLockGuard.cpp)
+endif()
+
+if(BUILD_DEPRECATED_CLASSES)
+    target_sources(mlbookproc
+        PRIVATE XMLParser.cpp
+        PRIVATE XMLTag.cpp
+        PRIVATE DCParser.cpp
+        PRIVATE MLException.cpp
+    )
 endif()

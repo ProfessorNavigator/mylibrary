@@ -15,7 +15,6 @@
  */
 
 #include <BookParseEntry.h>
-#include <MLException.h>
 #include <RemoveBook.h>
 #include <RemoveBookGui.h>
 #include <filesystem>
@@ -292,7 +291,7 @@ RemoveBookGui::removeBookFunc(Gtk::Window *win)
         rb->removeBook();
         remove_result = 1;
       }
-    catch(MLException &er)
+    catch(std::exception &er)
       {
         std::cout << er.what() << std::endl;
         remove_result = -1;

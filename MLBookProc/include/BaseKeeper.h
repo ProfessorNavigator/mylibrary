@@ -57,7 +57,7 @@ public:
   /*!
    * \brief Loads collection database to memory.
    *
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    *
    * \param col_name collection name.
    */
@@ -125,7 +125,7 @@ public:
    *
    * This method can be called without collection loading to
    * memory.
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    *
    * \param collection_name collection name.
    * \param af smart pointer to AuxFunc object.
@@ -166,9 +166,16 @@ private:
   void
   parseBookEntry(const std::string &e, std::string &read_val, size_t &rb);
 
+  enum Normalization
+  {
+    Author,
+    Other
+  };
+
   bool
   searchLineFunc(const std::string &to_search, const std::string &source,
-                 const double &coef_coincidence);
+                 const double &coef_coincidence,
+                 const Normalization &variant = Normalization::Other);
 
   bool
   searchSurname(const BookBaseEntry &search,
@@ -198,6 +205,9 @@ private:
 
   bool
   exactMatchSearchFunc(const BookBaseEntry &el, const BookBaseEntry &search);
+
+  void
+  normalizeString(std::string &str, const Normalization &variant);
 
   std::shared_ptr<AuxFunc> af;
 

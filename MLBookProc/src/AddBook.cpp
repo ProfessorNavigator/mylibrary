@@ -19,7 +19,6 @@
 #include <ArchiveRemoveEntry.h>
 #include <BookBaseEntry.h>
 #include <LibArchive.h>
-#include <MLException.h>
 #include <RefreshCollection.h>
 #include <SelfRemovingPath.h>
 #include <algorithm>
@@ -187,8 +186,9 @@ AddBook::add_to_existing_archive(
                                   });
         if(it_ef != existing_files.end())
           {
-            throw MLException("AddBook::add_to_existing_archive: adding to "
-                              "fbd archives is prohibited");
+            throw std::runtime_error(
+                "AddBook::add_to_existing_archive: adding to "
+                "fbd archives is prohibited");
           }
       }
       std::filesystem::path new_arch = archive_path.parent_path();
@@ -242,7 +242,7 @@ AddBook::add_to_existing_archive(
                                     rment->a_write.get(), p);
                                 if(er_write != ARCHIVE_OK)
                                   {
-                                    throw MLException(
+                                    throw std::runtime_error(
                                         "AddBook::add_to_existing_archive "
                                         "data writing error");
                                   }
@@ -250,14 +250,16 @@ AddBook::add_to_existing_archive(
                           }
                         else
                           {
-                            throw MLException("AddBook::add_to_existing_"
-                                              "archive header writing error");
+                            throw std::runtime_error(
+                                "AddBook::add_to_existing_"
+                                "archive header writing error");
                           }
                       }
                     else
                       {
-                        throw MLException("AddBook::add_to_existing_archive "
-                                          "incorrect filename in archive");
+                        throw std::runtime_error(
+                            "AddBook::add_to_existing_archive "
+                            "incorrect filename in archive");
                       }
                     break;
                   }
@@ -299,8 +301,9 @@ AddBook::add_to_existing_archive(
                       std::get<0>(*it));
                   if(er_write != ARCHIVE_OK)
                     {
-                      throw MLException("AddBook::add_to_existing_archive new "
-                                        "file writing error");
+                      throw std::runtime_error(
+                          "AddBook::add_to_existing_archive new "
+                          "file writing error");
                     }
                 }
               if(er_write == ARCHIVE_OK && std::filesystem::exists(main.path))
@@ -311,12 +314,13 @@ AddBook::add_to_existing_archive(
                 }
               else
                 {
-                  throw MLException("AddBook::add_to_existing_archive error");
+                  throw std::runtime_error(
+                      "AddBook::add_to_existing_archive error");
                 }
             }
           else
             {
-              throw MLException(
+              throw std::runtime_error(
                   "AddBook::add_to_existing_archive archives error");
             }
 
@@ -324,8 +328,9 @@ AddBook::add_to_existing_archive(
         }
       else
         {
-          throw MLException("AddBook::add_to_existing_archive error: archives "
-                            "have not been opened");
+          throw std::runtime_error(
+              "AddBook::add_to_existing_archive error: archives "
+              "have not been opened");
         }
 
 #ifndef USE_OPENMP
@@ -450,7 +455,7 @@ AddBook::add_to_existing_archive_dir(
                                   });
         if(it_ef != existing_files.end())
           {
-            throw MLException(
+            throw std::runtime_error(
                 "AddBook::add_to_existing_archive_dir: adding to "
                 "fbd archives is prohibited");
           }
@@ -506,7 +511,7 @@ AddBook::add_to_existing_archive_dir(
                                     rment->a_write.get(), p);
                                 if(er_write != ARCHIVE_OK)
                                   {
-                                    throw MLException(
+                                    throw std::runtime_error(
                                         "AddBook::add_to_existing_archive_dir "
                                         "data writing error");
                                   }
@@ -514,15 +519,16 @@ AddBook::add_to_existing_archive_dir(
                           }
                         else
                           {
-                            throw MLException(
+                            throw std::runtime_error(
                                 "AddBook::add_to_existing_archive_dir header "
                                 "writing error");
                           }
                       }
                     else
                       {
-                        throw MLException("AddBook::add_to_existing_archive_"
-                                          "dir incorrect filename in archive");
+                        throw std::runtime_error(
+                            "AddBook::add_to_existing_archive_"
+                            "dir incorrect filename in archive");
                       }
                     break;
                   }
@@ -565,13 +571,13 @@ AddBook::add_to_existing_archive_dir(
                 }
               else
                 {
-                  throw MLException(
+                  throw std::runtime_error(
                       "AddBook::add_to_existing_archive_dir error");
                 }
             }
           else
             {
-              throw MLException(
+              throw std::runtime_error(
                   "AddBook::add_to_existing_archive_dir archives error");
             }
 
@@ -579,8 +585,9 @@ AddBook::add_to_existing_archive_dir(
         }
       else
         {
-          throw MLException("AddBook::add_to_existing_archive_dir error: "
-                            "archives have not been opened");
+          throw std::runtime_error(
+              "AddBook::add_to_existing_archive_dir error: "
+              "archives have not been opened");
         }
 
 #ifndef USE_OPENMP

@@ -17,7 +17,6 @@
 #include <AddBook.h>
 #include <BaseKeeper.h>
 #include <BookParseEntry.h>
-#include <MLException.h>
 #include <OpenBook.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
@@ -708,7 +707,7 @@ TransferBookGui::path_choose_dialog_overwrite_slot(
                 {
                   copy_overwrite(variant, res_var);
                 }
-              catch(MLException &er)
+              catch(std::exception &er)
                 {
                   std::cout << er.what() << std::endl;
                   *res_var = 1;
@@ -784,7 +783,7 @@ TransferBookGui::copy_overwrite(const int &variant,
                   {
                     ab.simple_add(books);
                   }
-                catch(MLException &er)
+                catch(std::exception &er)
                   {
                     std::cout << er.what() << std::endl;
                     *res_var = 1;
@@ -802,7 +801,7 @@ TransferBookGui::copy_overwrite(const int &variant,
                   {
                     ab.overwrite_archive(out_file_path, books);
                   }
-                catch(MLException &er)
+                catch(std::exception &er)
                   {
                     std::cout << er.what() << std::endl;
                     *res_var = 1;
@@ -820,7 +819,7 @@ TransferBookGui::copy_overwrite(const int &variant,
                   {
                     ab.add_to_existing_archive(out_file_path, books);
                   }
-                catch(MLException &er)
+                catch(std::exception &er)
                   {
                     std::cout << er.what() << std::endl;
                     *res_var = 1;
@@ -1127,7 +1126,7 @@ TransferBookGui::copy_archive(Gtk::Window *parent_win, Gtk::Window *win,
       {
         copy_overwrite(variant, res_var);
       }
-    catch(MLException &er)
+    catch(std::exception &er)
       {
         std::cout << er.what() << std::endl;
         *res_var = 1;
@@ -1232,7 +1231,7 @@ TransferBookGui::path_choose_dialog_overwrite_slot(int resp,
                     {
                       copy_overwrite(variant, res_var);
                     }
-                  catch(MLException &er)
+                  catch(std::exception &er)
                     {
                       std::cout << er.what() << std::endl;
                       *res_var = 1;

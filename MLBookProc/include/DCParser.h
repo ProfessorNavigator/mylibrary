@@ -22,12 +22,15 @@
 /*!
  * \brief The DCParser class
  *
+ * \deprecated This class will be removed in future releases. Use
+ * DublinCoreParser class instead.
+ *
  * Auxiliary class. Contains methods for <a
  * href="https://www.dublincore.org/">DublinCore</a> files parsing. This class
  * is used in ODTParser and EPUBParser. You do not need to call this class
  * methods directly.
  */
-class DCParser : public XMLParser
+class __attribute__((deprecated)) DCParser : public XMLParser
 {
 public:
   /*!

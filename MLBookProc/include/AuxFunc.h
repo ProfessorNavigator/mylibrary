@@ -19,7 +19,6 @@
 
 #include <Genre.h>
 #include <GenreGroup.h>
-#include <MLException.h>
 #include <atomic>
 #include <filesystem>
 #include <gcrypt.h>
@@ -83,6 +82,22 @@ public:
   /*!
    * \brief Converts string to UTF-8 string.
    *
+   * \deprecated This method will be removed in future releases. Use toUTF8()
+   * instead.
+   *
+   * \param input string to be converted.
+   * \param conv_name input string encoding name (see
+   * <A
+   * HREF="https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/ucnv_8h.html#abe52185c0f4c3e001f0df1f17b08f0bc">icu
+   * documentation</A> for details).
+   * \return UTF-8 encoded string or empty string in case of any error.
+   */
+  __attribute__((deprecated)) std::string
+  to_utf_8(const std::string &input, const char *conv_name);
+
+  /*!
+   * \brief Converts string to UTF-8 string.
+   *
    * \param input string to be converted.
    * \param conv_name input string encoding name (see
    * <A
@@ -91,7 +106,7 @@ public:
    * \return UTF-8 encoded string or empty string in case of any error.
    */
   std::string
-  to_utf_8(const std::string &input, const char *conv_name);
+  toUTF8(const std::string &input, const char *conv_name);
 
   /*!
    * \brief Converts UTF-8 string to string in system default encoding.
@@ -126,11 +141,23 @@ public:
   /*!
    * \brief Tries to detect string encoding.
    *
+   * \deprecated This method will be removed in future releases. Use
+   * detectEncoding() instead.
+   *
+   * \param buf string which encoding is to be detected.
+   * \return String containing encoding name.
+   */
+  __attribute__((deprecated)) std::string
+  detect_encoding(const std::string &buf);
+
+  /*!
+   * \brief Tries to detect string encoding.
+   *
    * \param buf string which encoding is to be detected.
    * \return String containing encoding name.
    */
   std::string
-  detect_encoding(const std::string &buf);
+  detectEncoding(const std::string &buf);
 
   /*!
    * \brief Returns user home directory path.

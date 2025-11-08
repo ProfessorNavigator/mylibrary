@@ -16,7 +16,6 @@
 
 #include <BookParseEntry.h>
 #include <LibArchive.h>
-#include <MLException.h>
 #include <OpenBook.h>
 #include <algorithm>
 #include <iostream>
@@ -39,9 +38,9 @@ OpenBook::open_book(
       = std::filesystem::symlink_status(bbe.file_path, ec);
   if(ec)
     {
-      throw MLException(std::string("\nOpenBook::open_book: ")
-                        + bbe.file_path.u8string() + "\n" + ec.message()
-                        + "\n");
+      throw std::runtime_error(std::string("\nOpenBook::open_book: ")
+                               + bbe.file_path.u8string() + "\n" + ec.message()
+                               + "\n");
     }
   if(fstat.type() == std::filesystem::file_type::symlink)
     {
@@ -64,7 +63,8 @@ OpenBook::open_book(
           std::filesystem::copy(bbe.file_path, tmp, ec);
           if(ec)
             {
-              throw MLException("OpenBook::open_book error: " + ec.message());
+              throw std::runtime_error("OpenBook::open_book error: "
+                                       + ec.message());
             }
           if(find_fbd)
             {
@@ -262,7 +262,7 @@ OpenBook::compare_func(const ArchEntry &ent, const bool &encoding,
   std::string val;
   if(encoding)
     {
-      val = af->to_utf_8(ent.filename, conv_nm.c_str());
+      val = af->toUTF8(ent.filename, conv_nm.c_str());
     }
   else
     {

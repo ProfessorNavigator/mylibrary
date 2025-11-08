@@ -27,10 +27,13 @@
 /*!
  * \brief The XMLParser class.
  *
- * This class containes various methods to process <A
+ * This class contains various methods to process <A
  * HREF="https://www.w3schools.com/xml/default.asp">XML</A> documents.
+ *
+ * \deprecated This class will be removed in future releases. Use XMLParserCPP
+ * library instead.
  */
-class XMLParser
+class __attribute__((deprecated)) XMLParser
 {
 public:
   /*!

@@ -13,21 +13,22 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#include <MLException.h>
+
 #include <ODTParser.h>
 #include <algorithm>
 #include <iostream>
 
-ODTParser::ODTParser(const std::shared_ptr<AuxFunc> &af)
-    : XMLParser(af), LibArchive(af)
+ODTParser::ODTParser(const std::shared_ptr<AuxFunc> &af) : LibArchive(af)
 {
   this->af = af;
-  dc = new DCParser(af);
+  dc = new DublinCoreParser;
+  xml_parser = new XMLParserCPP;
 }
 
 ODTParser::~ODTParser()
 {
   delete dc;
+  delete xml_parser;
 }
 
 BookParseEntry
@@ -42,26 +43,49 @@ ODTParser::odtParser(const std::filesystem::path &odt_path)
         {
           std::filesystem::path sp = std::filesystem::u8path("meta.xml");
           auto it
-              = std::find_if(files.begin(), files.end(), [sp](ArchEntry &el) {
-                  std::filesystem::path fp
-                      = std::filesystem::u8path(el.filename);
-                  return fp.filename() == sp;
-                });
+              = std::find_if(files.begin(), files.end(),
+                             [sp](ArchEntry &el)
+                               {
+                                 std::filesystem::path fp
+                                     = std::filesystem::u8path(el.filename);
+                                 return fp.filename() == sp;
+                               });
           if(it != files.end())
             {
               std::string meta_content = unpackByPositionStr(odt_path, *it);
-              std::vector<XMLTag> meta_tags = listAllTags(meta_content);
-              bpe.book_name = dc->dcTitle(meta_content, meta_tags);
-              if(bpe.book_name.empty())
+              try
                 {
-                  bpe.book_name = odt_path.stem().u8string();
+                  std::vector<XMLElement> elements
+                      = xml_parser->parseDocument(meta_content);
+                  bpe.book_name = dc->dcTitle(elements);
+                  if(bpe.book_name.empty())
+                    {
+                      bpe.book_name = odt_path.stem().u8string();
+                    }
+
+                  bpe.book_author = dc->dcAuthor(elements);
+
+                  bpe.book_genre = dc->dcGenre(elements);
+
+                  bpe.book_date = dc->dcDate(elements);
                 }
+              catch(std::exception &er)
+                {
+                  std::cout << "ODTParser::odtParser: \"" << er.what() << "\""
+                            << std::endl;
+                  bpe.book_name = odt_path.stem().u8string();
 
-              bpe.book_author = dc->dcAuthor(meta_content, meta_tags);
+                  std::filesystem::file_time_type cr
+                      = std::filesystem::last_write_time(odt_path);
 
-              bpe.book_genre = dc->dcGenre(meta_content, meta_tags);
+                  auto sctp = std::chrono::time_point_cast<
+                      std::chrono::system_clock::duration>(
+                      cr - std::filesystem::file_time_type::clock::now()
+                      + std::chrono::system_clock::now());
+                  time_t tt = std::chrono::system_clock::to_time_t(sctp);
 
-              bpe.book_date = dc->dcDate(meta_content, meta_tags);
+                  bpe.book_date = af->time_t_to_date(tt);
+                }
             }
           else
             {
@@ -99,7 +123,7 @@ ODTParser::odtParser(const std::filesystem::path &odt_path)
     }
   else
     {
-      throw MLException("ODTParser::odtParser: not ODT file");
+      throw std::runtime_error("ODTParser::odtParser: not ODT file");
     }
 
   return bpe;
@@ -119,11 +143,13 @@ ODTParser::odtBookInfo(const std::filesystem::path &odt_path)
               = std::filesystem::u8path("Thumbnails")
                 / std::filesystem::u8path("thumbnail.png");
           auto it
-              = std::find_if(files.begin(), files.end(), [sp](ArchEntry &el) {
-                  std::filesystem::path fp
-                      = std::filesystem::u8path(el.filename);
-                  return fp == sp;
-                });
+              = std::find_if(files.begin(), files.end(),
+                             [sp](ArchEntry &el)
+                               {
+                                 std::filesystem::path fp
+                                     = std::filesystem::u8path(el.filename);
+                                 return fp == sp;
+                               });
           if(it != files.end())
             {
               bie->cover = unpackByPositionStr(odt_path, *it);
@@ -131,31 +157,45 @@ ODTParser::odtBookInfo(const std::filesystem::path &odt_path)
             }
 
           sp = std::filesystem::u8path("meta.xml");
-          it = std::find_if(files.begin(), files.end(), [sp](ArchEntry &el) {
-            std::filesystem::path fp = std::filesystem::u8path(el.filename);
-            return fp == sp;
-          });
+          it = std::find_if(files.begin(), files.end(),
+                            [sp](ArchEntry &el)
+                              {
+                                std::filesystem::path fp
+                                    = std::filesystem::u8path(el.filename);
+                                return fp == sp;
+                              });
           if(it != files.end())
             {
               std::string meta_content = unpackByPositionStr(odt_path, *it);
-              std::vector<XMLTag> tgv = listAllTags(meta_content);
-              bie->language = dc->dcLanguage(meta_content, tgv);
-              bie->electro->publisher = dc->dcPublisher(meta_content, tgv);
-              if(!bie->electro->publisher.empty())
+
+              try
                 {
-                  bie->electro->available = true;
+                  std::vector<XMLElement> elements
+                      = xml_parser->parseDocument(meta_content);
+
+                  bie->language = dc->dcLanguage(elements);
+                  bie->electro->publisher = dc->dcPublisher(elements);
+                  if(!bie->electro->publisher.empty())
+                    {
+                      bie->electro->available = true;
+                    }
+                  bie->electro->id = dc->dcIdentifier(elements);
+                  if(!bie->electro->id.empty())
+                    {
+                      bie->electro->available = true;
+                    }
+                  bie->electro->src_url = dc->dcSource(elements);
+                  if(!bie->electro->src_url.empty())
+                    {
+                      bie->electro->available = true;
+                    }
+                  bie->annotation = dc->dcDescription(elements);
                 }
-              bie->electro->id = dc->dcIdentifier(meta_content, tgv);
-              if(!bie->electro->id.empty())
+              catch(std::exception &er)
                 {
-                  bie->electro->available = true;
+                  std::cout << "ODTParser::odtBookInfo: \"" << er.what()
+                            << "\"" << std::endl;
                 }
-              bie->electro->src_url = dc->dcSource(meta_content, tgv);
-              if(!bie->electro->src_url.empty())
-                {
-                  bie->electro->available = true;
-                }
-              bie->annotation = dc->dcDescription(meta_content, tgv);
             }
         }
       else
@@ -165,7 +205,7 @@ ODTParser::odtBookInfo(const std::filesystem::path &odt_path)
     }
   else
     {
-      throw MLException("ODTParser::odtBookInfo: not ODT file");
+      throw std::runtime_error("ODTParser::odtBookInfo: not ODT file");
     }
 
   return bie;

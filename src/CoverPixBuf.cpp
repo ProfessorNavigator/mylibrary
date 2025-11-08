@@ -61,7 +61,8 @@ CoverPixBuf::operator=(const CoverPixBuf &other)
   return *this;
 }
 
-CoverPixBuf::operator bool()
+CoverPixBuf::
+operator bool()
 {
   if(image.columns() > 0 && image.rows() > 0)
     {
@@ -247,16 +248,16 @@ CoverPixBuf::createImageFromText(const std::shared_ptr<BookInfoEntry> &bie)
 
   if(formatter)
     {
-      formatter->remove_escape_sequences(buf);
+      formatter->removeEscapeSequences(buf);
       std::string reserve_annot = buf;
-      formatter->replace_tags(buf);
-      formatter->final_cleaning(buf);
+      formatter->replaceTags(buf);
+      formatter->finalCleaning(buf);
 
       pl->set_markup(Glib::ustring(buf));
       if(pl->get_text().size() == 0)
         {
           formatter->removeAllTags(reserve_annot);
-          formatter->final_cleaning(reserve_annot);
+          formatter->finalCleaning(reserve_annot);
           pl->set_text(Glib::ustring(reserve_annot));
         }
     }
@@ -275,13 +276,14 @@ CoverPixBuf::createImageFromText(const std::shared_ptr<BookInfoEntry> &bie)
 
   std::string result;
   surf->write_to_png_stream(
-      [&result](const unsigned char *data, unsigned int length) {
-        for(unsigned int i = 0; i < length; i++)
-          {
-            result.push_back(data[i]);
-          }
-        return CAIRO_STATUS_SUCCESS;
-      });
+      [&result](const unsigned char *data, unsigned int length)
+        {
+          for(unsigned int i = 0; i < length; i++)
+            {
+              result.push_back(data[i]);
+            }
+          return CAIRO_STATUS_SUCCESS;
+        });
   Magick::Blob blob(result.c_str(), result.size());
   createImageFromBlob(blob);
 }
@@ -306,7 +308,6 @@ CoverPixBuf::getSurface(const int &width, const int &height)
   if(image.columns() > 0 && image.rows() > 0 && width > 0 && height > 0)
     {
       Magick::Image img = image;
-
       size_t w = static_cast<size_t>(width);
       if(w < img.columns())
         {
@@ -324,20 +325,11 @@ CoverPixBuf::getSurface(const int &width, const int &height)
           img.scale(Magick::Geometry(lw, h));
         }
 
-      Magick::Blob blob;
-      img.write(&blob, "png");
-
-      size_t rb = 0;
-      result = Cairo::ImageSurface::create_from_png_stream(
-          [&rb, blob](unsigned char *data, int length) {
-            const unsigned char *src
-                = reinterpret_cast<const unsigned char *>(blob.data());
-            for(int i = 0; i < length && rb < blob.length(); i++, rb++)
-              {
-                data[i] = src[rb];
-              }
-            return CAIRO_STATUS_SUCCESS;
-          });
+      result = Cairo::ImageSurface::create(Cairo::ImageSurface::Format::RGB24,
+                                           static_cast<int>(img.columns()),
+                                           static_cast<int>(img.rows()));
+      img.write(0, 0, img.columns(), img.rows(), "BGRA", Magick::CharPixel,
+                result->get_data());
     }
 
   return result;
@@ -346,30 +338,11 @@ CoverPixBuf::getSurface(const int &width, const int &height)
 Cairo::RefPtr<Cairo::ImageSurface>
 CoverPixBuf::getSurface()
 {
-  Cairo::RefPtr<Cairo::ImageSurface> result;
-
-  Magick::Blob blob;
-  try
-    {
-      image.write(&blob, "png");
-    }
-  catch(Magick::Exception &er)
-    {
-      std::cout << "CoverPixBuf::getSurface: " << er.what() << std::endl;
-      return result;
-    }
-
-  size_t rb = 0;
-  result = Cairo::ImageSurface::create_from_png_stream(
-      [&rb, blob](unsigned char *data, unsigned int length) {
-        const unsigned char *src
-            = reinterpret_cast<const unsigned char *>(blob.data());
-        for(unsigned int i = 0; i < length && rb < blob.length(); i++, rb++)
-          {
-            data[i] = src[rb];
-          }
-        return CAIRO_STATUS_SUCCESS;
-      });
+  Cairo::RefPtr<Cairo::ImageSurface> result = Cairo::ImageSurface::create(
+      Cairo::ImageSurface::Format::RGB24, static_cast<int>(image.columns()),
+      static_cast<int>(image.rows()));
+  image.write(0, 0, image.columns(), image.rows(), "BGRA", Magick::CharPixel,
+              result->get_data());
   return result;
 }
 

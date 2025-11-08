@@ -48,7 +48,9 @@ public:
   creatWindow(const BookBaseEntry &bbe);
 
   static void
-  formReplacementTable(std::vector<ReplaceTagItem> &replacement_table);
+  formReplacementTable(
+      std::vector<ReplaceTagItem> &replacement_table,
+      std::vector<std::tuple<std::string, std::string>> &symbols_replacement);
 
 private:
   Glib::ustring
@@ -66,8 +68,8 @@ private:
                            int &row_num);
 
   void
-  formEectordocInfoSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
-                           int &row_num);
+  formElectordocInfoSection(const BookBaseEntry &bbe, Gtk::Grid *grid,
+                            int &row_num);
 
   void
   formFileSection(const BookBaseEntry &bbe, Gtk::Grid *grid, int &row_num);

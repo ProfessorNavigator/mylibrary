@@ -17,7 +17,6 @@
 #include <BookMarks.h>
 #include <BookParseEntry.h>
 #include <ByteOrder.h>
-#include <MLException.h>
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -41,7 +40,7 @@ BookMarks::BookMarks(const std::shared_ptr<AuxFunc> &af)
       {
         loadBookMarks();
       }
-    catch(MLException &e)
+    catch(std::exception &e)
       {
         std::cout << e.what() << std::endl;
       };
@@ -78,7 +77,8 @@ BookMarks::loadBookMarks()
           if(val64_sz > fsz - bytesr)
             {
               f.close();
-              throw MLException("BookMarks::loadBookMarks: wrong entry");
+              throw std::runtime_error(
+                  "BookMarks::loadBookMarks: wrong entry");
             }
           else
             {
@@ -91,7 +91,8 @@ BookMarks::loadBookMarks()
           if(static_cast<size_t>(val64) > fsz - bytesr)
             {
               f.close();
-              throw MLException("BookMarks::loadBookMarks: wrong entry size");
+              throw std::runtime_error(
+                  "BookMarks::loadBookMarks: wrong entry size");
             }
           else
             {
@@ -105,7 +106,7 @@ BookMarks::loadBookMarks()
               std::tuple<std::string, BookBaseEntry> bm_tup = parse_entry(buf);
               bookmarks.emplace_back(bm_tup);
             }
-          catch(MLException &e)
+          catch(std::exception &e)
             {
               bookmarks.clear();
               std::cout << e.what() << std::endl;
@@ -130,7 +131,8 @@ BookMarks::parse_entry(const std::string &buf)
     {
       if(buf.size() < r_b + val16_sz)
         {
-          throw MLException("BookMarks::parse_entry: incorrect entry size");
+          throw std::runtime_error(
+              "BookMarks::parse_entry: incorrect entry size");
         }
       else
         {
@@ -141,7 +143,7 @@ BookMarks::parse_entry(const std::string &buf)
         }
       if(buf.size() < r_b + static_cast<size_t>(val16))
         {
-          throw MLException("BookMarks::parse_entry: wrong size(2)");
+          throw std::runtime_error("BookMarks::parse_entry: wrong size(2)");
         }
       else
         {

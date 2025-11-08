@@ -18,7 +18,6 @@
 #include <ArchiveRemoveEntry.h>
 #include <BookParseEntry.h>
 #include <LibArchive.h>
-#include <MLException.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
 #include <algorithm>

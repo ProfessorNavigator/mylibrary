@@ -21,7 +21,6 @@
 #include <DJVUParser.h>
 #include <EPUBParser.h>
 #include <FB2Parser.h>
-#include <MLException.h>
 #include <ODTParser.h>
 #include <PDFParser.h>
 #include <TXTParser.h>
@@ -30,6 +29,7 @@
 #include <iostream>
 
 #ifndef USE_OPENMP
+#include <pthread.h>
 #include <thread>
 #endif
 
@@ -55,24 +55,26 @@ CreateCollection::CreateCollection(
     }
 #ifndef USE_OPENMP
   current_bytes.store(0.0);
-  stop_all_signal = [this] {
-    archp_obj_mtx.lock();
-    for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
-      {
-        reinterpret_cast<ARCHParser *>(*it)->stopAll();
-      }
-    archp_obj_mtx.unlock();
-  };
+  stop_all_signal = [this]
+    {
+      archp_obj_mtx.lock();
+      for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
+        {
+          reinterpret_cast<ARCHParser *>(*it)->stopAll();
+        }
+      archp_obj_mtx.unlock();
+    };
 #else
   omp_init_lock(&archp_obj_mtx);
-  stop_all_signal = [this] {
-    omp_set_lock(&archp_obj_mtx);
-    for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
-      {
-        reinterpret_cast<ARCHParser *>(*it)->stopAll();
-      }
-    omp_unset_lock(&archp_obj_mtx);
-  };
+  stop_all_signal = [this]
+    {
+      omp_set_lock(&archp_obj_mtx);
+      for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
+        {
+          reinterpret_cast<ARCHParser *>(*it)->stopAll();
+        }
+      omp_unset_lock(&archp_obj_mtx);
+    };
 #endif
 }
 
@@ -98,24 +100,26 @@ CreateCollection::CreateCollection(const std::shared_ptr<AuxFunc> &af,
     }
 #ifndef USE_OPENMP
   current_bytes.store(0.0);
-  stop_all_signal = [this] {
-    archp_obj_mtx.lock();
-    for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
-      {
-        reinterpret_cast<ARCHParser *>(*it)->stopAll();
-      }
-    archp_obj_mtx.unlock();
-  };
+  stop_all_signal = [this]
+    {
+      archp_obj_mtx.lock();
+      for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
+        {
+          reinterpret_cast<ARCHParser *>(*it)->stopAll();
+        }
+      archp_obj_mtx.unlock();
+    };
 #else
   omp_init_lock(&archp_obj_mtx);
-  stop_all_signal = [this] {
-    omp_set_lock(&archp_obj_mtx);
-    for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
-      {
-        reinterpret_cast<ARCHParser *>(*it)->stopAll();
-      }
-    omp_unset_lock(&archp_obj_mtx);
-  };
+  stop_all_signal = [this]
+    {
+      omp_set_lock(&archp_obj_mtx);
+      for(auto it = archp_obj.begin(); it != archp_obj.end(); it++)
+        {
+          reinterpret_cast<ARCHParser *>(*it)->stopAll();
+        }
+      omp_unset_lock(&archp_obj_mtx);
+    };
 #endif
 }
 
@@ -158,11 +162,12 @@ CreateCollection::createCollection()
       std::string sstr = ".rar";
       need_to_parse.erase(
           std::remove_if(need_to_parse.begin(), need_to_parse.end(),
-                         [sstr, this](std::filesystem::path &el) {
-                           std::string ext = el.extension().u8string();
-                           ext = af->stringToLower(ext);
-                           return ext == sstr;
-                         }),
+                         [sstr, this](std::filesystem::path &el)
+                           {
+                             std::string ext = el.extension().u8string();
+                             ext = af->stringToLower(ext);
+                             return ext == sstr;
+                           }),
           need_to_parse.end());
     }
 
@@ -203,41 +208,132 @@ CreateCollection::threadRegulator()
     }
 
 #ifndef USE_OPENMP
-  run_threads = 0;
+  thr_pool.clear();
+  unsigned lim;
+  if(num_threads > static_cast<int>(std::thread::hardware_concurrency()))
+    {
+      lim = static_cast<unsigned>(std::thread::hardware_concurrency());
+    }
+  else
+    {
+      lim = static_cast<unsigned>(num_threads);
+    }
+  thr_pool.reserve(lim);
+  for(unsigned i = 0; i < lim; i++)
+    {
+      thr_pool.push_back(std::make_tuple(i, true));
+    }
   for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
     {
       if(cancel.load(std::memory_order_relaxed))
         {
           break;
         }
-      std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
-      run_threads_var.wait(run_thr_lock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads - 1;
-          }
-        else
-          {
-            return run_threads < 1;
-          }
-      });
-      run_threads++;
+
       std::filesystem::path p = *it;
-      std::thread thr([this, p] {
-        std::cout << "Start parsing: " << p << std::endl;
-        threadFunc(p);
-        std::lock_guard<std::mutex> lglock(run_threads_mtx);
-        std::cout << "Parsing finished: " << p << std::endl;
-        run_threads--;
-        run_threads_var.notify_one();
-      });
+      std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
+      std::vector<std::tuple<unsigned, bool>>::iterator free;
+      if(thr_pool.size() > 1 && af->ifSupportedArchiveUnpackaingType(p))
+        {
+          run_threads_var.wait(
+              run_thr_lock,
+              [this, &free]
+                {
+                  int num = 0;
+                  for(auto it = thr_pool.begin(); it != thr_pool.end(); it++)
+                    {
+                      if(std::get<1>(*it))
+                        {
+                          num++;
+                          switch(num)
+                            {
+                            case 1:
+                              {
+                                free = it;
+                                break;
+                              }
+                            case 2:
+                              {
+                                reserved_mtx.lock();
+                                std::get<1>(*it) = false;
+                                reserved.push_back(std::get<0>(*it));
+                                reserved_mtx.unlock();
+                                break;
+                              }
+                            default:
+                              break;
+                            }
+                        }
+                      if(num >= 2)
+                        {
+                          break;
+                        }
+                    }
+                  return num >= 2;
+                });
+        }
+      else
+        {
+          run_threads_var.wait(run_thr_lock,
+                               [this, &free]
+                                 {
+                                   bool result = false;
+                                   for(auto it = thr_pool.begin();
+                                       it != thr_pool.end(); it++)
+                                     {
+                                       if(std::get<1>(*it))
+                                         {
+                                           free = it;
+                                           result = true;
+                                           break;
+                                         }
+                                     }
+                                   return result;
+                                 });
+        }
+      std::get<1>(*free) = false;
+      std::thread thr(
+          [this, p, free]
+            {
+              std::cout << "Start parsing: " << p << std::endl;
+              threadFunc(p);
+              std::lock_guard<std::mutex> lglock(run_threads_mtx);
+              std::cout << "Parsing finished: " << p << std::endl;
+              std::get<1>(*free) = true;
+              run_threads_var.notify_one();
+            });
+      if(thr_pool.size() > 1)
+        {
+          cpu_set_t cpu_set;
+          CPU_ZERO(&cpu_set);
+          CPU_SET(std::get<0>(*free), &cpu_set);
+          int er = pthread_setaffinity_np(thr.native_handle(),
+                                          sizeof(cpu_set_t), &cpu_set);
+          if(er)
+            {
+              std::cout << "CreateCollection::threadRegulator: \""
+                        << std::strerror(er) << "\"" << std::endl;
+            }
+        }
       thr.detach();
     }
 
   std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
-  run_threads_var.wait(run_thr_lock, [this] {
-    return run_threads <= 0;
-  });
+  run_threads_var.wait(run_thr_lock,
+                       [this]
+                         {
+                           bool result = true;
+                           for(auto it = thr_pool.begin();
+                               it != thr_pool.end(); it++)
+                             {
+                               if(!std::get<1>(*it))
+                                 {
+                                   result = false;
+                                   break;
+                                 }
+                             }
+                           return result;
+                         });
 #else
   int num_threads_default = omp_get_max_threads();
   omp_set_num_threads(num_threads);
@@ -291,11 +387,13 @@ CreateCollection::fb2Thread(const std::filesystem::path &file_col_path,
   uintmax_t fsz = std::filesystem::file_size(filepath, ec);
   if(ec)
     {
-      throw MLException("CreateCollection::fb2_thread: " + ec.message());
+      throw std::runtime_error("CreateCollection::fb2_thread: "
+                               + ec.message());
     }
   if(fsz == 0)
     {
-      throw MLException("CreateCollection::fb2_thread: file size is zero");
+      throw std::runtime_error(
+          "CreateCollection::fb2_thread: file size is zero");
     }
 
   std::fstream f;
@@ -308,7 +406,17 @@ CreateCollection::fb2Thread(const std::filesystem::path &file_col_path,
       f.close();
 
       FB2Parser fb2(af);
-      BookParseEntry be = fb2.fb2_parser(book);
+      BookParseEntry be;
+      try
+        {
+          be = fb2.fb2Parser(book);
+        }
+      catch(std::exception &er)
+        {
+          std::cout << "CreateCollection::fb2Thread: \"" << er.what() << "\" "
+                    << filepath << std::endl;
+        }
+
       if(be.book_name.empty())
         {
           be.book_name = filepath.stem().u8string();
@@ -319,9 +427,10 @@ CreateCollection::fb2Thread(const std::filesystem::path &file_col_path,
           = file_col_path.lexically_proximate(books_path).u8string();
       auto ithsh = std::find_if(
           already_hashed.begin(), already_hashed.end(),
-          [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-            return std::get<0>(el) == file_col_path;
-          });
+          [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+            {
+              return std::get<0>(el) == file_col_path;
+            });
       if(ithsh != already_hashed.end())
         {
           fe.file_hash = std::get<1>(*ithsh);
@@ -346,7 +455,7 @@ CreateCollection::openBaseFile()
     }
   if(!base_strm.is_open())
     {
-      throw MLException(
+      throw std::runtime_error(
           "CreateCollection::openBaseFile: cannot open base file");
     }
   else
@@ -428,36 +537,16 @@ CreateCollection::epubThread(const std::filesystem::path &file_col_path,
 
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
     {
-#ifndef USE_OPENMP
-      std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
-      run_threads_var.wait(rthr_lock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads;
-          }
-        else
-          {
-            return run_threads < 2;
-          }
-      });
-      run_threads++;
-      rthr_lock.unlock();
-
-      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
-        std::lock_guard<std::mutex> lglock(run_threads_mtx);
-        run_threads--;
-        run_threads_var.notify_one();
-      });
-#endif
       fe.file_hash = file_hashing(filepath);
     }
 #ifndef USE_OPENMP
@@ -473,7 +562,16 @@ CreateCollection::epubThread(const std::filesystem::path &file_col_path,
           = file_col_path.lexically_proximate(books_path).u8string();
 
       EPUBParser epub(af);
-      BookParseEntry be = epub.epub_parser(filepath);
+      BookParseEntry be;
+      try
+        {
+          be = epub.epubParser(filepath);
+        }
+      catch(std::exception &er)
+        {
+          std::cout << "CreateCollection::epubThread: \"" << er.what() << "\""
+                    << std::endl;
+        }
       if(be.book_name.empty())
         {
           be.book_name = filepath.stem().u8string();
@@ -502,11 +600,12 @@ CreateCollection::pdfThread(const std::filesystem::path &file_col_path,
   uintmax_t fsz = std::filesystem::file_size(filepath, ec);
   if(ec)
     {
-      throw MLException("CreateCollection::pdf_thread: " + ec.message());
+      throw std::runtime_error("CreateCollection::pdfThread: " + ec.message());
     }
   if(fsz == 0)
     {
-      throw MLException("CreateCollection::pdf_thread: file size is zero");
+      throw std::runtime_error(
+          "CreateCollection::pdfThread: file size is zero");
     }
 
   std::fstream f;
@@ -519,7 +618,17 @@ CreateCollection::pdfThread(const std::filesystem::path &file_col_path,
       f.close();
 
       PDFParser pdf(af);
-      BookParseEntry be = pdf.pdf_parser(book);
+      BookParseEntry be;
+      try
+        {
+          be = pdf.pdf_parser(book);
+        }
+      catch(std::exception &er)
+        {
+          std::cout << "CreateCollection::pdfThread: \"" << er.what() << "\" "
+                    << filepath << std::endl;
+        }
+
       if(be.book_name.empty())
         {
           be.book_name = filepath.stem().u8string();
@@ -530,9 +639,10 @@ CreateCollection::pdfThread(const std::filesystem::path &file_col_path,
           = file_col_path.lexically_proximate(books_path).u8string();
       auto ithsh = std::find_if(
           already_hashed.begin(), already_hashed.end(),
-          [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-            return std::get<0>(el) == file_col_path;
-          });
+          [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+            {
+              return std::get<0>(el) == file_col_path;
+            });
       if(ithsh != already_hashed.end())
         {
           fe.file_hash = std::get<1>(*ithsh);
@@ -561,43 +671,53 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
       filepath = file_col_path;
     }
 
-  ARCHParser arp(af, rar_support);
 #ifndef USE_OPENMP
+  int processor_num = -1;
+
+  reserved_mtx.lock();
+  if(reserved.size() > 0)
+    {
+      processor_num = static_cast<int>(*reserved.rbegin());
+      reserved.pop_back();
+    }
+  reserved_mtx.unlock();
+  ARCHParser arp(af, rar_support, processor_num);
   archp_obj_mtx.lock();
   archp_obj.push_back(&arp);
   archp_obj_mtx.unlock();
-
-  std::function<bool()> waiter = [this] {
-    if(num_threads > 1)
-      {
-        return run_threads < num_threads;
-      }
-    else
-      {
-        return run_threads < 2;
-      }
-  };
-
-  std::function<void(int *)> deleter = [this](int *) {
-    std::lock_guard<std::mutex> lglock(run_threads_mtx);
-    run_threads--;
-    run_threads_var.notify_one();
-  };
-
-  std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
-  run_threads_var.wait(rthr_lock, waiter);
-  run_threads++;
-  rthr_lock.unlock();
-  std::shared_ptr<int> thr_finish(&run_threads, deleter);
 #else
+  ARCHParser arp(af, rar_support);
   omp_set_lock(&archp_obj_mtx);
   archp_obj.push_back(&arp);
   omp_unset_lock(&archp_obj_mtx);
 #endif
   FileParseEntry fe;
-  fe.books = arp.arch_parser(filepath);
 #ifndef USE_OPENMP
-  thr_finish.reset();
+  try
+    {
+      fe.books = arp.arch_parser(filepath);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "CreateCollection::archThread: \"" << er.what() << "\""
+                << std::endl;
+    }
+
+  if(processor_num >= 0)
+    {
+      std::lock_guard<std::mutex> lglock(run_threads_mtx);
+      unsigned n_pr = static_cast<unsigned>(processor_num);
+      auto it_thr = std::find_if(thr_pool.begin(), thr_pool.end(),
+                                 [n_pr](const std::tuple<unsigned, bool> &el)
+                                   {
+                                     return n_pr == std::get<0>(el);
+                                   });
+      if(it_thr != thr_pool.end())
+        {
+          std::get<1>(*it_thr) = true;
+        }
+      run_threads_var.notify_one();
+    }
 
   if(fe.books.size() > 0 && !cancel.load(std::memory_order_relaxed))
     {
@@ -605,22 +725,17 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
           = file_col_path.lexically_proximate(books_path).u8string();
       auto ithsh = std::find_if(
           already_hashed.begin(), already_hashed.end(),
-          [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-            return std::get<0>(el) == file_col_path;
-          });
+          [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+            {
+              return std::get<0>(el) == file_col_path;
+            });
       if(ithsh != already_hashed.end())
         {
           fe.file_hash = std::get<1>(*ithsh);
         }
       else
         {
-          rthr_lock.lock();
-          run_threads_var.wait(rthr_lock, waiter);
-          run_threads++;
-          rthr_lock.unlock();
-          thr_finish = std::shared_ptr<int>(&run_threads, deleter);
           fe.file_hash = file_hashing(filepath);
-          thr_finish.reset();
         }
       if(!cancel.load(std::memory_order_relaxed))
         {
@@ -633,6 +748,7 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
                   archp_obj.end());
   archp_obj_mtx.unlock();
 #else
+  fe.books = arp.arch_parser(filepath);
   bool cncl;
 #pragma omp atomic read
   cncl = cancel;
@@ -643,9 +759,10 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
           = file_col_path.lexically_proximate(books_path).u8string();
       auto ithsh = std::find_if(
           already_hashed.begin(), already_hashed.end(),
-          [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-            return std::get<0>(el) == file_col_path;
-          });
+          [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+            {
+              return std::get<0>(el) == file_col_path;
+            });
       if(ithsh != already_hashed.end())
         {
           fe.file_hash = std::get<1>(*ithsh);
@@ -769,9 +886,10 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           fb2Thread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
-          std::cout << er.what() << std::endl;
+          std::cout << "CreateCollection::threadFunc: \"" << er.what() << "\""
+                    << std::endl;
         }
       if(progress)
         {
@@ -816,7 +934,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           epubThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -863,7 +981,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           pdfThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -910,7 +1028,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           djvuThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -957,7 +1075,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           odtThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -1004,7 +1122,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           txtThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -1051,7 +1169,7 @@ CreateCollection::threadFunc(const std::filesystem::path &need_to_parse)
         {
           archThread(p, resolved);
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -1116,34 +1234,16 @@ CreateCollection::djvuThread(const std::filesystem::path &file_col_path,
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {
-      std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
-      run_threads_var.wait(rthr_lock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads;
-          }
-        else
-          {
-            return run_threads < 2;
-          }
-      });
-      run_threads++;
-      rthr_lock.unlock();
-
-      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
-        std::lock_guard<std::mutex> lglock(run_threads_mtx);
-        run_threads--;
-        run_threads_var.notify_one();
-      });
+    {     
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))
@@ -1152,14 +1252,30 @@ CreateCollection::djvuThread(const std::filesystem::path &file_col_path,
       write_file_to_base(fe);
     }
 #else
-  BookParseEntry be = djvu.djvu_parser(filepath);
+  BookParseEntry be;
+  try
+    {
+      be = djvu.djvu_parser(filepath);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "CreateCollection::djvuThread: \"" << er.what() << "\" "
+                << filepath << std::endl;
+    }
+
+  if(be.book_name.empty())
+    {
+      be.book_name = filepath.stem().u8string();
+    }
+
   FileParseEntry fe;
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
@@ -1201,34 +1317,16 @@ CreateCollection::odtThread(const std::filesystem::path &file_col_path,
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {
-      std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
-      run_threads_var.wait(rthr_lock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads;
-          }
-        else
-          {
-            return run_threads < 2;
-          }
-      });
-      run_threads++;
-      rthr_lock.unlock();
-
-      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
-        std::lock_guard<std::mutex> lglock(run_threads_mtx);
-        run_threads--;
-        run_threads_var.notify_one();
-      });
+    {      
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))
@@ -1237,14 +1335,30 @@ CreateCollection::odtThread(const std::filesystem::path &file_col_path,
       write_file_to_base(fe);
     }
 #else
-  BookParseEntry be = odt.odtParser(filepath);
+  BookParseEntry be;
+  try
+    {
+      be = odt.odtParser(filepath);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "CreateCollection::odtThread: \"" << er.what() << "\" "
+                << filepath << std::endl;
+    }
+
+  if(be.book_name.empty())
+    {
+      be.book_name = filepath.stem().u8string();
+    }
+
   FileParseEntry fe;
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
@@ -1279,40 +1393,37 @@ CreateCollection::txtThread(const std::filesystem::path &file_col_path,
     }
 
   TXTParser txt(af);
-  BookParseEntry be = txt.txtParser(filepath);
+  BookParseEntry be;
+  try
+    {
+      be = txt.txtParser(filepath);
+    }
+  catch(std::exception &er)
+    {
+      std::cout << "CreateCollection::txtThread: \"" << er.what() << "\" "
+                << filepath << std::endl;
+    }
+
+  if(be.book_name.empty())
+    {
+      be.book_name = filepath.stem().u8string();
+    }
+
 #ifndef USE_OPENMP
   FileParseEntry fe;
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {
-      std::unique_lock<std::mutex> rthr_lock(run_threads_mtx);
-      run_threads_var.wait(rthr_lock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads;
-          }
-        else
-          {
-            return run_threads < 2;
-          }
-      });
-      run_threads++;
-      rthr_lock.unlock();
-
-      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
-        std::lock_guard<std::mutex> lglock(run_threads_mtx);
-        run_threads--;
-        run_threads_var.notify_one();
-      });
+    {     
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))
@@ -1325,9 +1436,10 @@ CreateCollection::txtThread(const std::filesystem::path &file_col_path,
   fe.file_rel_path = file_col_path.lexically_proximate(books_path).u8string();
   auto ithsh = std::find_if(
       already_hashed.begin(), already_hashed.end(),
-      [file_col_path](std::tuple<std::filesystem::path, std::string> &el) {
-        return std::get<0>(el) == file_col_path;
-      });
+      [file_col_path](std::tuple<std::filesystem::path, std::string> &el)
+        {
+          return std::get<0>(el) == file_col_path;
+        });
   if(ithsh != already_hashed.end())
     {
       fe.file_hash = std::get<1>(*ithsh);

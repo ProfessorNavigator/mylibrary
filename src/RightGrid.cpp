@@ -19,7 +19,6 @@
 #include <CopyBookGui.h>
 #include <EditBookGui.h>
 #include <FullSizeCover.h>
-#include <MLException.h>
 #include <NotesGui.h>
 #include <RemoveBookGui.h>
 #include <RightGrid.h>
@@ -65,8 +64,11 @@ RightGrid::RightGrid(const std::shared_ptr<AuxFunc> &af,
   bi = new BookInfo(af);
   formatter = new FormatAnnotation(af);
   std::vector<ReplaceTagItem> tag_replacement_table;
-  BookInfoGui::formReplacementTable(tag_replacement_table);
-  formatter->setTagReplacementTable(tag_replacement_table);
+  std::vector<std::tuple<std::string, std::string>> symbols_replacement;
+  BookInfoGui::formReplacementTable(tag_replacement_table,
+                                    symbols_replacement);
+  formatter->setTagReplacementTable(tag_replacement_table,
+                                    symbols_replacement);
   open_book = new OpenBook(af);
   bookOperationsActionGroup();
   coverOperationsActionGroup();
@@ -125,9 +127,11 @@ RightGrid::createGrid()
   Gtk::PopoverMenu *pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu_sr);
   pop_menu->set_parent(*search_res);
-  search_res->signal_unrealize().connect([pop_menu] {
-    pop_menu->unparent();
-  });
+  search_res->signal_unrealize().connect(
+      [pop_menu]
+        {
+          pop_menu->unparent();
+        });
 
   Glib::RefPtr<Gtk::GestureClick> clck = Gtk::GestureClick::create();
   clck->set_button(3);
@@ -175,23 +179,24 @@ RightGrid::createGrid()
       = Gtk::EventControllerKey::create();
   key->set_propagation_phase(Gtk::PropagationPhase::CAPTURE);
   key->signal_key_pressed().connect(
-      [this, filter_ent](guint keyval, guint, Gdk::ModifierType) {
-        if(keyval == GDK_KEY_Return)
-          {
-            Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
-            if(filter_selection->is_visible())
-              {
-                srs->filterBooks(buf->get_text(),
-                                 filter_selection->get_selected());
-              }
-            else
-              {
-                srs->filterFiles(buf->get_text());
-              }
-            return true;
-          }
-        return false;
-      },
+      [this, filter_ent](guint keyval, guint, Gdk::ModifierType)
+        {
+          if(keyval == GDK_KEY_Return)
+            {
+              Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
+              if(filter_selection->is_visible())
+                {
+                  srs->filterBooks(buf->get_text(),
+                                   filter_selection->get_selected());
+                }
+              else
+                {
+                  srs->filterFiles(buf->get_text());
+                }
+              return true;
+            }
+          return false;
+        },
       false);
   filter_ent->add_controller(key);
   filter_box->append(*filter_ent);
@@ -216,17 +221,20 @@ RightGrid::createGrid()
   filter_but->set_halign(Gtk::Align::START);
   filter_but->set_name("operationBut");
   filter_but->set_label(gettext("Filter"));
-  filter_but->signal_clicked().connect([this, filter_ent] {
-    Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
-    if(filter_selection->is_visible())
-      {
-        srs->filterBooks(buf->get_text(), filter_selection->get_selected());
-      }
-    else
-      {
-        srs->filterFiles(buf->get_text());
-      }
-  });
+  filter_but->signal_clicked().connect(
+      [this, filter_ent]
+        {
+          Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
+          if(filter_selection->is_visible())
+            {
+              srs->filterBooks(buf->get_text(),
+                               filter_selection->get_selected());
+            }
+          else
+            {
+              srs->filterFiles(buf->get_text());
+            }
+        });
   filter_box->append(*filter_but);
 
   Gtk::Button *clear_filter_but = Gtk::make_managed<Gtk::Button>();
@@ -234,16 +242,18 @@ RightGrid::createGrid()
   clear_filter_but->set_halign(Gtk::Align::START);
   clear_filter_but->set_name("cancelBut");
   clear_filter_but->set_label(gettext("Clear filter"));
-  clear_filter_but->signal_clicked().connect([this, filter_ent] {
-    Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
-    Glib::ustring txt("");
-    buf->set_text(txt);
-    srs->filterFiles(txt);
-    for(guint i = 0; i < 5; i++)
-      {
-        srs->filterBooks(txt, i);
-      }
-  });
+  clear_filter_but->signal_clicked().connect(
+      [this, filter_ent]
+        {
+          Glib::RefPtr<Gtk::EntryBuffer> buf = filter_ent->get_buffer();
+          Glib::ustring txt("");
+          buf->set_text(txt);
+          srs->filterFiles(txt);
+          for(guint i = 0; i < 5; i++)
+            {
+              srs->filterBooks(txt, i);
+            }
+        });
   filter_box->append(*clear_filter_but);
 
   Gtk::Grid *annot_cover_grid = Gtk::make_managed<Gtk::Grid>();
@@ -292,15 +302,19 @@ RightGrid::createGrid()
   pop_menu = Gtk::make_managed<Gtk::PopoverMenu>();
   pop_menu->set_menu_model(menu);
   pop_menu->set_parent(*cover_area);
-  cover_area->signal_unrealize().connect([pop_menu] {
-    pop_menu->unparent();
-  });
+  cover_area->signal_unrealize().connect(
+      [pop_menu]
+        {
+          pop_menu->unparent();
+        });
 
   clck = Gtk::GestureClick::create();
   clck->set_button(1);
-  clck->signal_pressed().connect([this](int, double, double) {
-    coverFullSize();
-  });
+  clck->signal_pressed().connect(
+      [this](int, double, double)
+        {
+          coverFullSize();
+        });
   cover_area->add_controller(clck);
 
   clck = Gtk::GestureClick::create();
@@ -363,32 +377,37 @@ RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result,
         box->append(*lab);
 
         window->signal_close_request().connect(
-            [window, this] {
-              std::unique_ptr<Gtk::Window> win(window);
-              win->set_visible(false);
-              return true;
-            },
+            [window, this]
+              {
+                std::unique_ptr<Gtk::Window> win(window);
+                win->set_visible(false);
+                return true;
+              },
             false);
 
         Glib::Dispatcher *result_disp = new Glib::Dispatcher;
-        result_disp->connect([this, result, result_disp, window] {
-          std::unique_ptr<Glib::Dispatcher> disp(result_disp);
-          srs->searchResultShow(result);
-          if(get_current_collection_name)
-            {
-              current_collection = get_current_collection_name();
-            }
-          bookMenu(menu_sr);
-          filter_selection->set_visible(true);
-          book_ops->set_label(gettext("Book operations"));
-          window->close();
-        });
+        result_disp->connect(
+            [this, result, result_disp, window]
+              {
+                std::unique_ptr<Glib::Dispatcher> disp(result_disp);
+                srs->searchResultShow(result);
+                if(get_current_collection_name)
+                  {
+                    current_collection = get_current_collection_name();
+                  }
+                bookMenu(menu_sr);
+                filter_selection->set_visible(true);
+                book_ops->set_label(gettext("Book operations"));
+                window->close();
+              });
 
         window->present();
 
-        std::thread thr([result_disp] {
-          result_disp->emit();
-        });
+        std::thread thr(
+            [result_disp]
+              {
+                result_disp->emit();
+              });
         thr.detach();
         break;
       }
@@ -400,11 +419,12 @@ RightGrid::searchResultShow(const std::vector<BookBaseEntry> &result,
                              created_grid->get_height());
         bw->createWindow(result);
         bw->signal_close_request().connect(
-            [bw] {
-              std::unique_ptr<BooksWindow> ubw(bw);
-              ubw->set_visible(false);
-              return true;
-            },
+            [bw]
+              {
+                std::unique_ptr<BooksWindow> ubw(bw);
+                ubw->set_visible(false);
+                return true;
+              },
             false);
         bw->present();
         break;
@@ -506,23 +526,23 @@ RightGrid::setAnnotationNCover(const Glib::RefPtr<SearchResultModelItem> &item)
     {
       bie = bi->get_book_info(item->bbe);
     }
-  catch(MLException &e)
+  catch(std::exception &e)
     {
       std::cout << e.what() << std::endl;
     }
   Glib::RefPtr<Gtk::TextBuffer> buffer = Gtk::TextBuffer::create();
   if(bie)
     {
-      formatter->remove_escape_sequences(bie->annotation);
+      formatter->removeEscapeSequences(bie->annotation);
       std::string reserve_annot = bie->annotation;
-      formatter->replace_tags(bie->annotation);
-      formatter->final_cleaning(bie->annotation);
+      formatter->replaceTags(bie->annotation);
+      formatter->finalCleaning(bie->annotation);
 
       buffer->insert_markup(buffer->begin(), Glib::ustring(bie->annotation));
       if(buffer->size() == 0)
         {
           formatter->removeAllTags(reserve_annot);
-          formatter->final_cleaning(reserve_annot);
+          formatter->finalCleaning(reserve_annot);
           buffer->set_text(Glib::ustring(reserve_annot));
         }
       cover_buf = CoverPixBuf(bie, formatter);
@@ -680,48 +700,60 @@ RightGrid::bookOperationsActionGroup()
   book_actions->add_action("open_book",
                            std::bind(&RightGrid::openBookAction, this));
 
-  book_actions->add_action("create_bookmark", [this] {
-    auto item = srs->get_selected_item();
-    if(item)
-      {
-        int variant = bookmarks->createBookMark(current_collection, item->bbe);
-        bookmarksSaveResultDialog(variant);
-      }
-  });
+  book_actions->add_action("create_bookmark",
+                           [this]
+                             {
+                               auto item = srs->get_selected_item();
+                               if(item)
+                                 {
+                                   int variant = bookmarks->createBookMark(
+                                       current_collection, item->bbe);
+                                   bookmarksSaveResultDialog(variant);
+                                 }
+                             });
 
-  book_actions->add_action("book_info", [this] {
-    auto item = srs->get_selected_item();
-    if(item)
-      {
-        BookInfoGui *big = new BookInfoGui(af, main_window, bie);
-        big->creatWindow(item->bbe);
-      }
-  });
+  book_actions->add_action("book_info",
+                           [this]
+                             {
+                               auto item = srs->get_selected_item();
+                               if(item)
+                                 {
+                                   BookInfoGui *big
+                                       = new BookInfoGui(af, main_window, bie);
+                                   big->creatWindow(item->bbe);
+                                 }
+                             });
 
-  book_actions->add_action("copy_book", [this] {
-    auto item = srs->get_selected_item();
-    if(item)
-      {
-        CopyBookGui *cbg = new CopyBookGui(af, main_window, item->bbe);
-        cbg->createWindow();
-      }
-  });
+  book_actions->add_action("copy_book",
+                           [this]
+                             {
+                               auto item = srs->get_selected_item();
+                               if(item)
+                                 {
+                                   CopyBookGui *cbg = new CopyBookGui(
+                                       af, main_window, item->bbe);
+                                   cbg->createWindow();
+                                 }
+                             });
 
   book_actions->add_action("remove_book",
                            std::bind(&RightGrid::bookRemoveAction, this));
 
-  book_actions->add_action("edit_book", [this] {
-    auto item = srs->get_selected_item();
-    if(item)
-      {
-        EditBookGui *ebg = new EditBookGui(af, main_window, bookmarks,
-                                           current_collection, item->bbe);
-        ebg->successfully_edited_signal = std::bind(
-            &RightGrid::editBookSuccessSlot, this, std::placeholders::_1,
-            std::placeholders::_2, std::placeholders::_3);
-        ebg->createWindow();
-      }
-  });
+  book_actions->add_action(
+      "edit_book",
+      [this]
+        {
+          auto item = srs->get_selected_item();
+          if(item)
+            {
+              EditBookGui *ebg = new EditBookGui(
+                  af, main_window, bookmarks, current_collection, item->bbe);
+              ebg->successfully_edited_signal = std::bind(
+                  &RightGrid::editBookSuccessSlot, this, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3);
+              ebg->createWindow();
+            }
+        });
 
   book_actions->add_action("move_to_another_col",
                            std::bind(&RightGrid::transferBookAction, this));
@@ -734,81 +766,95 @@ RightGrid::bookOperationsActionGroup()
   Glib::RefPtr<Gio::SimpleActionGroup> file_actions
       = Gio::SimpleActionGroup::create();
 
-  file_actions->add_action("list_books", [this] {
-    Glib::RefPtr<SearchResultModelItemFL> f_item
-        = srs->get_selected_item_file();
-    if(f_item)
-      {
-        std::vector<BookBaseEntry> bbe_v;
-        for(auto it = f_item->entry.books.begin();
-            it != f_item->entry.books.end(); it++)
-          {
-            BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
-            bbe_v.emplace_back(bbe);
-          }
-        srs->searchResultShow(bbe_v);
-        book_ops->set_label(gettext("Book operations"));
-        bookMenu(menu_sr);
-        filter_selection->set_visible(true);
-      }
-  });
+  file_actions->add_action(
+      "list_books",
+      [this]
+        {
+          Glib::RefPtr<SearchResultModelItemFL> f_item
+              = srs->get_selected_item_file();
+          if(f_item)
+            {
+              std::vector<BookBaseEntry> bbe_v;
+              for(auto it = f_item->entry.books.begin();
+                  it != f_item->entry.books.end(); it++)
+                {
+                  BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
+                  bbe_v.emplace_back(bbe);
+                }
+              srs->searchResultShow(bbe_v);
+              book_ops->set_label(gettext("Book operations"));
+              bookMenu(menu_sr);
+              filter_selection->set_visible(true);
+            }
+        });
 
-  file_actions->add_action("list_books_separate_window", [this] {
-    Glib::RefPtr<SearchResultModelItemFL> f_item
-        = srs->get_selected_item_file();
-    if(f_item)
-      {
-        BooksWindow *bw = new BooksWindow(
-            main_window, af, get_current_collection_name(), bookmarks, notes);
-        bw->set_default_size(created_grid->get_width(),
-                             created_grid->get_height());
-        std::vector<BookBaseEntry> bbe_v;
-        for(auto it = f_item->entry.books.begin();
-            it != f_item->entry.books.end(); it++)
-          {
-            BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
-            bbe_v.emplace_back(bbe);
-          }
-        bw->createWindow(bbe_v);
-        bw->signal_close_request().connect(
-            [bw] {
-              std::unique_ptr<BooksWindow> ubw(bw);
-              ubw->set_visible(false);
-              return true;
-            },
-            false);
-        bw->present();
-      }
-  });
+  file_actions->add_action(
+      "list_books_separate_window",
+      [this]
+        {
+          Glib::RefPtr<SearchResultModelItemFL> f_item
+              = srs->get_selected_item_file();
+          if(f_item)
+            {
+              BooksWindow *bw = new BooksWindow(main_window, af,
+                                                get_current_collection_name(),
+                                                bookmarks, notes);
+              bw->set_default_size(created_grid->get_width(),
+                                   created_grid->get_height());
+              std::vector<BookBaseEntry> bbe_v;
+              for(auto it = f_item->entry.books.begin();
+                  it != f_item->entry.books.end(); it++)
+                {
+                  BookBaseEntry bbe(*it, f_item->entry.file_rel_path);
+                  bbe_v.emplace_back(bbe);
+                }
+              bw->createWindow(bbe_v);
+              bw->signal_close_request().connect(
+                  [bw]
+                    {
+                      std::unique_ptr<BooksWindow> ubw(bw);
+                      ubw->set_visible(false);
+                      return true;
+                    },
+                  false);
+              bw->present();
+            }
+        });
 
   main_window->insert_action_group("file_ops", file_actions);
 
   Glib::RefPtr<Gio::SimpleActionGroup> auth_actions
       = Gio::SimpleActionGroup::create();
 
-  auth_actions->add_action("list_books", [this] {
-    Glib::RefPtr<SearchResultModelItemAuth> auth_item
-        = srs->get_selected_item_auth();
-    if(auth_item)
-      {
-        if(search_books_callback)
-          {
-            search_books_callback(auth_item->auth);
-          }
-      }
-  });
+  auth_actions->add_action(
+      "list_books",
+      [this]
+        {
+          Glib::RefPtr<SearchResultModelItemAuth> auth_item
+              = srs->get_selected_item_auth();
+          if(auth_item)
+            {
+              if(search_books_callback)
+                {
+                  search_books_callback(auth_item->auth);
+                }
+            }
+        });
 
-  auth_actions->add_action("list_books_separate_window", [this] {
-    Glib::RefPtr<SearchResultModelItemAuth> auth_item
-        = srs->get_selected_item_auth();
-    if(auth_item)
-      {
-        if(search_books_callback_separate_window)
-          {
-            search_books_callback_separate_window(auth_item->auth);
-          }
-      }
-  });
+  auth_actions->add_action(
+      "list_books_separate_window",
+      [this]
+        {
+          Glib::RefPtr<SearchResultModelItemAuth> auth_item
+              = srs->get_selected_item_auth();
+          if(auth_item)
+            {
+              if(search_books_callback_separate_window)
+                {
+                  search_books_callback_separate_window(auth_item->auth);
+                }
+            }
+        });
 
   main_window->insert_action_group("auth_ops", auth_actions);
 }
@@ -1003,11 +1049,12 @@ RightGrid::coverFullSize()
     {
       FullSizeCover *fsc = new FullSizeCover(main_window, cover_buf);
       fsc->signal_close_request().connect(
-          [fsc] {
-            std::unique_ptr<FullSizeCover> f(fsc);
-            f->set_visible(false);
-            return true;
-          },
+          [fsc]
+            {
+              std::unique_ptr<FullSizeCover> f(fsc);
+              f->set_visible(false);
+              return true;
+            },
           false);
       fsc->present();
     }
@@ -1023,11 +1070,12 @@ RightGrid::saveCover()
         {
           SaveCover *sc = new SaveCover(bie, main_window, af);
           sc->signal_close_request().connect(
-              [sc] {
-                std::unique_ptr<SaveCover> s(sc);
-                s->set_visible(false);
-                return true;
-              },
+              [sc]
+                {
+                  std::unique_ptr<SaveCover> s(sc);
+                  s->set_visible(false);
+                  return true;
+                },
               false);
           sc->present();
         }
@@ -1045,20 +1093,20 @@ RightGrid::bookRemoveAction()
         {
           RemoveBookGui *rbg = new RemoveBookGui(af, main_window, item->bbe,
                                                  col_name, bookmarks, notes);
-          rbg->remove_callback = [this, item,
-                                  col_name](const BookBaseEntry &) {
-            bie.reset();
-            Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
-            annotation->set_buffer(buf);
-            bie.reset();
-            cover_buf.clearImage();
-            cover_area->queue_draw();
-            srs->removeBook(item);
-            if(reload_collection_base)
-              {
-                reload_collection_base(col_name);
-              }
-          };
+          rbg->remove_callback = [this, item, col_name](const BookBaseEntry &)
+            {
+              bie.reset();
+              Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
+              annotation->set_buffer(buf);
+              bie.reset();
+              cover_buf.clearImage();
+              cover_area->queue_draw();
+              srs->removeBook(item);
+              if(reload_collection_base)
+                {
+                  reload_collection_base(col_name);
+                }
+            };
           rbg->createWindow();
         }
     }
@@ -1134,11 +1182,12 @@ RightGrid::bookmarksSaveResultDialog(const int &variant)
   grid->attach(*close, 0, 1, 1, 1);
 
   window->signal_close_request().connect(
-      [window] {
-        std::unique_ptr<Gtk::Window> win(window);
-        win->set_visible(false);
-        return true;
-      },
+      [window]
+        {
+          std::unique_ptr<Gtk::Window> win(window);
+          win->set_visible(false);
+          return true;
+        },
       false);
 
   window->present();
@@ -1185,7 +1234,7 @@ RightGrid::openBookAction()
                                std::bind(&AuxFunc::open_book_callback,
                                          af.get(), std::placeholders::_1));
         }
-      catch(MLException &er)
+      catch(std::exception &er)
         {
           std::cout << er.what() << std::endl;
         }
@@ -1201,17 +1250,18 @@ RightGrid::transferBookAction()
       TransferBookGui *tbg = new TransferBookGui(
           af, bookmarks, notes, item->bbe, current_collection, main_window);
       tbg->success_signal
-          = [this, item](const BookBaseEntry &, const std::string &col_name) {
-              bie.reset();
-              Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
-              annotation->set_buffer(buf);
-              cover_area->queue_draw();
-              srs->removeBook(item);
-              if(reload_collection_base)
-                {
-                  reload_collection_base(col_name);
-                }
-            };
+          = [this, item](const BookBaseEntry &, const std::string &col_name)
+        {
+          bie.reset();
+          Glib::RefPtr<Gtk::TextBuffer> buf = Gtk::TextBuffer::create();
+          annotation->set_buffer(buf);
+          cover_area->queue_draw();
+          srs->removeBook(item);
+          if(reload_collection_base)
+            {
+              reload_collection_base(col_name);
+            }
+        };
       tbg->createWindow();
     }
 }

@@ -17,7 +17,6 @@
 #include <AddBook.h>
 #include <AddBookGui.h>
 #include <BaseKeeper.h>
-#include <MLException.h>
 #include <algorithm>
 #include <giomm-2.68/giomm/menuitem.h>
 #include <giomm-2.68/giomm/simpleaction.h>
@@ -1411,7 +1410,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                     }
                   finish_add_disp->emit();
                 }
-              catch(MLException &er)
+              catch(std::exception &er)
                 {
                   std::cout << er.what() << std::endl;
                   finish_add_err_disp->emit();
@@ -1436,7 +1435,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                     }
                   finish_add_disp->emit();
                 }
-              catch(MLException &er)
+              catch(std::exception &er)
                 {
                   std::cout << er.what() << std::endl;
                   finish_add_err_disp->emit();
@@ -1462,7 +1461,7 @@ AddBookGui::add_books(Gtk::Window *win, const int &variant)
                     }
                   finish_add_disp->emit();
                 }
-              catch(MLException &er)
+              catch(std::exception &er)
                 {
                   std::cout << er.what() << std::endl;
                   finish_add_err_disp->emit();

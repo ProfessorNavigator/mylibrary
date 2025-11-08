@@ -16,7 +16,6 @@
 
 #include <BookParseEntry.h>
 #include <EditBookGui.h>
-#include <MLException.h>
 #include <RefreshCollection.h>
 #include <giomm-2.68/giomm/menuitem.h>
 #include <giomm-2.68/giomm/simpleaction.h>
@@ -784,7 +783,7 @@ EditBookGui::edit_book(Gtk::Window *win)
           finish_dialog(win, 2);
         }
     }
-  catch(MLException &er)
+  catch(std::exception &er)
     {
       std::cout << er.what() << std::endl;
       finish_dialog(win, 3);

@@ -16,7 +16,6 @@
 
 #include <BookParseEntry.h>
 #include <CopyBookGui.h>
-#include <MLException.h>
 #include <OpenBook.h>
 #include <SelfRemovingPath.h>
 #include <filesystem>
@@ -215,7 +214,7 @@ CopyBookGui::copy_func(const Glib::RefPtr<Gio::File> &fl)
                     std::bind(&AuxFunc::copy_book_callback, af.get(),
                               std::placeholders::_1, out));
     }
-  catch(MLException &er)
+  catch(std::exception &er)
     {
       std::cout << er.what() << std::endl;
       result.clear();

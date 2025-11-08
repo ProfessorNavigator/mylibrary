@@ -27,8 +27,11 @@
  * index of tag content first byte in <A
  * HREF="https://www.w3schools.com/xml/default.asp">XML</A> document and index
  * of content last byte. Also contains list of tags were found in tag content.
+ *
+ * \deprecated This class will be removed in future releases. Use XMLParserCPP
+ * library instead.
  */
-class XMLTag
+class __attribute__((deprecated)) XMLTag
 {
 public:
   /*!

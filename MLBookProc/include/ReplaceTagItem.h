@@ -55,7 +55,7 @@ public:
   operator=(ReplaceTagItem &&other);
 
   /*!
-   * \brief Id of tag to be replaced (see XMLTag::tag_id).
+   * \brief Id of tag to be replaced (see XMLElement::element_name).
    */
   std::string tag_to_replace;
 

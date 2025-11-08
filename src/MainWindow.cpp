@@ -35,10 +35,10 @@
 #include <giomm-2.68/giomm/simpleaction.h>
 #include <giomm-2.68/giomm/simpleactiongroup.h>
 #include <gtkmm-4.0/gdkmm/display.h>
+#include <gtkmm-4.0/gdkmm/memorytexture.h>
 #include <gtkmm-4.0/gdkmm/monitor.h>
 #include <gtkmm-4.0/gdkmm/rectangle.h>
 #include <gtkmm-4.0/gdkmm/surface.h>
-#include <gtkmm-4.0/gdkmm/texture.h>
 #include <gtkmm-4.0/gtkmm/aboutdialog.h>
 #include <gtkmm-4.0/gtkmm/cssprovider.h>
 #include <gtkmm-4.0/gtkmm/dropdown.h>
@@ -157,9 +157,10 @@ MainWindow::formMainWindow()
   rg->get_current_collection_name
       = std::bind(&MainWindow::getCurrentCollectionName, this);
 
-  rg->reload_collection_base = [this](const std::string &col_name) {
-    lg->reloadCollection(col_name);
-  };
+  rg->reload_collection_base = [this](const std::string &col_name)
+    {
+      lg->reloadCollection(col_name);
+    };
 
   rg->search_books_callback
       = std::bind(&LeftGrid::searchAuth, lg, std::placeholders::_1,
@@ -344,92 +345,128 @@ MainWindow::createMainMenuActionGroup()
   Glib::RefPtr<Gio::SimpleActionGroup> main_menu_actions
       = Gio::SimpleActionGroup::create();
 
-  main_menu_actions->add_action("create_collection", [this] {
-    CreateCollectionGui *ccg = new CreateCollectionGui(af, this);
-    ccg->add_new_collection
-        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
-    ccg->createWindow();
-  });
-
-  main_menu_actions->add_action("remove_collection", [this] {
-    RemoveCollectionGui *rcg = new RemoveCollectionGui(af, this, notes);
-    rcg->collection_removed = std::bind(&MainWindow::collectionRemoveSlot,
-                                        this, std::placeholders::_1);
-    rcg->createWindow();
-  });
-
-  main_menu_actions->add_action("refresh_collection", [this] {
-    RefreshCollectionGui *rfcg
-        = new RefreshCollectionGui(af, this, bookmarks, notes);
-    rfcg->collection_refreshed = [this](const std::string &col_name) {
-      if(lg->reloadCollection(col_name))
+  main_menu_actions->add_action(
+      "create_collection",
+      [this]
         {
-          rg->clearSearchResult();
-        }
-    };
-    rfcg->createWindow();
-  });
+          CreateCollectionGui *ccg = new CreateCollectionGui(af, this);
+          ccg->add_new_collection = std::bind(&LeftGrid::add_new_collection,
+                                              lg, std::placeholders::_1);
+          ccg->createWindow();
+        });
 
-  main_menu_actions->add_action("book_marks", [this] {
-    BookMarksGui *bmg = new BookMarksGui(af, bookmarks, notes, this);
-    bmg->createWindow();
-  });
+  main_menu_actions->add_action(
+      "remove_collection",
+      [this]
+        {
+          RemoveCollectionGui *rcg = new RemoveCollectionGui(af, this, notes);
+          rcg->collection_removed = std::bind(
+              &MainWindow::collectionRemoveSlot, this, std::placeholders::_1);
+          rcg->createWindow();
+        });
 
-  main_menu_actions->add_action("add_book", [this] {
-    AddBookGui *abg = new AddBookGui(af, this, bookmarks, false);
-    abg->books_added = [this](const std::string &col_name) {
-      lg->reloadCollection(col_name);
-    };
-    abg->createWindow();
-  });
+  main_menu_actions->add_action(
+      "refresh_collection",
+      [this]
+        {
+          RefreshCollectionGui *rfcg
+              = new RefreshCollectionGui(af, this, bookmarks, notes);
+          rfcg->collection_refreshed = [this](const std::string &col_name)
+            {
+              if(lg->reloadCollection(col_name))
+                {
+                  rg->clearSearchResult();
+                }
+            };
+          rfcg->createWindow();
+        });
 
-  main_menu_actions->add_action("export_collection", [this] {
-    ExportCollectionGui *ecg = new ExportCollectionGui(af, this);
-    ecg->createWindow();
-  });
+  main_menu_actions->add_action("book_marks",
+                                [this]
+                                  {
+                                    BookMarksGui *bmg = new BookMarksGui(
+                                        af, bookmarks, notes, this);
+                                    bmg->createWindow();
+                                  });
 
-  main_menu_actions->add_action("import_collection", [this] {
-    ImportCollectionGui *icg = new ImportCollectionGui(af, this);
-    icg->signal_success
-        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
-    icg->createWindow();
-  });
+  main_menu_actions->add_action(
+      "add_book",
+      [this]
+        {
+          AddBookGui *abg = new AddBookGui(af, this, bookmarks, false);
+          abg->books_added = [this](const std::string &col_name)
+            {
+              lg->reloadCollection(col_name);
+            };
+          abg->createWindow();
+        });
 
-  main_menu_actions->add_action("empty_collection", [this] {
-    EmptyCollectionGui *ecg = new EmptyCollectionGui(af, this);
-    ecg->signal_success
-        = std::bind(&LeftGrid::add_new_collection, lg, std::placeholders::_1);
-    ecg->createWindow();
-  });
+  main_menu_actions->add_action("export_collection",
+                                [this]
+                                  {
+                                    ExportCollectionGui *ecg
+                                        = new ExportCollectionGui(af, this);
+                                    ecg->createWindow();
+                                  });
 
-  main_menu_actions->add_action("add_directory", [this] {
-    AddBookGui *abg = new AddBookGui(af, this, bookmarks, true);
-    abg->books_added = [this](const std::string &col_name) {
-      lg->reloadCollection(col_name);
-    };
-    abg->createWindow();
-  });
+  main_menu_actions->add_action(
+      "import_collection",
+      [this]
+        {
+          ImportCollectionGui *icg = new ImportCollectionGui(af, this);
+          icg->signal_success = std::bind(&LeftGrid::add_new_collection, lg,
+                                          std::placeholders::_1);
+          icg->createWindow();
+        });
 
-  main_menu_actions->add_action("settings_win", [this] {
-    SettingsWindow *sw = new SettingsWindow(af, this);
+  main_menu_actions->add_action(
+      "empty_collection",
+      [this]
+        {
+          EmptyCollectionGui *ecg = new EmptyCollectionGui(af, this);
+          ecg->signal_success = std::bind(&LeftGrid::add_new_collection, lg,
+                                          std::placeholders::_1);
+          ecg->createWindow();
+        });
 
-    sw->signal_new_background_path = [this](const std::filesystem::path &p) {
-      std::filesystem::remove_all(temp_background_path);
-      temp_background_path = p;
-    };
+  main_menu_actions->add_action(
+      "add_directory",
+      [this]
+        {
+          AddBookGui *abg = new AddBookGui(af, this, bookmarks, true);
+          abg->books_added = [this](const std::string &col_name)
+            {
+              lg->reloadCollection(col_name);
+            };
+          abg->createWindow();
+        });
 
-    sw->signal_coef_coincedence = std::bind(&LeftGrid::setCoefOfCoincedence,
-                                            lg, std::placeholders::_1);
+  main_menu_actions->add_action(
+      "settings_win",
+      [this]
+        {
+          SettingsWindow *sw = new SettingsWindow(af, this);
 
-    sw->signal_close_request().connect(
-        [sw] {
-          std::unique_ptr<SettingsWindow> s(sw);
-          s->set_visible(false);
-          return true;
-        },
-        false);
-    sw->present();
-  });
+          sw->signal_new_background_path
+              = [this](const std::filesystem::path &p)
+            {
+              std::filesystem::remove_all(temp_background_path);
+              temp_background_path = p;
+            };
+
+          sw->signal_coef_coincedence = std::bind(
+              &LeftGrid::setCoefOfCoincedence, lg, std::placeholders::_1);
+
+          sw->signal_close_request().connect(
+              [sw]
+                {
+                  std::unique_ptr<SettingsWindow> s(sw);
+                  s->set_visible(false);
+                  return true;
+                },
+              false);
+          sw->present();
+        });
 
   main_menu_actions->add_action("about_dialog",
                                 std::bind(&MainWindow::aboutDialog, this));
@@ -440,19 +477,25 @@ MainWindow::createMainMenuActionGroup()
       std::bind(&PluginsKeeper::createWindow, plugins_keeper));
 #endif
 
-  main_menu_actions->add_action("mlbookproc_doc", [this] {
-    if(std::filesystem::exists(mlbookproc_docs_path))
-      {
-        af->open_book_callback(mlbookproc_docs_path);
-      }
-  });
+  main_menu_actions->add_action(
+      "mlbookproc_doc",
+      [this]
+        {
+          if(std::filesystem::exists(mlbookproc_docs_path))
+            {
+              af->open_book_callback(mlbookproc_docs_path);
+            }
+        });
 
-  main_menu_actions->add_action("mlpluginifc_doc", [this] {
-    if(std::filesystem::exists(mlpluginifc_docs_path))
-      {
-        af->open_book_callback(mlpluginifc_docs_path);
-      }
-  });
+  main_menu_actions->add_action(
+      "mlpluginifc_doc",
+      [this]
+        {
+          if(std::filesystem::exists(mlpluginifc_docs_path))
+            {
+              af->open_book_callback(mlpluginifc_docs_path);
+            }
+        });
 
   insert_action_group("main_menu", main_menu_actions);
 }
@@ -556,21 +599,57 @@ MainWindow::aboutDialog()
 
   about->set_program_name("MyLibrary");
 
-  std::filesystem::path icon_p = af->share_path();
-  icon_p /= std::filesystem::u8path("MyLibrary");
-  icon_p /= std::filesystem::u8path("mylibrary.svg");
-
-  Glib::RefPtr<Gio::File> fl = Gio::File::create_for_path(icon_p.u8string());
-
-  Glib::RefPtr<Gdk::Texture> icon_t = Gdk::Texture::create_from_file(fl);
-
   std::vector<Glib::ustring> credits_people;
   credits_people.push_back("Felix <f11091877@gmail.com>");
   about->add_credit_section(gettext("Icon designed by: "), credits_people);
 
-  about->set_logo(icon_t);
+  std::filesystem::path icon_p = af->share_path();
+  icon_p /= std::filesystem::u8path("MyLibrary");
+  icon_p /= std::filesystem::u8path("mylibrary.svg");
 
-  about->set_version("4.2.2");
+  Magick::Image icon_img;
+  try
+    {
+      icon_img.backgroundColor(Magick::Color("none"));
+      icon_img.read(icon_p.u8string());
+    }
+  catch(Magick::Exception &er)
+    {
+      std::cout << "MainWindow::aboutDialog(1): \"" << er.what() << "\""
+                << std::endl;
+    }
+
+  size_t rows = icon_img.rows();
+  size_t columns = icon_img.columns();
+  if(rows > 0 && columns > 0)
+    {
+      size_t stride = columns * 4;
+      size_t buf_sz = rows * stride;
+      unsigned char *buf = new unsigned char[buf_sz];
+
+      Glib::RefPtr<Gdk::Texture> texture;
+      Glib::RefPtr<Glib::Bytes> bytes;
+      try
+        {
+          icon_img.write(0, 0, columns, rows, "BGRA", Magick::CharPixel, buf);          
+        }
+      catch(Magick::Exception &er)
+        {
+          std::cout << "MainWindow::aboutDialog(2): \"" << er.what() << "\""
+                    << std::endl;
+        }
+      bytes = Glib::Bytes::create(buf, static_cast<gsize>(buf_sz));
+      texture = Gdk::MemoryTexture::create(
+          static_cast<int>(columns), static_cast<int>(rows),
+          Gdk::MemoryTexture::Format::B8G8R8A8, bytes,
+          static_cast<gsize>(stride));
+      if(texture)
+        {
+          about->set_logo(texture);
+        }
+    }
+
+  about->set_version("4.3");
 
   about->set_website("https://github.com/ProfessorNavigator/mylibrary");
 
@@ -600,11 +679,12 @@ MainWindow::aboutDialog()
   about->set_comments(abbuf);
 
   about->signal_close_request().connect(
-      [about] {
-        std::unique_ptr<Gtk::AboutDialog> ab(about);
-        ab->set_visible(false);
-        return true;
-      },
+      [about]
+        {
+          std::unique_ptr<Gtk::AboutDialog> ab(about);
+          ab->set_visible(false);
+          return true;
+        },
       false);
 
   about->present();

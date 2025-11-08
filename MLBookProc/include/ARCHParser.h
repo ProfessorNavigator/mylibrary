@@ -43,6 +43,7 @@
 class ARCHParser : public LibArchive
 {
 public:
+#ifdef USE_OPENMP
   /*!
    * \brief ARCHParser constructor.
    * \param af smart pointer to AuxFunc object.
@@ -50,6 +51,10 @@ public:
    * otherwise not.
    */
   ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support);
+#else
+  ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support,
+             const int &processor_num);
+#endif
 
   /*!
    * \brief ARCHParser destructor.
@@ -102,6 +107,8 @@ private:
   bool extra_run = false;
   std::mutex extra_run_mtx;
   std::condition_variable extra_run_var;
+
+  int processor_num = -1;
 #else
   bool cancel = false;
   omp_lock_t archp_obj_mtx;

@@ -19,9 +19,9 @@
 #include <AuxFunc.h>
 #include <BookBaseEntry.h>
 #include <BookInfoEntry.h>
-#include <DCParser.h>
+#include <DublinCoreParser.h>
 #include <LibArchive.h>
-#include <XMLParser.h>
+#include <XMLParserCPP.h>
 
 /*!
  * \brief The ODTParser class
@@ -30,7 +30,7 @@
  * not need to use this class directly. Use CreateCollection, RefreshCollection
  * and BookInfo instead.
  */
-class ODTParser : public XMLParser, public LibArchive
+class ODTParser : public LibArchive
 {
 public:
   /*!
@@ -49,7 +49,7 @@ public:
    *
    * This method can be used to obtain information from odt files.
    *
-   * \note This method can throw MLException in case of some errors.
+   * \note This method can throw std::exception in case of some errors.
    *
    * \param odt_path absolute path to odt file.
    * \return BookParseEntry object.
@@ -63,7 +63,7 @@ public:
    * This method can be used to obtain odt file cover and some other info (see
    * BookInfoEntry) if such info is avaliable.
    *
-   * \note This method can throw MLException in case of some errors.
+   * \note This method can throw std::exception in case of some errors.
    * \param odt_path absolute path to odt file.
    * \return Smart pointer to BookInfoEntry object.
    */
@@ -73,7 +73,8 @@ public:
 private:
   std::shared_ptr<AuxFunc> af;
 
-  DCParser *dc;
+  DublinCoreParser *dc;
+  XMLParserCPP *xml_parser;
 };
 
 #endif // ODTPARSER_H

@@ -15,7 +15,6 @@
  */
 #include <BaseKeeper.h>
 #include <ByteOrder.h>
-#include <MLException.h>
 #include <NotesKeeper.h>
 #include <algorithm>
 #include <fstream>
@@ -71,7 +70,7 @@ NotesKeeper::loadBase()
         {
           parseRawBase(raw_base);
         }
-      catch(MLException &e)
+      catch(std::exception &e)
         {
           std::cout << e.what() << std::endl;
         }
@@ -394,7 +393,7 @@ NotesKeeper::refreshCollection(const std::string &collection_name,
         {
           bk.loadCollection(collection_name);
         }
-      catch(MLException &e)
+      catch(std::exception &e)
         {
           std::cout << "NotesKeeper::refreshCollection: " << e.what()
                     << std::endl;
@@ -582,7 +581,8 @@ NotesKeeper::parseRawBase(const std::string &raw_base)
         }
       else
         {
-          throw MLException("NotesKeeper::parseRawBase: incorrect entry size");
+          throw std::runtime_error(
+              "NotesKeeper::parseRawBase: incorrect entry size");
         }
 
       sz = static_cast<size_t>(val64);
@@ -595,14 +595,15 @@ NotesKeeper::parseRawBase(const std::string &raw_base)
             {
               parseEntry(entry);
             }
-          catch(MLException &e)
+          catch(std::exception &e)
             {
               std::cout << e.what() << std::endl;
             }
         }
       else
         {
-          throw MLException("NotesKeeper::parseRawBase: incorrect entry");
+          throw std::runtime_error(
+              "NotesKeeper::parseRawBase: incorrect entry");
         }
     }
 }
@@ -628,7 +629,8 @@ NotesKeeper::parseEntry(const std::string &entry)
         }
       else
         {
-          throw MLException("NotesKeeper::parseEntry: incorrect entry size");
+          throw std::runtime_error(
+              "NotesKeeper::parseEntry: incorrect entry size");
         }
       sz = static_cast<size_t>(val32);
       if(rb + sz <= limit)
@@ -662,7 +664,7 @@ NotesKeeper::parseEntry(const std::string &entry)
         }
       else
         {
-          throw MLException("NotesKeeper::parseEntry: incorrect entry");
+          throw std::runtime_error("NotesKeeper::parseEntry: incorrect entry");
         }
     }
   base.emplace_back(nbe);

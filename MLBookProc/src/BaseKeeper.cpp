@@ -17,7 +17,6 @@
 #include <BaseKeeper.h>
 #include <BookParseEntry.h>
 #include <ByteOrder.h>
-#include <MLException.h>
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
@@ -29,6 +28,7 @@
 #ifdef USE_OPENMP
 #include <OmpLockGuard.h>
 #else
+#include <pthread.h>
 #ifdef USE_PE
 #include <execution>
 #endif
@@ -100,8 +100,9 @@ BaseKeeper::loadCollection(const std::string &col_name)
         {
           collection_path.clear();
           collection_name.clear();
-          throw MLException("BaseKeeper::loadCollection: collection path size "
-                            "reading error");
+          throw std::runtime_error(
+              "BaseKeeper::loadCollection: collection path size "
+              "reading error");
         }
 
       ByteOrder bo;
@@ -111,7 +112,7 @@ BaseKeeper::loadCollection(const std::string &col_name)
         {
           collection_path.clear();
           collection_name.clear();
-          throw MLException(
+          throw std::runtime_error(
               "BaseKeeper::loadCollection: collection path reading error");
         }
       std::string ent(base_str.begin() + rb, base_str.begin() + rb + val16);
@@ -121,7 +122,7 @@ BaseKeeper::loadCollection(const std::string &col_name)
         {
           collection_path.clear();
           collection_name.clear();
-          throw MLException(
+          throw std::runtime_error(
               "BaseKeeper::loadCollection: collection path error");
         }
 
@@ -131,7 +132,7 @@ BaseKeeper::loadCollection(const std::string &col_name)
             {
               base.emplace_back(readFileEntry(base_str, rb));
             }
-          catch(MLException &er)
+          catch(std::exception &er)
             {
               collection_path.clear();
               collection_name.clear();
@@ -152,7 +153,8 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
   size_t sz = sizeof(val64);
   if(base_str.size() + rb < sz)
     {
-      throw MLException("BaseKeeper::readFileEntry: incorrect base size");
+      throw std::runtime_error(
+          "BaseKeeper::readFileEntry: incorrect base size");
     }
   std::memcpy(&val64, &base_str[rb], sz);
   rb += sz;
@@ -163,7 +165,8 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
 
   if(val64 == 0 || base_str.size() - rb < static_cast<size_t>(val64))
     {
-      throw MLException("BaseKeeper::readFileEntry: incorrect entry size");
+      throw std::runtime_error(
+          "BaseKeeper::readFileEntry: incorrect entry size");
     }
 
   std::string entry(base_str.begin() + rb, base_str.begin() + rb + val64);
@@ -173,7 +176,7 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
   sz = sizeof(val16);
   if(entry.size() < sz)
     {
-      throw MLException(
+      throw std::runtime_error(
           "BaseKeeper::readFileEntry: incorrect file address entry size");
     }
   std::memcpy(&val16, &entry[0], sz);
@@ -183,7 +186,7 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
 
   if(val16 == 0 || entry.size() - lrb < static_cast<size_t>(val16))
     {
-      throw MLException(
+      throw std::runtime_error(
           "BaseKeeper::readFileEntry: incorrect file address size");
     }
 
@@ -196,7 +199,7 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
   sz = sizeof(val16);
   if(entry.size() - lrb < sz)
     {
-      throw MLException(
+      throw std::runtime_error(
           "BaseKeeper::readFileEntry: incorrect file hash entry size");
     }
   std::memcpy(&val16, &entry[lrb], sz);
@@ -206,7 +209,8 @@ BaseKeeper::readFileEntry(const std::string &base_str, size_t &rb)
 
   if(val16 == 0 || entry.size() - lrb < static_cast<size_t>(val16))
     {
-      throw MLException("BaseKeeper::readFileEntry: incorrect file hash size");
+      throw std::runtime_error(
+          "BaseKeeper::readFileEntry: incorrect file hash size");
     }
   e = std::string(entry.begin() + lrb, entry.begin() + lrb + val16);
   lrb += static_cast<size_t>(val16);
@@ -232,7 +236,7 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
         std::string book_e;
         if(entry.size() - rb < sz)
           {
-            throw MLException(
+            throw std::runtime_error(
                 "BaseKeeper::readBookEntry: incorrect book entry size");
           }
         std::memcpy(&val64, &entry[rb], sz);
@@ -243,7 +247,7 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
 
         if(val64 == 0 || entry.size() - rb < static_cast<size_t>(val64))
           {
-            throw MLException(
+            throw std::runtime_error(
                 "BaseKeeper::readBookEntry: incorrect book entry size(2)");
           }
         book_e = std::string(entry.begin() + rb, entry.begin() + rb + val64);
@@ -273,7 +277,7 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
       std::string book_e;
       if(entry.size() - rb < sz)
         {
-          throw MLException(
+          throw std::runtime_error(
               "BaseKeeper::readBookEntry: incorrect book entry size");
         }
       std::memcpy(&val64, &entry[rb], sz);
@@ -284,7 +288,7 @@ BaseKeeper::readBookEntry(const std::string &entry, size_t &rb)
 
       if(val64 == 0 || entry.size() - rb < static_cast<size_t>(val64))
         {
-          throw MLException(
+          throw std::runtime_error(
               "BaseKeeper::readBookEntry: incorrect book entry size(2)");
         }
       book_e = std::string(entry.begin() + rb, entry.begin() + rb + val64);
@@ -312,7 +316,7 @@ BaseKeeper::parseBookEntry(const std::string &e, std::string &read_val,
   size_t sz = sizeof(val16);
   if(e.size() - rb < sz)
     {
-      throw MLException(
+      throw std::runtime_error(
           "BaseKeeper::parseBookEntry: incorrect book entry size");
     }
   std::memcpy(&val16, &e[rb], sz);
@@ -539,68 +543,73 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
             }
         }
 
-      for(auto it = l_search.bpe.book_author.begin();
-          it != l_search.bpe.book_author.end();)
-        {
-          if(*it == ' ')
-            {
-              l_search.bpe.book_author.erase(it);
-            }
-          else
-            {
-              break;
-            }
-        }
-      while(l_search.bpe.book_author.size() > 0)
-        {
-          if(*l_search.bpe.book_author.rbegin() == ' ')
-            {
-              l_search.bpe.book_author.pop_back();
-            }
-          else
-            {
-              break;
-            }
-        }
-      std::string find_str = "  ";
-      for(;;)
-        {
-          std::string::size_type n = l_search.bpe.book_author.find(find_str);
-          if(n != std::string::npos)
-            {
-              l_search.bpe.book_author.erase(l_search.bpe.book_author.begin()
-                                             + n);
-            }
-          else
-            {
-              break;
-            }
-        }
+      normalizeString(l_search.bpe.book_author, Normalization::Author);
+      normalizeString(l_search.bpe.book_date, Normalization::Other);
+      normalizeString(l_search.bpe.book_genre, Normalization::Other);
+      normalizeString(l_search.bpe.book_name, Normalization::Other);
+      normalizeString(l_search.bpe.book_series, Normalization::Other);
 
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [l_search, this](const BookBaseEntry &el) {
-                         return !exactMatchSearchFunc(el, l_search);
-                       }),
+                       [l_search, this](const BookBaseEntry &el)
+                         {
+                           return !exactMatchSearchFunc(el, l_search);
+                         }),
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(std::remove_if(std::execution::par, result.begin(),
-                                  result.end(),
-                                  [l_search, this](const BookBaseEntry &el) {
-                                    return !exactMatchSearchFunc(el, l_search);
-                                  }),
-                   result.end());
+      result.erase(
+          std::remove_if(std::execution::par, result.begin(), result.end(),
+                         [l_search, this](const BookBaseEntry &el)
+                           {
+                             return !exactMatchSearchFunc(el, l_search);
+                           }),
+          result.end());
 #else
       result.erase(std::remove_if(result.begin(), result.end(),
-                                  [l_search, this](const BookBaseEntry &el) {
-                                    return !exactMatchSearchFunc(el, l_search);
-                                  }),
+                                  [l_search, this](const BookBaseEntry &el)
+                                    {
+                                      return !exactMatchSearchFunc(el,
+                                                                   l_search);
+                                    }),
                    result.end());
 #endif
 #endif
     }
+
+#ifdef USE_OPENMP
+#pragma omp parallel for
+  for(auto it = result.begin(); it != result.end(); it++)
+    {
+      normalizeString(it->bpe.book_author, Normalization::Other);
+      normalizeString(it->bpe.book_date, Normalization::Other);
+      normalizeString(it->bpe.book_genre, Normalization::Other);
+      normalizeString(it->bpe.book_name, Normalization::Other);
+      normalizeString(it->bpe.book_series, Normalization::Other);
+    }
+#else
+#ifdef USE_PE
+  std::for_each(std::execution::par, result.begin(), result.end(),
+                [this](BookBaseEntry &el)
+                  {
+                    normalizeString(el.bpe.book_author, Normalization::Other);
+                    normalizeString(el.bpe.book_date, Normalization::Other);
+                    normalizeString(el.bpe.book_genre, Normalization::Other);
+                    normalizeString(el.bpe.book_name, Normalization::Other);
+                    normalizeString(el.bpe.book_series, Normalization::Other);
+                  });
+#else
+  for(auto it = result.begin(); it != result.end(); it++)
+    {
+      normalizeString(it->bpe.book_author, Normalization::Other);
+      normalizeString(it->bpe.book_date, Normalization::Other);
+      normalizeString(it->bpe.book_genre, Normalization::Other);
+      normalizeString(it->bpe.book_name, Normalization::Other);
+      normalizeString(it->bpe.book_series, Normalization::Other);
+    }
+#endif
+#endif
 
   result.shrink_to_fit();
 
@@ -611,12 +620,14 @@ std::vector<std::string>
 BaseKeeper::collectionAuthors()
 {
   std::vector<std::string> result;
+  std::vector<std::string> lower_result;
   std::string find_str = ", ";
 #ifdef USE_OPENMP
 #pragma omp atomic write
   cancel_search = false;
   omp_set_lock(&basemtx);
   result.reserve(books_in_base);
+  lower_result.reserve(books_in_base);
   double sz = static_cast<double>(books_in_base);
   double progr = 0.0;
   bool c_s = false;
@@ -657,38 +668,19 @@ BaseKeeper::collectionAuthors()
                         }
                       stop = true;
                     }
-                  for(auto it_auth = auth.begin(); it_auth != auth.end();)
+                  normalizeString(auth, Normalization::Author);
+                  std::string lower = af->stringToLower(auth);
+                  if(!lower.empty())
                     {
-                      if(*it_auth == ' ')
-                        {
-                          auth.erase(it_auth);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  while(auth.size() > 0)
-                    {
-                      if(*auth.rbegin() == ' ')
-                        {
-                          auth.pop_back();
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  if(!auth.empty())
-                    {
-                      std::string *end = result.data() - 1;
+                      std::string *end = lower_result.data() - 1;
                       std::string *it_str = end;
 #pragma omp parallel
 #pragma omp for
-                      for(std::string *i = result.data() + result.size() - 1;
+                      for(std::string *i
+                          = lower_result.data() + lower_result.size() - 1;
                           i > end; i--)
                         {
-                          if(*i == auth)
+                          if(*i == lower)
                             {
 #pragma omp critical
                               {
@@ -702,6 +694,7 @@ BaseKeeper::collectionAuthors()
                         }
                       if(it_str == end)
                         {
+                          lower_result.emplace_back(lower);
                           result.emplace_back(auth);
                         }
                     }
@@ -728,6 +721,7 @@ BaseKeeper::collectionAuthors()
   cancel_search.store(false, std::memory_order_relaxed);
   basemtx.lock();
   result.reserve(books_in_base);
+  lower_result.reserve(books_in_base);
   double sz = static_cast<double>(books_in_base);
   double progr = 0.0;
   for(auto it = base.begin(); it != base.end(); it++)
@@ -765,40 +759,22 @@ BaseKeeper::collectionAuthors()
                         }
                       stop = true;
                     }
-                  for(auto it_auth = auth.begin(); it_auth != auth.end();)
-                    {
-                      if(*it_auth == ' ')
-                        {
-                          auth.erase(it_auth);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  while(auth.size() > 0)
-                    {
-                      if(*auth.rbegin() == ' ')
-                        {
-                          auth.pop_back();
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  if(!auth.empty())
+                  normalizeString(auth, Normalization::Author);
+                  std::string lower = af->stringToLower(auth);
+                  if(!lower.empty())
                     {
 #ifdef USE_PE
-                      auto it = std::find(std::execution::par, result.rbegin(),
-                                          result.rend(), auth);
+                      auto it = std::find(std::execution::par,
+                                          lower_result.rbegin(),
+                                          lower_result.rend(), lower);
 #else
-                      auto it
-                          = std::find(result.rbegin(), result.rend(), auth);
+                      auto it = std::find(lower_result.rbegin(),
+                                          lower_result.rend(), lower);
 #endif
-                      if(it == result.rend())
+                      if(it == lower_result.rend())
                         {
                           result.emplace_back(auth);
+                          lower_result.emplace_back(lower);
                         }
                     }
                   n_beg = n_end + find_str.size() - 1;
@@ -837,79 +813,85 @@ BaseKeeper::booksWithNotes(const std::vector<NotesBaseEntry> &notes)
 #ifdef USE_PE
   std::for_each(
       std::execution::par, base.begin(), base.end(),
-      [&result, &result_mtx, notes, this](FileParseEntry &ent) {
-        if(cancel_search.load(std::memory_order_relaxed))
-          {
-            return void();
-          }
-        std::filesystem::path f_p
-            = collection_path / std::filesystem::u8path(ent.file_rel_path);
-        auto it = std::find_if(notes.begin(), notes.end(),
-                               [f_p](const NotesBaseEntry &el_n) {
-                                 if(f_p == el_n.book_file_full_path)
+      [&result, &result_mtx, notes, this](FileParseEntry &ent)
+        {
+          if(cancel_search.load(std::memory_order_relaxed))
+            {
+              return void();
+            }
+          std::filesystem::path f_p
+              = collection_path / std::filesystem::u8path(ent.file_rel_path);
+          auto it = std::find_if(notes.begin(), notes.end(),
+                                 [f_p](const NotesBaseEntry &el_n)
                                    {
-                                     return true;
-                                   }
-                                 else
-                                   {
-                                     return false;
-                                   }
-                               });
-        if(it != notes.end())
-          {
-            std::string bp = it->book_path;
+                                     if(f_p == el_n.book_file_full_path)
+                                       {
+                                         return true;
+                                       }
+                                     else
+                                       {
+                                         return false;
+                                       }
+                                   });
+          if(it != notes.end())
+            {
+              std::string bp = it->book_path;
 
-            auto it_b = std::find_if(ent.books.begin(), ent.books.end(),
-                                     [bp](BookParseEntry &el) {
-                                       return bp == el.book_path;
-                                     });
-            if(it_b != ent.books.end())
-              {
-                BookBaseEntry bbe(*it_b, f_p);
-                result_mtx.lock();
-                result.emplace_back(bbe);
-                result_mtx.unlock();
-              }
-          }
-      });
+              auto it_b = std::find_if(ent.books.begin(), ent.books.end(),
+                                       [bp](BookParseEntry &el)
+                                         {
+                                           return bp == el.book_path;
+                                         });
+              if(it_b != ent.books.end())
+                {
+                  BookBaseEntry bbe(*it_b, f_p);
+                  result_mtx.lock();
+                  result.emplace_back(bbe);
+                  result_mtx.unlock();
+                }
+            }
+        });
 #else
   std::for_each(
       base.begin(), base.end(),
-      [&result, &result_mtx, notes, this](FileParseEntry &ent) {
-        if(cancel_search.load(std::memory_order_relaxed))
-          {
-            return void();
-          }
-        std::filesystem::path f_p
-            = collection_path / std::filesystem::u8path(ent.file_rel_path);
-        auto it = std::find_if(notes.begin(), notes.end(),
-                               [f_p](const NotesBaseEntry &el_n) {
-                                 if(f_p == el_n.book_file_full_path)
+      [&result, &result_mtx, notes, this](FileParseEntry &ent)
+        {
+          if(cancel_search.load(std::memory_order_relaxed))
+            {
+              return void();
+            }
+          std::filesystem::path f_p
+              = collection_path / std::filesystem::u8path(ent.file_rel_path);
+          auto it = std::find_if(notes.begin(), notes.end(),
+                                 [f_p](const NotesBaseEntry &el_n)
                                    {
-                                     return true;
-                                   }
-                                 else
-                                   {
-                                     return false;
-                                   }
-                               });
-        if(it != notes.end())
-          {
-            std::string bp = it->book_path;
+                                     if(f_p == el_n.book_file_full_path)
+                                       {
+                                         return true;
+                                       }
+                                     else
+                                       {
+                                         return false;
+                                       }
+                                   });
+          if(it != notes.end())
+            {
+              std::string bp = it->book_path;
 
-            auto it_b = std::find_if(ent.books.begin(), ent.books.end(),
-                                     [bp](BookParseEntry &el) {
-                                       return bp == el.book_path;
-                                     });
-            if(it_b != ent.books.end())
-              {
-                BookBaseEntry bbe(*it_b, f_p);
-                result_mtx.lock();
-                result.emplace_back(bbe);
-                result_mtx.unlock();
-              }
-          }
-      });
+              auto it_b = std::find_if(ent.books.begin(), ent.books.end(),
+                                       [bp](BookParseEntry &el)
+                                         {
+                                           return bp == el.book_path;
+                                         });
+              if(it_b != ent.books.end())
+                {
+                  BookBaseEntry bbe(*it_b, f_p);
+                  result_mtx.lock();
+                  result.emplace_back(bbe);
+                  result_mtx.unlock();
+                }
+            }
+        });
 #endif
 #else
 #pragma omp atomic write
@@ -930,25 +912,27 @@ BaseKeeper::booksWithNotes(const std::vector<NotesBaseEntry> &notes)
       std::filesystem::path f_p
           = collection_path / std::filesystem::u8path(it_base->file_rel_path);
       auto it = std::find_if(notes.begin(), notes.end(),
-                             [f_p](const NotesBaseEntry &el_n) {
-                               if(f_p == el_n.book_file_full_path)
-                                 {
-                                   return true;
-                                 }
-                               else
-                                 {
-                                   return false;
-                                 }
-                             });
+                             [f_p](const NotesBaseEntry &el_n)
+                               {
+                                 if(f_p == el_n.book_file_full_path)
+                                   {
+                                     return true;
+                                   }
+                                 else
+                                   {
+                                     return false;
+                                   }
+                               });
       if(it != notes.end())
         {
           std::string bp = it->book_path;
 
           auto it_b
               = std::find_if(it_base->books.begin(), it_base->books.end(),
-                             [bp](BookParseEntry &el) {
-                               return bp == el.book_path;
-                             });
+                             [bp](BookParseEntry &el)
+                               {
+                                 return bp == el.book_path;
+                               });
           if(it_b != it_base->books.end())
             {
               BookBaseEntry bbe(*it_b, f_p);
@@ -982,31 +966,11 @@ BaseKeeper::booksWithNotes(const std::vector<NotesBaseEntry> &notes)
 bool
 BaseKeeper::searchLineFunc(const std::string &to_search,
                            const std::string &source,
-                           const double &coef_coincidence)
+                           const double &coef_coincidence,
+                           const Normalization &variant)
 {
   std::string loc_source = af->stringToLower(source);
-  for(auto it = loc_source.begin(); it != loc_source.end();)
-    {
-      if(*it == ' ')
-        {
-          loc_source.erase(it);
-        }
-      else
-        {
-          break;
-        }
-    }
-  while(loc_source.size() > 0)
-    {
-      if(*loc_source.rbegin() == ' ')
-        {
-          loc_source.pop_back();
-        }
-      else
-        {
-          break;
-        }
-    }
+  normalizeString(loc_source, variant);  
 
   if(loc_source.size() == 0 || to_search.size() == 0
      || to_search.size() > loc_source.size())
@@ -1081,29 +1045,9 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
   if(n != std::string::npos)
     {
       surname = surname.substr(0, n);
+      normalizeString(surname, Normalization::Author);
       surname = af->stringToLower(surname);
-      for(auto it = surname.begin(); it != surname.end();)
-        {
-          if(*it == ' ')
-            {
-              surname.erase(it);
-            }
-          else
-            {
-              break;
-            }
-        }
-      while(surname.size() > 0)
-        {
-          if(*surname.rbegin() == ' ')
-            {
-              surname.pop_back();
-            }
-          else
-            {
-              break;
-            }
-        }
+
       if(!surname.empty())
         {
           all_empty = false;
@@ -1126,7 +1070,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
               for(auto itb = it->books.begin(); itb != it->books.end(); itb++)
                 {
                   if(searchLineFunc(surname, itb->book_author,
-                                    coef_coincidence))
+                                    coef_coincidence, Normalization::Author))
                     {
 #pragma omp critical
                       {
@@ -1142,62 +1086,68 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
           std::for_each(
               std::execution::par, base.begin(), base.end(),
               [&result_mtx, &result, surname, this,
-               coef_coincidence](FileParseEntry &el) {
-                if(cancel_search.load(std::memory_order_relaxed))
-                  {
-                    return void();
-                  }
-                std::filesystem::path book_file_path
-                    = collection_path
-                      / std::filesystem::u8path(el.file_rel_path);
-                std::for_each(
-                    std::execution::par, el.books.begin(), el.books.end(),
-                    [this, surname, &result, &result_mtx, book_file_path,
-                     coef_coincidence](BookParseEntry &el) {
-                      if(cancel_search.load(std::memory_order_relaxed))
+               coef_coincidence](FileParseEntry &el)
+                {
+                  if(cancel_search.load(std::memory_order_relaxed))
+                    {
+                      return void();
+                    }
+                  std::filesystem::path book_file_path
+                      = collection_path
+                        / std::filesystem::u8path(el.file_rel_path);
+                  std::for_each(
+                      std::execution::par, el.books.begin(), el.books.end(),
+                      [this, surname, &result, &result_mtx, book_file_path,
+                       coef_coincidence](BookParseEntry &el)
                         {
-                          return void();
-                        }
-                      if(searchLineFunc(surname, el.book_author,
-                                        coef_coincidence))
-                        {
-                          result_mtx.lock();
-                          result.emplace_back(
-                              BookBaseEntry(el, book_file_path));
-                          result_mtx.unlock();
-                        }
-                    });
-              });
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          if(searchLineFunc(surname, el.book_author,
+                                            coef_coincidence,
+                                            Normalization::Author))
+                            {
+                              result_mtx.lock();
+                              result.emplace_back(
+                                  BookBaseEntry(el, book_file_path));
+                              result_mtx.unlock();
+                            }
+                        });
+                });
 #else
           std::for_each(
               base.begin(), base.end(),
               [&result_mtx, &result, surname, coef_coincidence,
-               this](FileParseEntry &el) {
-                if(cancel_search.load(std::memory_order_relaxed))
-                  {
-                    return void();
-                  }
-                std::filesystem::path book_file_path
-                    = collection_path
-                      / std::filesystem::u8path(el.file_rel_path);
-                std::for_each(
-                    el.books.begin(), el.books.end(),
-                    [this, surname, &result, &result_mtx, book_file_path,
-                     coef_coincidence](BookParseEntry &el) {
-                      if(cancel_search.load(std::memory_order_relaxed))
+               this](FileParseEntry &el)
+                {
+                  if(cancel_search.load(std::memory_order_relaxed))
+                    {
+                      return void();
+                    }
+                  std::filesystem::path book_file_path
+                      = collection_path
+                        / std::filesystem::u8path(el.file_rel_path);
+                  std::for_each(
+                      el.books.begin(), el.books.end(),
+                      [this, surname, &result, &result_mtx, book_file_path,
+                       coef_coincidence](BookParseEntry &el)
                         {
-                          return void();
-                        }
-                      if(searchLineFunc(surname, el.book_author,
-                                        coef_coincidence))
-                        {
-                          result_mtx.lock();
-                          result.emplace_back(
-                              BookBaseEntry(el, book_file_path));
-                          result_mtx.unlock();
-                        }
-                    });
-              });
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          if(searchLineFunc(surname, el.book_author,
+                                            coef_coincidence,
+                                            Normalization::Author))
+                            {
+                              result_mtx.lock();
+                              result.emplace_back(
+                                  BookBaseEntry(el, book_file_path));
+                              result_mtx.unlock();
+                            }
+                        });
+                });
 #endif
 #endif
         }
@@ -1211,28 +1161,7 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
                        const double &coef_coincidence)
 {
   std::string l_search = af->stringToLower(search.bpe.book_name);
-  for(auto it = l_search.begin(); it != l_search.end();)
-    {
-      if(*it == ' ')
-        {
-          l_search.erase(it);
-        }
-      else
-        {
-          break;
-        }
-    }
-  while(l_search.size() > 0)
-    {
-      if(*l_search.rbegin() == ' ')
-        {
-          l_search.pop_back();
-        }
-      else
-        {
-          break;
-        }
-    }
+  normalizeString(l_search, Normalization::Other);
   if(l_search.empty())
     {
       return void();
@@ -1272,58 +1201,68 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
 
-            std::for_each(
-                std::execution::par, el.books.begin(), el.books.end(),
-                [this, l_search, book_file_path, &result, &result_mtx,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+              std::for_each(
+                  std::execution::par, el.books.begin(), el.books.end(),
+                  [this, l_search, book_file_path, &result, &result_mtx,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_name, coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_name,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #else
       std::for_each(
           base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
 
-            std::for_each(
-                el.books.begin(), el.books.end(),
-                [this, l_search, book_file_path, &result, &result_mtx,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+              std::for_each(
+                  el.books.begin(), el.books.end(),
+                  [this, l_search, book_file_path, &result, &result_mtx,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_name, coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_name,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #endif
 #endif
     }
@@ -1332,42 +1271,47 @@ BaseKeeper::searchBook(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
-                         return !searchLineFunc(l_search, el.bpe.book_name,
-                                                coef_coincidence);
-                       }),
+                       [l_search, this, coef_coincidence](BookBaseEntry &el)
+                         {
+                           return !searchLineFunc(l_search, el.bpe.book_name,
+                                                  coef_coincidence);
+                         }),
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(std::remove_if(
-                       std::execution::par, result.begin(), result.end(),
-                       [search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_name,
-                                           el.bpe.book_name, coef_coincidence))
+      result.erase(
+          std::remove_if(std::execution::par, result.begin(), result.end(),
+                         [search, this, coef_coincidence](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(search.bpe.book_name,
+                                               el.bpe.book_name,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #else
-      result.erase(std::remove_if(
-                       result.begin(), result.end(),
-                       [search, coef_coincidence, this](BookBaseEntry &el) {
-                         if(searchLineFunc(search.bpe.book_name,
-                                           el.bpe.book_name, coef_coincidence))
+      result.erase(
+          std::remove_if(result.begin(), result.end(),
+                         [search, coef_coincidence, this](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(search.bpe.book_name,
+                                               el.bpe.book_name,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #endif
 #endif
     }
@@ -1379,28 +1323,7 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
                          const double &coef_coincidence)
 {
   std::string l_search = af->stringToLower(search.bpe.book_series);
-  for(auto it = l_search.begin(); it != l_search.end();)
-    {
-      if(*it == ' ')
-        {
-          l_search.erase(it);
-        }
-      else
-        {
-          break;
-        }
-    }
-  while(l_search.size() > 0)
-    {
-      if(*l_search.rbegin() == ' ')
-        {
-          l_search.pop_back();
-        }
-      else
-        {
-          break;
-        }
-    }
+  normalizeString(l_search, Normalization::Other);
   if(l_search.empty())
     {
       return void();
@@ -1440,60 +1363,68 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
 
-            std::for_each(
-                std::execution::par, el.books.begin(), el.books.end(),
-                [this, l_search, &result, &result_mtx, book_file_path,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+              std::for_each(
+                  std::execution::par, el.books.begin(), el.books.end(),
+                  [this, l_search, &result, &result_mtx, book_file_path,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_series,
-                                    coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_series,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #else
       std::for_each(
           base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
 
-            std::for_each(
-                el.books.begin(), el.books.end(),
-                [this, l_search, &result, &result_mtx, book_file_path,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+              std::for_each(
+                  el.books.begin(), el.books.end(),
+                  [this, l_search, &result, &result_mtx, book_file_path,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_series,
-                                    coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_series,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #endif
 #endif
     }
@@ -1502,49 +1433,52 @@ BaseKeeper::searchSeries(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_series,
-                                           coef_coincidence))
-                           {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
+                       [l_search, this, coef_coincidence](BookBaseEntry &el)
+                         {
+                           if(searchLineFunc(l_search, el.bpe.book_series,
+                                             coef_coincidence))
+                             {
+                               return false;
+                             }
+                           else
+                             {
+                               return true;
+                             }
+                         }),
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(std::remove_if(
-                       std::execution::par, result.begin(), result.end(),
-                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_series,
-                                           coef_coincidence))
+      result.erase(
+          std::remove_if(std::execution::par, result.begin(), result.end(),
+                         [l_search, this, coef_coincidence](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(l_search, el.bpe.book_series,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #else
-      result.erase(std::remove_if(
-                       result.begin(), result.end(),
-                       [l_search, coef_coincidence, this](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_series,
-                                           coef_coincidence))
+      result.erase(
+          std::remove_if(result.begin(), result.end(),
+                         [l_search, coef_coincidence, this](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(l_search, el.bpe.book_series,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #endif
 #endif
     }
@@ -1602,7 +1536,8 @@ BaseKeeper::get_books_path(const std::string &collection_name,
       if(fsz < sz)
         {
           f.close();
-          throw MLException("BaseKeeper::get_books_path: base file error");
+          throw std::runtime_error(
+              "BaseKeeper::get_books_path: base file error");
         }
       else
         {
@@ -1615,7 +1550,7 @@ BaseKeeper::get_books_path(const std::string &collection_name,
       if(static_cast<size_t>(val16) + sz > fsz)
         {
           f.close();
-          throw MLException(
+          throw std::runtime_error(
               "BaseKeeper::get_books_path: wrong books path size");
         }
       else
@@ -1649,28 +1584,7 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
                         const double &coef_coincidence)
 {
   std::string l_search = af->stringToLower(search.bpe.book_genre);
-  for(auto it = l_search.begin(); it != l_search.end();)
-    {
-      if(*it == ' ')
-        {
-          l_search.erase(it);
-        }
-      else
-        {
-          break;
-        }
-    }
-  while(l_search.size() > 0)
-    {
-      if(*l_search.rbegin() == ' ')
-        {
-          l_search.pop_back();
-        }
-      else
-        {
-          break;
-        }
-    }
+  normalizeString(l_search, Normalization::Other);
   if(l_search.empty())
     {
       return void();
@@ -1710,56 +1624,66 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
       std::for_each(
           std::execution::par, base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
-            std::for_each(
-                std::execution::par, el.books.begin(), el.books.end(),
-                [this, l_search, &result, &result_mtx, book_file_path,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
+              std::for_each(
+                  std::execution::par, el.books.begin(), el.books.end(),
+                  [this, l_search, &result, &result_mtx, book_file_path,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_genre, coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_genre,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #else
       std::for_each(
           base.begin(), base.end(),
           [this, l_search, &result, &result_mtx,
-           coef_coincidence](FileParseEntry &el) {
-            if(cancel_search.load(std::memory_order_relaxed))
-              {
-                return void();
-              }
-            std::filesystem::path book_file_path
-                = collection_path / std::filesystem::u8path(el.file_rel_path);
-            std::for_each(
-                el.books.begin(), el.books.end(),
-                [this, l_search, &result, &result_mtx, book_file_path,
-                 coef_coincidence](BookParseEntry &el) {
-                  if(cancel_search.load(std::memory_order_relaxed))
+           coef_coincidence](FileParseEntry &el)
+            {
+              if(cancel_search.load(std::memory_order_relaxed))
+                {
+                  return void();
+                }
+              std::filesystem::path book_file_path
+                  = collection_path
+                    / std::filesystem::u8path(el.file_rel_path);
+              std::for_each(
+                  el.books.begin(), el.books.end(),
+                  [this, l_search, &result, &result_mtx, book_file_path,
+                   coef_coincidence](BookParseEntry &el)
                     {
-                      return void();
-                    }
-                  if(searchLineFunc(l_search, el.book_genre, coef_coincidence))
-                    {
-                      result_mtx.lock();
-                      result.emplace_back(BookBaseEntry(el, book_file_path));
-                      result_mtx.unlock();
-                    }
-                });
-          });
+                      if(cancel_search.load(std::memory_order_relaxed))
+                        {
+                          return void();
+                        }
+                      if(searchLineFunc(l_search, el.book_genre,
+                                        coef_coincidence))
+                        {
+                          result_mtx.lock();
+                          result.emplace_back(
+                              BookBaseEntry(el, book_file_path));
+                          result_mtx.unlock();
+                        }
+                    });
+            });
 #endif
 #endif
     }
@@ -1768,49 +1692,52 @@ BaseKeeper::searchGenre(const BookBaseEntry &search,
 #ifdef USE_OPENMP
       result.erase(AuxFunc::parallelRemoveIf(
                        result.begin(), result.end(),
-                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_genre,
-                                           coef_coincidence))
-                           {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
+                       [l_search, this, coef_coincidence](BookBaseEntry &el)
+                         {
+                           if(searchLineFunc(l_search, el.bpe.book_genre,
+                                             coef_coincidence))
+                             {
+                               return false;
+                             }
+                           else
+                             {
+                               return true;
+                             }
+                         }),
                    result.end());
 #else
 #ifdef USE_PE
-      result.erase(std::remove_if(
-                       std::execution::par, result.begin(), result.end(),
-                       [l_search, this, coef_coincidence](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_genre,
-                                           coef_coincidence))
+      result.erase(
+          std::remove_if(std::execution::par, result.begin(), result.end(),
+                         [l_search, this, coef_coincidence](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(l_search, el.bpe.book_genre,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #else
-      result.erase(std::remove_if(
-                       result.begin(), result.end(),
-                       [l_search, coef_coincidence, this](BookBaseEntry &el) {
-                         if(searchLineFunc(l_search, el.bpe.book_genre,
-                                           coef_coincidence))
+      result.erase(
+          std::remove_if(result.begin(), result.end(),
+                         [l_search, coef_coincidence, this](BookBaseEntry &el)
                            {
-                             return false;
-                           }
-                         else
-                           {
-                             return true;
-                           }
-                       }),
-                   result.end());
+                             if(searchLineFunc(l_search, el.bpe.book_genre,
+                                               coef_coincidence))
+                               {
+                                 return false;
+                               }
+                             else
+                               {
+                                 return true;
+                               }
+                           }),
+          result.end());
 #endif
 #endif
     }
@@ -1823,7 +1750,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
   bool result = false;
   if(!search.bpe.book_author.empty())
     {
-      if(el.bpe.book_author == search.bpe.book_author)
+      std::string search_str = el.bpe.book_author;
+      normalizeString(search_str, Normalization::Author);
+
+      if(search_str == search.bpe.book_author)
         {
           result = true;
         }
@@ -1834,34 +1764,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
           std::string find_str = ", ";
           for(;;)
             {
-              n2 = el.bpe.book_author.find(find_str, n1);
+              n2 = search_str.find(find_str, n1);
               if(n2 == std::string::npos)
                 {
-                  std::string str(el.bpe.book_author.begin() + n1,
-                                  el.bpe.book_author.end());
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str == ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  while(str.size() > 0)
-                    {
-                      auto it_str = str.rbegin();
-                      if(*it_str == ' ')
-                        {
-                          str.pop_back();
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1, search_str.end());
                   if(str == search.bpe.book_author)
                     {
                       result = true;
@@ -1870,31 +1776,8 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
                 }
               else
                 {
-                  std::string str(el.bpe.book_author.begin() + n1,
-                                  el.bpe.book_author.begin() + n2);
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  while(str.size() > 0)
-                    {
-                      auto it_str = str.rbegin();
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.pop_back();
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1,
+                                  search_str.begin() + n2);
                   if(str == search.bpe.book_author)
                     {
                       result = true;
@@ -1913,8 +1796,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
 
   if(!search.bpe.book_name.empty())
     {
+      std::string search_str = el.bpe.book_name;
+      normalizeString(search_str, Normalization::Other);
       result = false;
-      if(el.bpe.book_name == search.bpe.book_name)
+      if(search_str == search.bpe.book_name)
         {
           result = true;
         }
@@ -1925,26 +1810,15 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
           std::string find_str = ", ";
           for(;;)
             {
-              n2 = el.bpe.book_name.find(find_str, n1);
+              n2 = search_str.find(find_str, n1);
               if(n2 == std::string::npos)
                 {
                   break;
                 }
               else
                 {
-                  std::string str(el.bpe.book_name.begin() + n1,
-                                  el.bpe.book_name.begin() + n2);
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1,
+                                  search_str.begin() + n2);
                   if(str == search.bpe.book_name)
                     {
                       result = true;
@@ -1962,8 +1836,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
 
   if(!search.bpe.book_series.empty())
     {
+      std::string search_str = el.bpe.book_series;
+      normalizeString(search_str, Normalization::Other);
       result = false;
-      if(el.bpe.book_series == search.bpe.book_series)
+      if(search_str == search.bpe.book_series)
         {
           result = true;
         }
@@ -1974,26 +1850,15 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
           std::string find_str = ", ";
           for(;;)
             {
-              n2 = el.bpe.book_series.find(find_str, n1);
+              n2 = search_str.find(find_str, n1);
               if(n2 == std::string::npos)
                 {
                   break;
                 }
               else
                 {
-                  std::string str(el.bpe.book_series.begin() + n1,
-                                  el.bpe.book_series.begin() + n2);
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1,
+                                  search_str.begin() + n2);
                   if(str == search.bpe.book_series)
                     {
                       result = true;
@@ -2011,8 +1876,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
 
   if(!search.bpe.book_genre.empty())
     {
+      std::string search_str = el.bpe.book_genre;
+      normalizeString(search_str, Normalization::Other);
       result = false;
-      if(el.bpe.book_genre == search.bpe.book_genre)
+      if(search_str == search.bpe.book_genre)
         {
           result = true;
         }
@@ -2023,26 +1890,15 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
           std::string find_str = ", ";
           for(;;)
             {
-              n2 = el.bpe.book_genre.find(find_str, n1);
+              n2 = search_str.find(find_str, n1);
               if(n2 == std::string::npos)
                 {
                   break;
                 }
               else
                 {
-                  std::string str(el.bpe.book_genre.begin() + n1,
-                                  el.bpe.book_genre.begin() + n2);
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1,
+                                  search_str.begin() + n2);
                   if(str == search.bpe.book_genre)
                     {
                       result = true;
@@ -2060,8 +1916,10 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
 
   if(!search.bpe.book_date.empty())
     {
+      std::string search_str = el.bpe.book_date;
+      normalizeString(search_str, Normalization::Other);
       result = false;
-      if(el.bpe.book_date == search.bpe.book_date)
+      if(search_str == search.bpe.book_date)
         {
           result = true;
         }
@@ -2072,26 +1930,15 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
           std::string find_str = ", ";
           for(;;)
             {
-              n2 = el.bpe.book_date.find(find_str, n1);
+              n2 = search_str.find(find_str, n1);
               if(n2 == std::string::npos)
                 {
                   break;
                 }
               else
                 {
-                  std::string str(el.bpe.book_date.begin() + n1,
-                                  el.bpe.book_date.begin() + n2);
-                  for(auto it_str = str.begin(); it_str != str.end();)
-                    {
-                      if(*it_str >= 0 && *it_str <= ' ')
-                        {
-                          str.erase(it_str);
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
+                  std::string str(search_str.begin() + n1,
+                                  search_str.begin() + n2);
                   if(str == search.bpe.book_date)
                     {
                       result = true;
@@ -2108,6 +1955,64 @@ BaseKeeper::exactMatchSearchFunc(const BookBaseEntry &el,
     }
 
   return result;
+}
+
+void
+BaseKeeper::normalizeString(std::string &str, const Normalization &variant)
+{
+  for(auto it = str.begin(); it != str.end();)
+    {
+      char el = *it;
+      if(el >= 0 && el <= 32)
+        {
+          str.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  while(str.size() > 0)
+    {
+      char el = *str.rbegin();
+      if(el >= 0 && el <= 32)
+        {
+          str.pop_back();
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  std::string find_str = "  ";
+  std::string::size_type n = 0;
+  for(;;)
+    {
+      n = str.find(find_str, n);
+      if(n == std::string::npos)
+        {
+          break;
+        }
+      str.erase(str.begin() + n);
+    }
+
+  if(variant == Normalization::Author)
+    {
+      find_str = ". ";
+      n = 0;
+      for(;;)
+        {
+          n = str.find(find_str, n);
+          if(n == std::string::npos)
+            {
+              break;
+            }
+          str.erase(str.begin() + n + 1);
+        }
+    }
+  str.shrink_to_fit();
 }
 
 void
@@ -2137,29 +2042,8 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
       if(n != std::string::npos)
         {
           last_name.erase(0, n + sstr.size());
-          last_name = af->stringToLower(last_name);
-          for(auto it = last_name.begin(); it != last_name.end();)
-            {
-              if(*it == ' ')
-                {
-                  last_name.erase(it);
-                }
-              else
-                {
-                  break;
-                }
-            }
-          while(last_name.size() > 0)
-            {
-              if(*last_name.rbegin() == ' ')
-                {
-                  last_name.pop_back();
-                }
-              else
-                {
-                  break;
-                }
-            }
+          normalizeString(last_name, Normalization::Author);
+          last_name = af->stringToLower(last_name);          
           if(!last_name.empty())
             {
               all_empty = false;
@@ -2186,7 +2070,8 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                           itb++)
                         {
                           if(searchLineFunc(last_name, itb->book_author,
-                                            coef_coincidence))
+                                            coef_coincidence,
+                                            Normalization::Author))
                             {
 #pragma omp critical
                               {
@@ -2202,123 +2087,137 @@ BaseKeeper::searchLastName(const BookBaseEntry &search,
                   std::for_each(
                       std::execution::par, base.begin(), base.end(),
                       [this, last_name, &result, &result_mtx,
-                       coef_coincidence](FileParseEntry &el) {
-                        if(cancel_search.load(std::memory_order_relaxed))
-                          {
-                            return void();
-                          }
-                        std::filesystem::path book_file_path
-                            = collection_path
-                              / std::filesystem::u8path(el.file_rel_path);
+                       coef_coincidence](FileParseEntry &el)
+                        {
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          std::filesystem::path book_file_path
+                              = collection_path
+                                / std::filesystem::u8path(el.file_rel_path);
 
-                        std::for_each(
-                            std::execution::par, el.books.begin(),
-                            el.books.end(),
-                            [this, last_name, &result, &result_mtx,
-                             book_file_path,
-                             coef_coincidence](BookParseEntry &el) {
-                              if(cancel_search.load(std::memory_order_relaxed))
+                          std::for_each(
+                              std::execution::par, el.books.begin(),
+                              el.books.end(),
+                              [this, last_name, &result, &result_mtx,
+                               book_file_path,
+                               coef_coincidence](BookParseEntry &el)
                                 {
-                                  return void();
-                                }
-                              if(searchLineFunc(last_name, el.book_author,
-                                                coef_coincidence))
-                                {
-                                  result_mtx.lock();
-                                  result.emplace_back(
-                                      BookBaseEntry(el, book_file_path));
-                                  result_mtx.unlock();
-                                }
-                            });
-                      });
+                                  if(cancel_search.load(
+                                         std::memory_order_relaxed))
+                                    {
+                                      return void();
+                                    }
+                                  if(searchLineFunc(last_name, el.book_author,
+                                                    coef_coincidence,
+                                                    Normalization::Author))
+                                    {
+                                      result_mtx.lock();
+                                      result.emplace_back(
+                                          BookBaseEntry(el, book_file_path));
+                                      result_mtx.unlock();
+                                    }
+                                });
+                        });
 #else
                   std::for_each(
                       base.begin(), base.end(),
                       [this, last_name, &result, &result_mtx,
-                       coef_coincidence](FileParseEntry &el) {
-                        if(cancel_search.load(std::memory_order_relaxed))
-                          {
-                            return void();
-                          }
-                        std::filesystem::path book_file_path
-                            = collection_path
-                              / std::filesystem::u8path(el.file_rel_path);
+                       coef_coincidence](FileParseEntry &el)
+                        {
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          std::filesystem::path book_file_path
+                              = collection_path
+                                / std::filesystem::u8path(el.file_rel_path);
 
-                        std::for_each(
-                            el.books.begin(), el.books.end(),
-                            [this, last_name, &result, &result_mtx,
-                             book_file_path,
-                             coef_coincidence](BookParseEntry &el) {
-                              if(cancel_search.load(std::memory_order_relaxed))
+                          std::for_each(
+                              el.books.begin(), el.books.end(),
+                              [this, last_name, &result, &result_mtx,
+                               book_file_path,
+                               coef_coincidence](BookParseEntry &el)
                                 {
-                                  return void();
-                                }
-                              if(searchLineFunc(last_name, el.book_author,
-                                                coef_coincidence))
-                                {
-                                  result_mtx.lock();
-                                  result.emplace_back(
-                                      BookBaseEntry(el, book_file_path));
-                                  result_mtx.unlock();
-                                }
-                            });
-                      });
+                                  if(cancel_search.load(
+                                         std::memory_order_relaxed))
+                                    {
+                                      return void();
+                                    }
+                                  if(searchLineFunc(last_name, el.book_author,
+                                                    coef_coincidence,
+                                                    Normalization::Author))
+                                    {
+                                      result_mtx.lock();
+                                      result.emplace_back(
+                                          BookBaseEntry(el, book_file_path));
+                                      result_mtx.unlock();
+                                    }
+                                });
+                        });
 #endif
 #endif
                 }
               else
                 {
 #ifdef USE_OPENMP
-                  result.erase(AuxFunc::parallelRemoveIf(
-                                   result.begin(), result.end(),
-                                   [last_name, this,
-                                    coef_coincidence](BookBaseEntry &el) {
-                                     if(searchLineFunc(last_name,
-                                                       el.bpe.book_author,
-                                                       coef_coincidence))
-                                       {
-                                         return false;
-                                       }
-                                     else
-                                       {
-                                         return true;
-                                       }
-                                   }),
-                               result.end());
+                  result.erase(
+                      AuxFunc::parallelRemoveIf(
+                          result.begin(), result.end(),
+                          [last_name, this,
+                           coef_coincidence](BookBaseEntry &el)
+                            {
+                              if(searchLineFunc(last_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                {
+                                  return false;
+                                }
+                              else
+                                {
+                                  return true;
+                                }
+                            }),
+                      result.end());
 #else
 #ifdef USE_PE
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
                           [last_name, this,
-                           coef_coincidence](BookBaseEntry &el) {
-                            if(searchLineFunc(last_name, el.bpe.book_author,
-                                              coef_coincidence))
-                              {
-                                return false;
-                              }
-                            else
-                              {
-                                return true;
-                              }
-                          }),
+                           coef_coincidence](BookBaseEntry &el)
+                            {
+                              if(searchLineFunc(last_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                {
+                                  return false;
+                                }
+                              else
+                                {
+                                  return true;
+                                }
+                            }),
                       result.end());
 #else
                   result.erase(
                       std::remove_if(result.begin(), result.end(),
                                      [last_name, coef_coincidence,
-                                      this](BookBaseEntry &el) {
-                                       if(searchLineFunc(last_name,
-                                                         el.bpe.book_author,
-                                                         coef_coincidence))
-                                         {
-                                           return false;
-                                         }
-                                       else
-                                         {
-                                           return true;
-                                         }
-                                     }),
+                                      this](BookBaseEntry &el)
+                                       {
+                                         if(searchLineFunc(
+                                                last_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                           {
+                                             return false;
+                                           }
+                                         else
+                                           {
+                                             return true;
+                                           }
+                                       }),
                       result.end());
 #endif
 #endif
@@ -2345,29 +2244,8 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
       if(n != std::string::npos)
         {
           first_name = first_name.substr(0, n);
-          first_name = af->stringToLower(first_name);
-          for(auto it = first_name.begin(); it != first_name.end();)
-            {
-              if(*it == ' ')
-                {
-                  first_name.erase(it);
-                }
-              else
-                {
-                  break;
-                }
-            }
-          while(first_name.size() > 0)
-            {
-              if(*first_name.rbegin() == ' ')
-                {
-                  first_name.pop_back();
-                }
-              else
-                {
-                  break;
-                }
-            }
+          normalizeString(first_name, Normalization::Author);
+          first_name = af->stringToLower(first_name);          
           if(!first_name.empty())
             {
               all_empty = false;
@@ -2394,7 +2272,8 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                           itb++)
                         {
                           if(searchLineFunc(first_name, itb->book_author,
-                                            coef_coincidence))
+                                            coef_coincidence,
+                                            Normalization::Author))
                             {
 #pragma omp critical
                               {
@@ -2410,123 +2289,137 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
                   std::for_each(
                       std::execution::par, base.begin(), base.end(),
                       [this, first_name, &result, &result_mtx,
-                       coef_coincidence](FileParseEntry &el) {
-                        if(cancel_search.load(std::memory_order_relaxed))
-                          {
-                            return void();
-                          }
-                        std::filesystem::path book_file_path
-                            = collection_path
-                              / std::filesystem::u8path(el.file_rel_path);
+                       coef_coincidence](FileParseEntry &el)
+                        {
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          std::filesystem::path book_file_path
+                              = collection_path
+                                / std::filesystem::u8path(el.file_rel_path);
 
-                        std::for_each(
-                            std::execution::par, el.books.begin(),
-                            el.books.end(),
-                            [this, first_name, &result, &result_mtx,
-                             book_file_path,
-                             coef_coincidence](BookParseEntry &el) {
-                              if(cancel_search.load(std::memory_order_relaxed))
+                          std::for_each(
+                              std::execution::par, el.books.begin(),
+                              el.books.end(),
+                              [this, first_name, &result, &result_mtx,
+                               book_file_path,
+                               coef_coincidence](BookParseEntry &el)
                                 {
-                                  return void();
-                                }
-                              if(searchLineFunc(first_name, el.book_author,
-                                                coef_coincidence))
-                                {
-                                  result_mtx.lock();
-                                  result.emplace_back(
-                                      BookBaseEntry(el, book_file_path));
-                                  result_mtx.unlock();
-                                }
-                            });
-                      });
+                                  if(cancel_search.load(
+                                         std::memory_order_relaxed))
+                                    {
+                                      return void();
+                                    }
+                                  if(searchLineFunc(first_name, el.book_author,
+                                                    coef_coincidence,
+                                                    Normalization::Author))
+                                    {
+                                      result_mtx.lock();
+                                      result.emplace_back(
+                                          BookBaseEntry(el, book_file_path));
+                                      result_mtx.unlock();
+                                    }
+                                });
+                        });
 #else
                   std::for_each(
                       base.begin(), base.end(),
                       [this, first_name, &result, &result_mtx,
-                       coef_coincidence](FileParseEntry &el) {
-                        if(cancel_search.load(std::memory_order_relaxed))
-                          {
-                            return void();
-                          }
-                        std::filesystem::path book_file_path
-                            = collection_path
-                              / std::filesystem::u8path(el.file_rel_path);
+                       coef_coincidence](FileParseEntry &el)
+                        {
+                          if(cancel_search.load(std::memory_order_relaxed))
+                            {
+                              return void();
+                            }
+                          std::filesystem::path book_file_path
+                              = collection_path
+                                / std::filesystem::u8path(el.file_rel_path);
 
-                        std::for_each(
-                            el.books.begin(), el.books.end(),
-                            [this, first_name, &result, &result_mtx,
-                             book_file_path,
-                             coef_coincidence](BookParseEntry &el) {
-                              if(cancel_search.load(std::memory_order_relaxed))
+                          std::for_each(
+                              el.books.begin(), el.books.end(),
+                              [this, first_name, &result, &result_mtx,
+                               book_file_path,
+                               coef_coincidence](BookParseEntry &el)
                                 {
-                                  return void();
-                                }
-                              if(searchLineFunc(first_name, el.book_author,
-                                                coef_coincidence))
-                                {
-                                  result_mtx.lock();
-                                  result.emplace_back(
-                                      BookBaseEntry(el, book_file_path));
-                                  result_mtx.unlock();
-                                }
-                            });
-                      });
+                                  if(cancel_search.load(
+                                         std::memory_order_relaxed))
+                                    {
+                                      return void();
+                                    }
+                                  if(searchLineFunc(first_name, el.book_author,
+                                                    coef_coincidence,
+                                                    Normalization::Author))
+                                    {
+                                      result_mtx.lock();
+                                      result.emplace_back(
+                                          BookBaseEntry(el, book_file_path));
+                                      result_mtx.unlock();
+                                    }
+                                });
+                        });
 #endif
 #endif
                 }
               else
                 {
 #ifdef USE_OPENMP
-                  result.erase(AuxFunc::parallelRemoveIf(
-                                   result.begin(), result.end(),
-                                   [first_name, this,
-                                    coef_coincidence](BookBaseEntry &el) {
-                                     if(searchLineFunc(first_name,
-                                                       el.bpe.book_author,
-                                                       coef_coincidence))
-                                       {
-                                         return false;
-                                       }
-                                     else
-                                       {
-                                         return true;
-                                       }
-                                   }),
-                               result.end());
+                  result.erase(
+                      AuxFunc::parallelRemoveIf(
+                          result.begin(), result.end(),
+                          [first_name, this,
+                           coef_coincidence](BookBaseEntry &el)
+                            {
+                              if(searchLineFunc(first_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                {
+                                  return false;
+                                }
+                              else
+                                {
+                                  return true;
+                                }
+                            }),
+                      result.end());
 #else
 #ifdef USE_PE
                   result.erase(
                       std::remove_if(
                           std::execution::par, result.begin(), result.end(),
                           [first_name, this,
-                           coef_coincidence](BookBaseEntry &el) {
-                            if(searchLineFunc(first_name, el.bpe.book_author,
-                                              coef_coincidence))
-                              {
-                                return false;
-                              }
-                            else
-                              {
-                                return true;
-                              }
-                          }),
+                           coef_coincidence](BookBaseEntry &el)
+                            {
+                              if(searchLineFunc(first_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                {
+                                  return false;
+                                }
+                              else
+                                {
+                                  return true;
+                                }
+                            }),
                       result.end());
 #else
                   result.erase(
                       std::remove_if(result.begin(), result.end(),
                                      [first_name, coef_coincidence,
-                                      this](BookBaseEntry &el) {
-                                       if(searchLineFunc(first_name,
-                                                         el.bpe.book_author,
-                                                         coef_coincidence))
-                                         {
-                                           return false;
-                                         }
-                                       else
-                                         {
-                                           return true;
-                                         }
-                                     }),
+                                      this](BookBaseEntry &el)
+                                       {
+                                         if(searchLineFunc(
+                                                first_name, el.bpe.book_author,
+                                                coef_coincidence,
+                                                Normalization::Author))
+                                           {
+                                             return false;
+                                           }
+                                         else
+                                           {
+                                             return true;
+                                           }
+                                       }),
                       result.end());
 #endif
 #endif

@@ -20,8 +20,7 @@
 #include <AuxFunc.h>
 #include <BookInfoEntry.h>
 #include <BookParseEntry.h>
-#include <XMLParser.h>
-#include <XMLTag.h>
+#include <XMLParserCPP.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -33,7 +32,7 @@
  * do not need to use this class directly. Use CreateCollection,
  * RefreshCollection and BookInfo instead.
  */
-class FB2Parser : public XMLParser
+class FB2Parser
 {
 public:
   /*!
@@ -43,14 +42,44 @@ public:
   FB2Parser(const std::shared_ptr<AuxFunc> &af);
 
   /*!
+   * \brief FB2Parser destructor.
+   */
+  virtual ~FB2Parser();
+
+  /*!
    * \brief Parses fb2 book.
    *
-   * \note This method can throw MLException object in case of any errors.
+   * \deprecated This method will be removed in future releases. Use
+   * fb2Parser() instead.
+   *
+   * \note This method can throw std::exception object in case of any errors.
+   * \param book fb2 file content.
+   * \return BookParseEntry object.
+   */
+  __attribute__((deprecated)) BookParseEntry
+  fb2_parser(const std::string &book);
+
+  /*!
+   * \brief Parses fb2 book.
+   *
+   * \note This method can throw std::exception object in case of any errors.
    * \param book fb2 file content.
    * \return BookParseEntry object.
    */
   BookParseEntry
-  fb2_parser(const std::string &book);
+  fb2Parser(const std::string &book);
+
+  /*!
+   * \brief Returns fb2 book info and cover.
+   *
+   * \deprecated This method will be removed in future releases. Use
+   * fb2BookInfo() instead.
+   *
+   * \param book fb2 books file content.
+   * \return Smart poiner to BookInfoEntry object.
+   */
+  __attribute__((deprecated)) std::shared_ptr<BookInfoEntry>
+  fb2_book_info(const std::string &book);
 
   /*!
    * \brief Returns fb2 book info and cover.
@@ -58,45 +87,71 @@ public:
    * \return Smart poiner to BookInfoEntry object.
    */
   std::shared_ptr<BookInfoEntry>
-  fb2_book_info(const std::string &book);
+  fb2BookInfo(const std::string &book);
 
 private:
   BookParseEntry
-  fb2_description(const std::string &book);
+  fb2Description();
 
   std::string
-  fb2_author(const std::string &book, const std::vector<XMLTag> &author);
+  fb2Author(const std::vector<XMLElement *> &author);
 
   std::string
-  fb2_series(const std::vector<XMLTag> &sequence);
+  fb2Series(const std::vector<XMLElement *> &sequence);
 
   std::string
-  fb2_genres(const std::string &book, const std::vector<XMLTag> &genres);
+  fb2Genres(const std::vector<XMLElement *> &genres);
+
+  std::string
+  fb2Date(const std::vector<XMLElement *> &date);
 
   void
-  fb2_annotation_decode(const std::string &book, std::string &result);
+  fb2AnnotationDecode(std::string &result);
 
   BookInfoEntry::cover_types
-  fb2_cover(const std::string &book, std::string &cover);
+  fb2Cover(std::string &cover);
 
   void
-  fb2_extra_info(const std::string &book, BookInfoEntry &result);
+  fb2CoverGetImage(const std::vector<XMLElement *> &image, std::string &cover,
+                   BookInfoEntry::cover_types &result);
 
   void
-  fb2_publisher_info(const std::string &book, BookInfoEntry &result);
+  fb2ExtraInfo(BookInfoEntry &result);
 
   void
-  fb2_electro_doc_info(const std::string &book, BookInfoEntry &result);
+  fb2Language(const std::vector<XMLElement *> &lang, std::string &result);
 
   void
-  fb2_elctor_publisher(const std::string &book, const std::vector<XMLTag> &tgv,
-                       BookInfoEntry &result);
+  fb2PublisherInfo(BookInfoEntry &result);
 
   void
-  recursiveGetTags(const std::string &book, const std::vector<XMLTag> &tgv,
-                   std::string &result);
+  fb2PublisherInfoString(const std::vector<XMLElement *> &source,
+                         std::string &result);
+
+  void
+  fb2PublisherInfoString(const std::vector<XMLElement> &source,
+                         std::string &result);
+
+  void
+  fb2ElectroDocInfo(BookInfoEntry &result);
+
+  std::string
+  getBookEncoding();
+
+  std::string
+  getBookEncoding(const std::string &book);
+
+  void
+  findAnnotationFallback(const std::string &book, BookInfoEntry &result);
+
+  void
+  normalizeString(std::string &str);
 
   std::shared_ptr<AuxFunc> af;
+
+  XMLParserCPP *xml_parser;
+  std::vector<XMLElement> book_xml;
+  std::vector<XMLElement *> title_info;
 };
 
 #endif // FB2PARSER_H

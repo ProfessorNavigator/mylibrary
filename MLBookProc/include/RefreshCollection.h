@@ -96,7 +96,7 @@ public:
    * \brief Refreshes whole collection.
    *
    * Caries out collection refreshing.
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    */
   void
   refreshCollection();
@@ -139,33 +139,38 @@ public:
 
 private:
   std::filesystem::path
-  get_base_path(const std::string &collection_name);
+  getBasePath(const std::string &collection_name);
 
   std::filesystem::path
-  get_books_path();
+  getBooksPath();
 
   void
-  compaire_vectors(std::vector<FileParseEntry> &base,
-                   std::vector<std::filesystem::path> &books_files);
+  compareVectors(std::vector<FileParseEntry> &base,
+                 std::vector<std::filesystem::path> &books_files);
 
   bool
-  compare_function1(const std::filesystem::path &book_path,
-                    const FileParseEntry &ent);
+  compareFunction1(const std::filesystem::path &book_path,
+                   const FileParseEntry &ent);
 
   bool
-  compare_function2(const FileParseEntry &ent,
-                    const std::filesystem::path &book_path);
+  compareFunction2(const FileParseEntry &ent,
+                   const std::filesystem::path &book_path);
 
   void
-  check_hashes(std::vector<FileParseEntry> *base,
-               std::vector<std::filesystem::path> *books_files);
+  checkHashes(std::vector<FileParseEntry> *base,
+              std::vector<std::filesystem::path> *books_files);
 
   void
-  hash_thread(const std::filesystem::path &file_to_hash,
-              std::vector<FileParseEntry> *base);
+  hashThread(const std::filesystem::path &file_to_hash,
+             std::vector<FileParseEntry> *base);
 
   void
   refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk);
+
+  void
+  getFilenamesFromArchives(const std::filesystem::path &arch_path,
+                           const std::string &prefix,
+                           std::vector<std::string> &result, void *la);
 
   std::shared_ptr<AuxFunc> af;
   int num_threads = 1;
@@ -185,7 +190,7 @@ private:
 
   std::mutex newthrmtx;
   std::condition_variable continue_hashing;
-  int run_threads = 0;
+  std::vector<std::tuple<unsigned, bool>> thr_pool;
 #else
   uintmax_t bytes_summ = 0;
   omp_lock_t basemtx;

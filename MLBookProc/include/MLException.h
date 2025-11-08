@@ -23,8 +23,11 @@
  * \brief The MLException class.
  *
  * This class is used as exception to indicate various errors.
+ *
+ * \deprecated This class is deprecated and will be removed in future releases.
+ * MLBookProc uses std::exception for exceptions now.
  */
-class MLException
+class __attribute__((deprecated)) MLException
 {
 public:
   /*!

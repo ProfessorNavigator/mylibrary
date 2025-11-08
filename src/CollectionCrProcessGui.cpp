@@ -15,7 +15,6 @@
  */
 
 #include <CollectionCrProcessGui.h>
-#include <MLException.h>
 #include <RefreshCollection.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <iostream>
@@ -238,7 +237,7 @@ CollectionCrProcessGui::createProcessCreation(Gtk::Window *win)
         cc->createCollection();
         new_collection_name_disp->emit();
       }
-    catch(MLException &e)
+    catch(std::exception &e)
       {
         std::cout << e.what() << std::endl;
       }
@@ -344,7 +343,7 @@ CollectionCrProcessGui::createProcessRefresh(Gtk::Window *win)
       {
         rfr->refreshCollection();
       }
-    catch(MLException &e)
+    catch(std::exception &e)
       {
         std::cout << e.what() << std::endl;
       }

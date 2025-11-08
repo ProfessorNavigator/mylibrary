@@ -16,7 +16,7 @@
 
 #include <BookParseEntry.h>
 #include <ByteOrder.h>
-#include <MLException.h>
+#include <LibArchive.h>
 #include <RefreshCollection.h>
 #include <algorithm>
 #include <fstream>
@@ -24,6 +24,7 @@
 #include <tuple>
 
 #ifndef USE_OPENMP
+#include <pthread.h>
 #include <thread>
 #endif
 
@@ -38,9 +39,9 @@ RefreshCollection::RefreshCollection(
     {
       this->num_threads = num_threads;
     }
-  base_path = get_base_path(collection_name);
+  base_path = getBasePath(collection_name);
   this->collection_name = collection_name;
-  books_path = get_books_path();
+  books_path = getBooksPath();
   this->remove_empty = remove_empty;
   this->fast_refresh = fast_refresh;
   this->refresh_bookmarks = refresh_bookmarks;
@@ -51,6 +52,26 @@ RefreshCollection::RefreshCollection(
   omp_init_lock(&basemtx);
   omp_init_lock(&already_hashedmtx);
   omp_init_lock(&need_to_parsemtx);
+#else
+  if(this->num_threads > static_cast<int>(std::thread::hardware_concurrency()))
+    {
+      unsigned lim
+          = static_cast<unsigned>(std::thread::hardware_concurrency());
+      thr_pool.reserve(lim);
+      for(unsigned i = 0; i < lim; i++)
+        {
+          thr_pool.push_back(std::make_tuple(i, true));
+        }
+    }
+  else
+    {
+      unsigned lim = static_cast<unsigned>(this->num_threads);
+      thr_pool.reserve(lim);
+      for(unsigned i = 0; i < lim; i++)
+        {
+          thr_pool.push_back(std::make_tuple(i, true));
+        }
+    }
 #endif
 }
 
@@ -64,7 +85,7 @@ RefreshCollection::~RefreshCollection()
 }
 
 std::filesystem::path
-RefreshCollection::get_base_path(const std::string &collection_name)
+RefreshCollection::getBasePath(const std::string &collection_name)
 {
   std::filesystem::path result;
 
@@ -80,7 +101,7 @@ RefreshCollection::get_base_path(const std::string &collection_name)
 }
 
 std::filesystem::path
-RefreshCollection::get_books_path()
+RefreshCollection::getBooksPath()
 {
   std::filesystem::path result;
 
@@ -99,7 +120,7 @@ RefreshCollection::get_books_path()
       else
         {
           f.close();
-          throw MLException(
+          throw std::runtime_error(
               "RefreshCollection::get_books_path: incorrect base file");
         }
       ByteOrder bo;
@@ -116,7 +137,7 @@ RefreshCollection::get_books_path()
       else
         {
           f.close();
-          throw MLException(
+          throw std::runtime_error(
               "RefreshCollection::get_books_path: incorrect base file(2)");
         }
 
@@ -203,18 +224,19 @@ RefreshCollection::refreshCollection()
           std::string sstr = ".rar";
           books_files.erase(
               std::remove_if(books_files.begin(), books_files.end(),
-                             [sstr, this](std::filesystem::path &el) {
-                               std::string ext = el.extension().u8string();
-                               ext = af->stringToLower(ext);
-                               return ext == sstr;
-                             }),
+                             [sstr, this](std::filesystem::path &el)
+                               {
+                                 std::string ext = el.extension().u8string();
+                                 ext = af->stringToLower(ext);
+                                 return ext == sstr;
+                               }),
               books_files.end());
         }
 
-      compaire_vectors(base, books_files);
+      compareVectors(base, books_files);
       if(!fast_refresh)
         {
-          check_hashes(&base, &books_files);
+          checkHashes(&base, &books_files);
         }
 
       std::filesystem::remove_all(base_path);
@@ -250,20 +272,24 @@ RefreshCollection::refreshCollection()
     }
   else
     {
-      throw MLException(
+      throw std::runtime_error(
           "RefreshCollection::refreshCollection: books not found");
     }
 }
 
 void
-RefreshCollection::compaire_vectors(
+RefreshCollection::compareVectors(
     std::vector<FileParseEntry> &base,
     std::vector<std::filesystem::path> &books_files)
 {
   for(auto it = base.begin(); it != base.end();)
     {
+      if(pulse)
+        {
+          pulse();
+        }
       auto itbf = std::find_if(books_files.begin(), books_files.end(),
-                               std::bind(&RefreshCollection::compare_function1,
+                               std::bind(&RefreshCollection::compareFunction1,
                                          this, std::placeholders::_1, *it));
       if(itbf == books_files.end())
         {
@@ -275,22 +301,205 @@ RefreshCollection::compaire_vectors(
         }
     }
 
+  std::unique_ptr<LibArchive> la(new LibArchive(af));
+
+#ifdef USE_OPENMP
+  int num_threads_default = omp_get_max_threads();
+  omp_set_num_threads(num_threads);
+  omp_set_max_active_levels(omp_get_supported_active_levels());
+  omp_set_dynamic(true);
+  omp_lock_t base_mtx;
+  omp_init_lock(&base_mtx);
+#pragma omp parallel
+#pragma omp for
   for(auto it = books_files.begin(); it != books_files.end(); it++)
     {
+      bool cncl;
+#pragma omp atomic read
+      cncl = cancel;
+      if(cncl)
+        {
+#pragma omp cancel for
+          continue;
+        }
+      if(pulse)
+        {
+          pulse();
+        }
+      omp_set_lock(&base_mtx);
       auto itbase
           = std::find_if(base.begin(), base.end(),
-                         std::bind(&RefreshCollection::compare_function2, this,
+                         std::bind(&RefreshCollection::compareFunction2, this,
                                    std::placeholders::_1, *it));
       if(itbase == base.end())
         {
+          omp_unset_lock(&base_mtx);
+          omp_set_lock(&need_to_parsemtx);
           need_to_parse.push_back(*it);
+          omp_unset_lock(&need_to_parsemtx);
+        }
+      else
+        {
+          FileParseEntry fpe = *itbase;
+          omp_unset_lock(&base_mtx);
+          if(af->ifSupportedArchiveUnpackaingType(*it))
+            {
+              std::vector<std::string> filenames;
+              getFilenamesFromArchives(*it, "", filenames, la.get());
+              for(auto it_fnm = filenames.begin(); it_fnm != filenames.end();
+                  it_fnm++)
+                {
+                  auto it_bpe
+                      = std::find_if(fpe.books.begin(), fpe.books.end(),
+                                     [it_fnm](const BookParseEntry &el)
+                                       {
+                                         return el.book_path == *it_fnm;
+                                       });
+                  if(it_bpe == fpe.books.end())
+                    {
+                      omp_set_lock(&need_to_parsemtx);
+                      need_to_parse.push_back(*it);
+                      omp_unset_lock(&need_to_parsemtx);
+                      omp_set_lock(&base_mtx);
+                      base.erase(std::remove_if(base.begin(), base.end(),
+                                                [fpe](const FileParseEntry &el)
+                                                  {
+                                                    return fpe.file_rel_path
+                                                           == el.file_rel_path;
+                                                  }),
+                                 base.end());
+                      omp_unset_lock(&base_mtx);
+                      break;
+                    }
+                }
+            }
         }
     }
+  omp_destroy_lock(&base_mtx);
+  omp_set_num_threads(num_threads_default);
+#else
+  std::mutex base_mtx;
+
+  for(auto it = books_files.begin(); it != books_files.end(); it++)
+    {
+      if(cancel.load(std::memory_order_relaxed))
+        {
+          break;
+        }
+      std::unique_lock<std::mutex> run_thr_lock(newthrmtx);
+      std::vector<std::tuple<unsigned, bool>>::iterator free;
+      continue_hashing.wait(run_thr_lock,
+                            [this, &free]
+                              {
+                                bool result = false;
+                                for(auto it = thr_pool.begin();
+                                    it != thr_pool.end(); it++)
+                                  {
+                                    if(std::get<1>(*it))
+                                      {
+                                        free = it;
+                                        result = true;
+                                        break;
+                                      }
+                                  }
+                                return result;
+                              });
+      std::get<1>(*free) = false;
+      std::thread thr(
+          [this, &base_mtx, &base, &la, it, free]
+            {
+              if(pulse)
+                {
+                  pulse();
+                }
+              base_mtx.lock();
+              auto itbase = std::find_if(
+                  base.begin(), base.end(),
+                  std::bind(&RefreshCollection::compareFunction2, this,
+                            std::placeholders::_1, *it));
+              if(itbase == base.end())
+                {
+                  base_mtx.unlock();
+                  need_to_parsemtx.lock();
+                  need_to_parse.push_back(*it);
+                  need_to_parsemtx.unlock();
+                }
+              else
+                {
+                  FileParseEntry fpe = *itbase;
+                  base_mtx.unlock();
+                  if(af->ifSupportedArchiveUnpackaingType(*it))
+                    {
+                      std::vector<std::string> filenames;
+                      getFilenamesFromArchives(*it, "", filenames, la.get());
+                      for(auto it_fnm = filenames.begin();
+                          it_fnm != filenames.end(); it_fnm++)
+                        {
+                          auto it_bpe = std::find_if(
+                              fpe.books.begin(), fpe.books.end(),
+                              [it_fnm](const BookParseEntry &el)
+                                {
+                                  return el.book_path == *it_fnm;
+                                });
+                          if(it_bpe == fpe.books.end())
+                            {
+                              need_to_parsemtx.lock();
+                              need_to_parse.push_back(*it);
+                              need_to_parsemtx.unlock();
+                              base_mtx.lock();
+                              base.erase(std::remove_if(
+                                             base.begin(), base.end(),
+                                             [fpe](const FileParseEntry &el)
+                                               {
+                                                 return fpe.file_rel_path
+                                                        == el.file_rel_path;
+                                               }),
+                                         base.end());
+                              base_mtx.unlock();
+                              break;
+                            }
+                        }
+                    }
+                }
+              std::lock_guard<std::mutex> lglock(newthrmtx);
+              std::get<1>(*free) = true;
+              continue_hashing.notify_all();
+            });
+      cpu_set_t cpu_set;
+      CPU_ZERO(&cpu_set);
+      CPU_SET(std::get<0>(*free), &cpu_set);
+      int er = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t),
+                                      &cpu_set);
+      if(er != 0)
+        {
+          std::cout << "RefreshCollection::refreshCollection "
+                       "pthread_setaffinity_np: "
+                    << std::strerror(er) << std::endl;
+        }
+      thr.detach();
+    }
+  std::unique_lock<std::mutex> ullock(newthrmtx);
+  continue_hashing.wait(ullock,
+                        [this]
+                          {
+                            bool result = true;
+                            for(auto it = thr_pool.begin();
+                                it != thr_pool.end(); it++)
+                              {
+                                if(!std::get<1>(*it))
+                                  {
+                                    result = false;
+                                    break;
+                                  }
+                              }
+                            return result;
+                          });
+#endif
 }
 
 bool
-RefreshCollection::compare_function1(const std::filesystem::path &book_path,
-                                     const FileParseEntry &ent)
+RefreshCollection::compareFunction1(const std::filesystem::path &book_path,
+                                    const FileParseEntry &ent)
 {
   std::filesystem::path cur = std::filesystem::u8path(ent.file_rel_path);
   std::filesystem::path comp = book_path.lexically_proximate(books_path);
@@ -305,10 +514,10 @@ RefreshCollection::compare_function1(const std::filesystem::path &book_path,
 }
 
 bool
-RefreshCollection::compare_function2(const FileParseEntry &ent,
-                                     const std::filesystem::path &book_path)
+RefreshCollection::compareFunction2(const FileParseEntry &ent,
+                                    const std::filesystem::path &book_path)
 {
-  return compare_function1(book_path, ent);
+  return compareFunction1(book_path, ent);
 }
 
 void
@@ -319,7 +528,7 @@ RefreshCollection::refreshFile(const BookBaseEntry &bbe)
   std::vector<FileParseEntry> base = bk->get_base_vector();
   for(auto it = base.begin(); it != base.end();)
     {
-      if(compare_function1(bbe.file_path, *it))
+      if(compareFunction1(bbe.file_path, *it))
         {
           base.erase(it);
           break;
@@ -350,9 +559,8 @@ RefreshCollection::refreshFile(const BookBaseEntry &bbe)
 }
 
 void
-RefreshCollection::check_hashes(
-    std::vector<FileParseEntry> *base,
-    std::vector<std::filesystem::path> *books_files)
+RefreshCollection::checkHashes(std::vector<FileParseEntry> *base,
+                               std::vector<std::filesystem::path> *books_files)
 {
   uintmax_t summ = 0;
   if(total_bytes_to_hash)
@@ -370,35 +578,73 @@ RefreshCollection::check_hashes(
 
 #ifndef USE_OPENMP
   bytes_summ.store(0);
-
-  run_threads = 0;
+  for(auto it = thr_pool.begin(); it != thr_pool.end(); it++)
+    {
+      std::get<1>(*it) = true;
+    }
   for(auto it = books_files->begin(); it != books_files->end(); it++)
     {
       if(cancel.load(std::memory_order_relaxed))
         {
           break;
         }
-      std::unique_lock<std::mutex> lk(newthrmtx);
-      run_threads++;
+      std::unique_lock<std::mutex> ullock(newthrmtx);
+      std::vector<std::tuple<unsigned, bool>>::iterator free;
+      continue_hashing.wait(ullock,
+                            [this, &free]
+                              {
+                                bool result = false;
+                                for(auto it = thr_pool.begin();
+                                    it != thr_pool.end(); it++)
+                                  {
+                                    if(std::get<1>(*it))
+                                      {
+                                        result = true;
+                                        free = it;
+                                        break;
+                                      }
+                                  }
+                                return result;
+                              });
+      std::get<1>(*free) = false;
       std::thread thr(
-          std::bind(&RefreshCollection::hash_thread, this, *it, base));
+          [this, free, it, base]
+            {
+              hashThread(*it, base);
+              std::lock_guard<std::mutex> lglock(newthrmtx);
+              std::get<1>(*free) = true;
+              continue_hashing.notify_all();
+            });
+      cpu_set_t cpu_set;
+      CPU_ZERO(&cpu_set);
+      CPU_SET(std::get<0>(*free), &cpu_set);
+      int er = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t),
+                                      &cpu_set);
+      if(er != 0)
+        {
+          std::cout
+              << "RefreshCollection::checkHashes pthread_setaffinity_np: "
+              << std::strerror(er) << std::endl;
+        }
       thr.detach();
-      continue_hashing.wait(lk, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads - 1;
-          }
-        else
-          {
-            return run_threads < 1;
-          }
-      });
     }
 
-  std::unique_lock<std::mutex> lk(newthrmtx);
-  continue_hashing.wait(lk, [this] {
-    return run_threads <= 0;
-  });
+  std::unique_lock<std::mutex> ullock(newthrmtx);
+  continue_hashing.wait(ullock,
+                        [this]
+                          {
+                            bool result = true;
+                            for(auto it = thr_pool.begin();
+                                it != thr_pool.end(); it++)
+                              {
+                                if(!std::get<1>(*it))
+                                  {
+                                    result = false;
+                                    break;
+                                  }
+                              }
+                            return result;
+                          });
 #else
   int num_threads_default = omp_get_max_threads();
   omp_set_num_threads(num_threads);
@@ -414,58 +660,53 @@ RefreshCollection::check_hashes(
 #pragma omp cancel for
           continue;
         }
-      hash_thread(*it, base);
+      hashThread(*it, base);
     }
   omp_set_num_threads(num_threads_default);
 #endif
 }
 
 void
-RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
-                               std::vector<FileParseEntry> *base)
+RefreshCollection::hashThread(const std::filesystem::path &file_to_hash,
+                              std::vector<FileParseEntry> *base)
 {
   std::string hash;
 #ifndef USE_OPENMP
   try
     {
-      std::unique_lock<std::mutex> ullock(newthrmtx);
-      continue_hashing.wait(ullock, [this] {
-        if(num_threads > 1)
-          {
-            return run_threads < num_threads;
-          }
-        else
-          {
-            return run_threads < 2;
-          }
-      });
-      run_threads++;
-      ullock.unlock();
-      std::shared_ptr<int> thr_finish(&run_threads, [this](int *) {
-        std::lock_guard<std::mutex> lglock(newthrmtx);
-        run_threads--;
-        continue_hashing.notify_one();
-      });
       hash = file_hashing(file_to_hash);
     }
-  catch(MLException &er)
+  catch(std::exception &er)
     {
-      std::cout << er.what() << std::endl;
-      std::lock_guard<std::mutex> lk(newthrmtx);
-      run_threads--;
-      continue_hashing.notify_one();
+      std::cout << "RefreshCollection::hashThread: \"" << er.what() << "\""
+                << std::endl;
     }
 
-  already_hashedmtx.lock();
-  already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
-  basemtx.lock();
-  auto itbase
-      = std::find_if(base->begin(), base->end(),
-                     std::bind(&RefreshCollection::compare_function2, this,
-                               std::placeholders::_1, file_to_hash));
-  if(itbase != base->end())
+  if(!hash.empty() && !cancel.load())
     {
-      if(hash != itbase->file_hash)
+      already_hashedmtx.lock();
+      already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
+      basemtx.lock();
+      auto itbase
+          = std::find_if(base->begin(), base->end(),
+                         std::bind(&RefreshCollection::compareFunction2, this,
+                                   std::placeholders::_1, file_to_hash));
+      if(itbase != base->end())
+        {
+          if(hash != itbase->file_hash)
+            {
+              need_to_parsemtx.lock();
+              auto itntp = std::find(need_to_parse.begin(),
+                                     need_to_parse.end(), file_to_hash);
+              if(itntp == need_to_parse.end())
+                {
+                  need_to_parse.push_back(file_to_hash);
+                }
+              need_to_parsemtx.unlock();
+              base->erase(itbase);
+            }
+        }
+      else
         {
           need_to_parsemtx.lock();
           auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
@@ -475,51 +716,55 @@ RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
               need_to_parse.push_back(file_to_hash);
             }
           need_to_parsemtx.unlock();
-          base->erase(itbase);
         }
-    }
-  else
-    {
-      need_to_parsemtx.lock();
-      auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
-                             file_to_hash);
-      if(itntp == need_to_parse.end())
+      basemtx.unlock();
+      already_hashedmtx.unlock();
+      bytes_summ.store(bytes_summ.load()
+                       + std::filesystem::file_size(file_to_hash));
+      if(bytes_hashed)
         {
-          need_to_parse.push_back(file_to_hash);
+          bytes_hashed(static_cast<double>(bytes_summ.load()));
         }
-      need_to_parsemtx.unlock();
     }
-  basemtx.unlock();
-  already_hashedmtx.unlock();
-  bytes_summ.store(bytes_summ.load()
-                   + std::filesystem::file_size(file_to_hash));
-  if(bytes_hashed)
-    {
-      bytes_hashed(static_cast<double>(bytes_summ.load()));
-    }
-  std::lock_guard<std::mutex> lk(newthrmtx);
-  run_threads--;
-  continue_hashing.notify_one();
 #else
   try
     {
       hash = file_hashing(file_to_hash);
     }
-  catch(MLException &er)
+  catch(std::exception &er)
     {
-      std::cout << er.what() << std::endl;
+      std::cout << "RefreshCollection::hashThread: \"" << er.what() << "\""
+                << std::endl;
     }
 
-  omp_set_lock(&already_hashedmtx);
-  already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
-  omp_set_lock(&basemtx);
-  auto itbase
-      = std::find_if(base->begin(), base->end(),
-                     std::bind(&RefreshCollection::compare_function2, this,
-                               std::placeholders::_1, file_to_hash));
-  if(itbase != base->end())
+  bool cncl = false;
+#pragma omp atomic read
+  cncl = cancel;
+  if(!hash.empty() && !cncl)
     {
-      if(hash != itbase->file_hash)
+      omp_set_lock(&already_hashedmtx);
+      already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
+      omp_set_lock(&basemtx);
+      auto itbase
+          = std::find_if(base->begin(), base->end(),
+                         std::bind(&RefreshCollection::compareFunction2, this,
+                                   std::placeholders::_1, file_to_hash));
+      if(itbase != base->end())
+        {
+          if(hash != itbase->file_hash)
+            {
+              omp_set_lock(&need_to_parsemtx);
+              auto itntp = std::find(need_to_parse.begin(),
+                                     need_to_parse.end(), file_to_hash);
+              if(itntp == need_to_parse.end())
+                {
+                  need_to_parse.push_back(file_to_hash);
+                }
+              omp_unset_lock(&need_to_parsemtx);
+              base->erase(itbase);
+            }
+        }
+      else
         {
           omp_set_lock(&need_to_parsemtx);
           auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
@@ -529,32 +774,20 @@ RefreshCollection::hash_thread(const std::filesystem::path &file_to_hash,
               need_to_parse.push_back(file_to_hash);
             }
           omp_unset_lock(&need_to_parsemtx);
-          base->erase(itbase);
         }
-    }
-  else
-    {
-      omp_set_lock(&need_to_parsemtx);
-      auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
-                             file_to_hash);
-      if(itntp == need_to_parse.end())
-        {
-          need_to_parse.push_back(file_to_hash);
-        }
-      omp_unset_lock(&need_to_parsemtx);
-    }
-  omp_unset_lock(&basemtx);
-  omp_unset_lock(&already_hashedmtx);
+      omp_unset_lock(&basemtx);
+      omp_unset_lock(&already_hashedmtx);
 
-  uintmax_t b_summ;
+      uintmax_t b_summ;
 #pragma omp atomic capture
-  {
-    bytes_summ += std::filesystem::file_size(file_to_hash);
-    b_summ = bytes_summ;
-  }
-  if(bytes_hashed)
-    {
-      bytes_hashed(static_cast<double>(b_summ));
+      {
+        bytes_summ += std::filesystem::file_size(file_to_hash);
+        b_summ = bytes_summ;
+      }
+      if(bytes_hashed)
+        {
+          bytes_hashed(static_cast<double>(b_summ));
+        }
     }
 #endif
 }
@@ -570,7 +803,7 @@ RefreshCollection::editBook(const BookBaseEntry &bbe_old,
 
   auto itbase
       = std::find_if(base.begin(), base.end(),
-                     std::bind(&RefreshCollection::compare_function2, this,
+                     std::bind(&RefreshCollection::compareFunction2, this,
                                std::placeholders::_1, bbe_old.file_path));
   if(itbase != base.end())
     {
@@ -604,17 +837,18 @@ RefreshCollection::editBook(const BookBaseEntry &bbe_old,
               = std::make_tuple(collection_name, bbe_old);
           auto itbmv = std::find_if(
               bmv.begin(), bmv.end(),
-              [s_tup](std::tuple<std::string, BookBaseEntry> &el) {
-                if(std::get<0>(el) == std::get<0>(s_tup)
-                   && std::get<1>(el) == std::get<1>(s_tup))
-                  {
-                    return true;
-                  }
-                else
-                  {
-                    return false;
-                  }
-              });
+              [s_tup](std::tuple<std::string, BookBaseEntry> &el)
+                {
+                  if(std::get<0>(el) == std::get<0>(s_tup)
+                     && std::get<1>(el) == std::get<1>(s_tup))
+                    {
+                      return true;
+                    }
+                  else
+                    {
+                      return false;
+                    }
+                });
           if(itbmv != bmv.end())
             {
               bookmarks->removeBookMark(std::get<0>(*itbmv),
@@ -638,14 +872,15 @@ RefreshCollection::refreshBook(const BookBaseEntry &bbe)
 
   auto itbase
       = std::find_if(base.begin(), base.end(),
-                     std::bind(&RefreshCollection::compare_function2, this,
+                     std::bind(&RefreshCollection::compareFunction2, this,
                                std::placeholders::_1, bbe.file_path));
   if(itbase != base.end())
     {
       auto itbpe = std::find_if(itbase->books.begin(), itbase->books.end(),
-                                [bbe](BookParseEntry &el) {
-                                  return el == bbe.bpe;
-                                });
+                                [bbe](BookParseEntry &el)
+                                  {
+                                    return el == bbe.bpe;
+                                  });
       if(itbpe != itbase->books.end())
         {
           *itbpe = bbe.bpe;
@@ -681,14 +916,15 @@ RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
     {
       auto itbase = std::find_if(
           base.begin(), base.end(),
-          std::bind(&RefreshCollection::compare_function2, this,
+          std::bind(&RefreshCollection::compareFunction2, this,
                     std::placeholders::_1, std::get<1>(*it).file_path));
       if(itbase != base.end())
         {
           auto itbpe = std::find_if(itbase->books.begin(), itbase->books.end(),
-                                    [it](BookParseEntry &el) {
-                                      return el == std::get<1>(*it).bpe;
-                                    });
+                                    [it](BookParseEntry &el)
+                                      {
+                                        return el == std::get<1>(*it).bpe;
+                                      });
           if(itbpe == itbase->books.end())
             {
               bookmarks->removeBookMark(collection_name, std::get<1>(*it));
@@ -697,6 +933,69 @@ RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
       else
         {
           bookmarks->removeBookMark(collection_name, std::get<1>(*it));
+        }
+    }
+}
+
+void
+RefreshCollection::getFilenamesFromArchives(
+    const std::filesystem::path &arch_path, const std::string &prefix,
+    std::vector<std::string> &result, void *la)
+{
+  std::string ext = arch_path.extension().u8string();
+  std::vector<ArchEntry> files;
+  LibArchive *l_la = reinterpret_cast<LibArchive *>(la);
+  bool zip = false;
+  if(ext == ".zip" || ext == ".ZIP")
+    {
+      l_la->fileNames(arch_path, files);
+      zip = true;
+    }
+  else
+    {
+      l_la->fileNamesStream(arch_path, files);
+    }
+
+  for(auto it = files.begin(); it != files.end(); it++)
+    {
+      if(af->ifSupportedArchiveUnpackaingType(
+             std::filesystem::u8path(it->filename)))
+        {
+          std::string l_prefix;
+          if(prefix.empty())
+            {
+              l_prefix = it->filename;
+            }
+          else
+            {
+              l_prefix = prefix + "\n" + it->filename;
+            }
+          std::filesystem::path p
+              = arch_path.parent_path()
+                / std::filesystem::u8path(af->randomFileName());
+          std::filesystem::path unpacked;
+          if(zip)
+            {
+              unpacked = l_la->unpackByPosition(arch_path, p, *it);
+            }
+          else
+            {
+              unpacked
+                  = l_la->unpackByFileNameStream(arch_path, p, it->filename);
+            }
+          getFilenamesFromArchives(unpacked, l_prefix, result, la);
+          std::filesystem::remove_all(p);
+        }
+      else if(af->if_supported_type(std::filesystem::u8path(it->filename)))
+        {
+          if(prefix.empty())
+            {
+              result.push_back(it->filename);
+            }
+          else
+            {
+              result.push_back(prefix + "\n" + it->filename);
+            }
         }
     }
 }

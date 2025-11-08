@@ -18,7 +18,6 @@
 #include <BookInfoGui.h>
 #include <BookMarksGui.h>
 #include <CopyBookGui.h>
-#include <MLException.h>
 #include <NotesGui.h>
 #include <SearchResultModelItem.h>
 #include <filesystem>
@@ -350,7 +349,7 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
                                  std::bind(&AuxFunc::open_book_callback,
                                            af.get(), std::placeholders::_1));
           }
-        catch(MLException &er)
+        catch(std::exception &er)
           {
             std::cout << er.what() << std::endl;
           }

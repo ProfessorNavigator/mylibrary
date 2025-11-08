@@ -17,7 +17,6 @@
 #define PLUGINSKEEPER_H
 
 #include <AuxFunc.h>
-#include <MLException.h>
 #include <MLPlugin.h>
 #include <gtkmm-4.0/gtkmm/window.h>
 #include <iostream>

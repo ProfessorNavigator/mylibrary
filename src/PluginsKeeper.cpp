@@ -210,7 +210,7 @@ PluginsKeeper::loadPlugins()
         {
           parseRawBase(base_str);
         }
-      catch(MLException &e)
+      catch(std::exception &e)
         {
           std::cout << e.what() << std::endl;
         }
@@ -236,7 +236,7 @@ PluginsKeeper::parseRawBase(const std::string &raw_base)
         }
       else
         {
-          throw MLException(
+          throw std::runtime_error(
               "PluginsKeeper::parseRawBase incorrect entry size");
         }
       size_t sz = static_cast<size_t>(val64);
@@ -249,7 +249,8 @@ PluginsKeeper::parseRawBase(const std::string &raw_base)
         }
       else
         {
-          throw MLException("PluginsKeeper::parseRawBase incorrect entry");
+          throw std::runtime_error(
+              "PluginsKeeper::parseRawBase incorrect entry");
         }
     }
 }

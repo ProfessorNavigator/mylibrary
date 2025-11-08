@@ -47,7 +47,7 @@ public:
   /*!
    * \brief Removes book.
    *
-   * \note This method can throw MLException in case of errors.
+   * \note This method can throw std::exception in case of errors.
    */
   void
   removeBook();
