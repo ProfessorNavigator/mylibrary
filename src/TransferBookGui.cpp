@@ -756,7 +756,7 @@ void
 TransferBookGui::copy_overwrite(const int &variant,
                                 const std::shared_ptr<int> &res_var)
 {
-  std::filesystem::path tmp = af->temp_path();
+  std::filesystem::path tmp = af->tempPath();
   tmp /= std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath tmp_p(tmp);
   OpenBook ob(af);

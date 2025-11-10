@@ -26,7 +26,7 @@ main(int argc, char *argv[])
 
   if(af->get_activated())
     {
-      std::filesystem::path p = af->share_path();
+      std::filesystem::path p = af->sharePath();
       p /= std::filesystem::u8path("locale");
       char *report = bindtextdomain("MyLibrary", p.u8string().c_str());
       if(report)

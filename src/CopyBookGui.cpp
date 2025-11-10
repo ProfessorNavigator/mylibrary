@@ -201,7 +201,7 @@ CopyBookGui::save_slot(const Glib::RefPtr<Gio::AsyncResult> &result,
 void
 CopyBookGui::copy_func(const Glib::RefPtr<Gio::File> &fl)
 {
-  std::filesystem::path tmp = af->temp_path();
+  std::filesystem::path tmp = af->tempPath();
   tmp /= std::filesystem::u8path(af->randomFileName());
   std::filesystem::create_directories(tmp);
   SelfRemovingPath srp(tmp);

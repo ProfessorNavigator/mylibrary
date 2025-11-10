@@ -391,7 +391,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".epub")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(temp);
       std::filesystem::path out
@@ -559,7 +559,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".djvu")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(temp);
       std::filesystem::path out
@@ -731,7 +731,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".odt")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(temp);
       std::filesystem::path out
@@ -832,7 +832,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".txt" || ext == ".md")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(temp);
       std::filesystem::path out
@@ -934,7 +934,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(af->ifSupportedArchiveUnpackaingType(ch_p))
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       SelfRemovingPath srp(temp);
       std::filesystem::path out
@@ -1126,7 +1126,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".epub")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       std::filesystem::path out
           = libarchive_read_entry(a.get(), e.get(), temp);
@@ -1204,7 +1204,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".djvu")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       std::filesystem::path out
           = libarchive_read_entry(a.get(), e.get(), temp);
@@ -1284,7 +1284,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".odt")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       std::filesystem::path out
           = libarchive_read_entry(a.get(), e.get(), temp);
@@ -1336,7 +1336,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(ext == ".txt" || ext == ".md")
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       std::filesystem::path out
           = libarchive_read_entry(a.get(), e.get(), temp);
@@ -1388,7 +1388,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
     }
   else if(af->ifSupportedArchiveUnpackaingType(ch_p))
     {
-      std::filesystem::path temp = af->temp_path();
+      std::filesystem::path temp = af->tempPath();
       temp /= std::filesystem::u8path(af->randomFileName());
       std::filesystem::path out
           = libarchive_read_entry(a.get(), e.get(), temp);

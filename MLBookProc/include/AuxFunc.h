@@ -51,15 +51,17 @@
  *
  * \code{.unparsed}
  * find_package(MLBookProc)
- * if(MLBookProc_FOUND)
+ * find_package(XMLParserCPP)
+ * if(MLBookProc_FOUND AND XMLParserCPP_FOUND)
  *  target_link_libraries(myproject MLBookProc::mlbookproc)
+ *  target_link_libraries(myproject XMLParserCPP::XMLParserCPP)
  * endif()
  * \endcode
  *
- * \note MLBookProc sets USE_OPENMP build variable in case of OpenMP usage.
- *
  * Then create AuxFunc object. Further reading: CreateCollection,
  * RefreshCollection, BaseKeeper, BookMarks, NotesKeeper, BookInfo, OpenBook.
+ *
+ * \note MLBookProc sets USE_OPENMP build variable in case of OpenMP usage.
  */
 
 /*!
@@ -82,8 +84,8 @@ public:
   /*!
    * \brief Converts string to UTF-8 string.
    *
-   * \deprecated This method will be removed in future releases. Use toUTF8()
-   * instead.
+   * \deprecated This method will be removed in future releases. Use
+   * XMLTextEncoding::convertToEncoding() from XMLParserCPP library instead.
    *
    * \param input string to be converted.
    * \param conv_name input string encoding name (see
@@ -96,28 +98,23 @@ public:
   to_utf_8(const std::string &input, const char *conv_name);
 
   /*!
-   * \brief Converts string to UTF-8 string.
-   *
-   * \param input string to be converted.
-   * \param conv_name input string encoding name (see
-   * <A
-   * HREF="https://unicode-org.github.io/icu-docs/apidoc/released/icu4c/ucnv_8h.html#abe52185c0f4c3e001f0df1f17b08f0bc">icu
-   * documentation</A> for details).
-   * \return UTF-8 encoded string or empty string in case of any error.
-   */
-  std::string
-  toUTF8(const std::string &input, const char *conv_name);
-
-  /*!
    * \brief Converts UTF-8 string to string in system default encoding.
+   *
+   * \deprecated This method will be removed in future releases. Use
+   * XMLTextEncoding::convertToEncoding() from XMLParserCPP library instead.
+   *
    * \param input UTF-8 string to be converted.
    * \return String in system encoding or empty string in case of any error.
    */
-  std::string
+  __attribute__((deprecated)) std::string
   utf8_to_system(const std::string &input);
 
   /*!
    * \brief Converts UTF-8 string to string in chosen encoding.
+   *
+   * \deprecated This method will be removed in future releases. Use
+   * XMLTextEncoding::convertToEncoding() from XMLParserCPP library instead.
+   *
    * \param input string to be converted.
    * \param conv_name output string encoding name (see
    * <A
@@ -125,7 +122,7 @@ public:
    * documentation</A> for details).
    * \return String in chosen encoding or empty string in case of any error.
    */
-  std::string
+  __attribute__((deprecated)) std::string
   utf_8_to(const std::string &input, const char *conv_name);
 
   /*!
@@ -142,22 +139,13 @@ public:
    * \brief Tries to detect string encoding.
    *
    * \deprecated This method will be removed in future releases. Use
-   * detectEncoding() instead.
+   * XMLTextEncoding::detectStringEncoding() from XMLParserCPP library instead.
    *
    * \param buf string which encoding is to be detected.
    * \return String containing encoding name.
    */
   __attribute__((deprecated)) std::string
   detect_encoding(const std::string &buf);
-
-  /*!
-   * \brief Tries to detect string encoding.
-   *
-   * \param buf string which encoding is to be detected.
-   * \return String containing encoding name.
-   */
-  std::string
-  detectEncoding(const std::string &buf);
 
   /*!
    * \brief Returns user home directory path.
@@ -168,17 +156,53 @@ public:
 
   /*!
    * \brief Returns absolute path to program executable file.
+   *
+   * \deprecated This method will be removed in future releases. Use
+   * getSelfpath() instead.
+   *
+   * \return Absolute path to executable file.
+   */
+  __attribute__((deprecated)) std::filesystem::path
+  get_selfpath();
+
+  /*!
+   * \brief Returns absolute path to program executable file.
    * \return Absolute path to executable file.
    */
   std::filesystem::path
-  get_selfpath();
+  getSelfpath();
+
+  /*!
+   * \brief Returns absolute path to system temporary directory.
+   *
+   * \deprecated This method will be removed in future releases. Use tempPath()
+   * instead.
+   *
+   * \return Absolute path to system temporary directory.
+   */
+  __attribute__((deprecated)) std::filesystem::path
+  temp_path();
 
   /*!
    * \brief Returns absolute path to system temporary directory.
    * \return Absolute path to system temporary directory.
    */
   std::filesystem::path
-  temp_path();
+  tempPath();
+
+  /*!
+   * \brief Returns absolute path to \a share directory, used by \b MLBookProc.
+   *
+   * Result path is calculating as path relative to program executable
+   * file path ('absolute_path_to_executable_file/../share').
+   *
+   * \deprecated This method will be removed in future releases. Use
+   * sharePath() instead.
+   *
+   * \return Absolute path to \a share directory, used by \b MLBookProc.
+   */
+  __attribute__((deprecated)) std::filesystem::path
+  share_path();
 
   /*!
    * \brief Returns absolute path to \a share directory, used by \b MLBookProc.
@@ -189,7 +213,7 @@ public:
    * \return Absolute path to \a share directory, used by \b MLBookProc.
    */
   std::filesystem::path
-  share_path();
+  sharePath();
 
   /*!
    * \brief Returns translated genre groups and genres names.
@@ -290,10 +314,23 @@ public:
    *
    * Replaces "&#<unicode_number>;" symbols by UTF-8 characters.
    *
+   * \deprecated This method will be removed in future releases. Use
+   * htmlToUtf8() instead;
+   *
    * \param input string to be converted.
    */
-  void
+  __attribute__((deprecated)) void
   html_to_utf8(std::string &input);
+
+  /*!
+   * \brief Converst 'html' symbols to UTF-8 characters.
+   *
+   * Replaces "&#<unicode_number>;" symbols by UTF-8 characters.
+   *
+   * \param result string to be converted.
+   */
+  void
+  htmlToUtf8(std::string &result);
 
   /*!
    * \brief Opens given file in default system application.

@@ -83,28 +83,8 @@ EPUBParser::epubGetRootFileAddress(const std::filesystem::path &filepath,
   if(buf.size() > 0)
     {
       std::vector<XMLElement> elements;
-      std::string code_page;
-      try
-        {
-          elements = xml_parser->parseDocument(buf);
-          code_page = getEncoding(elements);
-        }
-      catch(std::exception &er)
-        {
-          std::cout << "EPUBParser::epubGetRootFileAddress: " << er.what()
-                    << std::endl;
-        }
+      elements = xml_parser->parseDocument(buf);
 
-      if(code_page.empty())
-        {
-          code_page = af->detectEncoding(buf);
-        }
-
-      if(code_page != "UTF-8")
-        {
-          buf = af->toUTF8(buf, code_page.c_str());
-          elements = xml_parser->parseDocument(buf);
-        }
       std::vector<XMLElement *> res;
       XMLAlgorithms::searchElement(elements, "rootfiles", res);
       std::vector<XMLElement *> res2;
@@ -132,26 +112,9 @@ EPUBParser::epubParseRootFile(const std::string &root_file_content)
   BookParseEntry result;
 
   std::vector<XMLElement> elements;
-  std::string code_page;
-  try
-    {
-      elements = xml_parser->parseDocument(root_file_content);
-      code_page = getEncoding(elements);
-    }
-  catch(std::exception &er)
-    {
-      std::cout << "EPUBParser::epubParseRootFile: " << er.what() << std::endl;
-    }
 
-  if(code_page.empty())
-    {
-      code_page = af->detectEncoding(root_file_content);
-    }
-  if(code_page != "UTF-8")
-    {
-      std::string buf = af->toUTF8(root_file_content, code_page.c_str());
-      elements = xml_parser->parseDocument(buf);
-    }
+  elements = xml_parser->parseDocument(root_file_content);
+
   result.book_name = dc->dcTitle(elements);
   result.book_author = dc->dcAuthor(elements);
   result.book_genre = dc->dcGenre(elements);
@@ -188,27 +151,7 @@ EPUBParser::epubBookInfo(const std::filesystem::path &filepath)
   if(!root_file_content.empty())
     {
       std::vector<XMLElement> elements;
-      std::string code_page;
-      try
-        {
-          elements = xml_parser->parseDocument(root_file_content);
-          code_page = getEncoding(elements);
-        }
-      catch(std::exception &er)
-        {
-          std::cout << "EPUBParser::epubParseRootFile: " << er.what()
-                    << std::endl;
-        }
-
-      if(code_page.empty())
-        {
-          code_page = af->detectEncoding(root_file_content);
-        }
-      if(code_page != "UTF-8")
-        {
-          std::string buf = af->toUTF8(root_file_content, code_page.c_str());
-          elements = xml_parser->parseDocument(buf);
-        }
+      elements = xml_parser->parseDocument(root_file_content);
 
       result->annotation = epubAnnotation(elements);
       epubLanguage(elements, *result);
@@ -312,32 +255,7 @@ EPUBParser::epubCoverAddress(const std::vector<XMLElement> &elements,
                   std::string buf = unpackByPositionStr(filepath, *it_fnm);
 
                   std::vector<XMLElement> el_v;
-                  std::string code_page;
-                  try
-                    {
-                      el_v = xml_parser->parseDocument(buf);
-                      code_page = getEncoding(el_v);
-                    }
-                  catch(std::exception &er)
-                    {
-                      std::cout << "EPUBParser::epubCoverAddress(1): \""
-                                << er.what() << "\"" << std::endl;
-                      code_page = af->detectEncoding(buf);
-                    }
-                  if(code_page != "UTF-8")
-                    {
-                      buf = af->toUTF8(buf, code_page.c_str());
-                      el_v.clear();
-                      try
-                        {
-                          el_v = xml_parser->parseDocument(buf);
-                        }
-                      catch(std::exception &er)
-                        {
-                          std::cout << "EPUBParser::epubCoverAddress(2): \""
-                                    << er.what() << "\"" << std::endl;
-                        }
-                    }
+                  el_v = xml_parser->parseDocument(buf);
                   res.clear();
                   XMLAlgorithms::searchElement(el_v, "img", "src", res);
                   if(res.size() > 0)

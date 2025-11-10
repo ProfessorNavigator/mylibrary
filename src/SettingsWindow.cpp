@@ -1146,7 +1146,7 @@ SettingsWindow::readSettings()
   set_path /= std::filesystem::u8path("MLStyles.css");
   if(!std::filesystem::exists(set_path))
     {
-      set_path = af->share_path();
+      set_path = af->sharePath();
       set_path /= std::filesystem::u8path("MyLibrary");
       set_path /= std::filesystem::u8path("MLStyles.css");
     }
@@ -1751,7 +1751,7 @@ SettingsWindow::loadStyles(const std::filesystem::path &sp)
       return result;
     }
 
-  std::filesystem::path temp_background_path = af->temp_path();
+  std::filesystem::path temp_background_path = af->tempPath();
   temp_background_path
       /= std::filesystem::u8path(af->randomFileName() + ".png");
 

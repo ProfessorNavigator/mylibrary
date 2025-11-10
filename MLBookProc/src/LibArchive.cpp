@@ -1728,7 +1728,7 @@ LibArchive::libarchive_remove_entry(ArchiveRemoveEntry rm_e,
                                    });
             if(it == to_remove.end())
               {
-                std::filesystem::path tmp = af->temp_path();
+                std::filesystem::path tmp = af->tempPath();
                 tmp /= std::filesystem::u8path(af->randomFileName());
                 std::filesystem::create_directories(tmp);
                 SelfRemovingPath srp(tmp);

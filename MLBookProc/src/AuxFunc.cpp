@@ -16,6 +16,7 @@
 
 #include <AuxFunc.h>
 #include <OmpLockGuard.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <archive.h>
 #include <chrono>
@@ -25,12 +26,7 @@
 #include <iostream>
 #include <sstream>
 #include <unicode/ucnv.h>
-#include <unicode/ucsdet.h>
-#include <unicode/umachine.h>
 #include <unicode/unistr.h>
-#include <unicode/urename.h>
-#include <unicode/utypes.h>
-#include <unicode/uversion.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -117,67 +113,14 @@ AuxFunc::~AuxFunc()
 }
 
 std::string
-AuxFunc::toUTF8(const std::string &input, const char *conv_name)
-{
-  std::string result;
-  if(input.size() == 0)
-    {
-      return result;
-    }
-
-  UErrorCode status = U_ZERO_ERROR;
-  std::shared_ptr<UConverter> conv(ucnv_open(conv_name, &status),
-                                   [](UConverter *c)
-                                     {
-                                       ucnv_close(c);
-                                     });
-  if(!U_SUCCESS(status))
-    {
-      std::cout << "AuxFunc::toUTF8 converter " << conv_name
-                << " ucnv_open: " << u_errorName(status) << std::endl;
-      result = input;
-      return result;
-    }
-
-  std::vector<UChar> target;
-  target.resize(input.size());
-
-  const char *lim = &input.data()[input.size()];
-  const char *src = input.c_str();
-  UChar *trgt = target.data();
-  status = U_ZERO_ERROR;
-  for(;;)
-    {
-      ucnv_toUnicode(conv.get(), &trgt, &target.data()[target.size()], &src,
-                     lim, nullptr, true, &status);
-      if(status == U_BUFFER_OVERFLOW_ERROR)
-        {
-          size_t buf_sz = target.size();
-          target.resize(buf_sz + buf_sz * 0.3);
-          trgt = &target[buf_sz];
-          status = U_ZERO_ERROR;
-        }
-      else
-        {
-          break;
-        }
-    }
-  if(status == U_ZERO_ERROR)
-    {
-      target.erase(std::vector<UChar>::iterator(trgt), target.end());
-      icu::UnicodeString str(target.data(),
-                             static_cast<int32_t>(target.size()),
-                             static_cast<int32_t>(target.capacity()));
-      str.toUTF8String(result);
-    }
-
-  return result;
-}
-
-std::string
 AuxFunc::to_utf_8(const std::string &input, const char *conv_name)
 {
-  return toUTF8(input, conv_name);
+  std::string result;
+
+  XMLTextEncoding::convertToEncoding(input, result, std::string(conv_name),
+                                     "UTF-8");
+
+  return result;
 }
 
 std::filesystem::path
@@ -226,12 +169,19 @@ AuxFunc::homePath()
     {
       throw std::runtime_error("MLBookProc cannot find user home directory");
     }
-  result = toUTF8(result, nullptr);
-  return std::filesystem::u8path(result);
+  std::string res;
+  XMLTextEncoding::convertToEncoding(result, res, "", "UTF-8");
+  return std::filesystem::u8path(res);
 }
 
 std::filesystem::path
 AuxFunc::get_selfpath()
+{
+  return getSelfpath();
+}
+
+std::filesystem::path
+AuxFunc::getSelfpath()
 {
   std::filesystem::path p;
 #ifdef __linux
@@ -249,6 +199,12 @@ AuxFunc::get_selfpath()
 std::filesystem::path
 AuxFunc::temp_path()
 {
+  return tempPath();
+}
+
+std::filesystem::path
+AuxFunc::tempPath()
+{
 #ifdef __linux
   return std::filesystem::temp_directory_path();
 #endif
@@ -260,14 +216,20 @@ AuxFunc::temp_path()
 std::filesystem::path
 AuxFunc::share_path()
 {
-  std::filesystem::path result = get_selfpath();
+  return sharePath();
+}
+
+std::filesystem::path
+AuxFunc::sharePath()
+{
+  std::filesystem::path result = getSelfpath();
   result = result.parent_path();
   result /= std::filesystem::u8path("..") / std::filesystem::u8path("share");
   std::error_code ec;
   result = std::filesystem::canonical(result, ec);
   if(ec)
     {
-      std::cout << "AuxFunc::share_path error: " << ec.message() << std::endl;
+      std::cout << "AuxFunc::sharePath error: " << ec.message() << std::endl;
     }
 
   return result;
@@ -326,7 +288,7 @@ std::vector<std::tuple<std::string, Genre>>
 AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
 {
   std::vector<std::tuple<std::string, Genre>> result;
-  std::filesystem::path genre_path = share_path();
+  std::filesystem::path genre_path = sharePath();
   genre_path /= std::filesystem::u8path("MLBookProc");
   genre_path /= std::filesystem::u8path("genres.csv");
   std::fstream f;
@@ -335,7 +297,7 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
     {
       std::string line;
       std::string::size_type n;
-      getline(f, line);
+      std::getline(f, line);
       int count = 0;
       if(!line.empty())
         {
@@ -374,7 +336,7 @@ AuxFunc::read_genres(const bool &wrong_loc, const std::string &locname)
           while(!f.eof())
             {
               line.clear();
-              getline(f, line);
+              std::getline(f, line);
               if(!line.empty())
                 {
                   int fcount = 0;
@@ -547,68 +509,23 @@ AuxFunc::ifSupportedArchivePackingType(const std::filesystem::path &ch_p)
 std::string
 AuxFunc::detect_encoding(const std::string &buf)
 {
-  return detectEncoding(buf);
-}
-
-std::string
-AuxFunc::detectEncoding(const std::string &buf)
-{
+  std::vector<std::string> res = XMLTextEncoding::detectStringEncoding(buf);
   std::string result;
-
-  UErrorCode status = U_ZERO_ERROR;
-
-  UCharsetDetector *det = ucsdet_open(&status);
-  if(!U_SUCCESS(status))
+  if(res.size() > 0)
     {
-      std::cout << "AuxFunc::detectEncoding detector initialization error: "
-                << u_errorName(status) << std::endl;
-      return result;
+      result = res[0];
     }
-
-  std::shared_ptr<UCharsetDetector> detector(det,
-                                             [](UCharsetDetector *det)
-                                               {
-                                                 ucsdet_close(det);
-                                               });
-
-  ucsdet_setText(det, buf.c_str(), static_cast<int32_t>(buf.size()), &status);
-
-  if(!U_SUCCESS(status))
-    {
-      std::cout << "AuxFunc::detectEncoding set text error: "
-                << u_errorName(status) << std::endl;
-      return result;
-    }
-
-  const UCharsetMatch *match = ucsdet_detect(detector.get(), &status);
-
-  if(!U_SUCCESS(status))
-    {
-      std::cout << "AuxFunc::detectEncoding detecting error: "
-                << u_errorName(status) << std::endl;
-      return result;
-    }
-  const char *nm = ucsdet_getName(match, &status);
-
-  if(!U_SUCCESS(status))
-    {
-      std::cout << "AuxFunc::detectEncoding get name error: "
-                << u_errorName(status) << std::endl;
-      return result;
-    }
-  else
-    {
-      if(nm)
-        {
-          result = nm;
-        }
-    }
-
   return result;
 }
 
 void
 AuxFunc::html_to_utf8(std::string &result)
+{
+  htmlToUtf8(result);
+}
+
+void
+AuxFunc::htmlToUtf8(std::string &result)
 {
   icu::UnicodeString ustr;
   std::stringstream strm;
@@ -670,8 +587,9 @@ AuxFunc::open_book_callback(const std::filesystem::path &path)
         }
     }
   command = "xdg-open \"" + command + "\"";
-  command = utf8_to_system(command);
-  int check = std::system(command.c_str());
+  std::string sys_command;
+  XMLTextEncoding::convertToEncoding(command, sys_command, "UTF-8", "");
+  int check = std::system(sys_command.c_str());
   std::cout << "Book open command result code: " << check << std::endl;
 #endif
 #ifdef _WIN32
@@ -762,7 +680,7 @@ std::vector<GenreGroup>
 AuxFunc::read_genre_groups(const bool &wrong_loc, const std::string &locname)
 {
   std::vector<GenreGroup> gg;
-  std::filesystem::path genre_path = share_path();
+  std::filesystem::path genre_path = sharePath();
   genre_path /= std::filesystem::u8path("MLBookProc");
   genre_path /= std::filesystem::u8path("genre_groups.csv");
   int genre_group_trans = 0;
@@ -1092,7 +1010,11 @@ AuxFunc::randomFileName()
 std::string
 AuxFunc::utf8_to_system(const std::string &input)
 {
-  return utf_8_to(input, nullptr);
+  std::string result;
+
+  XMLTextEncoding::convertToEncoding(input, result, "UTF-8", "");
+
+  return result;
 }
 
 void

@@ -73,16 +73,15 @@ public:
 
 private:
   std::filesystem::path
-  open_archive(const BookBaseEntry &bbe, const std::string &ext,
-               const std::filesystem::path &copy_path, const bool &find_fbd);
+  openArchive(const BookBaseEntry &bbe, const std::string &ext,
+              const std::filesystem::path &copy_path, const bool &find_fbd);
 
   void
-  correct_separators(std::vector<ArchEntry> &files);
+  correctSeparators(std::vector<ArchEntry> &files);
 
   bool
-  compare_func(const ArchEntry &ent, const bool &encoding,
-               const std::string &conv_nm,
-               const std::filesystem::path &ch_fbd);
+  compareFunc(const ArchEntry &ent, const bool &encoding,
+              const std::string &conv_nm, const std::filesystem::path &ch_fbd);
 
   std::shared_ptr<AuxFunc> af;
 

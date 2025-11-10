@@ -1227,7 +1227,7 @@ RightGrid::openBookAction()
     {
       try
         {
-          std::filesystem::path tmp = af->temp_path();
+          std::filesystem::path tmp = af->tempPath();
           tmp /= std::filesystem::u8path("MyLibraryReading");
           std::filesystem::remove_all(tmp);
           open_book->open_book(item->bbe, false, tmp, false,

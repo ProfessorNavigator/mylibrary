@@ -16,6 +16,7 @@
 
 #include <FB2Parser.h>
 #include <XMLAlgorithms.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <iostream>
 
@@ -44,20 +45,18 @@ FB2Parser::fb2Parser(const std::string &book)
     {
       return result;
     }
-  std::string book_code_page = getBookEncoding(book);
-  if(book_code_page.empty())
-    {
-      book_code_page = af->detectEncoding(book);
-    }
-  std::string l_book = af->toUTF8(book, book_code_page.c_str());
+
   try
     {
-      book_xml = xml_parser->parseDocument(l_book);
+      book_xml = xml_parser->parseDocument(book);
     }
   catch(std::exception &er)
     {
       std::cout << "FB2Parser::fb2Parser: \"" << er.what() << "\""
                 << std::endl;
+      std::string code_page = XMLTextEncoding::detectDocumentEncoding(book);
+      std::string l_book;
+      XMLTextEncoding::convertToEncoding(book, l_book, code_page, "UTF-8");
       std::string find_str1 = "<description>";
       std::string::size_type n1 = l_book.find(find_str1);
       if(n1 == std::string::npos)
@@ -320,21 +319,20 @@ FB2Parser::fb2BookInfo(const std::string &book)
     {
       return result;
     }
-  std::string book_code_page = getBookEncoding(book);
 
-  if(book_code_page.empty())
-    {
-      book_code_page = af->detectEncoding(book);
-    }
-  std::string l_book = af->toUTF8(book, book_code_page.c_str());
   try
     {
-      book_xml = xml_parser->parseDocument(l_book);
+      book_xml = xml_parser->parseDocument(book);
     }
   catch(std::exception &er)
     {
       std::cout << "FB2Parser::fb2BookInfo: \"" << er.what() << "\""
                 << std::endl;
+
+      std::string code_page = XMLTextEncoding::detectDocumentEncoding(book);
+      std::string l_book;
+      XMLTextEncoding::convertToEncoding(book, l_book, code_page, "UTF-8");
+
       std::string find_str1 = "<description>";
       std::string::size_type n1 = l_book.find(find_str1);
       if(n1 == std::string::npos)

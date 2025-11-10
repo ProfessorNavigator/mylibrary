@@ -3,4 +3,5 @@ target_sources(XMLParserCPP
     PRIVATE XMLElement.h
     PRIVATE XMLElementAttribute.h
     PRIVATE XMLParserCPP.h
+    PRIVATE XMLTextEncoding.h
 )

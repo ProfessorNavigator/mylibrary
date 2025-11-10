@@ -343,7 +343,7 @@ BookMarksGui::creat_bookmarks_action_group(Gtk::Window *win)
       {
         try
           {
-            std::filesystem::path tmp = af->temp_path();
+            std::filesystem::path tmp = af->tempPath();
             tmp /= std::filesystem::u8path("MyLibraryReading");
             open_book->open_book(std::get<1>(item->element), false, tmp, false,
                                  std::bind(&AuxFunc::open_book_callback,

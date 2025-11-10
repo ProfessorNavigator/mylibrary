@@ -69,7 +69,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
   plugins_keeper = std::make_shared<PluginsKeeper>(this, af);
 #endif
 
-  mlbookproc_docs_path = af->share_path();
+  mlbookproc_docs_path = af->sharePath();
   mlbookproc_docs_path /= std::filesystem::u8path("doc");
   mlbookproc_docs_path /= std::filesystem::u8path("MLBookProc");
   mlbookproc_docs_path /= std::filesystem::u8path("html");
@@ -81,7 +81,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
       mlbookproc_docs_path /= std::filesystem::u8path("refman.pdf");
     }
 
-  mlpluginifc_docs_path = af->share_path();
+  mlpluginifc_docs_path = af->sharePath();
   mlpluginifc_docs_path /= std::filesystem::u8path("doc");
   mlpluginifc_docs_path /= std::filesystem::u8path("MLPluginIfc");
   mlpluginifc_docs_path /= std::filesystem::u8path("html");
@@ -93,7 +93,7 @@ MainWindow::MainWindow(const std::shared_ptr<AuxFunc> &af)
       mlpluginifc_docs_path /= std::filesystem::u8path("refman.pdf");
     }
 
-  xmlparsercpp_docs_path = af->share_path();
+  xmlparsercpp_docs_path = af->sharePath();
   xmlparsercpp_docs_path /= std::filesystem::u8path("doc");
   xmlparsercpp_docs_path /= std::filesystem::u8path("XMLParserCPP");
   xmlparsercpp_docs_path /= std::filesystem::u8path("html");
@@ -633,7 +633,7 @@ MainWindow::aboutDialog()
   credits_people.push_back("Felix <f11091877@gmail.com>");
   about->add_credit_section(gettext("Icon designed by: "), credits_people);
 
-  std::filesystem::path icon_p = af->share_path();
+  std::filesystem::path icon_p = af->sharePath();
   icon_p /= std::filesystem::u8path("MyLibrary");
   icon_p /= std::filesystem::u8path("mylibrary.svg");
 
@@ -730,7 +730,7 @@ MainWindow::loadStyles()
         / std::filesystem::u8path("MLStyles.css");
   if(!std::filesystem::exists(styles_path))
     {
-      styles_path = af->share_path();
+      styles_path = af->sharePath();
       styles_path /= std::filesystem::u8path("MyLibrary");
       styles_path /= std::filesystem::u8path("MLStyles.css");
     }
@@ -809,7 +809,7 @@ MainWindow::loadStyles()
       return result;
     }
 
-  temp_background_path = af->temp_path();
+  temp_background_path = af->tempPath();
   temp_background_path
       /= std::filesystem::u8path(af->randomFileName() + ".png");
 

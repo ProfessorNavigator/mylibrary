@@ -59,11 +59,11 @@ public:
    *
    * \note This method can throw std::exception in case of any errors.
    *
-   * \param document XML document content.
+   * \param xml_document XML document content.
    * \return Vector of found XML elements.
    */
   std::vector<XMLElement>
-  parseDocument(const std::string &document);
+  parseDocument(const std::string &xml_document);
 
 private:
   void
@@ -83,7 +83,7 @@ private:
                       std::shared_ptr<XMLElement> element);
 
   void
-  replaceXMLEntities(std::vector<XMLElement> &elements);  
+  replaceXMLEntities(std::vector<XMLElement> &elements);
 
   void
   replacementFunc(std::string &str);

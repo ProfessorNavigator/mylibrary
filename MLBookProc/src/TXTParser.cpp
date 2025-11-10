@@ -15,6 +15,7 @@
  */
 
 #include <TXTParser.h>
+#include <XMLTextEncoding.h>
 #include <chrono>
 #include <fstream>
 
@@ -60,14 +61,15 @@ TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
   bie->electro->date = af->time_t_to_date(tm_t);
   bie->electro->available = true;
 
+  std::string buf;
   std::fstream f;
   f.open(txt_path, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
     {
       f.seekg(0, std::ios_base::end);
-      bie->cover.resize(f.tellg());
+      buf.resize(f.tellg());
       f.seekg(0, std::ios_base::beg);
-      f.read(bie->cover.data(), bie->cover.size());
+      f.read(buf.data(), buf.size());
       f.close();
     }
   else
@@ -77,9 +79,13 @@ TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
 
   if(bie->cover.size() > 0)
     {
-      std::string enc = af->detectEncoding(bie->cover);
-      bie->cover = af->toUTF8(bie->cover, enc.c_str());
-      bie->cover_type = BookInfoEntry::cover_types::text;
+      std::vector<std::string> enc
+          = XMLTextEncoding::detectStringEncoding(buf);
+      if(enc.size() > 0)
+        {
+          XMLTextEncoding::convertToEncoding(buf, bie->cover, enc[0], "UTF-8");
+          bie->cover_type = BookInfoEntry::cover_types::text;
+        }
     }
 
   return bie;

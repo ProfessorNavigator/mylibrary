@@ -14,6 +14,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <XMLParserCPP.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <sstream>
 #include <unicode/unistr.h>
@@ -29,9 +30,38 @@ XMLParserCPP::XMLParserCPP()
 }
 
 std::vector<XMLElement>
-XMLParserCPP::parseDocument(const std::string &document)
+XMLParserCPP::parseDocument(const std::string &xml_document)
 {
   std::vector<XMLElement> result;
+  if(xml_document.size() == 0)
+    {
+      return result;
+    }
+
+  std::string code_page;
+  {
+    std::vector<std::string> cp
+        = XMLTextEncoding::detectStringEncoding(xml_document, true);
+    if(cp.size() > 0)
+      {
+        code_page = cp[0];
+      }
+    else
+      {
+        throw std::runtime_error(
+            "XMLParserCPP::parseDocument: cannot determine document encoding");
+      }
+  }
+
+  std::string document;
+  XMLTextEncoding::convertToEncoding(xml_document, document, code_page,
+                                     "UTF-8");
+
+  if(document.empty())
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseDocument: error on conversion to UTF-8");
+    }
 
   std::string find_str("<");
   std::string::size_type n = document.find(find_str);

@@ -23,6 +23,7 @@
 #include <PDFParser.h>
 #include <SelfRemovingPath.h>
 #include <TXTParser.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -163,7 +164,7 @@ BookInfo::getFromArchive(const BookBaseEntry &bbe, const std::string &ext)
 {
   std::shared_ptr<BookInfoEntry> result;
   LibArchive la(af);
-  std::filesystem::path tmp = af->temp_path();
+  std::filesystem::path tmp = af->tempPath();
   tmp /= std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath p(tmp);
   BookBaseEntry bber = bbe;
@@ -217,7 +218,8 @@ BookInfo::getFromArchive(const BookBaseEntry &bbe, const std::string &ext)
           else
             {
               conv_nm = af->get_converter_by_number(i);
-              search_p = af->utf_8_to(unpack_path, conv_nm.c_str());
+              XMLTextEncoding::convertToEncoding(unpack_path, search_p,
+                                                 "UTF-8", conv_nm);
             }
           auto it = std::find_if(files.begin(), files.end(),
                                  [search_p](ArchEntry &el)
@@ -235,8 +237,10 @@ BookInfo::getFromArchive(const BookBaseEntry &bbe, const std::string &ext)
                 }
               else
                 {
-                  ch_fbd = std::filesystem::u8path(
-                      af->toUTF8(it->filename, conv_nm.c_str()));
+                  std::string res;
+                  XMLTextEncoding::convertToEncoding(it->filename, res,
+                                                     conv_nm, "UTF-8");
+                  ch_fbd = std::filesystem::u8path(res);
                   ch_fbd.replace_extension(".fbd");
                   encoding = true;
                 }
@@ -313,7 +317,7 @@ BookInfo::compareFunc(const ArchEntry &ent, const bool &encoding,
   std::string val;
   if(encoding)
     {
-      val = af->toUTF8(ent.filename, conv_nm.c_str());
+      XMLTextEncoding::convertToEncoding(ent.filename, val, conv_nm, "UTF-8");
     }
   else
     {

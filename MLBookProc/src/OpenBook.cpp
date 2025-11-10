@@ -17,6 +17,7 @@
 #include <BookParseEntry.h>
 #include <LibArchive.h>
 #include <OpenBook.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <iostream>
 
@@ -105,7 +106,7 @@ OpenBook::open_book(
     }
   else
     {
-      result = open_archive(bbe, ext, copy_path, find_fbd);
+      result = openArchive(bbe, ext, copy_path, find_fbd);
       if(!copy)
         {
           BookBaseEntry bbe;
@@ -121,12 +122,12 @@ OpenBook::open_book(
 }
 
 std::filesystem::path
-OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
-                       const std::filesystem::path &copy_path,
-                       const bool &find_fbd)
+OpenBook::openArchive(const BookBaseEntry &bbe, const std::string &ext,
+                      const std::filesystem::path &copy_path,
+                      const bool &find_fbd)
 {
   std::filesystem::path result;
-  std::filesystem::path tmp = af->temp_path();
+  std::filesystem::path tmp = af->tempPath();
   tmp /= std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath p(tmp);
   BookBaseEntry bber = bbe;
@@ -153,7 +154,7 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
     {
       la.fileNames(bbe.file_path, files);
 
-      correct_separators(files);
+      correctSeparators(files);
       std::string search_p;
       std::string conv_nm;
       bool encoding = false;
@@ -166,13 +167,15 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
           else
             {
               conv_nm = af->get_converter_by_number(i);
-              search_p = af->utf_8_to(unpack_path, conv_nm.c_str());
+              XMLTextEncoding::convertToEncoding(unpack_path, search_p,
+                                                 "UTF-8", conv_nm);
               encoding = true;
             }
           auto it = std::find_if(files.begin(), files.end(),
-                                 [search_p](ArchEntry &el) {
-                                   return el.filename == search_p;
-                                 });
+                                 [search_p](ArchEntry &el)
+                                   {
+                                     return el.filename == search_p;
+                                   });
           if(it != files.end())
             {
               bber.file_path = la.unpackByPosition(bbe.file_path, tmp, *it);
@@ -184,7 +187,7 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
                   ch_fbd.replace_extension(std::filesystem::u8path(".fbd"));
                   auto itfbd
                       = std::find_if(files.begin(), files.end(),
-                                     std::bind(&OpenBook::compare_func, this,
+                                     std::bind(&OpenBook::compareFunc, this,
                                                std::placeholders::_1, encoding,
                                                conv_nm, ch_fbd));
                   if(itfbd != files.end())
@@ -211,7 +214,7 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
           ch_fbd.replace_extension(std::filesystem::u8path(".fbd"));
           std::string find_fbd = ch_fbd.u8string();
           auto itfbd = std::find_if(files.begin(), files.end(),
-                                    std::bind(&OpenBook::compare_func, this,
+                                    std::bind(&OpenBook::compareFunc, this,
                                               std::placeholders::_1, false, "",
                                               ch_fbd));
           if(itfbd != files.end())
@@ -228,7 +231,7 @@ OpenBook::open_archive(const BookBaseEntry &bbe, const std::string &ext,
 }
 
 void
-OpenBook::correct_separators(std::vector<ArchEntry> &files)
+OpenBook::correctSeparators(std::vector<ArchEntry> &files)
 {
   std::string::size_type n;
   std::string sstr = "\\";
@@ -255,14 +258,14 @@ OpenBook::correct_separators(std::vector<ArchEntry> &files)
 }
 
 bool
-OpenBook::compare_func(const ArchEntry &ent, const bool &encoding,
-                       const std::string &conv_nm,
-                       const std::filesystem::path &ch_fbd)
+OpenBook::compareFunc(const ArchEntry &ent, const bool &encoding,
+                      const std::string &conv_nm,
+                      const std::filesystem::path &ch_fbd)
 {
   std::string val;
   if(encoding)
     {
-      val = af->toUTF8(ent.filename, conv_nm.c_str());
+      XMLTextEncoding::convertToEncoding(ent.filename, val, conv_nm, "UTF-8");
     }
   else
     {
