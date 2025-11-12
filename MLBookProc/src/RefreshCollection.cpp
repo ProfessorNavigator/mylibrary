@@ -26,6 +26,10 @@
 #ifndef USE_OPENMP
 #include <pthread.h>
 #include <thread>
+#ifdef _WIN32
+#include <errhandlingapi.h>
+#include <winbase.h>
+#endif
 #endif
 
 RefreshCollection::RefreshCollection(
@@ -346,6 +350,9 @@ RefreshCollection::compareVectors(
             {
               std::vector<std::string> filenames;
               getFilenamesFromArchives(*it, "", filenames, la.get());
+
+              // Base file existence check.
+              bool to_check = true;
               for(auto it_fnm = filenames.begin(); it_fnm != filenames.end();
                   it_fnm++)
                 {
@@ -369,7 +376,37 @@ RefreshCollection::compareVectors(
                                                   }),
                                  base.end());
                       omp_unset_lock(&base_mtx);
+                      to_check = false;
                       break;
+                    }                  
+                }
+
+              // Archive file existence check
+              if(to_check)
+                {
+                  for(auto it_fpe = fpe.books.begin();
+                      it_fpe != fpe.books.end(); it_fpe++)
+                    {
+                      auto it_fnm
+                          = std::find(filenames.begin(), filenames.end(),
+                                      it_fpe->book_path);
+                      if(it_fnm == filenames.end())
+                        {
+                          omp_set_lock(&need_to_parsemtx);
+                          need_to_parse.push_back(*it);
+                          omp_unset_lock(&need_to_parsemtx);
+                          omp_set_lock(&base_mtx);
+                          base.erase(
+                              std::remove_if(base.begin(), base.end(),
+                                             [fpe](const FileParseEntry &el)
+                                               {
+                                                 return fpe.file_rel_path
+                                                        == el.file_rel_path;
+                                               }),
+                              base.end());
+                          omp_unset_lock(&base_mtx);
+                          break;
+                        }
                     }
                 }
             }
@@ -432,6 +469,9 @@ RefreshCollection::compareVectors(
                     {
                       std::vector<std::string> filenames;
                       getFilenamesFromArchives(*it, "", filenames, la.get());
+
+                      // Base file existence check.
+                      bool to_check = true;
                       for(auto it_fnm = filenames.begin();
                           it_fnm != filenames.end(); it_fnm++)
                         {
@@ -456,7 +496,38 @@ RefreshCollection::compareVectors(
                                                }),
                                          base.end());
                               base_mtx.unlock();
+                              to_check = false;
                               break;
+                            }
+                        }
+
+                      // Archive file existence check
+                      if(to_check)
+                        {
+                          for(auto it_fpe = fpe.books.begin();
+                              it_fpe != fpe.books.end(); it_fpe++)
+                            {
+                              auto it_fnm = std::find(filenames.begin(),
+                                                      filenames.end(),
+                                                      it_fpe->book_path);
+                              if(it_fnm == filenames.end())
+                                {
+                                  need_to_parsemtx.lock();
+                                  need_to_parse.push_back(*it);
+                                  need_to_parsemtx.unlock();
+                                  base_mtx.lock();
+                                  base.erase(
+                                      std::remove_if(
+                                          base.begin(), base.end(),
+                                          [fpe](const FileParseEntry &el)
+                                            {
+                                              return fpe.file_rel_path
+                                                     == el.file_rel_path;
+                                            }),
+                                      base.end());
+                                  base_mtx.unlock();
+                                  break;
+                                }
                             }
                         }
                     }
@@ -465,6 +536,7 @@ RefreshCollection::compareVectors(
               std::get<1>(*free) = true;
               continue_hashing.notify_all();
             });
+#ifdef __linux
       cpu_set_t cpu_set;
       CPU_ZERO(&cpu_set);
       CPU_SET(std::get<0>(*free), &cpu_set);
@@ -476,6 +548,25 @@ RefreshCollection::compareVectors(
                        "pthread_setaffinity_np: "
                     << std::strerror(er) << std::endl;
         }
+#elif defined(_WIN32)
+      DWORD_PTR mask = 1;
+      mask = mask << std::get<0>(*free);
+      HANDLE handle = pthread_gethandle(thr.native_handle());
+      if(handle)
+        {
+          if(SetThreadAffinityMask(handle, mask) == 0)
+            {
+              std::cout << "RefreshCollection::refreshCollection "
+                           "SetThreadAffinityMask: "
+                        << std::strerror(GetLastError()) << std::endl;
+            }
+        }
+      else
+        {
+          std::cout << "RefreshCollection::refreshCollection: handle is null!"
+                    << std::endl;
+        }
+#endif
       thr.detach();
     }
   std::unique_lock<std::mutex> ullock(newthrmtx);
@@ -615,6 +706,7 @@ RefreshCollection::checkHashes(std::vector<FileParseEntry> *base,
               std::get<1>(*free) = true;
               continue_hashing.notify_all();
             });
+#ifdef __linux
       cpu_set_t cpu_set;
       CPU_ZERO(&cpu_set);
       CPU_SET(std::get<0>(*free), &cpu_set);
@@ -626,6 +718,25 @@ RefreshCollection::checkHashes(std::vector<FileParseEntry> *base,
               << "RefreshCollection::checkHashes pthread_setaffinity_np: "
               << std::strerror(er) << std::endl;
         }
+#elif defined(_WIN32)
+      DWORD_PTR mask = 1;
+      mask = mask << std::get<0>(*free);
+      HANDLE handle = pthread_gethandle(thr.native_handle());
+      if(handle)
+        {
+          if(SetThreadAffinityMask(handle, mask) == 0)
+            {
+              std::cout << "RefreshCollection::checkHashes "
+                           "SetThreadAffinityMask: "
+                        << std::strerror(GetLastError()) << std::endl;
+            }
+        }
+      else
+        {
+          std::cout << "RefreshCollection::checkHashes: handle is null!"
+                    << std::endl;
+        }
+#endif
       thr.detach();
     }
 
@@ -956,10 +1067,20 @@ RefreshCollection::getFilenamesFromArchives(
       l_la->fileNamesStream(arch_path, files);
     }
 
+  std::vector<std::string> arch_types
+      = af->get_supported_archive_types_unpacking();
+  std::vector<std::string> types = af->get_supported_types();
   for(auto it = files.begin(); it != files.end(); it++)
     {
-      if(af->ifSupportedArchiveUnpackaingType(
-             std::filesystem::u8path(it->filename)))
+      ext = af->getExtension(it->filename);
+      if(ext.size() > 0)
+        {
+          ext.erase(ext.begin());
+        }
+
+      auto it_t = std::find(arch_types.begin(), arch_types.end(), ext);
+
+      if(it_t != arch_types.end())
         {
           std::string l_prefix;
           if(prefix.empty())
@@ -986,15 +1107,19 @@ RefreshCollection::getFilenamesFromArchives(
           getFilenamesFromArchives(unpacked, l_prefix, result, la);
           std::filesystem::remove_all(p);
         }
-      else if(af->if_supported_type(std::filesystem::u8path(it->filename)))
+      else
         {
-          if(prefix.empty())
+          it_t = std::find(types.begin(), types.end(), ext);
+          if(it_t != types.end())
             {
-              result.push_back(it->filename);
-            }
-          else
-            {
-              result.push_back(prefix + "\n" + it->filename);
+              if(prefix.empty())
+                {
+                  result.push_back(it->filename);
+                }
+              else
+                {
+                  result.push_back(prefix + "\n" + it->filename);
+                }
             }
         }
     }

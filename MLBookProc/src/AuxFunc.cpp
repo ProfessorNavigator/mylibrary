@@ -272,9 +272,10 @@ AuxFunc::get_genre_list()
     {
       std::string g_code = std::get<0>(*it);
       auto itr = std::find_if(result.begin(), result.end(),
-                              [g_code](GenreGroup &el) {
-                                return el.group_code == g_code;
-                              });
+                              [g_code](GenreGroup &el)
+                                {
+                                  return el.group_code == g_code;
+                                });
       if(itr != result.end())
         {
           itr->genres.push_back(std::get<1>(*it));
@@ -593,8 +594,12 @@ AuxFunc::open_book_callback(const std::filesystem::path &path)
   std::cout << "Book open command result code: " << check << std::endl;
 #endif
 #ifdef _WIN32
-  HINSTANCE hin = ShellExecuteA(0, utf8_to_system("open").c_str(),
-                                utf8_to_system(command).c_str(), 0, 0, 0);
+  std::string sys_command1;
+  std::string sys_command2;
+  XMLTextEncoding::convertToEncoding("open", sys_command1, "UTF-8", "");
+  XMLTextEncoding::convertToEncoding(command, sys_command2, "UTF-8", "");
+  HINSTANCE hin
+      = ShellExecuteA(0, sys_command1.c_str(), sys_command2.c_str(), 0, 0, 0);
   intptr_t err = reinterpret_cast<intptr_t>(hin);
   if(err <= 32)
     {
@@ -628,9 +633,11 @@ AuxFunc::utf_8_to(const std::string &input, const char *conv_name)
       return result;
     }
 
-  std::shared_ptr<UConverter> conv(c, [](UConverter *c) {
-    ucnv_close(c);
-  });
+  std::shared_ptr<UConverter> conv(c,
+                                   [](UConverter *c)
+                                     {
+                                       ucnv_close(c);
+                                     });
 
   icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(input.c_str());
   result.resize(input.size());
@@ -871,11 +878,12 @@ AuxFunc::getDJVUContext()
 #endif
       context = std::shared_ptr<ddjvu_context_t>(
           ddjvu_context_create("MLBookProc"),
-          [djvu_tup, this](ddjvu_context_t *ctx) {
-            ddjvu_context_release(ctx);
-            djvu_pipes.clear();
-            delete djvu_tup;
-          });
+          [djvu_tup, this](ddjvu_context_t *ctx)
+            {
+              ddjvu_context_release(ctx);
+              djvu_pipes.clear();
+              delete djvu_tup;
+            });
 
       ddjvu_message_set_callback(context.get(), &AuxFunc::djvuMessageCallback,
                                  djvu_tup);
@@ -884,16 +892,18 @@ AuxFunc::getDJVUContext()
   std::get<0>(result) = context;
   std::shared_ptr<int> pipe;
 #if defined(__linux)
-  pipe = std::shared_ptr<int>(new int[2], [](int *pipe) {
-    for(size_t i = 0; i < 2; i++)
-      {
-        if(pipe[i] >= 0)
-          {
-            close(pipe[i]);
-          }
-      }
-    delete[] pipe;
-  });
+  pipe = std::shared_ptr<int>(new int[2],
+                              [](int *pipe)
+                                {
+                                  for(size_t i = 0; i < 2; i++)
+                                    {
+                                      if(pipe[i] >= 0)
+                                        {
+                                          close(pipe[i]);
+                                        }
+                                    }
+                                  delete[] pipe;
+                                });
   if(pipe2(pipe.get(), O_NONBLOCK) < 0)
     {
       std::string str = std::strerror(errno);
@@ -902,17 +912,20 @@ AuxFunc::getDJVUContext()
     }
 #elif defined(_WIN32)
   HANDLE *handles = new HANDLE[2];
-  pipe = std::shared_ptr<int>(reinterpret_cast<int *>(handles), [](int *ptr) {
-    HANDLE *handles = reinterpret_cast<HANDLE *>(ptr);
-    for(size_t i = 0; i < 2; i++)
-      {
-        if(handles[i])
-          {
-            CloseHandle(handles[i]);
-          }
-      }
-    delete[] handles;
-  });
+  pipe = std::shared_ptr<int>(reinterpret_cast<int *>(handles),
+                              [](int *ptr)
+                                {
+                                  HANDLE *handles
+                                      = reinterpret_cast<HANDLE *>(ptr);
+                                  for(size_t i = 0; i < 2; i++)
+                                    {
+                                      if(handles[i])
+                                        {
+                                          CloseHandle(handles[i]);
+                                        }
+                                    }
+                                  delete[] handles;
+                                });
   SECURITY_ATTRIBUTES sa;
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
   sa.lpSecurityDescriptor = nullptr;
@@ -963,24 +976,25 @@ AuxFunc::to_hex(const std::string &source)
   size_t count = 0;
   std::locale loc("C");
   std::for_each(source.begin(), source.end(),
-                [&result, &count, loc](const char &el) {
-                  uint8_t val8;
-                  std::memcpy(&val8, &el, sizeof(el));
-                  std::stringstream strm;
-                  strm.imbue(loc);
-                  strm << std::hex << static_cast<int>(val8);
-                  if(val8 <= 15)
-                    {
-                      result[count] = '0';
-                      result[count + 1] = strm.str()[0];
-                    }
-                  else
-                    {
-                      result[count] = strm.str()[0];
-                      result[count + 1] = strm.str()[1];
-                    }
-                  count += 2;
-                });
+                [&result, &count, loc](const char &el)
+                  {
+                    uint8_t val8;
+                    std::memcpy(&val8, &el, sizeof(el));
+                    std::stringstream strm;
+                    strm.imbue(loc);
+                    strm << std::hex << static_cast<int>(val8);
+                    if(val8 <= 15)
+                      {
+                        result[count] = '0';
+                        result[count + 1] = strm.str()[0];
+                      }
+                    else
+                      {
+                        result[count] = strm.str()[0];
+                        result[count + 1] = strm.str()[1];
+                      }
+                    count += 2;
+                  });
   return result;
 }
 
@@ -1128,5 +1142,39 @@ AuxFunc::get_extension(const std::filesystem::path &p)
             }
         }
     }
+  return result;
+}
+
+std::string
+AuxFunc::getExtension(const std::string &fnm)
+{
+  std::string result;
+
+  std::string find_str(".");
+
+  std::string::size_type n = fnm.rfind(find_str);
+  if(n != std::string::npos)
+    {
+      if(n > 0)
+        {
+          std::string::size_type n2 = fnm.rfind(find_str, n - 1);
+          if(n2 != std::string::npos)
+            {
+              std::copy(fnm.begin() + n2, fnm.end(),
+                        std::back_inserter(result));
+            }
+          else
+            {
+              std::copy(fnm.begin() + n, fnm.end(),
+                        std::back_inserter(result));
+            }
+        }
+      else
+        {
+          std::copy(fnm.begin() + n, fnm.end(), std::back_inserter(result));
+        }
+    }
+  result.shrink_to_fit();
+
   return result;
 }

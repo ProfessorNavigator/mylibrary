@@ -31,6 +31,10 @@
 #ifndef USE_OPENMP
 #include <pthread.h>
 #include <thread>
+#ifdef _WIN32
+#include <errhandlingapi.h>
+#include <winbase.h>
+#endif
 #endif
 
 CreateCollection::CreateCollection(
@@ -304,6 +308,7 @@ CreateCollection::threadRegulator()
             });
       if(thr_pool.size() > 1)
         {
+#ifdef __linux
           cpu_set_t cpu_set;
           CPU_ZERO(&cpu_set);
           CPU_SET(std::get<0>(*free), &cpu_set);
@@ -314,6 +319,26 @@ CreateCollection::threadRegulator()
               std::cout << "CreateCollection::threadRegulator: \""
                         << std::strerror(er) << "\"" << std::endl;
             }
+#elif defined(_WIN32)
+          DWORD_PTR mask = 1;
+          mask = mask << std::get<0>(*free);
+          HANDLE handle = pthread_gethandle(thr.native_handle());
+          if(handle)
+            {
+              if(SetThreadAffinityMask(handle, mask) == 0)
+                {
+                  std::cout << "CreateCollection::threadRegulator "
+                               "SetThreadAffinityMask: \""
+                            << std::strerror(GetLastError()) << "\""
+                            << std::endl;
+                }
+            }
+          else
+            {
+              std::cout << "CreateCollection::threadRegulator: handle is null!"
+                        << std::endl;
+            }
+#endif
         }
       thr.detach();
     }
@@ -1243,7 +1268,7 @@ CreateCollection::djvuThread(const std::filesystem::path &file_col_path,
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {     
+    {
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))
@@ -1326,7 +1351,7 @@ CreateCollection::odtThread(const std::filesystem::path &file_col_path,
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {      
+    {
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))
@@ -1423,7 +1448,7 @@ CreateCollection::txtThread(const std::filesystem::path &file_col_path,
       fe.file_hash = std::get<1>(*ithsh);
     }
   else
-    {     
+    {
       fe.file_hash = file_hashing(filepath);
     }
   if(!cancel.load(std::memory_order_relaxed))

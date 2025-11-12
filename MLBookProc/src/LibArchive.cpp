@@ -17,6 +17,7 @@
 #include <ByteOrder.h>
 #include <LibArchive.h>
 #include <SelfRemovingPath.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <archive.h>
 #include <chrono>
@@ -54,9 +55,10 @@ LibArchive::unpackByPosition(const std::filesystem::path &archaddress,
   if(a)
     {
       std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e) {
-                                             archive_entry_free(e);
-                                           });
+                                           [](archive_entry *e)
+                                             {
+                                               archive_entry_free(e);
+                                             });
       int er = archive_read_next_header2(a.get(), entry.get());
       switch(er)
         {
@@ -115,9 +117,10 @@ LibArchive::unpackByPositionStr(const std::filesystem::path &archaddress,
   if(a)
     {
       std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e) {
-                                             archive_entry_free(e);
-                                           });
+                                           [](archive_entry *e)
+                                             {
+                                               archive_entry_free(e);
+                                             });
       int er = archive_read_next_header2(a.get(), entry.get());
       switch(er)
         {
@@ -159,49 +162,24 @@ LibArchive::libarchive_read_entry(archive *a, archive_entry *entry,
     {
     case AE_IFREG:
       {
-        char *path = const_cast<char *>(archive_entry_pathname_utf8(entry));
+        const char *path = archive_entry_pathname(entry);
         std::string pathstr;
-        if(!path)
+        if(path)
           {
-            std::cout
-                << "LibArchive::libarchive_read_entry: path pointer is null!"
-                << std::endl;
-            path = const_cast<char *>(archive_entry_pathname(entry));
-            if(path)
+            std::vector<std::string> cp
+                = XMLTextEncoding::detectStringEncoding(path);
+            if(cp.size() > 0)
               {
-                pathstr = std::string(path);
-                std::string ext;
-                std::string::size_type n;
-                n = pathstr.rfind(".");
-                if(n != std::string::npos)
-                  {
-                    ext = std::string(pathstr.begin() + n, pathstr.end());
-                    pathstr.erase(pathstr.begin() + n, pathstr.end());
-                    n = pathstr.rfind(".tar");
-                    if(n != std::string::npos)
-                      {
-                        pathstr.erase(0, n);
-                        ext = pathstr + ext;
-                      }
-                  }
-                ext.erase(std::remove_if(ext.begin(), ext.end(),
-                                         [](char &el) {
-                                           return el == 0;
-                                         }),
-                          ext.end());
-                pathstr = af->randomFileName() + ext;
-              }
-            else
-              {
-                std::cout << "LibArchive::libarchive_read_entry: path pointer "
-                             "is null (critical)!"
-                          << std::endl;
-                return result;
+                XMLTextEncoding::convertToEncoding(path, pathstr, cp[0],
+                                                   "UTF-8");
               }
           }
-        else
+        if(pathstr.empty())
           {
-            pathstr = std::string(path);
+            std::cout
+                << "LibArchive::libarchive_read_entry: path string is empty"
+                << std::endl;
+            return result;
           }
         std::filesystem::path finarch = std::filesystem::u8path(pathstr);
         std::filesystem::path outpath = outfolder;
@@ -241,14 +219,26 @@ LibArchive::libarchive_read_entry(archive *a, archive_entry *entry,
       }
     case AE_IFDIR:
       {
-        char *path = const_cast<char *>(archive_entry_pathname_utf8(entry));
+        const char *path = archive_entry_pathname(entry);
         if(path)
           {
-            std::filesystem::path finarch = std::filesystem::u8path(path);
-            std::filesystem::path outpath = outfolder;
-            outpath /= finarch;
-            std::filesystem::create_directories(outpath);
-            result = outpath;
+            std::vector<std::string> cp
+                = XMLTextEncoding::detectStringEncoding(path);
+            if(cp.size() > 0)
+              {
+                std::string pathstr;
+                XMLTextEncoding::convertToEncoding(path, pathstr, cp[0],
+                                                   "UTF-8");
+                if(!pathstr.empty())
+                  {
+                    std::filesystem::path finarch
+                        = std::filesystem::u8path(pathstr);
+                    std::filesystem::path outpath = outfolder;
+                    outpath /= finarch;
+                    std::filesystem::create_directories(outpath);
+                    result = outpath;
+                  }
+              }
           }
         break;
       }
@@ -264,9 +254,11 @@ LibArchive::libarchive_read_init_fallback(std::shared_ptr<ArchiveFileEntry> fl)
 {
   std::shared_ptr<archive> a;
   int er;
-  a = std::shared_ptr<archive>(archive_read_new(), [](archive *a) {
-    archive_free(a);
-  });
+  a = std::shared_ptr<archive>(archive_read_new(),
+                               [](archive *a)
+                                 {
+                                   archive_free(a);
+                                 });
   er = archive_read_support_filter_all(a.get());
   if(er != ARCHIVE_OK)
     {
@@ -908,9 +900,10 @@ LibArchive::fileinfo(const std::filesystem::path &address,
       std::vector<ArchEntry> archv;
       fileNames(address, archv);
       auto itav = std::find_if(archv.begin(), archv.end(),
-                               [filename](ArchEntry &el) {
-                                 return el.filename == filename;
-                               });
+                               [filename](ArchEntry &el)
+                                 {
+                                   return el.filename == filename;
+                                 });
       if(itav != archv.end())
         {
           result = *itav;
@@ -924,9 +917,10 @@ LibArchive::fileinfo(const std::filesystem::path &address,
         {
           int er;
           std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                               [](archive_entry *e) {
-                                                 archive_entry_free(e);
-                                               });
+                                               [](archive_entry *e)
+                                                 {
+                                                   archive_entry_free(e);
+                                                 });
           bool interrupt = false;
           std::string ch_fnm;
           while(!interrupt)
@@ -937,24 +931,16 @@ LibArchive::fileinfo(const std::filesystem::path &address,
                 {
                 case ARCHIVE_OK:
                   {
-                    char *chnm = const_cast<char *>(
-                        archive_entry_pathname_utf8(entry.get()));
+                    ch_fnm.clear();
+                    const char *chnm = archive_entry_pathname(entry.get());
                     if(chnm)
                       {
-                        ch_fnm = chnm;
-                      }
-                    else
-                      {
-                        chnm = const_cast<char *>(
-                            archive_entry_pathname(entry.get()));
-                        if(chnm)
+                        std::vector<std::string> cp
+                            = XMLTextEncoding::detectStringEncoding(chnm);
+                        if(cp.size() > 0)
                           {
-                            ch_fnm = chnm;
-                          }
-                        else
-                          {
-                            std::cout << "LibArchive::fileinfo file name error"
-                                      << std::endl;
+                            XMLTextEncoding::convertToEncoding(chnm, ch_fnm,
+                                                               cp[0], "UTF-8");
                           }
                       }
                     if(ch_fnm == filename)
@@ -1004,9 +990,10 @@ LibArchive::unpackByFileNameStream(const std::filesystem::path &archaddress,
   if(a)
     {
       std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e) {
-                                             archive_entry_free(e);
-                                           });
+                                           [](archive_entry *e)
+                                             {
+                                               archive_entry_free(e);
+                                             });
       std::string ch_fnm;
       bool interrupt = false;
       int er;
@@ -1018,25 +1005,16 @@ LibArchive::unpackByFileNameStream(const std::filesystem::path &archaddress,
             {
             case ARCHIVE_OK:
               {
-                char *chnm = const_cast<char *>(
-                    archive_entry_pathname_utf8(entry.get()));
+                ch_fnm.clear();
+                const char *chnm = archive_entry_pathname(entry.get());
                 if(chnm)
                   {
-                    ch_fnm = chnm;
-                  }
-                else
-                  {
-                    chnm = const_cast<char *>(
-                        archive_entry_pathname(entry.get()));
-                    if(chnm)
+                    std::vector<std::string> cp
+                        = XMLTextEncoding::detectStringEncoding(chnm);
+                    if(cp.size() > 0)
                       {
-                        ch_fnm = chnm;
-                      }
-                    else
-                      {
-                        std::cout << "LibArchive::unpackByIndexStream file "
-                                     "name error"
-                                  << std::endl;
+                        XMLTextEncoding::convertToEncoding(chnm, ch_fnm, cp[0],
+                                                           "UTF-8");
                       }
                   }
                 if(ch_fnm == filename)
@@ -1086,9 +1064,10 @@ LibArchive::unpackByFileNameStreamStr(const std::filesystem::path &archaddress,
   if(a)
     {
       std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e) {
-                                             archive_entry_free(e);
-                                           });
+                                           [](archive_entry *e)
+                                             {
+                                               archive_entry_free(e);
+                                             });
       bool interrupt = false;
       int er;
       std::string ch_fnm;
@@ -1100,25 +1079,16 @@ LibArchive::unpackByFileNameStreamStr(const std::filesystem::path &archaddress,
             {
             case ARCHIVE_OK:
               {
-                char *chnm = const_cast<char *>(
-                    archive_entry_pathname_utf8(entry.get()));
+                ch_fnm.clear();
+                const char *chnm = archive_entry_pathname(entry.get());
                 if(chnm)
                   {
-                    ch_fnm = chnm;
-                  }
-                else
-                  {
-                    chnm = const_cast<char *>(
-                        archive_entry_pathname(entry.get()));
-                    if(chnm)
+                    std::vector<std::string> cp
+                        = XMLTextEncoding::detectStringEncoding(chnm);
+                    if(cp.size() > 0)
                       {
-                        ch_fnm = chnm;
-                      }
-                    else
-                      {
-                        std::cout << "LibArchive::unpackByIndexStreamStr file "
-                                     "name error"
-                                  << std::endl;
+                        XMLTextEncoding::convertToEncoding(chnm, ch_fnm, cp[0],
+                                                           "UTF-8");
                       }
                   }
                 if(ch_fnm == filename)
@@ -1159,9 +1129,11 @@ LibArchive::libarchive_read_init(std::shared_ptr<ArchiveFileEntry> fl)
 {
   std::shared_ptr<archive> a;
   int er;
-  a = std::shared_ptr<archive>(archive_read_new(), [](archive *a) {
-    archive_free(a);
-  });
+  a = std::shared_ptr<archive>(archive_read_new(),
+                               [](archive *a)
+                                 {
+                                   archive_free(a);
+                                 });
   er = archive_read_support_filter_all(a.get());
   if(er != ARCHIVE_OK)
     {
@@ -1218,9 +1190,10 @@ LibArchive::fileNamesStream(const std::filesystem::path &address,
   if(a)
     {
       std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e) {
-                                             archive_entry_free(e);
-                                           });
+                                           [](archive_entry *e)
+                                             {
+                                               archive_entry_free(e);
+                                             });
       bool interrupt = false;
       while(!interrupt)
         {
@@ -1232,36 +1205,21 @@ LibArchive::fileNamesStream(const std::filesystem::path &address,
               {
                 ArchEntry ent;
                 ent.size = static_cast<int>(archive_entry_size(entry.get()));
-                char *path = const_cast<char *>(
-                    archive_entry_pathname_utf8(entry.get()));
-                std::string pathstr;
-                if(!path)
+                const char *path = archive_entry_pathname(entry.get());
+                if(path)
                   {
-                    std::cout
-                        << "LibArchive::fileNamesStream: path pointer is null!"
-                        << std::endl;
-                    path = const_cast<char *>(
-                        archive_entry_pathname(entry.get()));
-                    if(path)
+                    std::vector<std::string> cp
+                        = XMLTextEncoding::detectStringEncoding(path);
+                    if(cp.size() > 0)
                       {
-                        pathstr = "Book"
-                                  + std::filesystem::u8path(path)
-                                        .extension()
-                                        .u8string();
-                      }
-                    else
-                      {
-                        std::cout << "LibArchive::fileNamesStream: path "
-                                     "pointer is null (critical)!"
-                                  << std::endl;
+                        XMLTextEncoding::convertToEncoding(path, ent.filename,
+                                                           cp[0], "UTF-8");
+                        if(!ent.filename.empty())
+                          {
+                            filenames.emplace_back(ent);
+                          }
                       }
                   }
-                else
-                  {
-                    pathstr = std::string(path);
-                  }
-                ent.filename = pathstr;
-                filenames.emplace_back(ent);
                 break;
               }
             case ARCHIVE_EOF:
@@ -1324,9 +1282,10 @@ LibArchive::writeToArchive(std::shared_ptr<archive> a,
 {
   int er = ARCHIVE_FATAL;
   std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                       [](archive_entry *e) {
-                                         archive_entry_free(e);
-                                       });
+                                       [](archive_entry *e)
+                                         {
+                                           archive_entry_free(e);
+                                         });
 
   switch(std::filesystem::symlink_status(source).type())
     {
@@ -1363,9 +1322,11 @@ LibArchive::writeToArchive(std::shared_ptr<archive> a,
                   for(auto it = res.begin(); it != res.end(); it++)
                     {
                       std::shared_ptr<archive_entry> lent(
-                          archive_entry_new2(a.get()), [](archive_entry *e) {
-                            archive_entry_free(e);
-                          });
+                          archive_entry_new2(a.get()),
+                          [](archive_entry *e)
+                            {
+                              archive_entry_free(e);
+                            });
                       if(std::filesystem::is_directory(std::get<0>(*it)))
                         {
                           er = libarchive_write_directory(a.get(), lent.get(),
@@ -1442,16 +1403,17 @@ LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
   result.erase(
       std::remove_if(
           result.begin(), result.end(),
-          [](std::tuple<std::filesystem::path, std::filesystem::path> &el) {
-            if(!std::filesystem::exists(std::get<0>(el)))
-              {
-                return true;
-              }
-            else
-              {
-                return false;
-              }
-          }),
+          [](std::tuple<std::filesystem::path, std::filesystem::path> &el)
+            {
+              if(!std::filesystem::exists(std::get<0>(el)))
+                {
+                  return true;
+                }
+              else
+                {
+                  return false;
+                }
+            }),
       result.end());
 
   for(size_t i = 0;; i++)
@@ -1509,8 +1471,10 @@ LibArchive::libarchive_write_directory(
   int er = archive_write_header(a, entry);
   if(er != ARCHIVE_OK)
     {
-      std::shared_ptr<archive> aa(a, [](archive *) {
-      });
+      std::shared_ptr<archive> aa(a,
+                                  [](archive *)
+                                    {
+                                    });
       libarchive_error(aa,
                        "LibArchive::write_directory write header error:", er);
     }
@@ -1540,8 +1504,10 @@ LibArchive::libarchive_write_file(archive *a, archive_entry *entry,
   int er = archive_write_header(a, entry);
   if(er != ARCHIVE_OK)
     {
-      std::shared_ptr<archive> aa(a, [](archive *) {
-      });
+      std::shared_ptr<archive> aa(a,
+                                  [](archive *)
+                                    {
+                                    });
       libarchive_error(
           aa, "LibArchive::libarchive_write_file write header error:", er);
       return er;
@@ -1689,9 +1655,10 @@ LibArchive::libarchive_remove_entry(ArchiveRemoveEntry rm_e,
 
   bool interrupt = false;
   std::shared_ptr<archive_entry> entry(archive_entry_new2(rm_e.a_read.get()),
-                                       [](archive_entry *e) {
-                                         archive_entry_free(e);
-                                       });
+                                       [](archive_entry *e)
+                                         {
+                                           archive_entry_free(e);
+                                         });
   std::string ch_fnm;
   while(!interrupt)
     {
@@ -1701,31 +1668,23 @@ LibArchive::libarchive_remove_entry(ArchiveRemoveEntry rm_e,
         {
         case ARCHIVE_OK:
           {
-            char *chnm
-                = const_cast<char *>(archive_entry_pathname_utf8(entry.get()));
+            ch_fnm.clear();
+            const char *chnm = archive_entry_pathname(entry.get());
             if(chnm)
               {
-                ch_fnm = chnm;
-              }
-            else
-              {
-                chnm = const_cast<char *>(archive_entry_pathname(entry.get()));
-                if(chnm)
+                std::vector<std::string> cp
+                    = XMLTextEncoding::detectStringEncoding(chnm);
+                if(cp.size() > 0)
                   {
-                    ch_fnm = chnm;
-                  }
-                else
-                  {
-                    std::cout << "RemoveBook::libarchive_remove_entry file "
-                                 "name error"
-                              << std::endl;
+                    XMLTextEncoding::convertToEncoding(chnm, ch_fnm, cp[0],
+                                                       "UTF-8");
                   }
               }
-
             auto it = std::find_if(to_remove.begin(), to_remove.end(),
-                                   [ch_fnm](const ArchEntry &el) {
-                                     return ch_fnm == el.filename;
-                                   });
+                                   [ch_fnm](const ArchEntry &el)
+                                     {
+                                       return ch_fnm == el.filename;
+                                     });
             if(it == to_remove.end())
               {
                 std::filesystem::path tmp = af->tempPath();
@@ -1835,10 +1794,11 @@ LibArchive::libarchive_write_data(archive *a, const std::string &data)
 std::shared_ptr<archive>
 LibArchive::libarchive_write_init(const std::filesystem::path &outpath)
 {
-  std::shared_ptr<archive> a
-      = std::shared_ptr<archive>(archive_write_new(), [](archive *a) {
-          archive_free(a);
-        });
+  std::shared_ptr<archive> a = std::shared_ptr<archive>(archive_write_new(),
+                                                        [](archive *a)
+                                                          {
+                                                            archive_free(a);
+                                                          });
   int er;
   er = archive_write_set_format_filter_by_ext(a.get(),
                                               outpath.string().c_str());

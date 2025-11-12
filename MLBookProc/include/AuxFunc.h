@@ -386,6 +386,14 @@ public:
   get_extension(const std::filesystem::path &p);
 
   /*!
+   * \brief Returns file extesion.
+   * \param fnm File name.
+   * \return File extension with beginning dot (looks like ".tar.gz").
+   */
+  std::string
+  getExtension(const std::string &fnm);
+
+  /*!
    * \brief Returns number of available converters.
    *
    * See <A

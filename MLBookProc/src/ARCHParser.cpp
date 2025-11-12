@@ -22,6 +22,7 @@
 #include <ODTParser.h>
 #include <PDFParser.h>
 #include <TXTParser.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <archive_entry.h>
 #include <csignal>
@@ -32,6 +33,10 @@
 #ifndef USE_OPENMP
 #include <pthread.h>
 #include <thread>
+#ifdef _WIN32
+#include <errhandlingapi.h>
+#include <winbase.h>
+#endif
 #endif
 
 #ifdef USE_OPENMP
@@ -169,23 +174,15 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
         case ARCHIVE_OK:
           {
             filename.clear();
-            char *fnm
-                = const_cast<char *>(archive_entry_pathname_utf8(entry.get()));
+            const char *fnm = archive_entry_pathname(entry.get());
             if(fnm)
               {
-                filename = fnm;
-              }
-            else
-              {
-                fnm = const_cast<char *>(archive_entry_pathname(entry.get()));
-                if(fnm)
+                std::vector<std::string> cp
+                    = XMLTextEncoding::detectStringEncoding(fnm);
+                if(cp.size() > 0)
                   {
-                    filename = fnm;
-                  }
-                else
-                  {
-                    std::cout << "ARCHParser::arch_process file name error"
-                              << std::endl;
+                    XMLTextEncoding::convertToEncoding(fnm, filename, cp[0],
+                                                       "UTF-8");
                   }
               }
             if(archive_entry_filetype(entry.get()) == AE_IFREG
@@ -244,24 +241,15 @@ ARCHParser::arch_process(const std::shared_ptr<archive> &a)
           case ARCHIVE_OK:
             {
               filename.clear();
-              char *fnm = const_cast<char *>(
-                  archive_entry_pathname_utf8(entry.get()));
+              const char *fnm = archive_entry_pathname(entry.get());
               if(fnm)
                 {
-                  filename = fnm;
-                }
-              else
-                {
-                  fnm = const_cast<char *>(
-                      archive_entry_pathname(entry.get()));
-                  if(fnm)
+                  std::vector<std::string> cp
+                      = XMLTextEncoding::detectStringEncoding(fnm);
+                  if(cp.size() > 0)
                     {
-                      filename = fnm;
-                    }
-                  else
-                    {
-                      std::cout << "ARCHParser::arch_process file name error"
-                                << std::endl;
+                      XMLTextEncoding::convertToEncoding(fnm, filename, cp[0],
+                                                         "UTF-8");
                     }
                 }
               if(archive_entry_filetype(entry.get()) == AE_IFREG
@@ -353,6 +341,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   extra_run = false;
                   extra_run_var.notify_one();
                 });
+#ifdef __linux
           cpu_set_t cpu_set;
           CPU_ZERO(&cpu_set);
           CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -364,6 +353,26 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                         << " " << ch_p << " \"" << std::strerror(er) << "\""
                         << std::endl;
             }
+#elif defined(_WIN32)
+          DWORD_PTR mask = 1;
+          mask = mask << processor_num;
+          HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+          if(handle)
+            {
+              if(SetThreadAffinityMask(handle, mask) == 0)
+                {
+                  std::cout
+                      << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                      << arch_path << " " << ch_p << " \""
+                      << std::strerror(GetLastError()) << "\"" << std::endl;
+                }
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry handle is null! "
+                        << arch_path << " " << ch_p << std::endl;
+            }
+#endif
           parse_thr.detach();
         }
       else
@@ -437,6 +446,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                       extra_run = false;
                       extra_run_var.notify_one();
                     });
+#ifdef __linux
               cpu_set_t cpu_set;
               CPU_ZERO(&cpu_set);
               CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -448,6 +458,27 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                             << " " << ch_p << " \"" << std::strerror(er)
                             << "\"" << std::endl;
                 }
+#elif defined(_WIN32)
+              DWORD_PTR mask = 1;
+              mask = mask << processor_num;
+              HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+              if(handle)
+                {
+                  if(SetThreadAffinityMask(handle, mask) == 0)
+                    {
+                      std::cout
+                          << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                          << arch_path << " " << ch_p << " \""
+                          << std::strerror(GetLastError()) << "\""
+                          << std::endl;
+                    }
+                }
+              else
+                {
+                  std::cout << "ARCHParser::unpack_entry handle is null! "
+                            << arch_path << " " << ch_p << std::endl;
+                }
+#endif
               parse_thr.detach();
             }
           else
@@ -522,6 +553,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   extra_run = false;
                   extra_run_var.notify_one();
                 });
+#ifdef __linux
           cpu_set_t cpu_set;
           CPU_ZERO(&cpu_set);
           CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -533,6 +565,26 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                         << " " << ch_p << " \"" << std::strerror(er) << "\""
                         << std::endl;
             }
+#elif defined(_WIN32)
+          DWORD_PTR mask = 1;
+          mask = mask << processor_num;
+          HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+          if(handle)
+            {
+              if(SetThreadAffinityMask(handle, mask) == 0)
+                {
+                  std::cout
+                      << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                      << arch_path << " " << ch_p << " \""
+                      << std::strerror(GetLastError()) << "\"" << std::endl;
+                }
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry handle is null! "
+                        << arch_path << " " << ch_p << std::endl;
+            }
+#endif
           parse_thr.detach();
         }
       else
@@ -608,6 +660,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                       extra_run = false;
                       extra_run_var.notify_one();
                     });
+#ifdef __linux
               cpu_set_t cpu_set;
               CPU_ZERO(&cpu_set);
               CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -619,6 +672,27 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                             << " " << ch_p << " \"" << std::strerror(er)
                             << "\"" << std::endl;
                 }
+#elif defined(_WIN32)
+              DWORD_PTR mask = 1;
+              mask = mask << processor_num;
+              HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+              if(handle)
+                {
+                  if(SetThreadAffinityMask(handle, mask) == 0)
+                    {
+                      std::cout
+                          << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                          << arch_path << " " << ch_p << " \""
+                          << std::strerror(GetLastError()) << "\""
+                          << std::endl;
+                    }
+                }
+              else
+                {
+                  std::cout << "ARCHParser::unpack_entry handle is null! "
+                            << arch_path << " " << ch_p << std::endl;
+                }
+#endif
               parse_thr.detach();
             }
           else
@@ -693,6 +767,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   extra_run = false;
                   extra_run_var.notify_one();
                 });
+#ifdef __linux
           cpu_set_t cpu_set;
           CPU_ZERO(&cpu_set);
           CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -704,6 +779,26 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                         << " " << ch_p << " \"" << std::strerror(er) << "\""
                         << std::endl;
             }
+#elif defined(_WIN32)
+          DWORD_PTR mask = 1;
+          mask = mask << processor_num;
+          HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+          if(handle)
+            {
+              if(SetThreadAffinityMask(handle, mask) == 0)
+                {
+                  std::cout
+                      << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                      << arch_path << " " << ch_p << " \""
+                      << std::strerror(GetLastError()) << "\"" << std::endl;
+                }
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry handle is null! "
+                        << arch_path << " " << ch_p << std::endl;
+            }
+#endif
           parse_thr.detach();
         }
       else
@@ -783,6 +878,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                       extra_run = false;
                       extra_run_var.notify_one();
                     });
+#ifdef __linux
               cpu_set_t cpu_set;
               CPU_ZERO(&cpu_set);
               CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -794,6 +890,27 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                             << " " << ch_p << " \"" << std::strerror(er)
                             << "\"" << std::endl;
                 }
+#elif defined(_WIN32)
+              DWORD_PTR mask = 1;
+              mask = mask << processor_num;
+              HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+              if(handle)
+                {
+                  if(SetThreadAffinityMask(handle, mask) == 0)
+                    {
+                      std::cout
+                          << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                          << arch_path << " " << ch_p << " \""
+                          << std::strerror(GetLastError()) << "\""
+                          << std::endl;
+                    }
+                }
+              else
+                {
+                  std::cout << "ARCHParser::unpack_entry handle is null! "
+                            << arch_path << " " << ch_p << std::endl;
+                }
+#endif
               parse_thr.detach();
             }
           else
@@ -884,6 +1001,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                       extra_run = false;
                       extra_run_var.notify_one();
                     });
+#ifdef __linux
               cpu_set_t cpu_set;
               CPU_ZERO(&cpu_set);
               CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -895,6 +1013,27 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                             << " " << ch_p << " \"" << std::strerror(er)
                             << "\"" << std::endl;
                 }
+#elif defined(_WIN32)
+              DWORD_PTR mask = 1;
+              mask = mask << processor_num;
+              HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+              if(handle)
+                {
+                  if(SetThreadAffinityMask(handle, mask) == 0)
+                    {
+                      std::cout
+                          << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                          << arch_path << " " << ch_p << " \""
+                          << std::strerror(GetLastError()) << "\""
+                          << std::endl;
+                    }
+                }
+              else
+                {
+                  std::cout << "ARCHParser::unpack_entry handle is null! "
+                            << arch_path << " " << ch_p << std::endl;
+                }
+#endif
               parse_thr.detach();
             }
           else
@@ -986,6 +1125,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                       extra_run = false;
                       extra_run_var.notify_one();
                     });
+#ifdef __linux
               cpu_set_t cpu_set;
               CPU_ZERO(&cpu_set);
               CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -997,6 +1137,27 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                             << " " << ch_p << " \"" << std::strerror(er)
                             << "\"" << std::endl;
                 }
+#elif defined(_WIN32)
+              DWORD_PTR mask = 1;
+              mask = mask << processor_num;
+              HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+              if(handle)
+                {
+                  if(SetThreadAffinityMask(handle, mask) == 0)
+                    {
+                      std::cout
+                          << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                          << arch_path << " " << ch_p << " \""
+                          << std::strerror(GetLastError()) << "\""
+                          << std::endl;
+                    }
+                }
+              else
+                {
+                  std::cout << "ARCHParser::unpack_entry handle is null! "
+                            << arch_path << " " << ch_p << std::endl;
+                }
+#endif
               parse_thr.detach();
             }
           else
@@ -1062,6 +1223,7 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                   extra_run = false;
                   extra_run_var.notify_one();
                 });
+#ifdef __linux
           cpu_set_t cpu_set;
           CPU_ZERO(&cpu_set);
           CPU_SET(static_cast<unsigned>(processor_num), &cpu_set);
@@ -1073,6 +1235,26 @@ ARCHParser::unpack_entry(const std::filesystem::path &ch_p,
                         << " " << ch_p << " \"" << std::strerror(er) << "\""
                         << std::endl;
             }
+#elif defined(_WIN32)
+          DWORD_PTR mask = 1;
+          mask = mask << processor_num;
+          HANDLE handle = pthread_gethandle(parse_thr.native_handle());
+          if(handle)
+            {
+              if(SetThreadAffinityMask(handle, mask) == 0)
+                {
+                  std::cout
+                      << "ARCHParser::unpack_entry SetThreadAffinityMask "
+                      << arch_path << " " << ch_p << " \""
+                      << std::strerror(GetLastError()) << "\"" << std::endl;
+                }
+            }
+          else
+            {
+              std::cout << "ARCHParser::unpack_entry handle is null! "
+                        << arch_path << " " << ch_p << std::endl;
+            }
+#endif
           parse_thr.detach();
         }
       else

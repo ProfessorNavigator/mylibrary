@@ -20,6 +20,7 @@
 #include <LibArchive.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <iostream>
 
@@ -173,13 +174,17 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
       int er = ARCHIVE_OK;
       unsigned long file_count = 0;
       std::shared_ptr<archive_entry> read_ent(
-          archive_entry_new2(rm_e.a_read.get()), [](archive_entry *e) {
-            archive_entry_free(e);
-          });
+          archive_entry_new2(rm_e.a_read.get()),
+          [](archive_entry *e)
+            {
+              archive_entry_free(e);
+            });
       std::shared_ptr<archive_entry> write_ent(
-          archive_entry_new2(rm_e.a_write.get()), [](archive_entry *e) {
-            archive_entry_free(e);
-          });
+          archive_entry_new2(rm_e.a_write.get()),
+          [](archive_entry *e)
+            {
+              archive_entry_free(e);
+            });
 
       std::filesystem::create_directories(out_d);
 
@@ -196,30 +201,25 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                   la->libarchive_error(
                       rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
                 }
-              char *chnm = const_cast<char *>(
-                  archive_entry_pathname_utf8(read_ent.get()));
+              const char *chnm = archive_entry_pathname(read_ent.get());
               if(chnm)
                 {
-                  path_in_arch = chnm;
-                }
-              else
-                {
-                  chnm = const_cast<char *>(
-                      archive_entry_pathname(read_ent.get()));
-                  if(chnm)
+                  std::vector<std::string> cp
+                      = XMLTextEncoding::detectStringEncoding(chnm);
+                  if(cp.size() > 0)
                     {
-                      path_in_arch = chnm;
-                    }
-                  else
-                    {
-                      std::cout << "RemoveBook::archiveRemove file name error"
-                                << std::endl;
+                      XMLTextEncoding::convertToEncoding(chnm, path_in_arch,
+                                                         cp[0], "UTF-8");
                     }
                 }
-              if(path_in_arch != l_book_path && path_in_arch != fbd_file_name)
+              if(!path_in_arch.empty())
                 {
-                  srp_read = la->libarchive_read_entry(rm_e.a_read.get(),
-                                                       read_ent.get(), out_d);
+                  if(path_in_arch != l_book_path
+                     && path_in_arch != fbd_file_name)
+                    {
+                      srp_read = la->libarchive_read_entry(
+                          rm_e.a_read.get(), read_ent.get(), out_d);
+                    }
                 }
             }
           else
@@ -282,14 +282,18 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
       int er = ARCHIVE_OK;
       unsigned long file_count = 0;
       std::shared_ptr<archive_entry> read_ent(
-          archive_entry_new2(rm_e.a_read.get()), [](archive_entry *e) {
-            archive_entry_free(e);
-          });
+          archive_entry_new2(rm_e.a_read.get()),
+          [](archive_entry *e)
+            {
+              archive_entry_free(e);
+            });
 
       std::shared_ptr<archive_entry> write_ent(
-          archive_entry_new2(rm_e.a_write.get()), [](archive_entry *e) {
-            archive_entry_free(e);
-          });
+          archive_entry_new2(rm_e.a_write.get()),
+          [](archive_entry *e)
+            {
+              archive_entry_free(e);
+            });
 
       std::filesystem::path unpack_dir
           = out_d / std::filesystem::u8path(af->randomFileName());
@@ -308,24 +312,15 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                   la->libarchive_error(
                       rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
                 }
-              char *chnm = const_cast<char *>(
-                  archive_entry_pathname_utf8(read_ent.get()));
+              const char *chnm = archive_entry_pathname(read_ent.get());
               if(chnm)
                 {
-                  path_in_arch = chnm;
-                }
-              else
-                {
-                  chnm = const_cast<char *>(
-                      archive_entry_pathname(read_ent.get()));
-                  if(chnm)
+                  std::vector<std::string> cp
+                      = XMLTextEncoding::detectStringEncoding(chnm);
+                  if(cp.size() > 0)
                     {
-                      path_in_arch = chnm;
-                    }
-                  else
-                    {
-                      std::cout << "RemoveBook::archiveRemove file name error"
-                                << std::endl;
+                      XMLTextEncoding::convertToEncoding(chnm, path_in_arch,
+                                                         cp[0], "UTF-8");
                     }
                 }
               srp_read = la->libarchive_read_entry(rm_e.a_read.get(),
