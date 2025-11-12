@@ -46,7 +46,6 @@ std::shared_ptr<BookInfoEntry>
 BookInfo::getBookInfo(const BookBaseEntry &bbe)
 {
   std::shared_ptr<BookInfoEntry> result;
-
   std::string ext;
   std::error_code ec;
   std::filesystem::file_status fstat
@@ -134,7 +133,7 @@ BookInfo::getBookInfo(const BookBaseEntry &bbe)
       result = odt.odtBookInfo(bbe.file_path);
     }
   else if(ext == ".txt" || ext == ".md")
-    {
+    {      
       TXTParser txt(af);
       result = txt.txtBookInfo(bbe.file_path);
     }

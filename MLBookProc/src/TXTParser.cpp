@@ -77,10 +77,10 @@ TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
       return bie;
     }
 
-  if(bie->cover.size() > 0)
+  if(buf.size() > 0)
     {
       std::vector<std::string> enc
-          = XMLTextEncoding::detectStringEncoding(buf);
+          = XMLTextEncoding::detectStringEncoding(buf);     
       if(enc.size() > 0)
         {
           XMLTextEncoding::convertToEncoding(buf, bie->cover, enc[0], "UTF-8");
