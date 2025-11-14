@@ -18,8 +18,7 @@
 #include <pthread.h>
 #include <thread>
 #ifdef _WIN32
-#include <errhandlingapi.h>
-#include <winbase.h>
+#include <windows.h>
 #endif
 
 int
