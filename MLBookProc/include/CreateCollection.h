@@ -245,10 +245,7 @@ private:
   std::mutex archp_obj_mtx;
   std::vector<std::tuple<unsigned, bool>> thr_pool;
   std::mutex run_threads_mtx;
-  std::condition_variable run_threads_var;
-
-  std::vector<unsigned> reserved;
-  std::mutex reserved_mtx;
+  std::condition_variable run_threads_var;  
 
   std::mutex base_strm_mtx;
 #else

@@ -43,7 +43,6 @@
 class ARCHParser : public LibArchive
 {
 public:
-#ifdef USE_OPENMP
   /*!
    * \brief ARCHParser constructor.
    * \param af smart pointer to AuxFunc object.
@@ -51,18 +50,6 @@ public:
    * otherwise not.
    */
   ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support);
-#else
-  /*!
-   * \brief ARCHParser constructor.
-   * \param af smart pointer to AuxFunc object.
-   * \param rar_support if \a true, ARCHParser will parse rar archives,
-   * otherwise not.
-   * \param processor_num Processor number on wich extra thread should be run
-   * on. If negative, extra thread will not be used.
-   */
-  ARCHParser(const std::shared_ptr<AuxFunc> &af, const bool &rar_support,
-             const int &processor_num);
-#endif
 
   /*!
    * \brief ARCHParser destructor.
@@ -87,15 +74,15 @@ public:
 
 private:
   void
-  arch_process(const std::shared_ptr<archive> &a);
+  archProcess(const std::shared_ptr<archive> &a);
 
   void
-  unpack_entry(const std::filesystem::path &ch_p,
-               const std::shared_ptr<archive> &a,
-               const std::shared_ptr<archive_entry> &e);
+  unpackEntry(const std::filesystem::path &ch_p,
+              const std::shared_ptr<archive> &a,
+              const std::shared_ptr<archive_entry> &e);
 
   void
-  check_for_fbd();
+  checkForFbd();
 
   static void
   signalHandler(int sig);
@@ -111,12 +98,6 @@ private:
 #ifndef USE_OPENMP
   std::mutex archp_obj_mtx;
   std::atomic<bool> cancel;
-
-  bool extra_run = false;
-  std::mutex extra_run_mtx;
-  std::condition_variable extra_run_var;
-
-  int processor_num = -1;
 #else
   bool cancel = false;
   omp_lock_t archp_obj_mtx;

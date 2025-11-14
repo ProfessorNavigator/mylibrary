@@ -72,13 +72,12 @@ if(NOT USE_OPENMP)
     add_test(NAME ParallelExecutionTest COMMAND stdexecution_test
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/stdexecution_test"
     )
-  else()
-    add_subdirectory("${PROJECT_SOURCE_DIR}/vector_test")
-    try_compile(VECTOR_TEST "${CMAKE_BINARY_DIR}/MLBookProc/vector_test" "${PROJECT_SOURCE_DIR}/vector_test" vector_test)
-    add_test(NAME VectorTest COMMAND vector_test
-      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/vector_test"
-    )
   endif()
+  add_subdirectory("${PROJECT_SOURCE_DIR}/pthread_test")
+  try_compile(PTHREAD_TEST "${CMAKE_BINARY_DIR}/MLBookProc/pthread_test" "${PROJECT_SOURCE_DIR}/pthread_test" pthread_test)
+  add_test(NAME PthreadTest COMMAND pthread_test
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/MLBookProc/pthread_test"
+  )
 endif()
 
 if(CREATE_HTML_DOCS_MLBOOKPROC OR CREATE_PDF_DOCS_MLBOOKPROC)

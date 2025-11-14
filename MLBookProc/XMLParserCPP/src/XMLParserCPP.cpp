@@ -68,7 +68,7 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
   if(n == std::string::npos)
     {
       throw std::runtime_error(
-          "XMLParserCPP::parseDocument: incorrect document(1)");
+          "XMLParserCPP::parseDocument: incorrect document");
     }
 
   std::vector<std::shared_ptr<XMLElement>> not_completed;
@@ -174,7 +174,8 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
                 if(incorrect)
                   {
                     throw std::runtime_error(
-                        "XMLParserCPP::parseDocument: incorrect document(2)");
+                        "XMLParserCPP::parseDocument: incorrect element: "
+                        + in_process->element_name);
                   }
               }
             else
@@ -204,8 +205,7 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
                 else
                   {
                     throw std::runtime_error("XMLParserCPP::parseDocument: "
-                                             "incorrect "
-                                             "document(4)");
+                                             " element name size is 0!");
                   }
                 if(in_process->empty)
                   {
@@ -263,17 +263,18 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
                         else
                           {
                             throw std::runtime_error(
-                                "XMLParserCPP::parseDocument: "
-                                "incorrect "
-                                "document(5)");
+                                "XMLParserCPP::parseDocument: element names "
+                                "are not equal \""
+                                + last->element_name + "\" \""
+                                + in_process->element_name + "\"");
                           }
                       }
                     else
                       {
                         throw std::runtime_error(
-                            "XMLParserCPP::parseDocument: "
-                            "incorrect "
-                            "document(6)");
+                            "XMLParserCPP::parseDocument: element parsing has "
+                            "not been started, element "
+                            + in_process->element_name);
                       }
                   }
               }
@@ -327,9 +328,10 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
               }
             else
               {
-                throw std::runtime_error(
-                    "XMLParserCPP::parseDocument: incorrect "
-                    "document(7)");
+                std::string str(
+                    "XMLParserCPP::parseDocument: incorrect symbol ");
+                str.push_back(document[i]);
+                throw std::runtime_error(str);
               }
             break;
           }
@@ -338,8 +340,8 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
 
   if(not_completed.size() > 0)
     {
-      throw std::runtime_error("XMLParserCPP::parseDocument: incorrect "
-                               "document(8)");
+      throw std::runtime_error(
+          "XMLParserCPP::parseDocument: not completed elements found!");
     }
 
   replaceXMLEntities(result);
@@ -420,8 +422,10 @@ XMLParserCPP::parseElementAttribute(const std::string &document,
               }
             else
               {
-                throw std::runtime_error("XMLParserCPP::parseElementAttribute:"
-                                         " incorrect attribute(2)");
+                throw std::runtime_error(
+                    "XMLParserCPP::parseElementAttribute:"
+                    " incorrect symbol for attribute name (1) in element "
+                    + element->element_name);
               }
             break;
           }
@@ -444,8 +448,10 @@ XMLParserCPP::parseElementAttribute(const std::string &document,
               }
             else
               {
-                throw std::runtime_error("XMLParserCPP::parseElementAttribute:"
-                                         " incorrect attribute(3)");
+                throw std::runtime_error(
+                    "XMLParserCPP::parseElementAttribute:"
+                    " incorrect symbol for attribute name (2) in element "
+                    + element->element_name);
               }
             break;
           }
@@ -492,8 +498,9 @@ XMLParserCPP::parseElementAttribute(const std::string &document,
     }
   if(!stop)
     {
-      throw std::runtime_error("XMLParserCPP::parseElementAttribute:"
-                               " incorrect attribute(4)");
+      throw std::runtime_error("XMLParserCPP::parseElementAttribute: "
+                               + element->element_name
+                               + " attribute has not been completed");
     }
 }
 
@@ -536,7 +543,7 @@ XMLParserCPP::parseProgramControlElement(const std::string &document,
               {
                 throw std::runtime_error(
                     "XMLParserCPP::parseProgramControlElement: incorrect "
-                    "element(1)");
+                    "symbol for program control element");
               }
             break;
           }
@@ -549,8 +556,8 @@ XMLParserCPP::parseProgramControlElement(const std::string &document,
   if(!stop)
     {
       throw std::runtime_error(
-          "XMLParserCPP::parseProgramControlElement: incorrect "
-          "element(2)");
+          "XMLParserCPP::parseProgramControlElement: program control element "
+          "has not been completed!");
     }
 }
 
@@ -589,15 +596,15 @@ XMLParserCPP::parseSpecialElement(const std::string &document,
         if(n == std::string::npos)
           {
             throw std::runtime_error(
-                "XMLParserCPP::parseSpecialElement: incorrect element(1)");
+                "XMLParserCPP::parseSpecialElement: incorrect CDATA element");
           }
         n += find_str.size();
         find_str = "]]>";
         std::string::size_type n2 = document.find(find_str, n);
         if(n2 == std::string::npos)
           {
-            throw std::runtime_error(
-                "XMLParserCPP::parseSpecialElement: incorrect element(2)");
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "CDATA element has not been completed");
           }
         std::copy(document.begin() + n, document.begin() + n2,
                   std::back_inserter(element->content));
@@ -610,8 +617,8 @@ XMLParserCPP::parseSpecialElement(const std::string &document,
         std::string::size_type n = document.find(find_str, position);
         if(n == std::string::npos)
           {
-            throw std::runtime_error(
-                "XMLParserCPP::parseSpecialElement: incorrect element(3)");
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "comment element has not been completed");
           }
         std::copy(document.begin() + position, document.begin() + n,
                   std::back_inserter(element->content));
@@ -644,8 +651,8 @@ XMLParserCPP::parseSpecialElement(const std::string &document,
           }
         if(!stop)
           {
-            throw std::runtime_error(
-                "XMLParserCPP::parseSpecialElement: incorrect element(3)");
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "special element has not bin completed");
           }
         break;
       }
@@ -757,8 +764,9 @@ XMLParserCPP::parseElementContent(const std::string &document,
     }
   if(!stop)
     {
-      throw std::runtime_error(
-          "XMLParserCPP::parseElementContent: incorrect content");
+      throw std::runtime_error("XMLParserCPP::parseElementContent: \""
+                               + element->element_name
+                               + "\" element content has not been completed");
     }
   for(auto it = el.content.begin(); it != el.content.end(); it++)
     {
@@ -828,39 +836,66 @@ XMLParserCPP::replacementFunc(std::string &str)
         }
       else
         {
-          if(to_replace.size() > 0)
+          if(to_replace.size() >= 2)
             {
               if(to_replace[0] == '#')
                 {
-                  to_replace.erase(to_replace.begin());
-                  bool num = true;
-                  for(auto it_tr = to_replace.begin();
-                      it_tr != to_replace.end(); it_tr++)
+                  if(to_replace[1] == 'x')
                     {
-                      if(*it_tr < 48 || *it_tr > 57)
+                      to_replace.erase(to_replace.begin(),
+                                       to_replace.begin() + 2);
+                      if(to_replace.size() > 0)
                         {
-                          num = false;
-                          break;
+                          std::stringstream strm;
+                          strm.imbue(std::locale("C"));
+                          strm << std::hex << str;
+                          UChar32 ch;
+                          strm >> ch;
+                          icu::UnicodeString ustr(ch);
+                          to_replace.clear();
+                          ustr.toUTF8String(to_replace);
+                          str.erase(str.begin() + n,
+                                    str.begin() + n2 + find_str2.size());
+                          str.insert(str.begin() + n, to_replace.begin(),
+                                     to_replace.end());
                         }
-                    }
-                  if(num)
-                    {
-                      std::stringstream strm;
-                      strm.imbue(std::locale("C"));
-                      strm.str(to_replace);
-                      UChar32 ch;
-                      strm >> ch;
-                      icu::UnicodeString ustr(ch);
-                      to_replace.clear();
-                      ustr.toUTF8String(to_replace);
-                      str.erase(str.begin() + n,
-                                str.begin() + n2 + find_str2.size());
-                      str.insert(str.begin() + n, to_replace.begin(),
-                                 to_replace.end());
+                      else
+                        {
+                          n++;
+                        }
                     }
                   else
                     {
-                      n++;
+                      to_replace.erase(to_replace.begin());
+                      bool num = true;
+                      for(auto it_tr = to_replace.begin();
+                          it_tr != to_replace.end(); it_tr++)
+                        {
+                          if((*it_tr) < 48 || (*it_tr) > 57)
+                            {
+                              num = false;
+                              break;
+                            }
+                        }
+                      if(num)
+                        {
+                          std::stringstream strm;
+                          strm.imbue(std::locale("C"));
+                          strm.str(to_replace);
+                          UChar32 ch;
+                          strm >> ch;
+                          icu::UnicodeString ustr(ch);
+                          to_replace.clear();
+                          ustr.toUTF8String(to_replace);
+                          str.erase(str.begin() + n,
+                                    str.begin() + n2 + find_str2.size());
+                          str.insert(str.begin() + n, to_replace.begin(),
+                                     to_replace.end());
+                        }
+                      else
+                        {
+                          n++;
+                        }
                     }
                 }
               else

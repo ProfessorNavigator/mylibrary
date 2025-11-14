@@ -237,64 +237,20 @@ CreateCollection::threadRegulator()
       std::filesystem::path p = *it;
       std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
       std::vector<std::tuple<unsigned, bool>>::iterator free;
-      if(thr_pool.size() > 1 && af->ifSupportedArchiveUnpackaingType(p))
-        {
-          run_threads_var.wait(
-              run_thr_lock,
-              [this, &free]
-                {
-                  int num = 0;
-                  for(auto it = thr_pool.begin(); it != thr_pool.end(); it++)
-                    {
-                      if(std::get<1>(*it))
-                        {
-                          num++;
-                          switch(num)
-                            {
-                            case 1:
-                              {
-                                free = it;
-                                break;
-                              }
-                            case 2:
-                              {
-                                reserved_mtx.lock();
-                                std::get<1>(*it) = false;
-                                reserved.push_back(std::get<0>(*it));
-                                reserved_mtx.unlock();
-                                break;
-                              }
-                            default:
-                              break;
-                            }
-                        }
-                      if(num >= 2)
-                        {
-                          break;
-                        }
-                    }
-                  return num >= 2;
-                });
-        }
-      else
-        {
-          run_threads_var.wait(run_thr_lock,
-                               [this, &free]
+      run_threads_var.wait(run_thr_lock,
+                           [this, &free]
+                             {
+                               for(auto it = thr_pool.begin();
+                                   it != thr_pool.end(); it++)
                                  {
-                                   bool result = false;
-                                   for(auto it = thr_pool.begin();
-                                       it != thr_pool.end(); it++)
+                                   if(std::get<1>(*it))
                                      {
-                                       if(std::get<1>(*it))
-                                         {
-                                           free = it;
-                                           result = true;
-                                           break;
-                                         }
+                                       free = it;
+                                       return true;
                                      }
-                                   return result;
-                                 });
-        }
+                                 }
+                               return false;
+                             });
       std::get<1>(*free) = false;
       std::thread thr(
           [this, p, free]
@@ -346,24 +302,21 @@ CreateCollection::threadRegulator()
   std::unique_lock<std::mutex> run_thr_lock(run_threads_mtx);
   run_threads_var.wait(run_thr_lock,
                        [this]
-                         {
-                           bool result = true;
+                         {                          
                            for(auto it = thr_pool.begin();
                                it != thr_pool.end(); it++)
                              {
                                if(!std::get<1>(*it))
                                  {
-                                   result = false;
-                                   break;
+                                   return false;
                                  }
                              }
-                           return result;
+                           return true;
                          });
 #else
   int num_threads_default = omp_get_max_threads();
   omp_set_num_threads(num_threads);
   omp_set_max_active_levels(omp_get_supported_active_levels());
-  omp_set_dynamic(true);
 #pragma omp parallel
 #pragma omp for
   for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
@@ -697,16 +650,7 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
     }
 
 #ifndef USE_OPENMP
-  int processor_num = -1;
-
-  reserved_mtx.lock();
-  if(reserved.size() > 0)
-    {
-      processor_num = static_cast<int>(*reserved.rbegin());
-      reserved.pop_back();
-    }
-  reserved_mtx.unlock();
-  ARCHParser arp(af, rar_support, processor_num);
+  ARCHParser arp(af, rar_support);
   archp_obj_mtx.lock();
   archp_obj.push_back(&arp);
   archp_obj_mtx.unlock();
@@ -726,22 +670,6 @@ CreateCollection::archThread(const std::filesystem::path &file_col_path,
     {
       std::cout << "CreateCollection::archThread: \"" << er.what() << "\""
                 << std::endl;
-    }
-
-  if(processor_num >= 0)
-    {
-      std::lock_guard<std::mutex> lglock(run_threads_mtx);
-      unsigned n_pr = static_cast<unsigned>(processor_num);
-      auto it_thr = std::find_if(thr_pool.begin(), thr_pool.end(),
-                                 [n_pr](const std::tuple<unsigned, bool> &el)
-                                   {
-                                     return n_pr == std::get<0>(el);
-                                   });
-      if(it_thr != thr_pool.end())
-        {
-          std::get<1>(*it_thr) = true;
-        }
-      run_threads_var.notify_one();
     }
 
   if(fe.books.size() > 0 && !cancel.load(std::memory_order_relaxed))
