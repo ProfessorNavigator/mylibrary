@@ -764,14 +764,14 @@ BaseKeeper::collectionAuthors()
                   if(!lower.empty())
                     {
 #ifdef USE_PE
-                      auto it = std::find(std::execution::par,
-                                          lower_result.rbegin(),
-                                          lower_result.rend(), lower);
+                      auto it_lower = std::find(std::execution::par,
+                                                lower_result.rbegin(),
+                                                lower_result.rend(), lower);
 #else
-                      auto it = std::find(lower_result.rbegin(),
-                                          lower_result.rend(), lower);
+                      auto it_lower = std::find(lower_result.rbegin(),
+                                                lower_result.rend(), lower);
 #endif
-                      if(it == lower_result.rend())
+                      if(it_lower == lower_result.rend())
                         {
                           result.emplace_back(auth);
                           lower_result.emplace_back(lower);
@@ -1044,7 +1044,7 @@ BaseKeeper::searchSurname(const BookBaseEntry &search,
   std::string::size_type n = surname.find("\7");
   if(n != std::string::npos)
     {
-      surname = surname.substr(0, n);
+      surname.erase(surname.begin() + n, surname.end());
       normalizeString(surname, Normalization::Author);
       surname = af->stringToLower(surname);
 
@@ -2243,7 +2243,7 @@ BaseKeeper::searchFirstName(const BookBaseEntry &search,
       n = first_name.find(sstr);
       if(n != std::string::npos)
         {
-          first_name = first_name.substr(0, n);
+          first_name.erase(first_name.begin() + n, first_name.end());
           normalizeString(first_name, Normalization::Author);
           first_name = af->stringToLower(first_name);          
           if(!first_name.empty())

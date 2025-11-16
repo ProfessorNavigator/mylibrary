@@ -2228,7 +2228,7 @@ AddBookGui::book_add_dialog_slot(int resp, Gtk::FileChooserDialog *fd,
       for(guint i = 0; i < n; i++)
         {
           GObject *gobject_i = g_list_model_get_object(gmodel, i);
-          GFile *gfile = (GFile *)gobject_i;
+          GFile *gfile = reinterpret_cast<GFile *>(gobject_i);
           Glib::RefPtr<Gio::File> fl = Glib::wrap(gfile, true);
           if(fl)
             {
