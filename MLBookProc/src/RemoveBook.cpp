@@ -20,7 +20,6 @@
 #include <LibArchive.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
-#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <iostream>
 
@@ -201,16 +200,10 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                   la->libarchive_error(
                       rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
                 }
-              const char *chnm = archive_entry_pathname(read_ent.get());
+              const char *chnm = archive_entry_pathname_utf8(read_ent.get());
               if(chnm)
                 {
-                  std::vector<std::string> cp
-                      = XMLTextEncoding::detectStringEncoding(chnm);
-                  if(cp.size() > 0)
-                    {
-                      XMLTextEncoding::convertToEncoding(chnm, path_in_arch,
-                                                         cp[0], "UTF-8");
-                    }
+                  path_in_arch = chnm;
                 }
               if(!path_in_arch.empty())
                 {
@@ -312,16 +305,10 @@ RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
                   la->libarchive_error(
                       rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
                 }
-              const char *chnm = archive_entry_pathname(read_ent.get());
+              const char *chnm = archive_entry_pathname_utf8(read_ent.get());
               if(chnm)
                 {
-                  std::vector<std::string> cp
-                      = XMLTextEncoding::detectStringEncoding(chnm);
-                  if(cp.size() > 0)
-                    {
-                      XMLTextEncoding::convertToEncoding(chnm, path_in_arch,
-                                                         cp[0], "UTF-8");
-                    }
+                  path_in_arch = chnm;
                 }
               srp_read = la->libarchive_read_entry(rm_e.a_read.get(),
                                                    read_ent.get(), unpack_dir);

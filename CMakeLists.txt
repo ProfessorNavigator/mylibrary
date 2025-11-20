@@ -74,17 +74,22 @@ install(DIRECTORY MyLibrary DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     if(OMP_TEST)
-        install(FILES
-        ru.mail.bobilev_yury.MyLibrary.omp.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+        install(FILES ru.mail.bobilev_yury.MyLibrary.omp.desktop
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
     else()
-        install(FILES
-        ru.mail.bobilev_yury.MyLibrary.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+        install(FILES ru.mail.bobilev_yury.MyLibrary.desktop
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
     endif()
-    install(FILES
-    mylibrary.svg DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")
+    install(FILES mylibrary.svg
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")
+
+    install(FILES mylibrary.svg
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/MyLibrary")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    install(FILES
-    mylibrary.ico DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps")
+    install(FILES mylibrary.ico
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps")
+    install(FILES mylibrary.ico
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/MyLibrary")
 endif()
 
 if(Gettext_FOUND)

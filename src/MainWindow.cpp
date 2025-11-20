@@ -635,7 +635,11 @@ MainWindow::aboutDialog()
 
   std::filesystem::path icon_p = af->sharePath();
   icon_p /= std::filesystem::u8path("MyLibrary");
+#ifdef __linux
   icon_p /= std::filesystem::u8path("mylibrary.svg");
+#elif defined(_WIN32)
+  icon_p /= std::filesystem::u8path("mylibrary.ico");
+#endif
 
   Magick::Image icon_img;
   try
@@ -661,7 +665,7 @@ MainWindow::aboutDialog()
       Glib::RefPtr<Glib::Bytes> bytes;
       try
         {
-          icon_img.write(0, 0, columns, rows, "BGRA", Magick::CharPixel, buf);          
+          icon_img.write(0, 0, columns, rows, "BGRA", Magick::CharPixel, buf);
         }
       catch(Magick::Exception &er)
         {

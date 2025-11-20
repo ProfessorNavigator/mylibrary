@@ -22,7 +22,6 @@
 #include <ODTParser.h>
 #include <PDFParser.h>
 #include <TXTParser.h>
-#include <XMLTextEncoding.h>
 #include <algorithm>
 #include <archive_entry.h>
 #include <csignal>
@@ -141,16 +140,10 @@ ARCHParser::archProcess(const std::shared_ptr<archive> &a)
         case ARCHIVE_OK:
           {
             filename.clear();
-            const char *fnm = archive_entry_pathname(entry.get());
+            const char *fnm = archive_entry_pathname_utf8(entry.get());
             if(fnm)
               {
-                std::vector<std::string> cp
-                    = XMLTextEncoding::detectStringEncoding(fnm);
-                if(cp.size() > 0)
-                  {
-                    XMLTextEncoding::convertToEncoding(fnm, filename, cp[0],
-                                                       "UTF-8");
-                  }
+                filename = fnm;
               }
             if(archive_entry_filetype(entry.get()) == AE_IFREG
                && !filename.empty())
@@ -208,16 +201,10 @@ ARCHParser::archProcess(const std::shared_ptr<archive> &a)
           case ARCHIVE_OK:
             {
               filename.clear();
-              const char *fnm = archive_entry_pathname(entry.get());
+              const char *fnm = archive_entry_pathname_utf8(entry.get());
               if(fnm)
                 {
-                  std::vector<std::string> cp
-                      = XMLTextEncoding::detectStringEncoding(fnm);
-                  if(cp.size() > 0)
-                    {
-                      XMLTextEncoding::convertToEncoding(fnm, filename, cp[0],
-                                                         "UTF-8");
-                    }
+                  filename = fnm;
                 }
               if(archive_entry_filetype(entry.get()) == AE_IFREG
                  && !filename.empty())
