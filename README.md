@@ -21,15 +21,19 @@ You may need to set install prefix by option CMAKE_INSTALL_PREFIX (default prefi
 
 MyLibrary includes MLBookProc library (see `Notes`). To build html documentation for MLBookProc, set option CREATE_HTML_DOCS_MLBOOKPROC to `ON` (also see `Dependencies`). To build pdf documentation for MLBookProc set option CREATE_PDF_DOCS_MLBOOKPROC to `ON` (also see `Dependencies`).
 
+MLBookProc includes XMLParserCPP library (see `Notes`). To build html documentation for XMLParserCPP set cmake option CREATE_HTML_DOCS_XMLPARSERCPP to `ON`. To build pdf documentation for XMLParserCPP set cmake option CREATE_PDF_DOCS_XMLPARSERCPP to `ON`. Also see `Dependencies` section.
+
 Program will be built with OpenMP support by default. If you do not need OpenMP support set USE_OPENMP option to `OFF` (see also `Dependencies` and `Notes` section). In case of building with OpenMP support, public build variable USE_OPENMP will be set in MLBookProc cmake package configuration file. This variable can be used in your project compiler ifdef directives in case of any need. 
 
 There is optional plugins support in MyLibrary. To use plugins, set USE_PLUGINS option to `ON`. If you need html documentation for plugins creation, set CREATE_HTML_DOCS_PLUGINIFC option to `ON` (also see `Dependencies`). If you need pdf documentation for plugins creation, set CREATE_PDF_DOCS_PLUGINIFC option to `ON` (also see `Dependencies`). If USE_PLUGINS variable is `ON`, in case of gtkmm version lower than 4.10 public build variable ML_GTK_OLD will be set. You can use this variable in ifdef compiler directives in your plugins.
 
 Tests were added in version 4.2 ([ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html) needs to be installed). It is recommended to run tests (`cmake --build _build --target test`) after configure stage, just before program building. Special attention should be paid to OpenMPTest. If this test fails, you should NOT build program with OpenMP support.
 
+Some classes and methods of MLBookProc library have been deprecated in version 4.3. Building of deprecated classes is switched off by default. If you still need these classes, set cmake option BUILD_DEPRECATED_CLASSES to `ON`. Deprecated classes and methods will be removed in future releases - it is recommended to switch your plugins and programs to new methods (see MLBookProc documentation). 
+
 ### Windows
 
-You can build MyLibrary from source by MSYS2 project [https://www.msys2.org/](https://www.msys2.org/). Follow installation instructions from projects site, install dependencies from `Dependencies` section and git, then create directory you want to download source code to (path must not include spaces or non ASCII symbols). Open MinGW console and execute following commands (in example we download code to C:\MyLibrary).
+You can build MyLibrary from source by [MSYS2](https://www.msys2.org/) project assistance. Follow installation instructions from projects site, install dependencies from `Dependencies` section and git, then create directory you want to download source code to (path must not include spaces or non ASCII symbols). Open MinGW console and execute following commands (in example we download code to C:\MyLibrary).
 
 `cd /c/MyLibrary`\
 `git clone https://github.com/ProfessorNavigator/mylibrary.git`\
@@ -43,6 +47,8 @@ Also you need to set CMAKE_INSTALL_PREFIX (depends from your choice it can be fo
 
 MyLibrary includes MLBookProc library (see `Notes`). To build html documentation for MLBookProc, set option CREATE_HTML_DOCS_MLBOOKPROC to `ON` (also see `Dependencies`). To build pdf documentation for MLBookProc set option CREATE_PDF_DOCS_MLBOOKPROC to `ON` (also see `Dependencies`).
 
+MLBookProc includes XMLParserCPP library (see `Notes`). To build html documentation for XMLParserCPP set cmake option CREATE_HTML_DOCS_XMLPARSERCPP to `ON`. To build pdf documentation for XMLParserCPP set cmake option CREATE_PDF_DOCS_XMLPARSERCPP to `ON`. Also see `Dependencies` section.
+
 Program will be built with OpenMP support by default. If you do not need OpenMP support set USE_OPENMP option to `OFF` (see also `Dependencies` and `Notes` sections). In case of building with OpenMP support, public build variable USE_OPENMP will be set in MLBookProc cmake package configuration file. This variable can be used in your project compiler ifdef directives in case of any need.
 
 There is optional plugins support in MyLibrary. To use plugins, set USE_PLUGINS option to `ON`. If you need html documentation for plugins creation, set CREATE_HTML_DOCS_PLUGINIFC option to `ON` (also see `Dependencies`). If you need pdf documentation for plugins creation, set CREATE_PDF_DOCS_PLUGINIFC option to `ON` (also see `Dependencies`). If USE_PLUGINS variable is `ON`, in case of gtkmm version lower than 4.10 public build variable ML_GTK_OLD will be set. You can use this variable in ifdef compiler directives in your plugins.
@@ -51,7 +57,9 @@ If everything was correct, you can find mylibrary.exe file in `msys_dir/mingw_di
 
 Tests were added in version 4.2 ([ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html) needs to be installed). It is recommended to run tests (`cmake --build _build --target test`) after configure stage, just before program building. Special attention should be paid to OpenMPTest. If this test fails, you should NOT build program with OpenMP support.
 
-Experimental installer is available now (see releases).
+Some classes and methods of MLBookProc library have been deprecated in version 4.3. Building of deprecated classes is switched off by default. If you still need these classes, set cmake option BUILD_DEPRECATED_CLASSES to `ON`. Deprecated classes and methods will be removed in future releases - it is recommended to switch your plugins and programs to new methods (see MLBookProc documentation).  
+
+Experimental installer is available (see releases).
 
 See `Notes` also. 
 
@@ -64,8 +72,16 @@ If you plan to use OpenMP, you also may need to install proper libraries (like l
 To build documentation, you need doxygen. To build pdf documentation, you need LaTeX support (see doxygen [documentation](https://www.doxygen.nl/manual/output.html)). Also to build pdf documentation you need make. 
 
 ## Usage
+### Base usage
 
-It is simple. Just create collection (see proper menu item), search book and open it (right mouse click on book). Book will be opened by default system file reader proper to file type. Also you can create book-marks (right mouse click on book) and read book later. Book can be removed from collection, added to collection or copied to any place you want. Also you can add to collection directories and archives with books. Books and directories can be packed to archives on adding. You can refresh collection, remove it, export or import collection database. Also you can manually edit database entries and move book from one collection to another. You can create notes for books, list all collection files or list collection authors. Also you can use plugins (optionally). 
+It is simple. Just create collection (see proper menu item), search book and open it (right mouse click on book). Book will be opened by default system file reader proper to file type. Also you can create book-marks (right mouse click on book) and read book later. Book can be removed from collection, added to collection or copied to any place you want. Also you can add to collection directories and archives with books. Books and directories can be packed to archives on adding. You can refresh collection, remove it, export or import collection database. Also you can manually edit database entries and move book from one collection to another. You can create notes for books, list all collection files or list collection authors. Also you can use plugins (optionally).
+
+### Advanced usage
+`Surname` search line can be used as universal authors search line. It means that you can input in this line first name, second name and/or nickname also.
+
+You can set search results coefficient of coincidence (see settings window).
+
+Collections books can be placed on external server. In this case you need to set access to server by SMB protocol, then mount collection parent directory by gvfs, kio-fuse or other similar program (you need to keep authorization until the session end if authorization is needed at all). If everything is set correct, MyLibrary can work with external directories in the same way as with local ones without any extra settings needed. You can create collection on one machine only and spread it using `Export collection base` and `Import collection base` functions to accelerate the process of collection creation on other machines. 
 
 ## Notes
 ### Notes about archives usage
@@ -78,6 +94,14 @@ Starting from version 4.0 of MyLibrary, methods to work with collections, bookma
 `find_package(MLBookProc REQUIRED)`\
 `target_link_libraries(<mytarget> PUBLIC MLBookProc::mlbookproc)`
 
+### XMLParserCPP library
+Starting from version 4.3 of MyLibrary xml files processing methods have been moved to XMLParserCPP library (this library is part of MLBookProc). This library can be built and used independently (according to GPLv3 license terms). To install XMLParserCPP independently you need icu (see `Dependencies` section). Go to MLBookProc/XMLParserCPP directory and execute cmake commands same as in `Intallation` section. Only CREATE_HTML_DOCS_XMLPARSERCPP and CREATE_PDF_DOCS_XMLPARSERCPP options are supported. XMLParserCPP includes methods and classes for xml files parsing, xml files writing and methods for text encodings processing (detection and conversion, some of this methods can be used for any types of text strings). See XMLParserCPP documentation for details.
+
+You can include XMLParserCPP in your project by following cmake commands:
+
+`find_package(XMLParserCPP REQUIRED)`\
+`target_link_libraries(<my_target> PUBLIC XMLParserCPP::XMLParserCPP)`
+
 ### Notes about OpenMP usage
 You may need to set system variable OMP_CANCELLATION to `true` to achieve maximum efficiency. However, if you launch MyLibrary by .desktop file installed from repository no further actions required (OMP_CANCELLATION variable will be set to proper value automatically). Otherwise start command may look like:
 
@@ -87,7 +111,7 @@ If you set OMP_CANCELLATION to `false` or do not set it at all, MyLibrary will w
 
 ### Windows usage
 1. Executable file and libraries from the installer are built without OpenMP support.
-2. Documentation for MLBookProc and for plugins development is not included into the installer. Header files for MLBookProc and plugins development are also not included into the installer. If you need them, use MSYS2 project and/or build MyLibary from sources.
+2. Documentation for MLBookProc, XMLParserCPP and for plugins development is not included into the installer. Header files for MLBookProc, XMLParserCPP and plugins development are also not included into the installer. If you need them, use MSYS2 project and/or build MyLibary from sources.
 
 ## Officially supported plugins
 ### MLInpxPlugin
@@ -95,12 +119,10 @@ Plugin for collections import from `inpx` files. \
 [Link 1](https://github.com/ProfessorNavigator/mlinpxplugin) \
 [Link 2](https://altlinux.space/professornavigator/mlinpxplugin)
 
-
 ### MLFBDPlugin
 Plugin for fbd format books creation (book file will be packed into the archive along with the fbd file, containing `description` tag of fb2 format). It is possible to add files of any type, not only books. \
 [Link 1](https://github.com/ProfessorNavigator/mlfbdplugin) \
-[Link 2](https://altlinux.space/professornavigator/mlfbdplugin)
- 
+[Link 2](https://altlinux.space/professornavigator/mlfbdplugin) 
 
 ## License
 
