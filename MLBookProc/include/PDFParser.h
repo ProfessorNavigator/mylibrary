@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,55 +13,86 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef PDFPARSER_H
 #define PDFPARSER_H
 
-#include <AuxFunc.h>
-#include <BookInfoEntry.h>
-#include <BookParseEntry.h>
-#include <memory>
-#include <string>
+#include <BaseID.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
 
 /*!
- * \brief The PDFParser class.
+ * \brief The PDFParser class
  *
- * This class contains methods for pdf book parsing, annotations and covers
- * obtaining. In most cases you do not need to use this class directly. Use
- * CreateCollection, RefreshCollection and BookInfo instead.
+ * This class contains methods for pdf files parsing. In most cases you do not
+ * need to use it directly. Usd CreateCollection and BookInfo instead.
  */
 class PDFParser
 {
 public:
   /*!
    * \brief PDFParser constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  PDFParser(const std::shared_ptr<AuxFunc> &af);
+  PDFParser(const std::shared_ptr<MLBookProc> &mlbp);
 
   /*!
-   * \brief Parses pdf file.
-   * \param file pdf file content.
-   * \return BookParseEntry object.
+   * Parses pdf file.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param book_content File content.
+   * \return BaseID::Book object.
    */
-  BookParseEntry
-  pdf_parser(const std::string &file);
+  UDBElement
+  parseBook(const std::string &book_content);
 
   /*!
-   * \brief Returns pdf book annotation and cover.
-   * \param file pdf file content.
-   * \param x_dpi horizontal <A
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
-   * \param y_dpi vertical
-   * <A HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
-   * \return Smart pointer to BookInfoEntry object.
+   * Gets extra information from file.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param book_content File content.
+   * \return UDBase object containing found information.
    */
-  std::shared_ptr<BookInfoEntry>
-  pdf_annotation_n_cover(const std::string &file, const double &x_dpi,
-                         const double &y_dpi);
+  UDBase
+  getBookInfo(const std::string &book_content);
+
+  /*!
+   * Sets DPI (see BookInfo::setDPI).
+   *
+   * \param horizontal_dpi Horizontal DPI.
+   * \param vertical_dpi Vertical DPI.
+   */
+  void
+  setDPI(const double &horizontal_dpi = double(72.0),
+         const double &vertical_dpi = double(72.0));
+
+  /*!
+   * Returns horizontal DPI.
+   *
+   * \return Horizontal DPI.
+   */
+  double
+  getHorizontalDPI();
+
+  /*!
+   * Returns vertical DPI.
+   *
+   * \return Vertical DPI.
+   */
+  double
+  getVerticalDPI();
 
 private:
-  std::shared_ptr<AuxFunc> af;
+  void
+  normalizeString(std::string &str);
+
+  std::shared_ptr<MLBookProc> mlbp;
+
+  double horizontal_dpi = 72.0;
+  double vertical_dpi = 72.0;
+
+  BaseID bid;
 };
 
 #endif // PDFPARSER_H

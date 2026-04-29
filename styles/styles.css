@@ -1,0 +1,167 @@
+#MainWindow {
+    background-color: rgba(61, 152, 203, 255);
+}
+
+#Window {
+    background-color: rgba(61, 152, 203, 255);
+}
+
+#MenuBar::item {
+    color: rgba(0, 0, 0, 255);
+}
+
+#Label {
+    color: rgba(255, 255, 255, 255);
+    background-color: rgba(61, 152, 203, 0);
+    border-radius: 3px;
+    margin-left: 2px;
+    margin-right: 2px
+}
+
+#ComboBox {
+    background-color: rgba(68, 204, 142, 255);
+    color: rgba(0, 0, 0, 255);
+}
+
+#LineEdit {
+    background-color: rgba(255, 255, 255, 255);
+    color: rgba(0, 0, 0, 255);
+}
+
+#Slider::sub-page:horizontal {
+    background-color: rgba(137, 186, 100, 255);
+}
+
+#Slider::add-page:horizontal {
+    background-color: rgba(209, 208, 208, 255);
+}
+
+#Slider::handle:horizontal {
+    background-color: rgba(68, 204, 142, 255);
+    border: 1px solid black;
+    border-radius: 10px;
+    width: 10px;
+    height: 10px;
+}
+
+#ApplyButton {
+    background-color: rgba(17, 17, 204, 255);
+    color: rgba(255, 255, 255, 255);
+}
+
+#ClearButton {
+    background-color: rgba(135, 92, 92, 255);
+    color: rgba(0, 0, 0, 255);
+}
+
+#CancelButton {
+    background-color: rgba(142, 100, 212, 255);
+    color: rgba(0, 0, 0, 255);
+}
+
+#Table {
+    background-color: rgba(61, 152, 203, 0);
+    color: rgba(0, 0, 100, 255);
+    selection-background-color: rgba(202, 93, 187, 255);
+    selection-color: rgba(0, 0, 0, 255);
+    border-radius: 5px;
+    border-color: rgba(0, 0, 255, 255);
+    border-width: 1px;
+    border-style: solid;
+    gridline-color: rgba(0, 0, 255, 255);
+}
+
+#Table QTableCornerButton {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#Table QScrollBar {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#Table QHeaderView {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#Table QHeaderView::section {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#TableViewport {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+#TextEdit {
+    background-color: rgba(255, 255, 255, 255);
+    color: rgba(0, 0, 0, 255);
+    border-radius: 5px;
+    border-color: rgba(0, 0, 255, 255);
+    border-width: 1px;
+    border-style: solid;
+}
+
+#TextEdit QScrollBar {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#ProgressBar {
+    color: rgba(0, 0, 0, 255);
+    border-radius: 5px;
+    border-color: rgba(0, 0, 255, 255);
+    border-width: 1px;
+    border-style: solid;
+    text-align: center;
+}
+
+#ProgressBar::chunk {
+    background-color: rgba(137, 186, 100, 255);
+}
+
+#Menu {
+    background-color: rgba(68, 204, 142, 255);
+    color: rgba(0, 0, 0, 255);
+    border-radius: 5px;
+}
+
+#CheckBox {
+    color: rgba(255, 255, 255, 255);
+}
+
+#Frame {
+    border-radius: 5px;
+    border-color: rgba(0, 0, 255, 255);
+    border-width: 1px;
+    border-style: solid;
+}
+
+#ScrollArea {
+    background-color: rgba(61, 152, 203, 0);
+    border-radius: 5px;
+    border-color: rgba(0, 0, 255, 255);
+    border-width: 1px;
+    border-style: solid;
+}
+
+#ScrollArea QScrollBar {
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}
+
+#ScrollAreaViewport {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+#CoverWindowScrollArea {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+#CoverWindowScrollArea QScrollBar
+{
+    background-color: rgba(137, 186, 181, 255);
+    color: rgba(0, 0, 255, 255);
+}

@@ -1,52 +1,26 @@
-target_sources (mlbookproc
-    PRIVATE AddBook.h
-    PRIVATE ArchEntry.h
-    PRIVATE ArchiveFileEntry.h
-    PRIVATE ArchiveRemoveEntry.h
-    PRIVATE ARCHParser.h
-    PRIVATE AuxFunc.h
-    PRIVATE BaseKeeper.h
-    PRIVATE BookBaseEntry.h
-    PRIVATE BookInfoEntry.h
-    PRIVATE BookInfo.h
-    PRIVATE BookMarks.h
-    PRIVATE BookParseEntry.h
-    PRIVATE ByteOrder.h
-    PRIVATE CreateCollection.h    
-    PRIVATE DJVUParser.h
-    PRIVATE DublinCoreParser.h
-    PRIVATE ElectroBookInfoEntry.h
-    PRIVATE EPUBParser.h
-    PRIVATE FB2Parser.h
-    PRIVATE FileParseEntry.h
-    PRIVATE FormatAnnotation.h
-    PRIVATE GenreGroup.h
-    PRIVATE Genre.h
-    PRIVATE Hasher.h
-    PRIVATE LibArchive.h    
-    PRIVATE NotesBaseEntry.h
-    PRIVATE NotesKeeper.h
-    PRIVATE ODTParser.h
-    PRIVATE OpenBook.h
-    PRIVATE PaperBookInfoEntry.h
-    PRIVATE PDFParser.h
-    PRIVATE RefreshCollection.h
-    PRIVATE RemoveBook.h
-    PRIVATE ReplaceTagItem.h
-    PRIVATE SelfRemovingPath.h
-    PRIVATE TXTParser.h
-
+target_sources(MLBookProc PRIVATE
+    ArchiveParser.h
+    BaseID.h
+    BaseKeeper.h
+    BookInfo.h
+    BookmarksKeeper.h
+    CreateCollection.h
+    DJVUContext.h
+    DJVUParser.h
+    DublinCoreParser.h
+    EPUBParser.h
+    FB2Parser.h
+    FormatAnnotation.h
+    InpxLoader.h
+    LibArchive.h
+    LibArchiveFileData.h
+    MLBookProc.h
+    NotesKeeper.h
+    ODTParser.h
+    OpenBook.h
+    PDFParser.h
+    RefreshCollection.h
+    RemoveBook.h
+    ReplaceTagItem.h
+    TXTParser.h
 )
-
-if(USE_OPENMP)
-    target_sources(mlbookproc PRIVATE OmpLockGuard.h)
-endif()
-
-if(BUILD_DEPRECATED_CLASSES)
-    target_sources(mlbookproc
-        PRIVATE XMLTag.h
-        PRIVATE XMLParser.h
-        PRIVATE DCParser.h
-        PRIVATE MLException.h
-    )
-endif()

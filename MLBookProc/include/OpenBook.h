@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,79 +13,67 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef OPENBOOK_H
 #define OPENBOOK_H
 
-#include <ArchEntry.h>
-#include <AuxFunc.h>
-#include <BookBaseEntry.h>
-#include <SelfRemovingPath.h>
+#include <BaseID.h>
+#include <LibArchive.h>
+#include <MLBookProc.h>
+#include <UDBElement.h>
 #include <filesystem>
 #include <functional>
-#include <memory>
-#include <string>
-#include <vector>
 
 /*!
- * \brief The OpenBook class.
+ * \brief The OpenBook class
  *
- * This class contains methods for books "opening".
+ * This class contains methods for books opening.
  */
 class OpenBook
 {
 public:
   /*!
    * \brief OpenBook constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  OpenBook(const std::shared_ptr<AuxFunc> &af);
+  OpenBook(const std::shared_ptr<MLBookProc> &mlbp);
+
+  virtual ~OpenBook();
 
   /*!
-   * \brief Opens book.
-   *
-   * If book is in archive, unpacks book and returns absolute path to unpacked
-   * file. Otherwise returns absolute path to book file.
-   *
-   * If \b copy is set to \a true and \b copy_path is not empty, creates
-   * directory on \b copy_path and copies book to it.
-   *
-   * If \b find_fbd is set to \a true, will try to find and open fbd file
-   * instead of book.
-   *
-   * If \b open_callback is not \a nullptr, calls it.
+   * Opens given book. If book is in archive, unpacks book to \a
+   * unpacking_directory.
    *
    * \note This method can throw std::exception in case of errors.
-   * \param bbe BookBaseEntry object.
-   * \param copy if set to \a true, copy of book file will be created.
-   * \param copy_path absolute path to directory book to be copied to.
-   * \param find_fbd if set to \a true, this method will try to find and open
-   * fbd file instead of book.
-   * \param open_callback method to be called at the end of all operations. \b
-   * path argument is an absolute path to method work result.
-   * \return Absolute path to book to be opened.
+   *
+   * \param book_search_result BaseID::BookSearchResult object, containing book
+   * to be opened.
+   * \param unpacking_directory Path to directory book to be unpacked to.
+   * Attantion! If this directory exists, all its content will be removed.
+   * \param open_call_back This function will be called at the end of operation
+   * with path to book as parameter.
    */
-  std::filesystem::path
-  open_book(
-      const BookBaseEntry &bbe, const bool &copy,
-      const std::filesystem::path &copy_path, const bool &find_fbd,
-      std::function<void(const std::filesystem::path &path)> open_callback);
+  void
+  openBook(const UDBElement &book_search_result,
+           const std::filesystem::path &unpacking_directory,
+           std::function<void(const std::filesystem::path &)> open_call_back);
 
 private:
-  std::filesystem::path
-  openArchive(const BookBaseEntry &bbe, const std::string &ext,
-              const std::filesystem::path &copy_path, const bool &find_fbd);
-
   void
-  correctSeparators(std::vector<ArchEntry> &files);
+  openBook(const std::filesystem::path &p,
+           std::function<void(const std::filesystem::path &)> open_call_back,
+           const UDBElement &path);
 
-  bool
-  compareFunc(const ArchEntry &ent, const bool &encoding,
-              const std::string &conv_nm, const std::filesystem::path &ch_fbd);
+  std::shared_ptr<MLBookProc> mlbp;
 
-  std::shared_ptr<AuxFunc> af;
+  LibArchive *la = nullptr;
 
-  SelfRemovingPath reading;
+  std::vector<std::string> supported_archives;
+
+  std::filesystem::path unpack_dir;
+
+  int call_count = 0;
+
+  BaseID bid;
 };
 
 #endif // OPENBOOK_H

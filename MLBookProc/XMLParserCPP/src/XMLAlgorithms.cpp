@@ -218,6 +218,41 @@ XMLAlgorithms::searchElement(const std::vector<XMLElement *> &elements,
 }
 
 void
+XMLAlgorithms::searchElement(
+    const std::vector<XMLElement> &elements,
+    std::function<bool(const XMLElement &)> search_function,
+    std::vector<XMLElement *> &result)
+{
+  const XMLElement *ptr = elements.data();
+  for(size_t i = 0; i < elements.size(); i++)
+    {
+      if(search_function(elements[i]))
+        {
+          result.push_back(const_cast<XMLElement *>(ptr + i));
+        }
+      XMLAlgorithms::searchElement(elements[i].elements, search_function,
+                                   result);
+    }
+}
+
+void
+XMLAlgorithms::searchElement(
+    const std::vector<XMLElement *> &elements,
+    std::function<bool(const XMLElement &)> search_function,
+    std::vector<XMLElement *> &result)
+{
+  for(size_t i = 0; i < elements.size(); i++)
+    {
+      if(search_function(*elements[i]))
+        {
+          result.push_back(elements[i]);
+        }
+      XMLAlgorithms::searchElement(elements[i]->elements, search_function,
+                                   result);
+    }
+}
+
+void
 XMLAlgorithms::writeXML(const std::vector<XMLElement> &elements,
                         std::string &result)
 {
@@ -339,42 +374,52 @@ XMLAlgorithms::writeXMLRecursive(const std::vector<XMLElement> &elements,
                                                 result);
                 result += "\"";
               }
-            if(it_el->empty)
+            switch(it_el->empty)
               {
-                result += "/>";
-              }
-            else
-              {
-                result += ">";
-                if(it_el->elements.size() > 0)
-                  {
-                    tab_count++;
-                    writeXMLRecursive(it_el->elements, result, tab_count);
-                    tab_count--;
-                  }
-                if(result.size() > 0)
-                  {
-                    switch(*result.rbegin())
-                      {
-                      case '>':
+              case XMLElement::XML:
+                {
+                  result += "/>";
+                  break;
+                }
+              case XMLElement::HTML:
+                {
+                  result += ">";
+                  break;
+                }
+              default:
+                {
+                  result += ">";
+                  if(it_el->elements.size() > 0)
+                    {
+                      tab_count++;
+                      writeXMLRecursive(it_el->elements, result, tab_count);
+                      tab_count--;
+                    }
+                  if(result.size() > 0)
+                    {
+                      switch(*result.rbegin())
                         {
-                          result.push_back('\n');
-                        }
-                      case '\n':
-                        {
-                          for(size_t i = 0; i < tab_count; i++)
-                            {
-                              result.push_back(' ');
-                            }
+                        case '>':
+                          {
+                            result.push_back('\n');
+                          }
+                        case '\n':
+                          {
+                            for(size_t i = 0; i < tab_count; i++)
+                              {
+                                result.push_back(' ');
+                              }
+                            break;
+                          }
+                        default:
                           break;
                         }
-                      default:
-                        break;
-                      }
-                  }
-                result += "</";
-                result += it_el->element_name;
-                result += ">";
+                    }
+                  result += "</";
+                  result += it_el->element_name;
+                  result += ">";
+                  break;
+                }
               }
             break;
           }
@@ -472,42 +517,52 @@ XMLAlgorithms::writeXMLRecursive(const std::vector<XMLElement *> &elements,
                 result += it_attr->attribute_value;
                 result += "\"";
               }
-            if(el_ptr->empty)
+            switch(el_ptr->empty)
               {
-                result += "/>";
-              }
-            else
-              {
-                result += ">";
-                if(el_ptr->elements.size() > 0)
-                  {
-                    tab_count++;
-                    writeXMLRecursive(el_ptr->elements, result, tab_count);
-                    tab_count--;
-                  }
-                if(result.size() > 0)
-                  {
-                    switch(*result.rbegin())
-                      {
-                      case '>':
+              case XMLElement::XML:
+                {
+                  result += "/>";
+                  break;
+                }
+              case XMLElement::HTML:
+                {
+                  result += ">";
+                  break;
+                }
+              default:
+                {
+                  result += ">";
+                  if(el_ptr->elements.size() > 0)
+                    {
+                      tab_count++;
+                      writeXMLRecursive(el_ptr->elements, result, tab_count);
+                      tab_count--;
+                    }
+                  if(result.size() > 0)
+                    {
+                      switch(*result.rbegin())
                         {
-                          result.push_back('\n');
-                        }
-                      case '\n':
-                        {
-                          for(size_t i = 0; i < tab_count; i++)
-                            {
-                              result.push_back(' ');
-                            }
+                        case '>':
+                          {
+                            result.push_back('\n');
+                          }
+                        case '\n':
+                          {
+                            for(size_t i = 0; i < tab_count; i++)
+                              {
+                                result.push_back(' ');
+                              }
+                            break;
+                          }
+                        default:
                           break;
                         }
-                      default:
-                        break;
-                      }
-                  }
-                result += "</";
-                result += el_ptr->element_name;
-                result += ">";
+                    }
+                  result += "</";
+                  result += el_ptr->element_name;
+                  result += ">";
+                  break;
+                }
               }
             break;
           }

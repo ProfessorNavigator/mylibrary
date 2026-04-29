@@ -2,7 +2,7 @@
 Name=MyLibrary
 Comment=Home librarian
 GenericName=MyLibrary
-Exec=mylibrary
+Exec=env OMP_CANCELLATION=true MyLibrary
 Icon=mylibrary
 Categories=Office;
 Terminal=false

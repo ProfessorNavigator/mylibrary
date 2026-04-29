@@ -53,3 +53,18 @@ XMLElement::operator=(const XMLElement &other)
     }
   return *this;
 }
+
+XMLElement &
+XMLElement::operator=(XMLElement &&other)
+{
+  if(this != &other)
+    {
+      element_name = std::move(other.element_name);
+      element_attributes = std::move(other.element_attributes);
+      elements = std::move(other.elements);
+      content = std::move(other.content);
+      element_type = std::move(other.element_type);
+      empty = std::move(other.empty);
+    }
+  return *this;
+}

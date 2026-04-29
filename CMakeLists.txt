@@ -1,102 +1,87 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
+project(MyLibrary LANGUAGES CXX)
 
-project(MyLibrary VERSION 4.3 LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(USE_PLUGINS "Build with plugin support" OFF)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets LinguistTools)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0)
-pkg_check_modules(IMAGEMAGICK REQUIRED IMPORTED_TARGET Magick++)
+qt_standard_project_setup()
 
-find_package(Intl REQUIRED)
-find_package(Gettext)
-
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_executable(mylibrary)
-elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    add_executable(mylibrary WIN32)
-endif()
-
-add_subdirectory(src)
-add_subdirectory(include)
-add_subdirectory(MLBookProc)
-
-if(USE_PLUGINS)
-    target_compile_options(mylibrary PRIVATE -DUSE_PLUGINS)
-    add_subdirectory(MLPluginIfc)
-    target_include_directories(mylibrary PRIVATE MLPluginIfc/include)
-    target_link_libraries(mlpluginifc PRIVATE mlbookproc)
-    target_link_libraries(mylibrary PRIVATE mlpluginifc)
-
-    if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-        target_link_libraries(mylibrary PRIVATE ${CMAKE_DL_LIBS})
-    endif()
-endif()
-
-if(BUILD_TESTING)
-    include(CTest)
-endif()
-
-target_include_directories(mylibrary
-    PRIVATE MLBookProc/include
-    PRIVATE MLBookProc/XMLParserCPP/include
-    PRIVATE include
+qt_add_executable(MyLibrary
+    WIN32 MACOSX_BUNDLE
 )
 
-if(GTKMM_VERSION VERSION_LESS "4.10")
-    target_compile_options(mylibrary
-        PRIVATE -DML_GTK_OLD
-    )
-endif()
+add_subdirectory(include)
+add_subdirectory(src)
+add_subdirectory(MLBookProc)
+add_subdirectory(MLPlugin)
 
-if(GTKMM_VERSION VERSION_LESS "4.12")
-    target_compile_options(mylibrary
-        PRIVATE -DML_GTK_OLD_STYLES
-    )
-endif()
+qt_collect_translation_source_targets(i18n_targets DIRECTORY src)
 
-target_link_libraries(mylibrary
-    PRIVATE mlbookproc
-    PRIVATE PkgConfig::GTKMM
-    PRIVATE PkgConfig::IMAGEMAGICK
+qt_add_translations(
+    TARGETS MyLibrary
+    SOURCE_TARGETS ${i18n_targets}
+    TS_FILES translations/MyLibrary_ru_RU.ts    
+)
+
+qt_add_resources(MyLibrary "styles"
+    PREFIX "/"
+    FILES "styles/styles.css"
+)
+
+qt_add_resources(MyLibrary "icon"
+    PREFIX "/icons"
+    FILES "mylibrary.svg"
+)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(IMAGEMAGICK REQUIRED IMPORTED_TARGET Magick++)
+
+find_package(Threads REQUIRED)
+
+target_include_directories(MyLibrary
+    PRIVATE
+        include
+        MLBookProc/include
+        MLBookProc/XMLParserCPP/include
+        MLPlugin/include
+)
+
+target_link_libraries(MyLibrary
+    PRIVATE
+        Qt::Core
+        Qt::Widgets
+        PkgConfig::IMAGEMAGICK
+        Threads::Threads
+        MLBookProc
+        MLPlugin
+)
+
+target_include_directories(MLPlugin
+    PRIVATE
+        MLBookProc/include
+)
+
+target_link_libraries(MLPlugin
+    PRIVATE
+        MLBookProc
 )
 
 include(GNUInstallDirs)
 
-install(TARGETS mylibrary
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+install(TARGETS MyLibrary
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(DIRECTORY MyLibrary DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}")
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    if(OMP_TEST)
-        install(FILES ru.mail.bobilev_yury.MyLibrary.omp.desktop
-            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
-    else()
-        install(FILES ru.mail.bobilev_yury.MyLibrary.desktop
-            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
-    endif()
+    install(FILES ru.mail.bobilev_yury.MyLibrary.desktop
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
     install(FILES mylibrary.svg
         DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")
-
-    install(FILES mylibrary.svg
-        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/MyLibrary")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     install(FILES mylibrary.ico
         DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps")
-    install(FILES mylibrary.ico
-        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/MyLibrary")
 endif()
-
-if(Gettext_FOUND)
-    GETTEXT_PROCESS_PO_FILES("ru" ALL
-        INSTALL_DESTINATION "${CMAKE_INSTALL_LOCALEDIR}"
-        PO_FILES po/MyLibrary.po
-    )
-endif()
-
-

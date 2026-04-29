@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(XMLParserCPP VERSION 1.0 LANGUAGES CXX)
+project(XMLParserCPP VERSION 1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-option(CREATE_HTML_DOCS_XMLPARSERCPP "Build html documentation for MLBookProc" OFF)
-option(CREATE_PDF_DOCS_XMLPARSERCPP "Build pdf documentation for MLBookProc" OFF)
+option(CREATE_DOCS_XMLPARSERCPP "Build html documentation for XMLParserCPP" OFF)
 
 if(BUILD_SHARED_LIBS)
     add_library(XMLParserCPP SHARED)
@@ -25,7 +24,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(ICU REQUIRED IMPORTED_TARGET icu-i18n)
 pkg_check_modules(ICUUC REQUIRED IMPORTED_TARGET icu-uc)
 
-if(CREATE_HTML_DOCS_XMLPARSERCPP OR CREATE_PDF_DOCS_XMLPARSERCPP)
+if(CREATE_DOCS_XMLPARSERCPP)
   find_package(Doxygen REQUIRED OPTIONAL_COMPONENTS dot)
 endif()
 
@@ -41,45 +40,28 @@ target_link_libraries(XMLParserCPP
     PUBLIC PkgConfig::ICUUC
 )
 
-if(DOXYGEN_FOUND)
-  if(CREATE_HTML_DOCS_XMLPARSERCPP)
-    set(DOXYGEN_GENERATE_HTML YES)
-  endif()
-  if(CREATE_PDF_DOCS_XMLPARSERCPP)
-    set(DOXYGEN_GENERATE_LATEX YES)
-    set(DOXYGEN_USE_PDFLATEX YES)
-    set(DOXYGEN_PDF_HYPERLINKS YES)
-  endif()
+if(CREATE_DOCS_XMLPARSERCPP)
+  set(DOXYGEN_GENERATE_HTML YES)
+  set(DOXYGEN_GENERATE_MAN YES)
   set(DOXYGEN_SHOW_USED_FILES NO)
   set(DOXYGEN_SHOW_FILES NO)
 
   doxygen_add_docs(doxygen_xmlparsercpp
     ALL
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/include"
-    COMMENT "Generating ${PROJECT_NAME} html documentation"
-  )
-
-  if(CREATE_PDF_DOCS_XMLPARSERCPP)
-    add_custom_command(TARGET doxygen_xmlparsercpp
-      POST_BUILD
-      COMMAND make
-      ARGS pdf -C "${CMAKE_CURRENT_BINARY_DIR}/latex"
-      COMMENT "Generating ${PROJECT_NAME} pdf documentation"
-    )
-  endif()
+    COMMENT "Generating ${PROJECT_NAME} documentation"
+  )  
 endif()
 
 include(GNUInstallDirs)
 
-if(CREATE_HTML_DOCS_XMLPARSERCPP)
-  install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html/
-    DESTINATION ${CMAKE_INSTALL_DOCDIR}/html
+if(CREATE_DOCS_XMLPARSERCPP)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/html/"
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME}/html"
   )
-endif()
 
-if(CREATE_PDF_DOCS_XMLPARSERCPP)
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf"
-    DESTINATION "${CMAKE_INSTALL_DOCDIR}/pdf"
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/man/"
+    DESTINATION "${CMAKE_INSTALL_MANDIR}"
   )
 endif()
 

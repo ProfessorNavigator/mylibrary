@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,65 +16,59 @@
 #ifndef ODTPARSER_H
 #define ODTPARSER_H
 
-#include <AuxFunc.h>
-#include <BookBaseEntry.h>
-#include <BookInfoEntry.h>
+#include <BaseID.h>
 #include <DublinCoreParser.h>
 #include <LibArchive.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
 #include <XMLParserCPP.h>
 
 /*!
  * \brief The ODTParser class
  *
- * This class contains methods for odt files processing. In most cases you do
- * not need to use this class directly. Use CreateCollection, RefreshCollection
- * and BookInfo instead.
+ * This class contains methods for odt files parsing. In most cases you do not
+ * need to use it directly. Use CreateCollection and BookInfo instead.
  */
-class ODTParser : public LibArchive
+class ODTParser
 {
 public:
   /*!
    * \brief ODTParser constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  ODTParser(const std::shared_ptr<AuxFunc> &af);
+  ODTParser(const std::shared_ptr<MLBookProc> &mlbp);
 
-  /*!
-   * \brief ODTParser destructor.
-   */
   virtual ~ODTParser();
 
   /*!
-   * \brief Parses odt files.
+   * Parses odt file.
    *
-   * This method can be used to obtain information from odt files.
-   *
-   * \note This method can throw std::exception in case of some errors.
-   *
-   * \param odt_path absolute path to odt file.
-   * \return BookParseEntry object.
+   * \param book_content File content.
+   * \return BaseID::Book object.
    */
-  BookParseEntry
-  odtParser(const std::filesystem::path &odt_path);
+  UDBElement
+  parseBook(const std::string &book_content);
 
   /*!
-   * \brief Gets some extra info from odt files.
+   * Gets extra information from odt file.
    *
-   * This method can be used to obtain odt file cover and some other info (see
-   * BookInfoEntry) if such info is avaliable.
-   *
-   * \note This method can throw std::exception in case of some errors.
-   * \param odt_path absolute path to odt file.
-   * \return Smart pointer to BookInfoEntry object.
+   * \param book_content File content.
+   * \return UDBase containing found information.
    */
-  std::shared_ptr<BookInfoEntry>
-  odtBookInfo(const std::filesystem::path &odt_path);
+  UDBase
+  getBookInfo(const std::string &book_content);
 
 private:
-  std::shared_ptr<AuxFunc> af;
+  void
+  normalizeString(std::string &str);
 
-  DublinCoreParser *dc;
+  std::shared_ptr<MLBookProc> mlbp;
+
+  LibArchive *la;
+  DublinCoreParser *dc_parser;
   XMLParserCPP *xml_parser;
+
+  BaseID bid;
 };
 
 #endif // ODTPARSER_H

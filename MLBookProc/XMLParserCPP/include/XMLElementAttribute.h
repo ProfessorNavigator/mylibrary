@@ -46,10 +46,18 @@ public:
   /*!
    * \brief operator =
    * \param other XMLElementAttribute to be copied.
-   * \return XMLElementAttribute
+   * \return Reference to this XMLElementAttribute.
    */
   XMLElementAttribute &
   operator=(const XMLElementAttribute &other);
+
+  /*!
+   * \brief operator =
+   * \param other XMLElementAttribute to be moved.
+   * \return Reference to this XMLElementAttribute.
+   */
+  XMLElementAttribute &
+  operator=(XMLElementAttribute &&other);
 
   /*!
    * \brief attribute_id Attribute name.

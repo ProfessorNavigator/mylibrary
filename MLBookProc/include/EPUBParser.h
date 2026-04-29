@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,129 +13,86 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef EPUBPARSER_H
 #define EPUBPARSER_H
 
-#include <ArchEntry.h>
-#include <AuxFunc.h>
-#include <BookInfoEntry.h>
-#include <BookParseEntry.h>
+#include <BaseID.h>
 #include <DublinCoreParser.h>
 #include <LibArchive.h>
-#include <XMLAlgorithms.h>
-#include <XMLParserCPP.h>
-#include <filesystem>
-#include <memory>
-#include <string>
-#include <vector>
+#include <MLBookProc.h>
+#include <UDBase.h>
 
 /*!
- * \brief The EPUBParser class.
+ * \brief The EPUBParser class
  *
- * This class contains various methods for epub books parsing. In most cases
- * you do not need to use this class directly. Use CreateCollection,
- * RefreshCollection and BookInfo instead.
+ * This class contains methods for epub files parsing. In most cases you do not
+ * need to use them directly. Use CreateCollection and BookInfo instead.
  */
-class EPUBParser : public LibArchive
+class EPUBParser
 {
 public:
   /*!
    * \brief EPUBParser constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProcObject.
    */
-  EPUBParser(const std::shared_ptr<AuxFunc> &af);
+  EPUBParser(const std::shared_ptr<MLBookProc> &mlbp);
 
-  /*!
-   * \brief EPUBParser destructor.
-   */
   virtual ~EPUBParser();
 
   /*!
-   * \brief Parses epub book.
+   * Parses epub book.
    *
-   * \deprecated This method will be removed in future releases. Use
-   * epubParser() instead.
-   *
-   * \param filepath absolute path to epub file.
-   * \return BookParseEntry object.
+   * \param book_content epub file content.
+   * \return BaseID::Book object.
    */
-  __attribute__((deprecated)) BookParseEntry
-  epub_parser(const std::filesystem::path &filepath);
+  UDBElement
+  parseBook(const std::string &book_content);
 
   /*!
-   * \brief Parses epub book.
+   * Obtains extra inforamtion about book (see BookInfo).
    *
-   * \note This method can throw std::exception in case of error.
-   *
-   * \param filepath absolute path to epub file.
-   * \return BookParseEntry object.
+   * \param book_content epub file content.
+   * \return UDBase object containing found information.
    */
-  BookParseEntry
-  epubParser(const std::filesystem::path &filepath);
-
-  /*!
-   * \brief Returns epub book info and cover.
-   *
-   * \deprecated This method will be removed in future releases. Use
-   * epubBookInfo() instead.
-   *
-   * \param filepath absolute path to epub file.
-   * \return Smart pointer to BookInfoEntry object.
-   */
-  __attribute__((deprecated)) std::shared_ptr<BookInfoEntry>
-  epub_book_info(const std::filesystem::path &filepath);
-
-  /*!
-   * \brief Returns epub book info and cover.
-   * \param filepath absolute path to epub file.
-   * \return Smart pointer to BookInfoEntry object.
-   */
-  std::shared_ptr<BookInfoEntry>
-  epubBookInfo(const std::filesystem::path &filepath);
+  UDBase
+  getBookInfo(const std::string &book_content);
 
 private:
   std::string
-  epubGetRootFileAddress(const std::filesystem::path &filepath,
-                         const std::vector<ArchEntry> &filenames);
+  epubGetRootFileAddress(
+      const std::string &book_content,
+      const std::vector<std::tuple<std::string, uint64_t, uint64_t>>
+          &filenames);
 
-  BookParseEntry
-  epubParseRootFile(const std::string &root_file_content);
+  void
+  epubParseRootFile(const std::string &root_file_content, UDBElement &result);
 
   std::string
-  epubAnnotation(const std::vector<XMLElement> &elements);
+  epubCoverAddress1(const std::vector<XMLElement> &root_file_content);
 
   std::string
-  epubCoverAddress(const std::vector<XMLElement> &elements,
-                   const std::filesystem::path &filepath,
-                   const std::vector<ArchEntry> &filenames);
+  epubCoverAddress2(
+      const std::vector<XMLElement> &root_file_content,
+      const std::string &root_file_path, const std::string &book_content,
+      const std::vector<std::tuple<std::string, uint64_t, uint64_t>>
+          &filenames);
+
+  bool
+  imageSearchFunction1(const XMLElement &el);
+
+  bool
+  imageSearchFunction2(const XMLElement &el);
 
   void
-  epubLanguage(const std::vector<XMLElement> &elements, BookInfoEntry &result);
+  normalizeString(std::string &str);
 
-  void
-  epubTranslator(const std::vector<XMLElement> &elements,
-                 BookInfoEntry &result);
+  std::shared_ptr<MLBookProc> mlbp;
 
-  void
-  epubPublisher(const std::vector<XMLElement> &elements,
-                BookInfoEntry &result);
-
-  void
-  epubIdentifier(const std::vector<XMLElement> &elements,
-                 BookInfoEntry &result);
-
-  void
-  epubSource(const std::vector<XMLElement> &elements, BookInfoEntry &result);
-
-  std::string
-  getEncoding(const std::vector<XMLElement> &elements);
-
-  std::shared_ptr<AuxFunc> af;
-
-  DublinCoreParser *dc;
-
+  DublinCoreParser *dc_parser;
   XMLParserCPP *xml_parser;
+  LibArchive *arch;
+
+  BaseID bid;
 };
 
 #endif // EPUBPARSER_H

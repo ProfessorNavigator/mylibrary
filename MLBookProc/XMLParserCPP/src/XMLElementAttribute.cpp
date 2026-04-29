@@ -41,3 +41,14 @@ XMLElementAttribute::operator=(const XMLElementAttribute &other)
     }
   return *this;
 }
+
+XMLElementAttribute &
+XMLElementAttribute::operator=(XMLElementAttribute &&other)
+{
+  if(this != &other)
+    {
+      attribute_id = std::move(other.attribute_id);
+      attribute_value = std::move(other.attribute_value);
+    }
+  return *this;
+}

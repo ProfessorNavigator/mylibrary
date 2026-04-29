@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,57 +13,53 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef REMOVEBOOK_H
 #define REMOVEBOOK_H
 
-#include <AuxFunc.h>
-#include <BookBaseEntry.h>
-#include <BookMarks.h>
-#include <SelfRemovingPath.h>
-#include <filesystem>
-#include <memory>
-#include <string>
+#include <BaseID.h>
+#include <LibArchive.h>
+#include <UDBElement.h>
+#include <functional>
 
 /*!
- * \brief The RemoveBook class.
+ * \brief The RemoveBook class
  *
- * This class contains methods to carry out book removing from collection.
+ * This class contains methods for removing books from collections.
  */
-class RemoveBook
+class RemoveBook : public LibArchive
 {
 public:
   /*!
    * \brief RemoveBook constructor.
-   * \param af smart pointer to AuxFunc object.
-   * \param bbe BookBaseEntry containing book info.
-   * \param col_name collection name.
-   * \param bookmarks BookMarks object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  RemoveBook(const std::shared_ptr<AuxFunc> &af, const BookBaseEntry &bbe,
-             const std::string &col_name,
-             const std::shared_ptr<BookMarks> &bookmarks);
+  RemoveBook(const std::shared_ptr<MLBookProc> &mlbp);
 
   /*!
-   * \brief Removes book.
+   * Removes book from collection database and filesystem.
    *
    * \note This method can throw std::exception in case of errors.
+   * \warning If book is packed in rar archive, whole archive will be removed.
+   *
+   * \param base_path Path to collection database file.
+   * \param book_search_result BookID::BookSearchResult object.
    */
   void
-  removeBook();
+  removeBook(const std::filesystem::path &base_path,
+             const UDBElement &book_search_result);
+
+  /*!
+   * If book was packed in archive, archive file will be reparsed after
+   * removing. This callback idicates parsing progress if set.
+   */
+  std::function<void(double processed, double total)> signal_parsing_progress;
 
 private:
-  void
-  archiveRemove(const std::filesystem::path &archive_path,
-                const std::string &book_path,
-                const std::filesystem::path &out_d);
+  size_t
+  removeFromArchive(const UDBElement &path,
+                    const std::filesystem::path &archive_path);
 
-  std::shared_ptr<AuxFunc> af;
-  BookBaseEntry bbe;
-  std::string col_name;
-  std::shared_ptr<BookMarks> bookmarks;
-
-  std::vector<std::string> supported_archives;
+  BaseID bid;
 };
 
 #endif // REMOVEBOOK_H

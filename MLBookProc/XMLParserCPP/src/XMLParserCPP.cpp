@@ -68,714 +68,52 @@ XMLParserCPP::parseDocument(const std::string &xml_document)
   if(n == std::string::npos)
     {
       throw std::runtime_error(
-          "XMLParserCPP::parseDocument: incorrect document");
+          "XMLParserCPP::parseDocument: incorrect document(1)");
     }
 
-  std::vector<std::shared_ptr<XMLElement>> not_completed;
+  std::vector<XMLElement> elements;
 
   size_t limit = document.size();
-  bool element_name_finished = false;
-  bool empty_element = false;
-  std::shared_ptr<XMLElement> in_process;
+  XMLElement content;
+  content.element_type = XMLElement::ElementContent;
+
   for(size_t i = n; i < limit; i++)
     {
       switch(document[i])
         {
         case '<':
           {
-            element_name_finished = false;
-            empty_element = false;
-            in_process = std::make_shared<XMLElement>();
-            not_completed.push_back(in_process);
-            break;
-          }
-        case '\n':
-          {
-            if(!element_name_finished)
+            if(!content.content.empty())
               {
-                element_name_finished = true;
-                parseElementAttribute(document, i, in_process);
-              }
-            break;
-          }
-        case 9:
-        case ' ':
-          {
-            element_name_finished = true;
-            parseElementAttribute(document, i, in_process);
-            break;
-          }
-        case '!':
-          {
-            parseSpecialElement(document, i, in_process);
-            not_completed.erase(std::remove(not_completed.begin(),
-                                            not_completed.end(), in_process),
-                                not_completed.end());
-            if(not_completed.size() > 0)
-              {
-                std::shared_ptr<XMLElement> last = *not_completed.rbegin();
-                last->elements.emplace_back(*in_process);
-              }
-            else
-              {
-                result.emplace_back(*in_process);
-              }
-            n = document.find(find_str, i);
-            i = n - 1;
-            break;
-          }
-        case '?':
-          {
-            in_process->element_type = XMLElement::Type::ProgramControlElement;
-            parseProgramControlElement(document, i, in_process);
-            not_completed.erase(std::remove(not_completed.begin(),
-                                            not_completed.end(), in_process),
-                                not_completed.end());
-            if(not_completed.size() > 0)
-              {
-                std::shared_ptr<XMLElement> last = *not_completed.rbegin();
-                last->elements.emplace_back(*in_process);
-              }
-            else
-              {
-                result.emplace_back(*in_process);
-              }
-            n = document.find(find_str, i);
-            i = n - 1;
-            break;
-          }
-        case '/':
-          {
-            empty_element = true;
-            if(element_name_finished)
-              {
-                in_process->empty = true;
-              }
-            else
-              {
-                in_process->element_name.push_back(document[i]);
-              }
-            break;
-          }
-        case '>':
-          {
-            n = document.find(find_str, i);
-            if(n == std::string::npos)
-              {
-                bool incorrect = false;
-                for(size_t j = i + 1; j < limit; j++)
+                auto it_str = std::find_if(content.content.begin(),
+                                           content.content.end(),
+                                           [](const char &el)
+                                             {
+                                               return el < 0 || el > ' ';
+                                             });
+                if(it_str != content.content.end())
                   {
-                    if(document[j] < 0 || document[j] > 32)
-                      {
-                        incorrect = true;
-                        break;
-                      }
+                    elements.emplace_back(content);
                   }
-                if(incorrect)
-                  {
-                    throw std::runtime_error(
-                        "XMLParserCPP::parseDocument: incorrect element: "
-                        + in_process->element_name);
-                  }
+                content = XMLElement();
+                content.element_type = XMLElement::ElementContent;
               }
-            else
-              {
-                parseElementContent(document, i, in_process);
-                i--;
-              }
-            if(empty_element)
-              {
-                not_completed.erase(std::remove(not_completed.begin(),
-                                                not_completed.end(),
-                                                in_process),
-                                    not_completed.end());
-                if(in_process->element_name.size() > 0)
-                  {
-                    if(in_process->element_name[0] == '/')
-                      {
-                        in_process->element_name.erase(
-                            in_process->element_name.begin());
-                      }
-                    else if(*in_process->element_name.rbegin() == '/')
-                      {
-                        in_process->element_name.pop_back();
-                        in_process->empty = true;
-                      }
-                  }
-                else
-                  {
-                    throw std::runtime_error("XMLParserCPP::parseDocument: "
-                                             " element name size is 0!");
-                  }
-                if(in_process->empty)
-                  {
-                    if(not_completed.size() > 0)
-                      {
-                        std::shared_ptr<XMLElement> last
-                            = *not_completed.rbegin();
-
-                        std::vector<XMLElement> el_v
-                            = std::move(in_process->elements);
-                        in_process->elements.clear();
-
-                        last->elements.emplace_back(*in_process);
-
-                        for(auto it_elv = el_v.begin(); it_elv != el_v.end();
-                            it_elv++)
-                          {
-                            last->elements.emplace_back(*it_elv);
-                          }
-                      }
-                    else
-                      {
-                        result.emplace_back(*in_process);
-                      }
-                  }
-                else
-                  {
-                    if(not_completed.size() > 0)
-                      {
-                        std::shared_ptr<XMLElement> last
-                            = *not_completed.rbegin();
-                        if(last->element_name == in_process->element_name)
-                          {
-                            not_completed.pop_back();
-                            if(not_completed.size() > 0)
-                              {
-                                std::shared_ptr<XMLElement> last2
-                                    = *not_completed.rbegin();
-                                last2->elements.emplace_back(*last);
-
-                                std::vector<XMLElement> el_v
-                                    = std::move(in_process->elements);
-
-                                for(auto it_elv = el_v.begin();
-                                    it_elv != el_v.end(); it_elv++)
-                                  {
-                                    last2->elements.emplace_back(*it_elv);
-                                  }
-                              }
-                            else
-                              {
-                                result.emplace_back(*last);
-                              }
-                          }
-                        else
-                          {
-                            throw std::runtime_error(
-                                "XMLParserCPP::parseDocument: element names "
-                                "are not equal \""
-                                + last->element_name + "\" \""
-                                + in_process->element_name + "\"");
-                          }
-                      }
-                    else
-                      {
-                        throw std::runtime_error(
-                            "XMLParserCPP::parseDocument: element parsing has "
-                            "not been started, element "
-                            + in_process->element_name);
-                      }
-                  }
-              }
-            else
-              {
-                n = document.find(find_str, i);
-                if(n == std::string::npos)
-                  {
-                    i = n - 1;
-                    break;
-                  }
-                XMLElement el;
-                el.element_type = XMLElement::ElementContent;
-                for(size_t j = i + 1; j < n; j++)
-                  {
-                    if(document[j] < 0 || document[j] >= 32)
-                      {
-                        el.content.push_back(document[j]);
-                      }
-                  }
-                for(auto it = el.content.begin(); it != el.content.end();)
-                  {
-                    if(*it == ' ')
-                      {
-                        el.content.erase(it);
-                      }
-                    else
-                      {
-                        break;
-                      }
-                  }
-                if(el.content.size() > 0)
-                  {
-                    in_process->elements.emplace_back(el);
-                  }
-                i = n - 1;
-              }
-            element_name_finished = false;
-            empty_element = false;
+            elements.emplace_back(parseTag(document, i));
             break;
           }
         default:
           {
-            if(document[i] >= 0 && document[i] < 32)
-              {
-                break;
-              }
-            if(!element_name_finished)
-              {
-                in_process->element_name.push_back(document[i]);
-              }
-            else
-              {
-                std::string str(
-                    "XMLParserCPP::parseDocument: incorrect symbol ");
-                str.push_back(document[i]);
-                throw std::runtime_error(str);
-              }
+            content.content.push_back(document[i]);
             break;
           }
         }
     }
 
-  if(not_completed.size() > 0)
-    {
-      throw std::runtime_error(
-          "XMLParserCPP::parseDocument: not completed elements found!");
-    }
+  formResult(result, elements.begin(), elements.end());
 
   replaceXMLEntities(result);
 
   return result;
-}
-
-void
-XMLParserCPP::parseElementAttribute(const std::string &document,
-                                    size_t &position,
-                                    std::shared_ptr<XMLElement> element)
-{
-  for(; document[position]; position++)
-    {
-      if(document[position] < 0 || document[position] > 32)
-        {
-          break;
-        }
-    }
-  switch(document[position])
-    {
-    case '/':
-    case '?':
-      {
-        position--;
-        return void();
-      }
-    case '>':
-      {
-        position--;
-        return void();
-      }
-    default:
-      {
-        if(position >= document.size())
-          {
-            return void();
-          }
-        break;
-      }
-    }
-
-  XMLElementAttribute attr;
-  bool attr_id_finished = false;
-  bool s_quot = false;
-  bool d_quot = false;
-  bool stop = false;
-
-  for(; position < document.size(); position++)
-    {
-      switch(document[position])
-        {
-        case 9:
-        case 32:
-          {
-            if(s_quot || d_quot)
-              {
-                attr.attribute_value.push_back(document[position]);
-              }
-            break;
-          }
-        case '\'':
-          {
-            if(attr_id_finished)
-              {
-                if(s_quot)
-                  {
-                    stop = true;
-                  }
-                else if(d_quot)
-                  {
-                    attr.attribute_value.push_back(document[position]);
-                  }
-                else
-                  {
-                    s_quot = true;
-                  }
-              }
-            else
-              {
-                throw std::runtime_error(
-                    "XMLParserCPP::parseElementAttribute:"
-                    " incorrect symbol for attribute name (1) in element "
-                    + element->element_name);
-              }
-            break;
-          }
-        case '\"':
-          {
-            if(attr_id_finished)
-              {
-                if(d_quot)
-                  {
-                    stop = true;
-                  }
-                else if(s_quot)
-                  {
-                    attr.attribute_value.push_back(document[position]);
-                  }
-                else
-                  {
-                    d_quot = true;
-                  }
-              }
-            else
-              {
-                throw std::runtime_error(
-                    "XMLParserCPP::parseElementAttribute:"
-                    " incorrect symbol for attribute name (2) in element "
-                    + element->element_name);
-              }
-            break;
-          }
-        case '=':
-          {
-            if(attr_id_finished)
-              {
-                if(s_quot || d_quot)
-                  {
-                    attr.attribute_value.push_back(document[position]);
-                  }
-              }
-            else
-              {
-                attr_id_finished = true;
-              }
-            break;
-          }
-        default:
-          {
-            if(document[position] >= 0 && document[position] < 32)
-              {
-                break;
-              }
-            if(attr_id_finished)
-              {
-                attr.attribute_value.push_back(document[position]);
-              }
-            else
-              {
-                attr.attribute_id.push_back(document[position]);
-              }
-            break;
-          }
-        }
-      if(stop)
-        {
-          if(attr.attribute_id.size() > 0)
-            {
-              element->element_attributes.emplace_back(attr);
-            }
-          break;
-        }
-    }
-  if(!stop)
-    {
-      throw std::runtime_error("XMLParserCPP::parseElementAttribute: "
-                               + element->element_name
-                               + " attribute has not been completed");
-    }
-}
-
-void
-XMLParserCPP::parseProgramControlElement(const std::string &document,
-                                         size_t &position,
-                                         std::shared_ptr<XMLElement> element)
-{
-  position++;
-  bool stop = false;
-  bool el_name_finished = false;
-  for(; position < document.size(); position++)
-    {
-      switch(document[position])
-        {
-        case 9:
-        case ' ':
-          {
-            el_name_finished = true;
-            parseElementAttribute(document, position, element);
-            break;
-          }
-        case '?':
-        case '>':
-          {
-            stop = true;
-            break;
-          }
-        default:
-          {
-            if(document[position] >= 0 && document[position] < 32)
-              {
-                break;
-              }
-            if(!el_name_finished)
-              {
-                element->element_name.push_back(document[position]);
-              }
-            else
-              {
-                throw std::runtime_error(
-                    "XMLParserCPP::parseProgramControlElement: incorrect "
-                    "symbol for program control element");
-              }
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-  if(!stop)
-    {
-      throw std::runtime_error(
-          "XMLParserCPP::parseProgramControlElement: program control element "
-          "has not been completed!");
-    }
-}
-
-void
-XMLParserCPP::parseSpecialElement(const std::string &document,
-                                  size_t &position,
-                                  std::shared_ptr<XMLElement> element)
-{
-  position++;
-
-  switch(document[position])
-    {
-    case '[':
-      {
-        element->element_type = XMLElement::CharData;
-        break;
-      }
-    case '-':
-      {
-        element->element_type = XMLElement::Comment;
-        break;
-      }
-    default:
-      {
-        element->element_type = XMLElement::Type::SpecialElement;
-        break;
-      }
-    }
-
-  switch(element->element_type)
-    {
-    case XMLElement::CharData:
-      {
-        std::string find_str = "[CDATA[";
-        std::string::size_type n = document.find(find_str, position);
-        if(n == std::string::npos)
-          {
-            throw std::runtime_error(
-                "XMLParserCPP::parseSpecialElement: incorrect CDATA element");
-          }
-        n += find_str.size();
-        find_str = "]]>";
-        std::string::size_type n2 = document.find(find_str, n);
-        if(n2 == std::string::npos)
-          {
-            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
-                                     "CDATA element has not been completed");
-          }
-        std::copy(document.begin() + n, document.begin() + n2,
-                  std::back_inserter(element->content));
-        position = n2 + find_str.size() - 1;
-        break;
-      }
-    case XMLElement::Comment:
-      {
-        std::string find_str("-->");
-        std::string::size_type n = document.find(find_str, position);
-        if(n == std::string::npos)
-          {
-            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
-                                     "comment element has not been completed");
-          }
-        std::copy(document.begin() + position, document.begin() + n,
-                  std::back_inserter(element->content));
-        position = n + find_str.size() - 1;
-        break;
-      }
-    default:
-      {
-        bool stop = false;
-
-        for(; position < document.size(); position++)
-          {
-            switch(document[position])
-              {
-              case '>':
-                {
-                  stop = true;
-                  break;
-                }
-              default:
-                {
-                  element->content.push_back(document[position]);
-                  break;
-                }
-              }
-            if(stop)
-              {
-                break;
-              }
-          }
-        if(!stop)
-          {
-            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
-                                     "special element has not bin completed");
-          }
-        break;
-      }
-    }
-
-  switch(element->element_type)
-    {
-    case XMLElement::Comment:
-      {
-        for(auto it = element->content.begin(); it != element->content.end();)
-          {
-            if(*it >= 0 && *it <= 32)
-              {
-                element->content.erase(it);
-              }
-            else
-              {
-                if(*it == '-')
-                  {
-                    element->content.erase(it);
-                  }
-                else
-                  {
-                    break;
-                  }
-              }
-          }
-        while(element->content.size() > 0)
-          {
-            auto it = element->content.rbegin();
-            if(*it >= 0 && *it <= 32)
-              {
-                element->content.pop_back();
-              }
-            else
-              {
-                if(*it == '-')
-                  {
-                    element->content.pop_back();
-                  }
-                else
-                  {
-                    break;
-                  }
-              }
-          }
-        break;
-      }
-    case XMLElement::SpecialElement:
-      {
-        for(auto it = element->content.begin(); it != element->content.end();)
-          {
-            if(*it >= 0 && *it <= 32)
-              {
-                element->content.erase(it);
-              }
-            else
-              {
-                break;
-              }
-          }
-        while(element->content.size() > 0)
-          {
-            auto it = element->content.rbegin();
-            if(*it >= 0 && *it <= 32)
-              {
-                element->content.pop_back();
-              }
-            else
-              {
-                break;
-              }
-          }
-        break;
-      }
-    default:
-      break;
-    }
-}
-
-void
-XMLParserCPP::parseElementContent(const std::string &document,
-                                  size_t &position,
-                                  std::shared_ptr<XMLElement> element)
-{
-  position++;
-  XMLElement el;
-  el.element_type = XMLElement::Type::ElementContent;
-  bool stop = false;
-  for(; position < document.size(); position++)
-    {
-      switch(document[position])
-        {
-        case '<':
-          {
-            stop = true;
-            break;
-          }
-        default:
-          {
-            el.content.push_back(document[position]);
-            break;
-          }
-        }
-      if(stop)
-        {
-          break;
-        }
-    }
-  if(!stop)
-    {
-      throw std::runtime_error("XMLParserCPP::parseElementContent: \""
-                               + element->element_name
-                               + "\" element content has not been completed");
-    }
-  for(auto it = el.content.begin(); it != el.content.end(); it++)
-    {
-      if((*it) < 0 || (*it) > 32)
-        {
-          element->elements.emplace_back(el);
-          break;
-        }
-    }
 }
 
 void
@@ -910,4 +248,370 @@ XMLParserCPP::replacementFunc(std::string &str)
         }
     }
   str.shrink_to_fit();
+}
+
+XMLElement
+XMLParserCPP::parseTag(const std::string &document, size_t &position)
+{
+  position++;
+  size_t limit = document.size();
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseTag: incorrect document(1)");
+    }
+  XMLElement result;
+  if(document[position] == '!')
+    {
+      parseSpecialElement(document, position, result);
+      return result;
+    }
+
+  bool stop = false;
+  bool element_name = true;
+  for(; position < limit; position++)
+    {
+      switch(document[position])
+        {
+        case '\n':
+        case ' ':
+          {
+            element_name = false;
+            break;
+          }
+        case '?':
+          {
+            result.empty = XMLElement::XML;
+            result.element_type = XMLElement::ProgramControlElement;
+            break;
+          }
+        case '/':
+          {
+            result.empty = XMLElement::XML;
+            break;
+          }
+        case '>':
+          {
+            stop = true;
+            break;
+          }
+        default:
+          {
+            if(element_name)
+              {
+                result.element_name.push_back(document[position]);
+              }
+            else
+              {
+                result.element_attributes.emplace_back(
+                    parseElementAttribute(document, position));
+              }
+            break;
+          }
+        }
+      if(stop)
+        {
+          break;
+        }
+    }
+
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseTag: incorrect document(2)");
+    }
+
+  return result;
+}
+
+void
+XMLParserCPP::parseSpecialElement(const std::string &document,
+                                  size_t &position, XMLElement &element)
+{
+  position++;
+
+  if(position >= document.size())
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseTag: incorrect document(2)");
+    }
+
+  switch(document[position])
+    {
+    case '[':
+      {
+        element.element_type = XMLElement::CharData;
+        break;
+      }
+    case '-':
+      {
+        element.element_type = XMLElement::Comment;
+        break;
+      }
+    default:
+      {
+        element.element_type = XMLElement::Type::SpecialElement;
+        break;
+      }
+    }
+
+  switch(element.element_type)
+    {
+    case XMLElement::CharData:
+      {
+        std::string find_str = "[CDATA[";
+        std::string::size_type n = document.find(find_str, position);
+        if(n != position)
+          {
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "incorrect CDATA element");
+          }
+        n += find_str.size();
+        find_str = "]]>";
+        std::string::size_type n2 = document.find(find_str, n);
+        if(n2 == std::string::npos)
+          {
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "CDATA element has not been completed");
+          }
+        std::copy(document.begin() + n, document.begin() + n2,
+                  std::back_inserter(element.content));
+        position = n2 + find_str.size() - 1;
+        break;
+      }
+    case XMLElement::Comment:
+      {
+        std::string find_str("--");
+        std::string::size_type n = document.find(find_str, position);
+        if(n != position)
+          {
+            throw std::runtime_error(
+                "XMLParserCPP::parseSpecialElement: incorrect comment");
+          }
+        position = n + find_str.size();
+        find_str = "-->";
+        n = document.find(find_str, position);
+        if(n == std::string::npos)
+          {
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "comment element has not been completed");
+          }
+        std::copy(document.begin() + position, document.begin() + n,
+                  std::back_inserter(element.content));
+        position = n + find_str.size() - 1;
+        break;
+      }
+    default:
+      {
+        bool stop = false;
+
+        for(; position < document.size(); position++)
+          {
+            switch(document[position])
+              {
+              case '>':
+                {
+                  stop = true;
+                  break;
+                }
+              default:
+                {
+                  element.content.push_back(document[position]);
+                  break;
+                }
+              }
+            if(stop)
+              {
+                break;
+              }
+          }
+        if(!stop)
+          {
+            throw std::runtime_error("XMLParserCPP::parseSpecialElement: "
+                                     "special element has not bin completed");
+          }
+        break;
+      }
+    }
+
+  while(element.content.size() > 0)
+    {
+      auto it = element.content.rbegin();
+      if(*it >= 0 && *it <= 32)
+        {
+          element.content.pop_back();
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  for(auto it = element.content.begin(); it != element.content.end();)
+    {
+      if(*it >= 0 && *it <= 32)
+        {
+          element.content.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
+}
+
+XMLElementAttribute
+XMLParserCPP::parseElementAttribute(const std::string &document,
+                                    size_t &position)
+{
+  XMLElementAttribute result;
+  size_t limit = document.size();
+
+  for(; position < limit; position++)
+    {
+      if(document[position] > ' ' || document[position] < 0)
+        {
+          break;
+        }
+    }
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseElementAttribute: incorrect attribute(1)");
+    }
+
+  bool stop = false;
+  for(; position < limit; position++)
+    {
+      switch(document[position])
+        {
+        case '=':
+          {
+            stop = true;
+            break;
+          }
+        default:
+          {
+            result.attribute_id.push_back(document[position]);
+            break;
+          }
+        }
+      if(stop)
+        {
+          break;
+        }
+    }
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseElementAttribute: incorrect attribute(2)");
+    }
+
+  while(result.attribute_id.size() > 0)
+    {
+      if(*result.attribute_id.rbegin() == ' ')
+        {
+          result.attribute_id.pop_back();
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  char attr_end;
+  for(; position < limit; position++)
+    {
+      attr_end = document[position];
+      if(attr_end == '\'' || attr_end == '\"')
+        {
+          break;
+        }
+    }
+  position++;
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseElementAttribute: incorrect attribute(3)");
+    }
+
+  for(; position < limit; position++)
+    {
+      char el = document[position];
+      if(el == attr_end)
+        {
+          break;
+        }
+      else
+        {
+          result.attribute_value.push_back(el);
+        }
+    }
+
+  if(position >= limit)
+    {
+      throw std::runtime_error(
+          "XMLParserCPP::parseElementAttribute: incorrect attribute(4)");
+    }
+
+  return result;
+}
+
+void
+XMLParserCPP::formResult(std::vector<XMLElement> &result,
+                         std::vector<XMLElement>::iterator start,
+                         std::vector<XMLElement>::iterator end)
+{
+  for(auto it = start; it != end; it++)
+    {
+      switch(it->element_type)
+        {
+        case XMLElement::OrdinaryElement:
+          {
+            switch(it->empty)
+              {
+              case XMLElement::NotEmpty:
+                {
+                  std::vector<XMLElement>::iterator it_sub = std::find_if(
+                      it + 1, end,
+                      [it](const XMLElement &el)
+                        {
+                          if(it->element_type == el.element_type
+                             && el.empty == XMLElement::XML)
+                            {
+                              if(it->element_name == el.element_name)
+                                {
+                                  return true;
+                                }
+                            }
+                          return false;
+                        });
+                  if(it_sub == end)
+                    {
+                      it->empty = XMLElement::HTML;
+                      result.emplace_back(*it);
+                    }
+                  else
+                    {
+                      formResult(it->elements, it + 1, it_sub);
+                      result.emplace_back(*it);
+                      it = it_sub;
+                    }
+                  break;
+                }
+              default:
+                {
+                  result.emplace_back(*it);
+                  break;
+                }
+              }
+            break;
+          }
+        default:
+          {
+            result.emplace_back(*it);
+            break;
+          }
+        }
+    }
 }

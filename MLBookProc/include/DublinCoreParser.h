@@ -16,6 +16,8 @@
 #ifndef DUBLINCOREPARSER_H
 #define DUBLINCOREPARSER_H
 
+#include <BaseID.h>
+#include <UDBElement.h>
 #include <XMLParserCPP.h>
 
 /*!
@@ -35,158 +37,127 @@ public:
    */
   DublinCoreParser();
 
-  /*!
-   * \brief DublinCoreParser destructor
-   */
   virtual ~DublinCoreParser();
 
   /*!
-   * \brief Gets book title.
+   * Obtains book title.
    *
-   * This method can be used to get title from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Title if any, empty string otherwise.
+   * \return Vector of BaseID::BookTitle objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcTitle(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book author.
+   * Obtains authors.
    *
-   * This method can be used to get author(s) from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Author if any, empty string otherwise.
+   * \return Vector of BaseID::Author objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcAuthor(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book genre.
+   * Obtains book genres.
    *
-   * This method can be used to get genre(s) from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Gernre if any, empty string otherwise.
+   * \return Vector of BaseID::Genre objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcGenre(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book creation date.
+   * Obtains book creation date.
    *
-   * This method can be used to get creation date from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return File creation date if any, empty otherwise.
+   * \return Vector of BaseID::Date objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcDate(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book description.
+   * Obtains book description.
    *
-   * This method can be used to get book description from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
    * \return Book description if any, empty otherwise.
    */
   std::string
   dcDescription(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book language.
+   * Obtains book language.
    *
-   * This method can be used to get language from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return File language if set, empty otherwise.
+   * \return Vector of BaseID::Language objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcLanguage(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book translator
+   * Obtains book translators.
    *
-   * This method can be used to get translator name from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Translator if any, empty string otherwise.
+   * \return Vector of BaseID::Translator objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcTranslator(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets file publisher.
+   * Obtains book publisher.
    *
-   * This method can be used to get publisher from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return File publisher if set, empty otherwise.
+   * \return Vector of BaseID::EbookPublisher objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcPublisher(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book identifier.
+   * Obtains book ID.
    *
-   * This method can be used to get identifier from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Book identifier if any, empty otherwise.
+   * \return Vector of BaseID::EbookID objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcIdentifier(const std::vector<XMLElement> &elements);
 
   /*!
-   * \brief Gets book source.
+   * Obtains source book info.
    *
-   * This method can be used to get book source from <a
+   * \param elements Parsed <a
    * href="https://www.dublincore.org/">DublinCore</a> file.
-   *
-   * \param elements Vector of XML elements, obtained by
-   * XMLParserCPP::parseDocument() method.
-   * \return Book source if set, empty otherwise.
+   * \return Vector of BaseID::SourceBookDublinCore objects.
    */
-  std::string
+  std::vector<UDBElement>
   dcSource(const std::vector<XMLElement> &elements);
 
 private:
-  std::string
+  std::vector<UDBElement>
   getAuthor1(const std::vector<XMLElement> &elements);
 
-  std::string
+  std::vector<UDBElement>
   getAuthor2(const std::vector<XMLElement> &elements);
 
-  std::string
+  std::vector<UDBElement>
   getTranslator1(const std::vector<XMLElement> &elements);
 
-  std::string
+  std::vector<UDBElement>
   getTranslator2(const std::vector<XMLElement> &elements);
 
   void
   normalizeString(std::string &str);
 
   XMLParserCPP *xml_parser;
+
+  BaseID bid;
 };
 
 #endif // DUBLINCOREPARSER_H

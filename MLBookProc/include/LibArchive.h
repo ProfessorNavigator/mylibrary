@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,400 +13,511 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef LIBARCHIVE_H
 #define LIBARCHIVE_H
 
-#include <ArchEntry.h>
-#include <ArchiveFileEntry.h>
-#include <ArchiveRemoveEntry.h>
-#include <AuxFunc.h>
-#include <archive_entry.h>
+#include <LibArchiveFileData.h>
+#include <MLBookProc.h>
+#include <archive.h>
 #include <filesystem>
+#include <istream>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 /*!
- * \brief The LibArchive class.
+ * \brief The LibArchive class
  *
- * This class contains various methods for archives processing. Based on
- * <A HREF="https://libarchive.org/">libarchive</A> library.
+ * This class contains methods to work with archives.
  */
 class LibArchive
 {
 public:
   /*!
    * \brief LibArchive constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  LibArchive(const std::shared_ptr<AuxFunc> &af);
+  LibArchive(const std::shared_ptr<MLBookProc> &mlbp);
+
+  virtual ~LibArchive();
 
   /*!
-   * \brief Unpacks single entry content from zip archive.
+   * Obtains entries from archive.
    *
-   * Access to entry is carried out by its absolute position in zip file. It is
-   * recommended to use this method for fast unpacking of single file or
-   * directory from zip archive.
-   * \warning This method should be used for zip archives only!
-   * \param archaddress absolute path to zip archive.
-   * \param outfolder absolute path to directory archive entry content to be
-   * unpacked to. If directory does not exist, it will be created.
-   * \param entry ArchEntry object, obtained by fileNames(),
-   * fileNamesStream() or fileinfo() methods.
-   * \return Absolute path to unpacked file or directory.
-   */
-  std::filesystem::path
-  unpackByPosition(const std::filesystem::path &archaddress,
-                   const std::filesystem::path &outfolder,
-                   const ArchEntry &entry);
-
-  /*!
-   * \brief Unpacks single entry content from zip archive.
+   * \note This method can throw std::exception in case of errors.
    *
-   * If entry is a file, unpacks it and returns file content. If entry is a
-   * directory, returns empty string. Access to entry is carried
-   * out by its absolute position in zip file. It is recommended to use this
-   * method for fast unpacking of single file from zip archive.
-   * \warning This method should be used for zip archives only!
-   * \param archaddress absolute path to zip archive.
-   * \param entry ArchEntry object, obtained by fileNames(),
-   * fileNamesStream() or fileinfo() methods.
-   * \return Unpacked file content or empty string.
-   */
-  std::string
-  unpackByPositionStr(const std::filesystem::path &archaddress,
-                      const ArchEntry &entry);
-
-  /*!
-   * \brief Unpacks entry content from archive.
-   *
-   * This method is suitable for any supported types of archives (see
-   * AuxFunc::get_supported_archive_types_unpacking()). However for zip
-   * archives it is recommended to use unpackByPosition() and
-   * unpackByPositionStr() methods (they are a little bit faster).
-   * \param archaddress absolute path to archive.
-   * \param outfolder absolute path to directory, entry to be unpacked to. If
-   * directory does not exist, it will be created.
-   * \param filename file or directory name in archive.
-   * \return Absolute path to unpacked file or directory.
-   */
-  std::filesystem::path
-  unpackByFileNameStream(const std::filesystem::path &archaddress,
-                         const std::filesystem::path &outfolder,
-                         const std::string &filename);
-
-  /*!
-   * \brief Unpacks entry content from archive.
-   *
-   * If entry is a file, unpacks it and returns file content. If entry is a
-   * directory, returns empty string. This method is suitable for
-   * any supported types of archives (see
-   * AuxFunc::get_supported_archive_types_unpacking()). However for zip
-   * archives it is recommended to use unpackByPosition() end
-   * unpackByPositionStr() methods (they are a little bit faster).
-   * \param archaddress absolute path to archive.
-   * \param filename file or directory name in archive.
-   * \return Unpacked file content or empty string.
-   */
-  std::string
-  unpackByFileNameStreamStr(const std::filesystem::path &archaddress,
-                            const std::string &filename);
-
-  /*!
-   * \brief Lists all entries in archive file.
-   *
-   * \warning This method is suitable for zip archives only. For other archive
-   * types behavior is undefined.
-   * \param filepath absolute path to zip archive.
-   * \param filenames vector for results.
-   * \return 1 in case of success, -1 in case of error, 0 in case archive file
-   * has not been opened.
-   */
-  int
-  fileNames(const std::filesystem::path &filepath,
-            std::vector<ArchEntry> &filenames);
-
-  /*!
-   * \brief Lists all entries in archive file.
-   *
-   * This method can be used with all supported archive types (see
-   * AuxFunc::get_supported_archive_types_unpacking()). However for zip
-   * archives it is recommended to use fileNames() method.
-   * \param address absolute path to archive.
-   * \param filenames vector of results.
-   * \return in case of succes returns ARCHIVE_OK, libarchive error codes will
-   * be returned otherwise (see archive.h file for details).
-   */
-  int
-  fileNamesStream(const std::filesystem::path &address,
-                  std::vector<ArchEntry> &filenames);
-
-  /*!
-   * \brief Returns ArchEntry for particular file or directory in archive.
-   *
-   * In case of any error ArchEntry filename will be empty.
-   * \param address absolute path to archive.
-   * \param filename path in archive.
-   * \return ArchEntry object.
-   */
-  ArchEntry
-  fileinfo(const std::filesystem::path &address, const std::string &filename);
-
-  /*!
-   * \brief Packs file or directory into archive.
-   * \param sourcepath absolute path to file or directory to be packed.
-   * \param outpath absolute path to resulting archive.
-   * \return -100 in case if sourcepath does not exist, -200 in case of error
-   * on libarchive object creation, ARCHIVE_OK in case of success, libarchive
-   * error code otherwise (see libarchive archive.h file for details).
-   */
-  int
-  libarchive_packing(const std::filesystem::path &sourcepath,
-                     const std::filesystem::path &outpath);
-
-  /*!
-   * \brief Packs file or directory into archive.
-   *
-   * Use this method if you need source file or directory to be packed under
-   * another name.
-   * \param a smart pointer to libarchive object (see libarchive_write_init()).
-   * \param sourcepath absolute path to file or directory to be packed.
-   * \param rename_source if set to \a true, source name will be replaced for
-   * \b new_source_name inside the archive.
-   * \param new_source_name new name to be used inside the archive. Should be
-   * UTF-8 string.
-   * \return -100 in case if sourcepath does not exist, -200 in case of error
-   * on libarchive object creation, ARCHIVE_OK in case of success, libarchive
-   * error code otherwise (see libarchive archive.h file for details).
-   */
-  int
-  libarchive_packing(const std::shared_ptr<archive> &a,
-                     const std::filesystem::path &sourcepath,
-                     const bool &rename_source,
-                     const std::string &new_source_name);
-
-  /*!
-   * \brief Initializes archive objects for removing entries from archive.
-   * \param sourcepath absolute path to archive entries to be removed from.
-   * \param outpath absolute path to write new archive without removed entries.
-   * \return ArchiveRemoveEntry object.
-   */
-  ArchiveRemoveEntry
-  libarchive_remove_init(const std::filesystem::path &sourcepath,
-                         const std::filesystem::path &outpath);
-
-  /*!
-   * \brief Removes entry from archive.
-   * \param rm_e ArchiveRemoveEntry got from libarchive_remove_init().
-   * \param to_remove list of entries to be removed.
-   * \return ARCHIVE_OK in case of success, libarchive error code otherwise
-   * (see libarchive archive.h for details).
-   */
-  int
-  libarchive_remove_entry(ArchiveRemoveEntry rm_e,
-                          const std::vector<ArchEntry> &to_remove);
-
-  /*!
-   * \brief Prints libarchive error messages.
-   * \param a smart pointer to libarchive object.
-   * \param message extra text if needed (will be shown before libarchive error
-   * text).
-   * \param error_number error code.
+   * \param archive_path Path to archive.
+   * \param result Vector of obtained entries. First element of tuple - name of
+   * object in archive, second - size of unpacked object, third - offset of
+   * entry in archive file (this method sets to \a 0 in all cases).
    */
   void
-  libarchive_error(const std::shared_ptr<archive> &a,
-                   const std::string &message, const int &error_number);
+  listFilesInArchive(
+      const std::filesystem::path &archive_path,
+      std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result);
 
   /*!
-   * \brief Reads archived file to stirng.
+   * Same as listFilesInArchive(), but obtains entiries from archive placed in
+   * buffer.
    *
-   * If entry is not a file, empty string will be returned. In most cases you
-   * do not need to call this method directly.
-   * \param a pointer to libarchive object.
-   * \param entry entry to be read.
-   * \return File content.
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param result Vector of obtained entries. First element of tuple - name of
+   * object in archive, second - size of unpacked object, third - offset of
+   * entry in archive file (this method sets to \a 0 in all cases).
    */
-  std::string
-  libarchive_read_entry_str(archive *a, archive_entry *entry);
+  void
+  listFilesInArchiveBuffer(
+      const std::string &buffer,
+      std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result);
 
   /*!
-   * \brief Writes data to archive.
+   * Same as listFilesInArchive(), but designed specially for zip archives.
+   * This method can be used to other archives also, but it uses
+   * listFilesInArchive() in those cases.
    *
-   * Writes raw data to archive. In most cases you do not need to call this
-   * method directly. Use libarchive_write_directory() and
-   * libarchive_write_file() methods instead.
-   * \param a pointer to libarchive object.
-   * \param data data to be written.
-   * \return libarchive error code (see libarchive archive.h for details).
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param archive_path Path to archive.
+   * \param result Vector of obtained entries. First element of tuple - name of
+   * object in archive, second - size of unpacked object, third - offset of
+   * entry in archive file (will be set to \a 0 in case of non zip archives).
    */
-  int
-  libarchive_write_data(archive *a, const std::string &data);
+  void
+  listFilesInZip(
+      const std::filesystem::path &archive_path,
+      std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result);
 
   /*!
-   * \brief Creates ArchiveFileEntry object.
+   * Same as listFilesInZip(), but but obtains entiries from archive placed in
+   * buffer.
    *
-   * ArchiveFileEntry object is used in libarchive_read_init() and
-   * libarchive_read_init_fallback() methods.
-   * \param archaddress absolute path to archive to be read.
-   * \param position position in archive file to start reading from.
-   * \return Smart pointer to ArchiveFileEntry object.
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param result Vector of obtained entries. First element of tuple - name of
+   * object in archive, second - size of unpacked object, third - offset of
+   * entry in archive file (will be set to \a 0 in case of non zip archives).
    */
-  std::shared_ptr<ArchiveFileEntry>
-  createArchFile(const std::filesystem::path &archaddress,
-                 const la_int64_t &position = la_int64_t(0));
+  void
+  listFilesInZipBuffer(
+      const std::string &buffer,
+      std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result);
 
   /*!
-   * \brief Initializes archive reading.
+   * Unpacks single file from archive to given directory.
    *
-   * This method can return \a nullptr in case of error. If this method
-   * failed, you can try to use libarchive_read_init_fallback() instead.
-   * \param fl smart pointer to ArchiveFileEntry object (see createArchFile()).
-   * \return Smart pointer to libarchive object (can be \a nullptr in case of
-   * any error).
-   */
-  std::shared_ptr<archive>
-  libarchive_read_init(std::shared_ptr<ArchiveFileEntry> fl);
-
-  /*!
-   * \brief Initializes archive reading.
+   * \note This method can throw std::exception in case of errors.
    *
-   * This method can return \a nullptr in case of error.
-   * \param fl smart pointer to ArchiveFileEntry object (see createArchFile()).
-   * \return Smart pointer to libarchive object (can be \a nullptr in case of
-   * any error).
-   */
-  std::shared_ptr<archive>
-  libarchive_read_init_fallback(std::shared_ptr<ArchiveFileEntry> fl);
-
-  /*!
-   * \brief Unpacks libarchive entry content.
-   *
-   * In most cases you do not need to use this method directly. Use
-   * unpackByPosition(), unpackByPositionStr(), unpackByFileNameStream(),
-   * unpackByFileNameStreamStr() methods instead.
-   * \param a pointer to libarchive object.
-   * \param entry pointer to libarchive entry object.
-   * \param outfolder directory entry content to be unpacked to. If this
-   * directory does not exist, it will be created.
-   * \return Absolute path to unpacked file or directory.
+   * \param archive_path Path to archive.
+   * \param filename Name of file in archive.
+   * \param directory Path to directory file should be unpacked to.
+   * \param offset Offset of file entry in archive (should be set only in case
+   * of zip archives).
+   * \return Absolute path to unpacked file.
    */
   std::filesystem::path
-  libarchive_read_entry(archive *a, archive_entry *entry,
-                        const std::filesystem::path &outfolder);
+  unpackFileToDirectory(const std::filesystem::path &archive_path,
+                        const std::string &filename,
+                        const std::filesystem::path &directory,
+                        const size_t &offset = size_t(0));
 
   /*!
-   * \brief Initializes writing to archive.
+   * Same as unpackFileToDirectory(), but uses buffered archive.
    *
-   * \warning If resulting archive path already exists, it will be overwritten.
-   * \param outpath path to resulting archive.
-   * \return Smart pointer to libarchive object (can be \a nullptr in case of
-   * any error).
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param filename Name of file in archive.
+   * \param directory Path to directory file should be unpacked to.
+   * \param offset Offset of file entry in archive (should be set only in case
+   * of zip archives).
+   * \return Absolute path to unpacked file.
+   */
+  std::filesystem::path
+  unpackBufferFileToDirectory(const std::string &buffer,
+                              const std::string &filename,
+                              const std::filesystem::path &directory,
+                              const size_t &offset = size_t(0));
+
+  /*!
+   * Same as unpackFileToDirectory(), but designed for zip archives specially.
+   * This method can be used for other types of archives, but it uses
+   * unpackFileToDirectory() in those cases.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param archive_path Path to archive.
+   * \param filename Name of file in archive.
+   * \param directory Path to directory file should be unpacked to.
+   * \return Absolute path to unpacked file.
+   */
+  std::filesystem::path
+  unpackZipFileToDirectory(const std::filesystem::path &archive_path,
+                           const std::string &filename,
+                           const std::filesystem::path &directory);
+
+  /*!
+   * Same as unpackZipFileToDirectory(), but uses buffered archive as source.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param filename Name of file in archive.
+   * \param directory Path to directory file should be unpacked to.
+   * \return Absolute path to unpacked file.
+   */
+  std::filesystem::path
+  unpackZipBufferFileToDirectory(const std::string &buffer,
+                                 const std::string &filename,
+                                 const std::filesystem::path &directory);
+
+  /*!
+   * Unpacks file to buffer.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param archive_path Path to archive.
+   * \param filename Name of file in archive.
+   * \param offset Offset of file entry in archive (should be set only in case
+   * of zip archives).
+   * \return Buffer containing unpacked file.
+   */
+  std::string
+  unpackFileToBuffer(const std::filesystem::path &archive_path,
+                     const std::string &filename,
+                     const size_t &offset = size_t(0));
+
+  /*!
+   * Same as unpackFileToBuffer(), but uses buffered archive as source.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param filename Name of file in archive.
+   * \param offset Offset of file entry in archive (should be set only in case
+   * of zip archives).
+   * \return Buffer containing unpacked file.
+   */
+  std::string
+  unpackBufferFileToBuffer(const std::string &buffer,
+                           const std::string &filename,
+                           const size_t &offset = size_t(0));
+
+  /*!
+   * Same as unpackFileToBuffer(), but designed for zip archives specially.
+   * This method can be used for other types of archives, but it uses
+   * unpackFileToBuffer() in those cases.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param archive_path Path to archive.
+   * \param filename Name of file in archive.
+   * \return Buffer containing unpacked file.
+   */
+  std::string
+  unpackZipFileToBuffer(const std::filesystem::path &archive_path,
+                        const std::string &filename);
+
+  /*!
+   * Same as unpackZipFileToBuffer(), but uses buffered archive instead.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Archive file content.
+   * \param filename Name of file in archive.
+   * \return Buffer containing unpacked file.
+   */
+  std::string
+  unpackZipBufferFileToBuffer(const std::string &buffer,
+                              const std::string &filename);
+
+  /*!
+   * Writes file to archive.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param source_object File to be written to archive.
+   * \param archive_path Path to archive.
+   * \param name_in_archive Name of file in archive.
+   * \param perms File permissions. In case of std::filesystem::perms::none,
+   * source_object permissions will be used.
+   * \param overwrite_existing If \a true archive will be overwritten. If \a
+   * false archive will be repacked and file will be appended to new archive.
+   */
+  void
+  writeToArchive(const std::filesystem::path &source_object,
+                 const std::filesystem::path &archive_path,
+                 std::string name_in_archive,
+                 const std::filesystem::perms &perms
+                 = std::filesystem::perms::none,
+                 const bool &overwrite_existing = true);
+
+  /*!
+   * Same as writeToArchive(), but uses buffer as source.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param buffer Buffer to be packed to archive.
+   * \param archive_path Path to archive.
+   * \param name_in_archive Name of file in archive.
+   * \param perms File permissions.
+   * \param overwrite_existing If \a true archive will be overwritten. If \a
+   * false archive will be repacked and file will be appended to new archive.
+   */
+  void
+  writeBufferObjectToArchive(const std::string &buffer,
+                             const std::filesystem::path &archive_path,
+                             std::string name_in_archive,
+                             const std::filesystem::perms &perms,
+                             const bool &overwrite_existing);
+
+protected:
+  /*!
+   * Initializes archive for reading.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param fd Smart pointer to LibArchiveFileData object.
+   * \return Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
    */
   std::shared_ptr<archive>
-  libarchive_write_init(const std::filesystem::path &outpath);
+  initForReading(const std::shared_ptr<LibArchiveFileData> &fd);
 
   /*!
-   * \brief Writes file or directory to archive.
+   * Initializes archive for writing.
    *
-   * \note This method resolves symbolic links and processes them as underlying
-   * objects.
-   * \param a smart pointer to libarchive object (see libarchive_write_init()).
-   * \param source absolute path to file or directory to be packed.
-   * \param path_in_arch path of entry in archive (must be relative, example:
-   * my_directory/my_file).
-   * \return ARCHIVE_OK in case of success, libarchive error code otherwise
-   * (see libarchive archive.h for details).
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param fd Smart pointer to LibArchiveFileData object.
+   * \return Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
    */
-  int
-  writeToArchive(std::shared_ptr<archive> a,
-                 const std::filesystem::path &source,
-                 const std::filesystem::path &path_in_arch);
+  std::shared_ptr<archive>
+  initForWriting(const std::shared_ptr<LibArchiveFileData> &fd);
 
   /*!
-   * \brief Writes directory to archive.
+   * Handles <a href="https://libarchive.org/">libarchive</a> errors.
    *
-   * In most case you do not need to use this method. Use writeToArchive()
-   * instead.
-   * \note This method resolves symbolic links and processes them as underlying
-   * objects.
-   * \param a pointer to libarchive object.
-   * \param entry pointer to libarchive entry object.
-   * \param path_in_arch path of entry in archive (must be relative, example:
-   * "my_directory/my_file").
-   * \param source absolute path to directory to be packed.
-   * \return ARCHIVE_OK in case of success, libarchive error code otherwise
-   * (see libarchive archive.h for details).
+   * This method throws std::exception in all cases.
+   *
+   * \param a Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param message Message to be prepended to <a
+   * href="https://libarchive.org/">libarchive</a> error message.
    */
-  int
-  libarchive_write_directory(archive *a, archive_entry *entry,
-                             const std::filesystem::path &path_in_arch,
-                             const std::filesystem::path &source);
+  void
+  archiveError(const std::shared_ptr<archive> &a, const std::string &message);
 
   /*!
-   * \brief Writes file to archive.
+   * Open callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
    *
-   * In most case you do not need to use this method. Use writeToArchive()
-   * instead.
-   * \param a pointer to libarchive object.
-   * \param entry pointer to libarchive entry object.
-   * \param path_in_arch path of entry in archive (must be relative, example:
-   * "my_directory/my_file").
-   * \param source absolute path to directory to be packed.
-   * \return ARCHIVE_OK in case of success, libarchive error code otherwise
-   * (see libarchive archive.h for details).
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \return ARCHIVE_OK if the underlying file or data source is successfully
+   * opened. If the open fails, returns ARCHIVE_FATAL.
    */
-  int
-  libarchive_write_file(archive *a, archive_entry *entry,
-                        const std::filesystem::path &path_in_arch,
-                        const std::filesystem::path &source);
+  static int
+  openCallBack(archive *a, void *client_data);
 
   /*!
-   * \brief Writes raw data from file to archive.
+   * Read callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
    *
-   * In most cases you do not need to use this method. Use writeToArchive()
-   * instead.
-   * \param a pointer to libarchive object.
-   * \param source absolute path to source file.
-   * \return libarchive error code (see libarchive archive.h for details).
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \param buffer Pointer to buffer.
+   * \return Number of actually read bytes.
    */
-  int
-  libarchive_write_data_from_file(archive *a,
-                                  const std::filesystem::path &source);
+  static la_ssize_t
+  readCallBack(archive *a, void *client_data, const void **buffer);
+
+  /*!
+   * Skip callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
+   *
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \param request Number of bytes to skip.
+   * \return Number of actually skipped bytes.
+   */
+  static la_int64_t
+  skipCallback(archive *a, void *client_data, la_int64_t request);
+
+  /*!
+   * Close callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
+   *
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \return ARCHIVE_OK in case of success, ARCHIVE_FATAL otherwise.
+   */
+  static int
+  closeCallback(archive *a, void *client_data);
+
+  /*!
+   * Seek callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
+   *
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \param offset Requested offset.
+   * \param whence The possibilities for the third argument to `fseek`.
+   * \return  Actual position in file or ARCHIVE_FATAL in case of errors.
+   */
+  static la_int64_t
+  seekCallback(archive *a, void *client_data, la_int64_t offset, int whence);
+
+  /*!
+   * Write callback function for <a
+   * href="https://libarchive.org/">libarchive</a>.
+   *
+   * \param a Pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param client_data Pointer to client data.
+   * \param buffer Buffer to be written.
+   * \param length Size of given buffer.
+   * \return Number of actually written bytes.
+   */
+  static la_ssize_t
+  writeCallback(archive *a, void *client_data, const void *buffer,
+                size_t length);
+
+  /*!
+   * Unpacks file to directory.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param fd Smart pointer to LibArchiveFileData object.
+   * \param filename File to be unpacked.
+   * \param directory Directory file to be unpacked to.
+   * \return Absolute path to unpacked file.
+   */
+  std::filesystem::path
+  unpackToDirectory(std::shared_ptr<LibArchiveFileData> fd,
+                    const std::string &filename,
+                    const std::filesystem::path &directory);
+
+  /*!
+   * Unpacks file to buffer.
+   *
+   * \note This method can throw std::exception in case of errors.
+   *
+   * \param fd Smart pointer to LibArchiveFileData object.
+   * \param filename File to be unpacked.
+   * \param result Buffer file to be unpacked to.
+   */
+  void
+  unpackToBuffer(std::shared_ptr<LibArchiveFileData> fd,
+                 const std::string &filename, std::string &result);
+
+  /*!
+   * Unpacks single entry to directory.
+   *
+   * \param a Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param e Smart pointer to `archive_entry` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param file_path Path entry should be unpacked to.
+   */
+  void
+  unpackEntryToDirectory(std::shared_ptr<archive> a,
+                         std::shared_ptr<archive_entry> e,
+                         const std::filesystem::path &file_path);
+
+  /*!
+   * Unpacks single entry to buffer.
+   *
+   * \param a Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param e Smart pointer to `archive_entry` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \return Buffer containing result (empty if entry is not a file).
+   */
+  std::string
+  unpackEntryToBuffer(std::shared_ptr<archive> a,
+                      std::shared_ptr<archive_entry> e);
+
+  /*!
+   * Writes file to archive.
+   *
+   * \param a Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param path Path to file to be packed.
+   * \param name_in_archive Name of file in archive.
+   * \param perms File permissions.
+   */
+  void
+  writeFile(std::shared_ptr<archive> a, const std::filesystem::path &path,
+            std::string name_in_archive, const std::filesystem::perms &perms);
+
+  /*!
+   * Writes buffer to archive.
+   *
+   * \param a Smart pointer to `archive` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param e Smart pointer to `archive_entry` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \param buf Buffer to be packed.
+   */
+  void
+  writeBufferToArchive(std::shared_ptr<archive> a,
+                       std::shared_ptr<archive_entry> e,
+                       const std::string &buf);
+
+  /*!
+   * Returns permissions read from entry.
+   *
+   * \param e Smart pointer to `archive_entry` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   * \return
+   */
+  std::filesystem::perms
+  getPermissionsFromEntry(const std::shared_ptr<archive_entry> &e);
+
+  /*!
+   * Smart pointer to MLBookProc object.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::shared_ptr<MLBookProc> mlbp;
 
 private:
-  static int
-  libarchive_open_callback(archive *a, void *data);
+  void
+  getCentralDirectory(std::shared_ptr<std::istream> f, const uint64_t &fsz,
+                      std::string &result);
 
-  static la_ssize_t
-  libarchive_read_callback(archive *a, void *data, const void **buffer);
+  std::tuple<uint64_t, uint64_t>
+  parseEOCDRecord(std::shared_ptr<std::istream> f, const uint64_t &fsz);
 
-  static la_int64_t
-  libarchive_skip_callback(archive *a, void *data, la_int64_t request);
+  std::tuple<uint64_t, uint64_t>
+  parseEOCDRecordZip64(std::shared_ptr<std::istream> f, const uint64_t &fsz,
+                       const uint64_t &eocd_record_size);
 
-  static la_int64_t
-  libarchive_seek_callback(archive *a, void *data, la_int64_t offset,
-                           int whence);
+  void
+  parseCentralDirectory(
+      const std::string &central_directory,
+      std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result);
 
-  static int
-  libarchive_close_callback(archive *a, void *data);
+  void
+  parseExtraField(const std::string &extra, uint64_t &compressed_sz,
+                  uint64_t &offset, const int &mask);
 
   std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
-  dir_symlink_resolver(const std::filesystem::path &source,
-                       const std::filesystem::path &append_to);
+  symlinkWriteResolver(const std::filesystem::path &relative,
+                       const std::filesystem::path &symlink);
 
-  static la_ssize_t
-  libarchive_write_callback(archive *a, void *data, const void *buffer,
-                            size_t length);
-
-  static int
-  libarchive_free_callback(archive *a, void *data);
-
-  static int
-  libarchive_open_callback_write(archive *a, void *data);
-
-  std::shared_ptr<AuxFunc> af;
+  int ZIP64_UNCOMPRESSED = 1;
+  int ZIP64_COMPRESSED = 2;
+  int ZIP64_OFFSET = 4;
 };
 
 #endif // LIBARCHIVE_H

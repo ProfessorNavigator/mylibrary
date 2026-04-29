@@ -28,38 +28,34 @@ DublinCoreParser::~DublinCoreParser()
   delete xml_parser;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcTitle(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:title", res);
   std::vector<XMLElement *> res2;
-  XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
-
-  std::string l_result;
+  XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);  
 
   for(size_t i = 0; i < res2.size(); i++)
     {
-      l_result = res2[i]->content;
+      UDBElement el;
+      bid.setId(el, BaseID::BookTitle);
+      el.content = res2[i]->content;
 
-      normalizeString(l_result);
+      normalizeString(el.content);
 
-      if(!result.empty() && !l_result.empty())
-        {
-          result += ". ";
-        }
-      result += l_result;
+      result.emplace_back(el);
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcAuthor(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   result = getAuthor1(elements);
   if(result.empty())
@@ -68,12 +64,8 @@ DublinCoreParser::dcAuthor(const std::vector<XMLElement> &elements)
     }
   else
     {
-      std::string l_res = getAuthor2(elements);
-      if(!l_res.empty())
-        {
-          result += ", ";
-          result += l_res;
-        }
+      std::vector<UDBElement> l_res = getAuthor2(elements);
+      std::copy(l_res.begin(), l_res.end(), std::back_inserter(result));
     }
   if(result.empty())
     {
@@ -81,34 +73,27 @@ DublinCoreParser::dcAuthor(const std::vector<XMLElement> &elements)
       XMLAlgorithms::searchElement(elements, "dc:creator", res);
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res, XMLElement::ElementContent, res2);
-      std::string l_result;
       for(size_t i = 0; i < res2.size(); i++)
         {
-          l_result = res2[i]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          UDBElement el;
+          bid.setId(el, BaseID::Author);
+          el.content = res2[i]->content;
+          normalizeString(el.content);
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcGenre(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:subject", res);
 
-  std::string l_result;
-
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
@@ -116,30 +101,24 @@ DublinCoreParser::dcGenre(const std::vector<XMLElement> &elements)
                                    XMLElement::ElementContent, res2);
       for(size_t j = 0; j < res2.size(); j++)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          UDBElement el;
+          bid.setId(el, BaseID::Genre);
+          el.content = res2[j]->content;
+          normalizeString(el.content);
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcDate(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
-  XMLAlgorithms::searchElement(elements, "dc:date", res);
-
-  std::string l_result;
+  XMLAlgorithms::searchElement(elements, "dc:date", res); 
 
   for(size_t i = 0; i < res.size(); i++)
     {
@@ -148,15 +127,11 @@ DublinCoreParser::dcDate(const std::vector<XMLElement> &elements)
                                    XMLElement::ElementContent, res2);
       for(size_t j = 0; j < res2.size(); j++)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          UDBElement el;
+          bid.setId(el, BaseID::Date);
+          el.content = res2[j]->content;
+          normalizeString(el.content);
+          result.emplace_back(el);
         }
     }
 
@@ -176,41 +151,40 @@ DublinCoreParser::dcDescription(const std::vector<XMLElement> &elements)
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcLanguage(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:language", res);
 
-  std::string l_result;
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res[i]->elements,
                                    XMLElement::ElementContent, res2);
-      for(size_t j = 0; j < res2.size(); j++)
+      if(res2.size() == 0)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          continue;
+        }
+      UDBElement el;
+      bid.setId(el, BaseID::Language);
+      el.content = res2[0]->content;
+      normalizeString(el.content);
+      if(!el.content.empty())
+        {
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcTranslator(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   result = getTranslator1(elements);
   if(result.empty())
@@ -219,114 +193,107 @@ DublinCoreParser::dcTranslator(const std::vector<XMLElement> &elements)
     }
   else
     {
-      std::string l_res = getTranslator2(elements);
-      if(!l_res.empty())
-        {
-          result += ", ";
-          result += l_res;
-        }
+      std::vector<UDBElement> l_res = getTranslator2(elements);
+      std::copy(l_res.begin(), l_res.end(), std::back_inserter(result));
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcPublisher(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:publisher", res);
 
-  std::string l_result;
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res[i]->elements,
                                    XMLElement::ElementContent, res2);
-      for(size_t j = 0; j < res2.size(); j++)
+      if(res2.size() == 0)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          continue;
+        }
+      UDBElement el;
+      bid.setId(el, BaseID::EbookPublisher);
+      el.content = res2[0]->content;
+      normalizeString(el.content);
+      if(!el.content.empty())
+        {
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcIdentifier(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:identifier", res);
 
-  std::string l_result;
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res[i]->elements,
                                    XMLElement::ElementContent, res2);
-      for(size_t j = 0; j < res2.size(); j++)
+      if(res2.size() == 0)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          continue;
+        }
+      UDBElement el;
+      bid.setId(el, BaseID::EbookID);
+      el.content = res2[0]->content;
+      normalizeString(el.content);
+      if(!el.content.empty())
+        {
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::dcSource(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:source", res);
 
-  std::string l_result;
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res[i]->elements,
                                    XMLElement::ElementContent, res2);
-      for(size_t j = 0; j < res2.size(); j++)
+      if(res2.size() == 0)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          continue;
+        }
+      UDBElement el;
+      bid.setId(el, BaseID::SourceBookDublinCore);
+      el.content = res2[0]->content;
+      normalizeString(el.content);
+      if(!el.content.empty())
+        {
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::getAuthor1(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "meta", "property", "role", res);
   res.erase(std::remove_if(res.begin(), res.end(),
@@ -382,15 +349,11 @@ DublinCoreParser::getAuthor1(const std::vector<XMLElement> &elements)
 
               for(size_t k = 0; k < res3.size(); k++)
                 {
-                  l_result = res3[k]->content;
-
-                  normalizeString(l_result);
-
-                  if(!result.empty() && !l_result.empty())
-                    {
-                      result += ", ";
-                    }
-                  result += l_result;
+                  UDBElement el;
+                  bid.setId(el, BaseID::Author);
+                  el.content = res3[k]->content;
+                  normalizeString(el.content);
+                  result.emplace_back(el);
                 }
             }
         }
@@ -399,10 +362,10 @@ DublinCoreParser::getAuthor1(const std::vector<XMLElement> &elements)
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::getAuthor2(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:creator", res);
@@ -439,25 +402,21 @@ DublinCoreParser::getAuthor2(const std::vector<XMLElement> &elements)
 
       for(size_t j = 0; j < res2.size(); j++)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty() && !l_result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          UDBElement el;
+          bid.setId(el, BaseID::Author);
+          el.content = res2[j]->content;
+          normalizeString(el.content);
+          result.emplace_back(el);
         }
     }
 
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::getTranslator1(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "meta", "property", "role", res);
   res.erase(std::remove_if(res.begin(), res.end(),
@@ -503,23 +462,23 @@ DublinCoreParser::getTranslator1(const std::vector<XMLElement> &elements)
           std::vector<XMLElement *> res2;
           XMLAlgorithms::searchElement(elements, "dc:creator", "id", attr_val,
                                        res2);
-          std::string l_result;
+
           for(size_t j = 0; j < res2.size(); j++)
             {
               std::vector<XMLElement *> res3;
               XMLAlgorithms::searchElement(res2[j]->elements,
                                            XMLElement::ElementContent, res3);
-              for(size_t k = 0; k < res3.size(); k++)
+              if(res3.size() == 0)
                 {
-                  l_result = res3[k]->content;
-
-                  normalizeString(l_result);
-
-                  if(!result.empty() && !l_result.empty())
-                    {
-                      result += ", ";
-                    }
-                  result += l_result;
+                  continue;
+                }
+              UDBElement el;
+              bid.setId(el, BaseID::Translator);
+              el.content = res3[0]->content;
+              normalizeString(el.content);
+              if(!el.content.empty())
+                {
+                  result.emplace_back(el);
                 }
             }
         }
@@ -528,10 +487,10 @@ DublinCoreParser::getTranslator1(const std::vector<XMLElement> &elements)
   return result;
 }
 
-std::string
+std::vector<UDBElement>
 DublinCoreParser::getTranslator2(const std::vector<XMLElement> &elements)
 {
-  std::string result;
+  std::vector<UDBElement> result;
 
   std::vector<XMLElement *> res;
   XMLAlgorithms::searchElement(elements, "dc:creator", res);
@@ -559,23 +518,22 @@ DublinCoreParser::getTranslator2(const std::vector<XMLElement> &elements)
                              }),
             res.end());
 
-  std::string l_result;
   for(size_t i = 0; i < res.size(); i++)
     {
       std::vector<XMLElement *> res2;
       XMLAlgorithms::searchElement(res[i]->elements,
                                    XMLElement::ElementContent, res2);
-      for(size_t j = 0; j < res2.size(); j++)
+      if(res2.size() == 0)
         {
-          l_result = res2[j]->content;
-
-          normalizeString(l_result);
-
-          if(!result.empty())
-            {
-              result += ", ";
-            }
-          result += l_result;
+          continue;
+        }
+      UDBElement el;
+      bid.setId(el, BaseID::Translator);
+      el.content = res2[0]->content;
+      normalizeString(el.content);
+      if(!el.content.empty())
+        {
+          result.emplace_back(el);
         }
     }
 

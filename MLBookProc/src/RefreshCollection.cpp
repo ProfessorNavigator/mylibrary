@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -14,1113 +14,417 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <BookParseEntry.h>
+#include <Algorithm.h>
 #include <ByteOrder.h>
-#include <LibArchive.h>
 #include <RefreshCollection.h>
 #include <algorithm>
-#include <fstream>
 #include <iostream>
-#include <tuple>
 
-#ifndef USE_OPENMP
-#include <pthread.h>
-#include <thread>
-#ifdef _WIN32
-#include <errhandlingapi.h>
-#include <winbase.h>
-#endif
-#endif
-
-RefreshCollection::RefreshCollection(
-    const std::shared_ptr<AuxFunc> &af, const std::string &collection_name,
-    const int &num_threads, const bool &remove_empty, const bool &fast_refresh,
-    const bool &refresh_bookmarks, const std::shared_ptr<BookMarks> &bookmarks)
-    : CreateCollection(af, num_threads)
+RefreshCollection::RefreshCollection(const std::shared_ptr<MLBookProc> &mlbp,
+                                     const int &threads_num)
+    : CreateCollection(mlbp, threads_num)
 {
-  this->af = af;
-  if(num_threads > 0)
-    {
-      this->num_threads = num_threads;
-    }
-  base_path = getBasePath(collection_name);
-  this->collection_name = collection_name;
-  books_path = getBooksPath();
-  this->remove_empty = remove_empty;
-  this->fast_refresh = fast_refresh;
-  this->refresh_bookmarks = refresh_bookmarks;
-  this->bookmarks = bookmarks;
-  rar_support = true;
-
-#ifdef USE_OPENMP
-  omp_init_lock(&basemtx);
-  omp_init_lock(&already_hashedmtx);
-  omp_init_lock(&need_to_parsemtx);
-#else
-  if(this->num_threads > static_cast<int>(std::thread::hardware_concurrency()))
-    {
-      unsigned lim
-          = static_cast<unsigned>(std::thread::hardware_concurrency());
-      thr_pool.reserve(lim);
-      for(unsigned i = 0; i < lim; i++)
-        {
-          thr_pool.push_back(std::make_tuple(i, true));
-        }
-    }
-  else
-    {
-      unsigned lim = static_cast<unsigned>(this->num_threads);
-      thr_pool.reserve(lim);
-      for(unsigned i = 0; i < lim; i++)
-        {
-          thr_pool.push_back(std::make_tuple(i, true));
-        }
-    }
-#endif
+  base_keeper = new BaseKeeper(mlbp);
 }
 
 RefreshCollection::~RefreshCollection()
 {
-#ifdef USE_OPENMP
-  omp_destroy_lock(&basemtx);
-  omp_destroy_lock(&already_hashedmtx);
-  omp_destroy_lock(&need_to_parsemtx);
-#endif
-}
-
-std::filesystem::path
-RefreshCollection::getBasePath(const std::string &collection_name)
-{
-  std::filesystem::path result;
-
-  result = af->homePath();
-  result /= std::filesystem::u8path(".local")
-            / std::filesystem::u8path("share")
-            / std::filesystem::u8path("MyLibrary")
-            / std::filesystem::u8path("Collections");
-  result /= std::filesystem::u8path(collection_name);
-  result /= std::filesystem::u8path("base");
-
-  return result;
-}
-
-std::filesystem::path
-RefreshCollection::getBooksPath()
-{
-  std::filesystem::path result;
-
-  std::fstream f;
-  f.open(base_path, std::ios_base::in | std::ios_base::binary);
-  if(f.is_open())
-    {
-      f.seekg(0, std::ios_base::end);
-      size_t fsz = static_cast<size_t>(f.tellg());
-      f.seekg(0, std::ios_base::beg);
-      uint16_t sz;
-      if(fsz >= sizeof(sz))
-        {
-          f.read(reinterpret_cast<char *>(&sz), sizeof(sz));
-        }
-      else
-        {
-          f.close();
-          throw std::runtime_error(
-              "RefreshCollection::get_books_path: incorrect base file");
-        }
-      ByteOrder bo;
-      bo.set_little(sz);
-      sz = bo;
-
-      if(fsz >= sizeof(sz) + static_cast<size_t>(sz))
-        {
-          std::string buf;
-          buf.resize(sz);
-          f.read(buf.data(), buf.size());
-          result = std::filesystem::u8path(buf);
-        }
-      else
-        {
-          f.close();
-          throw std::runtime_error(
-              "RefreshCollection::get_books_path: incorrect base file(2)");
-        }
-
-      f.close();
-    }
-
-  return result;
+  delete base_keeper;
 }
 
 void
-RefreshCollection::refreshCollection()
+RefreshCollection::refreshCollection(const std::filesystem::path &base_path,
+                                     const bool &fast_refresh)
 {
-  std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-  bk->loadCollection(base_path.parent_path().filename().u8string());
-  std::vector<FileParseEntry> base = bk->get_base_vector();
-  if(std::filesystem::exists(books_path))
+  base_keeper->loadCollection(base_path);
+  std::string base_type = base_keeper->getCollectionType();
+  if(base_type == "legacy" || base_type == "inpx")
     {
-      std::vector<std::filesystem::path> books_files;
-      std::vector<std::filesystem::path> empty_paths;
-      for(auto &dirit : std::filesystem::recursive_directory_iterator(
-              books_path,
-              std::filesystem::directory_options::follow_directory_symlink))
+      std::filesystem::path books_path = base_keeper->getBooksDirectory();
+      std::filesystem::path temp_base_path
+          = base_path.parent_path() / mlbp->randomFileName();
+      std::vector<std::filesystem::path> files;
+      files.resize(1);
+      files[0] = books_path;
+      if(signal_file_hashed)
         {
-          if(pulse)
+          signal_file_hashed(1.0, 1.0);
+        }
+      createCollection(files, temp_base_path);
+      if(std::filesystem::exists(temp_base_path))
+        {
+          std::filesystem::remove_all(base_path);
+          std::filesystem::rename(temp_base_path, base_path);
+        }
+    }
+  else if(base_type == "native")
+    {
+      l_processed = 0.0;
+      total = static_cast<double>(base_keeper->getFilesQuantity());
+
+      std::vector<std::filesystem::path> files_and_dirs;
+      std::vector<UDBElement> *raw_base = base_keeper->getRawBase();
+      for(auto it = raw_base->begin(); it != raw_base->end(); it++)
+        {
+          switch(bid.getId(*it))
             {
-              pulse();
-            }
-          std::filesystem::path p = dirit.path();
-          if(remove_empty)
-            {
-              if(std::filesystem::is_empty(p))
-                {
-                  empty_paths.emplace_back(p);
-                }
-              else
-                {
-                  if(!std::filesystem::is_directory(p))
-                    {
-                      std::filesystem::path check_type;
-                      if(!(std::filesystem::symlink_status(p).type()
-                           == std::filesystem::file_type::symlink))
-                        {
-                          check_type = p;
-                        }
-                      else
-                        {
-                          check_type = std::filesystem::read_symlink(p);
-                        }
-                      if(af->if_supported_type(check_type))
-                        {
-                          books_files.emplace_back(p);
-                        }
-                    }
-                }
-            }
-          else
-            {
-              if(!std::filesystem::is_directory(p))
-                {
-                  std::filesystem::path check_type;
-                  if(!(std::filesystem::symlink_status(p).type()
-                       == std::filesystem::file_type::symlink))
-                    {
-                      check_type = p;
-                    }
-                  else
-                    {
-                      check_type = std::filesystem::read_symlink(p);
-                    }
-                  if(af->if_supported_type(check_type))
-                    {
-                      books_files.emplace_back(p);
-                    }
-                }
+            case BaseID::File:
+            case BaseID::Dir:
+            case BaseID::Symlink:
+              {
+                files_and_dirs.push_back(std::filesystem::path(
+                    std::u8string(it->content.begin(), it->content.end())));
+                break;
+              }
+            default:
+              break;
             }
         }
-      for(auto it = empty_paths.begin(); it != empty_paths.end(); it++)
+
+      base_keeper->removeElements(std::bind(&RefreshCollection::elementRemove,
+                                            this, std::placeholders::_1,
+                                            fast_refresh));
+
+      UDBase new_base;
+
+      filesCollecting(files_and_dirs, new_base);
+      std::vector<UDBElement> *new_raw_base = new_base.getRawBase();
+
+      total = 0.0;
+#pragma omp parallel
+#pragma omp masked
+      {
+        compareVectors(*new_raw_base, *raw_base);
+      }
+
+      if(signal_files_collecting)
         {
-          std::filesystem::remove_all(*it);
+          signal_files_collecting(static_cast<size_t>(total));
         }
 
-      if(!rar_support)
-        {
-          std::string sstr = ".rar";
-          books_files.erase(
-              std::remove_if(books_files.begin(), books_files.end(),
-                             [sstr, this](std::filesystem::path &el)
-                               {
-                                 std::string ext = el.extension().u8string();
-                                 ext = af->stringToLower(ext);
-                                 return ext == sstr;
-                               }),
-              books_files.end());
-        }
+      UDBElement coll_info;
+      bid.setId(coll_info, BaseID::CollectionInfo);
 
-      compareVectors(base, books_files);
-      if(!fast_refresh)
-        {
-          checkHashes(&base, &books_files);
-        }
+      UDBElement el;
+      bid.setId(el, BaseID::CollectionType);
+      el.content = "native";
+      coll_info.subelements.emplace_back(el);
 
+      new_raw_base->insert(new_raw_base->begin(), coll_info);
+
+      l_processed = 0.0;
+      processFiles(*new_raw_base);
+      std::unique_lock<std::mutex> ullock(*threads_v_mtx);
+      threads_v_var->wait(ullock,
+                          [this]
+                            {
+                              for(auto it = threads_v->begin();
+                                  it != threads_v->end(); it++)
+                                {
+                                  if(!std::get<1>(*it))
+                                    {
+                                      return false;
+                                    }
+                                }
+                              return true;
+                            });
+
+      std::vector<std::tuple<const std::vector<UDBElement> *,
+                             std::vector<UDBElement>::const_iterator>>
+          files = getAllFiles(*raw_base);
+
+      removeDublicates(files);
+
+      cleanBase(*new_raw_base);
+
+      if(cancel.load(std::memory_order::relaxed))
+        {
+          return void();
+        }
       std::filesystem::remove_all(base_path);
-      openBaseFile();
-      for(auto it = base.begin(); it != base.end(); it++)
-        {
-          write_file_to_base(*it);
-        }
-      closeBaseFile();
+      saveBase(base_path, new_base);
+    }
+}
 
-      if(signal_total_bytes)
+void
+RefreshCollection::addFilesAndDirs(
+    const std::filesystem::path &base_path,
+    const std::vector<std::filesystem::path> &files_and_dirs)
+{
+  base_keeper->loadCollection(base_path);
+  std::string base_type = base_keeper->getCollectionType();
+  if(base_type == "legacy" || base_type == "inpx")
+    {
+      std::filesystem::path books_path = base_keeper->getBooksDirectory();
+      std::filesystem::path temp_base_path
+          = base_path.parent_path() / mlbp->randomFileName();
+      std::vector<std::filesystem::path> files;
+      files.reserve(files_and_dirs.size() + 1);
+      files.resize(1);
+      files[0] = books_path;
+      std::copy(files_and_dirs.begin(), files_and_dirs.end(),
+                std::back_inserter(files));
+
+      if(signal_file_hashed)
         {
-          double tmp = 0.0;
-          for(auto it = need_to_parse.begin(); it != need_to_parse.end(); it++)
+          signal_file_hashed(1.0, 1.0);
+        }
+      createCollection(files, temp_base_path);
+      if(std::filesystem::exists(temp_base_path))
+        {
+          std::filesystem::remove_all(base_path);
+          std::filesystem::rename(temp_base_path, base_path);
+        }
+    }
+  else if(base_type == "native")
+    {
+      l_processed = 0.0;
+      total = static_cast<double>(base_keeper->getFilesQuantity());
+
+      std::vector<UDBElement> *raw_base = base_keeper->getRawBase();
+
+      UDBase new_base;
+
+      filesCollecting(files_and_dirs, new_base);
+      std::vector<UDBElement> *new_raw_base = new_base.getRawBase();
+
+      total = static_cast<double>(countFiles(*new_raw_base));
+
+      if(signal_files_collecting)
+        {
+          signal_files_collecting(static_cast<size_t>(total));
+        }
+
+      if(signal_file_hashed)
+        {
+          signal_file_hashed(1.0, 1.0);
+        }
+
+      processed.store(0.0, std::memory_order_relaxed);
+      processFiles(*new_raw_base);
+      std::unique_lock<std::mutex> ullock(*threads_v_mtx);
+      threads_v_var->wait(ullock,
+                          [this]
+                            {
+                              for(auto it = threads_v->begin();
+                                  it != threads_v->end(); it++)
+                                {
+                                  if(!std::get<1>(*it))
+                                    {
+                                      return false;
+                                    }
+                                }
+                              return true;
+                            });
+
+      base_keeper->operator+=(new_base);
+
+      std::vector<std::tuple<const std::vector<UDBElement> *,
+                             std::vector<UDBElement>::const_iterator>>
+          files = getAllFiles(*raw_base);
+
+      removeDublicates(files);
+
+      cleanBase(*raw_base);
+
+      if(cancel.load(std::memory_order::relaxed))
+        {
+          return void();
+        }
+      std::filesystem::remove_all(base_path);
+      saveBase(base_path, *base_keeper);
+    }
+}
+
+bool
+RefreshCollection::elementRemove(const UDBElement &el,
+                                 const bool &fast_refresh)
+{
+  BaseID::ID id = bid.getId(el);
+  if(id == BaseID::File || id == BaseID::Dir || id == BaseID::Symlink)
+    {
+      std::filesystem::path p
+          = std::u8string(el.content.begin(), el.content.end());
+      if(!std::filesystem::exists(p))
+        {
+          return true;
+        }
+      if(bid.getId(el) == BaseID::File)
+        {
+          if(fast_refresh)
             {
+              auto it
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::FileSize;
+                                   });
+              if(it == el.subelements.end())
+                {
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
+                    {
+                      signal_file_hashed(l_processed, total);
+                    }
+                  return true;
+                }
+              uint64_t sz;
+              size_t sz_64 = sizeof(sz);
+              if(sz_64 != it->content.size())
+                {
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
+                    {
+                      signal_file_hashed(l_processed, total);
+                    }
+                  return true;
+                }
+              char *ptr = reinterpret_cast<char *>(&sz);
+              for(size_t i = 0; i < sz_64; i++)
+                {
+                  ptr[i] = it->content[i];
+                }
+              ByteOrder bo;
+              bo.setLittle(sz);
+              sz = bo;
               std::error_code ec;
-              tmp += static_cast<double>(std::filesystem::file_size(*it, ec));
+              uint64_t fsz
+                  = static_cast<uint64_t>(std::filesystem::file_size(p, ec));
               if(ec)
                 {
-                  std::cout
-                      << "CreateCollection::createCollection: " << ec.message()
-                      << std::endl;
-                }
-            }
-          signal_total_bytes(tmp);
-        }
-      threadRegulator();
-
-      if(refresh_bookmarks)
-        {
-          refreshBookMarks(bk);
-        }
-    }
-  else
-    {
-      throw std::runtime_error(
-          "RefreshCollection::refreshCollection: books not found");
-    }
-}
-
-void
-RefreshCollection::compareVectors(
-    std::vector<FileParseEntry> &base,
-    std::vector<std::filesystem::path> &books_files)
-{
-  for(auto it = base.begin(); it != base.end();)
-    {
-      if(pulse)
-        {
-          pulse();
-        }
-      auto itbf = std::find_if(books_files.begin(), books_files.end(),
-                               std::bind(&RefreshCollection::compareFunction1,
-                                         this, std::placeholders::_1, *it));
-      if(itbf == books_files.end())
-        {
-          base.erase(it);
-        }
-      else
-        {
-          it++;
-        }
-    }
-
-  std::unique_ptr<LibArchive> la(new LibArchive(af));
-
-#ifdef USE_OPENMP
-  int num_threads_default = omp_get_max_threads();
-  omp_set_num_threads(num_threads);
-  omp_set_max_active_levels(omp_get_supported_active_levels());
-  omp_set_dynamic(true);
-  omp_lock_t base_mtx;
-  omp_init_lock(&base_mtx);
-#pragma omp parallel
-#pragma omp for
-  for(auto it = books_files.begin(); it != books_files.end(); it++)
-    {
-      bool cncl;
-#pragma omp atomic read
-      cncl = cancel;
-      if(cncl)
-        {
-#pragma omp cancel for
-          continue;
-        }
-      if(pulse)
-        {
-          pulse();
-        }
-      omp_set_lock(&base_mtx);
-      auto itbase
-          = std::find_if(base.begin(), base.end(),
-                         std::bind(&RefreshCollection::compareFunction2, this,
-                                   std::placeholders::_1, *it));
-      if(itbase == base.end())
-        {
-          omp_unset_lock(&base_mtx);
-          omp_set_lock(&need_to_parsemtx);
-          need_to_parse.push_back(*it);
-          omp_unset_lock(&need_to_parsemtx);
-        }
-      else
-        {
-          FileParseEntry fpe = *itbase;
-          omp_unset_lock(&base_mtx);
-          if(af->ifSupportedArchiveUnpackaingType(*it))
-            {
-              std::vector<std::string> filenames;
-              getFilenamesFromArchives(*it, "", filenames, la.get());
-
-              // Base file existence check.
-              bool to_check = true;
-              for(auto it_fnm = filenames.begin(); it_fnm != filenames.end();
-                  it_fnm++)
-                {
-                  auto it_bpe
-                      = std::find_if(fpe.books.begin(), fpe.books.end(),
-                                     [it_fnm](const BookParseEntry &el)
-                                       {
-                                         return el.book_path == *it_fnm;
-                                       });
-                  if(it_bpe == fpe.books.end())
+#pragma omp critical
+                  {
+                    std::cout << "RefreshCollection::elementRemove: \""
+                              << ec.message() << "\" " << p << std::endl;
+                  }
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
                     {
-                      omp_set_lock(&need_to_parsemtx);
-                      need_to_parse.push_back(*it);
-                      omp_unset_lock(&need_to_parsemtx);
-                      omp_set_lock(&base_mtx);
-                      base.erase(std::remove_if(base.begin(), base.end(),
-                                                [fpe](const FileParseEntry &el)
-                                                  {
-                                                    return fpe.file_rel_path
-                                                           == el.file_rel_path;
-                                                  }),
-                                 base.end());
-                      omp_unset_lock(&base_mtx);
-                      to_check = false;
-                      break;
-                    }                  
-                }
-
-              // Archive file existence check
-              if(to_check)
-                {
-                  for(auto it_fpe = fpe.books.begin();
-                      it_fpe != fpe.books.end(); it_fpe++)
-                    {
-                      auto it_fnm
-                          = std::find(filenames.begin(), filenames.end(),
-                                      it_fpe->book_path);
-                      if(it_fnm == filenames.end())
-                        {
-                          omp_set_lock(&need_to_parsemtx);
-                          need_to_parse.push_back(*it);
-                          omp_unset_lock(&need_to_parsemtx);
-                          omp_set_lock(&base_mtx);
-                          base.erase(
-                              std::remove_if(base.begin(), base.end(),
-                                             [fpe](const FileParseEntry &el)
-                                               {
-                                                 return fpe.file_rel_path
-                                                        == el.file_rel_path;
-                                               }),
-                              base.end());
-                          omp_unset_lock(&base_mtx);
-                          break;
-                        }
+                      signal_file_hashed(l_processed, total);
                     }
+                  return true;
                 }
-            }
-        }
-    }
-  omp_destroy_lock(&base_mtx);
-  omp_set_num_threads(num_threads_default);
-#else
-  std::mutex base_mtx;
-
-  for(auto it = books_files.begin(); it != books_files.end(); it++)
-    {
-      if(cancel.load(std::memory_order_relaxed))
-        {
-          break;
-        }
-      std::unique_lock<std::mutex> run_thr_lock(newthrmtx);
-      std::vector<std::tuple<unsigned, bool>>::iterator free;
-      continue_hashing.wait(run_thr_lock,
-                            [this, &free]
-                              {
-                                bool result = false;
-                                for(auto it = thr_pool.begin();
-                                    it != thr_pool.end(); it++)
-                                  {
-                                    if(std::get<1>(*it))
-                                      {
-                                        free = it;
-                                        result = true;
-                                        break;
-                                      }
-                                  }
-                                return result;
-                              });
-      std::get<1>(*free) = false;
-      std::thread thr(
-          [this, &base_mtx, &base, &la, it, free]
-            {
-              if(pulse)
+              if(sz != fsz)
                 {
-                  pulse();
-                }
-              base_mtx.lock();
-              auto itbase = std::find_if(
-                  base.begin(), base.end(),
-                  std::bind(&RefreshCollection::compareFunction2, this,
-                            std::placeholders::_1, *it));
-              if(itbase == base.end())
-                {
-                  base_mtx.unlock();
-                  need_to_parsemtx.lock();
-                  need_to_parse.push_back(*it);
-                  need_to_parsemtx.unlock();
-                }
-              else
-                {
-                  FileParseEntry fpe = *itbase;
-                  base_mtx.unlock();
-                  if(af->ifSupportedArchiveUnpackaingType(*it))
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
                     {
-                      std::vector<std::string> filenames;
-                      getFilenamesFromArchives(*it, "", filenames, la.get());
-
-                      // Base file existence check.
-                      bool to_check = true;
-                      for(auto it_fnm = filenames.begin();
-                          it_fnm != filenames.end(); it_fnm++)
-                        {
-                          auto it_bpe = std::find_if(
-                              fpe.books.begin(), fpe.books.end(),
-                              [it_fnm](const BookParseEntry &el)
-                                {
-                                  return el.book_path == *it_fnm;
-                                });
-                          if(it_bpe == fpe.books.end())
-                            {
-                              need_to_parsemtx.lock();
-                              need_to_parse.push_back(*it);
-                              need_to_parsemtx.unlock();
-                              base_mtx.lock();
-                              base.erase(std::remove_if(
-                                             base.begin(), base.end(),
-                                             [fpe](const FileParseEntry &el)
-                                               {
-                                                 return fpe.file_rel_path
-                                                        == el.file_rel_path;
-                                               }),
-                                         base.end());
-                              base_mtx.unlock();
-                              to_check = false;
-                              break;
-                            }
-                        }
-
-                      // Archive file existence check
-                      if(to_check)
-                        {
-                          for(auto it_fpe = fpe.books.begin();
-                              it_fpe != fpe.books.end(); it_fpe++)
-                            {
-                              auto it_fnm = std::find(filenames.begin(),
-                                                      filenames.end(),
-                                                      it_fpe->book_path);
-                              if(it_fnm == filenames.end())
-                                {
-                                  need_to_parsemtx.lock();
-                                  need_to_parse.push_back(*it);
-                                  need_to_parsemtx.unlock();
-                                  base_mtx.lock();
-                                  base.erase(
-                                      std::remove_if(
-                                          base.begin(), base.end(),
-                                          [fpe](const FileParseEntry &el)
-                                            {
-                                              return fpe.file_rel_path
-                                                     == el.file_rel_path;
-                                            }),
-                                      base.end());
-                                  base_mtx.unlock();
-                                  break;
-                                }
-                            }
-                        }
+                      signal_file_hashed(l_processed, total);
                     }
+                  return true;
                 }
-              std::lock_guard<std::mutex> lglock(newthrmtx);
-              std::get<1>(*free) = true;
-              continue_hashing.notify_all();
-            });
-#ifdef __linux
-      cpu_set_t cpu_set;
-      CPU_ZERO(&cpu_set);
-      CPU_SET(std::get<0>(*free), &cpu_set);
-      int er = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t),
-                                      &cpu_set);
-      if(er != 0)
-        {
-          std::cout << "RefreshCollection::refreshCollection "
-                       "pthread_setaffinity_np: "
-                    << std::strerror(er) << std::endl;
-        }
-#elif defined(_WIN32)
-      DWORD_PTR mask = 1;
-      mask = mask << std::get<0>(*free);
-      HANDLE handle = pthread_gethandle(thr.native_handle());
-      if(handle)
-        {
-          if(SetThreadAffinityMask(handle, mask) == 0)
-            {
-              std::cout << "RefreshCollection::refreshCollection "
-                           "SetThreadAffinityMask: "
-                        << std::strerror(GetLastError()) << std::endl;
-            }
-        }
-      else
-        {
-          std::cout << "RefreshCollection::refreshCollection: handle is null!"
-                    << std::endl;
-        }
-#endif
-      thr.detach();
-    }
-  std::unique_lock<std::mutex> ullock(newthrmtx);
-  continue_hashing.wait(ullock,
-                        [this]
-                          {
-                            bool result = true;
-                            for(auto it = thr_pool.begin();
-                                it != thr_pool.end(); it++)
-                              {
-                                if(!std::get<1>(*it))
-                                  {
-                                    result = false;
-                                    break;
-                                  }
-                              }
-                            return result;
-                          });
-#endif
-}
-
-bool
-RefreshCollection::compareFunction1(const std::filesystem::path &book_path,
-                                    const FileParseEntry &ent)
-{
-  std::filesystem::path cur = std::filesystem::u8path(ent.file_rel_path);
-  std::filesystem::path comp = book_path.lexically_proximate(books_path);
-  if(cur == comp)
-    {
-      return true;
-    }
-  else
-    {
-      return false;
-    }
-}
-
-bool
-RefreshCollection::compareFunction2(const FileParseEntry &ent,
-                                    const std::filesystem::path &book_path)
-{
-  return compareFunction1(book_path, ent);
-}
-
-void
-RefreshCollection::refreshFile(const BookBaseEntry &bbe)
-{
-  std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-  bk->loadCollection(base_path.parent_path().filename().u8string());
-  std::vector<FileParseEntry> base = bk->get_base_vector();
-  for(auto it = base.begin(); it != base.end();)
-    {
-      if(compareFunction1(bbe.file_path, *it))
-        {
-          base.erase(it);
-          break;
-        }
-      else
-        {
-          it++;
-        }
-    }
-
-  std::filesystem::remove_all(base_path);
-
-  openBaseFile();
-  for(auto it = base.begin(); it != base.end(); it++)
-    {
-      write_file_to_base(*it);
-    }
-  closeBaseFile();
-  if(std::filesystem::exists(bbe.file_path))
-    {
-      need_to_parse.push_back(bbe.file_path);
-      threadRegulator();
-    }
-  if(refresh_bookmarks)
-    {
-      refreshBookMarks(bk);
-    }
-}
-
-void
-RefreshCollection::checkHashes(std::vector<FileParseEntry> *base,
-                               std::vector<std::filesystem::path> *books_files)
-{
-  uintmax_t summ = 0;
-  if(total_bytes_to_hash)
-    {
-      for(auto it = books_files->begin(); it != books_files->end(); it++)
-        {
-          if(pulse)
-            {
-              pulse();
-            }
-          summ += std::filesystem::file_size(*it);
-        }
-      total_bytes_to_hash(static_cast<double>(summ));
-    }
-
-#ifndef USE_OPENMP
-  bytes_summ.store(0);
-  for(auto it = thr_pool.begin(); it != thr_pool.end(); it++)
-    {
-      std::get<1>(*it) = true;
-    }
-  for(auto it = books_files->begin(); it != books_files->end(); it++)
-    {
-      if(cancel.load(std::memory_order_relaxed))
-        {
-          break;
-        }
-      std::unique_lock<std::mutex> ullock(newthrmtx);
-      std::vector<std::tuple<unsigned, bool>>::iterator free;
-      continue_hashing.wait(ullock,
-                            [this, &free]
-                              {
-                                bool result = false;
-                                for(auto it = thr_pool.begin();
-                                    it != thr_pool.end(); it++)
-                                  {
-                                    if(std::get<1>(*it))
-                                      {
-                                        result = true;
-                                        free = it;
-                                        break;
-                                      }
-                                  }
-                                return result;
-                              });
-      std::get<1>(*free) = false;
-      std::thread thr(
-          [this, free, it, base]
-            {
-              hashThread(*it, base);
-              std::lock_guard<std::mutex> lglock(newthrmtx);
-              std::get<1>(*free) = true;
-              continue_hashing.notify_all();
-            });
-#ifdef __linux
-      cpu_set_t cpu_set;
-      CPU_ZERO(&cpu_set);
-      CPU_SET(std::get<0>(*free), &cpu_set);
-      int er = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t),
-                                      &cpu_set);
-      if(er != 0)
-        {
-          std::cout
-              << "RefreshCollection::checkHashes pthread_setaffinity_np: "
-              << std::strerror(er) << std::endl;
-        }
-#elif defined(_WIN32)
-      DWORD_PTR mask = 1;
-      mask = mask << std::get<0>(*free);
-      HANDLE handle = pthread_gethandle(thr.native_handle());
-      if(handle)
-        {
-          if(SetThreadAffinityMask(handle, mask) == 0)
-            {
-              std::cout << "RefreshCollection::checkHashes "
-                           "SetThreadAffinityMask: "
-                        << std::strerror(GetLastError()) << std::endl;
-            }
-        }
-      else
-        {
-          std::cout << "RefreshCollection::checkHashes: handle is null!"
-                    << std::endl;
-        }
-#endif
-      thr.detach();
-    }
-
-  std::unique_lock<std::mutex> ullock(newthrmtx);
-  continue_hashing.wait(ullock,
-                        [this]
-                          {
-                            bool result = true;
-                            for(auto it = thr_pool.begin();
-                                it != thr_pool.end(); it++)
-                              {
-                                if(!std::get<1>(*it))
-                                  {
-                                    result = false;
-                                    break;
-                                  }
-                              }
-                            return result;
-                          });
-#else
-  int num_threads_default = omp_get_max_threads();
-  omp_set_num_threads(num_threads);
-#pragma omp parallel
-#pragma omp for
-  for(auto it = books_files->begin(); it != books_files->end(); it++)
-    {
-      bool cncl;
-#pragma omp atomic read
-      cncl = cancel;
-      if(cncl)
-        {
-#pragma omp cancel for
-          continue;
-        }
-      hashThread(*it, base);
-    }
-  omp_set_num_threads(num_threads_default);
-#endif
-}
-
-void
-RefreshCollection::hashThread(const std::filesystem::path &file_to_hash,
-                              std::vector<FileParseEntry> *base)
-{
-  std::string hash;
-#ifndef USE_OPENMP
-  try
-    {
-      hash = file_hashing(file_to_hash);
-    }
-  catch(std::exception &er)
-    {
-      std::cout << "RefreshCollection::hashThread: \"" << er.what() << "\""
-                << std::endl;
-    }
-
-  if(!hash.empty() && !cancel.load())
-    {
-      already_hashedmtx.lock();
-      already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
-      basemtx.lock();
-      auto itbase
-          = std::find_if(base->begin(), base->end(),
-                         std::bind(&RefreshCollection::compareFunction2, this,
-                                   std::placeholders::_1, file_to_hash));
-      if(itbase != base->end())
-        {
-          if(hash != itbase->file_hash)
-            {
-              need_to_parsemtx.lock();
-              auto itntp = std::find(need_to_parse.begin(),
-                                     need_to_parse.end(), file_to_hash);
-              if(itntp == need_to_parse.end())
+#pragma omp atomic update
+              l_processed += 1.0;
+              if(signal_file_hashed)
                 {
-                  need_to_parse.push_back(file_to_hash);
+                  signal_file_hashed(l_processed, total);
                 }
-              need_to_parsemtx.unlock();
-              base->erase(itbase);
             }
-        }
-      else
-        {
-          need_to_parsemtx.lock();
-          auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
-                                 file_to_hash);
-          if(itntp == need_to_parse.end())
+          else
             {
-              need_to_parse.push_back(file_to_hash);
-            }
-          need_to_parsemtx.unlock();
-        }
-      basemtx.unlock();
-      already_hashedmtx.unlock();
-      bytes_summ.store(bytes_summ.load()
-                       + std::filesystem::file_size(file_to_hash));
-      if(bytes_hashed)
-        {
-          bytes_hashed(static_cast<double>(bytes_summ.load()));
-        }
-    }
-#else
-  try
-    {
-      hash = file_hashing(file_to_hash);
-    }
-  catch(std::exception &er)
-    {
-      std::cout << "RefreshCollection::hashThread: \"" << er.what() << "\""
-                << std::endl;
-    }
-
-  bool cncl = false;
-#pragma omp atomic read
-  cncl = cancel;
-  if(!hash.empty() && !cncl)
-    {
-      omp_set_lock(&already_hashedmtx);
-      already_hashed.emplace_back(std::make_tuple(file_to_hash, hash));
-      omp_set_lock(&basemtx);
-      auto itbase
-          = std::find_if(base->begin(), base->end(),
-                         std::bind(&RefreshCollection::compareFunction2, this,
-                                   std::placeholders::_1, file_to_hash));
-      if(itbase != base->end())
-        {
-          if(hash != itbase->file_hash)
-            {
-              omp_set_lock(&need_to_parsemtx);
-              auto itntp = std::find(need_to_parse.begin(),
-                                     need_to_parse.end(), file_to_hash);
-              if(itntp == need_to_parse.end())
+              auto it
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::FileHash;
+                                   });
+              if(it == el.subelements.end())
                 {
-                  need_to_parse.push_back(file_to_hash);
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
+                    {
+                      signal_file_hashed(l_processed, total);
+                    }
+                  return true;
                 }
-              omp_unset_lock(&need_to_parsemtx);
-              base->erase(itbase);
+              std::string hash = fileHash(p);
+#pragma omp critical
+              {
+                already_hashed.push_back(std::make_tuple(p, hash));
+              }
+              if(hash != it->content)
+                {
+#pragma omp atomic update
+                  l_processed += 1.0;
+                  if(signal_file_hashed)
+                    {
+                      signal_file_hashed(l_processed, total);
+                    }
+                  return true;
+                }
+#pragma omp atomic update
+              l_processed += 1.0;
+              if(signal_file_hashed)
+                {
+                  signal_file_hashed(l_processed, total);
+                }
             }
         }
       else
         {
-          omp_set_lock(&need_to_parsemtx);
-          auto itntp = std::find(need_to_parse.begin(), need_to_parse.end(),
-                                 file_to_hash);
-          if(itntp == need_to_parse.end())
+          UDBElement *el_ptr = const_cast<UDBElement *>(&el);
+          Algorithm alg;
+          el_ptr->subelements.erase(
+              alg.parallelRemoveIf(
+                  el_ptr->subelements.begin(), el_ptr->subelements.end(),
+                  std::bind(&RefreshCollection::elementRemove, this,
+                            std::placeholders::_1, fast_refresh)),
+              el_ptr->subelements.end());
+          if(el.subelements.size() == 0)
             {
-              need_to_parse.push_back(file_to_hash);
+              return true;
             }
-          omp_unset_lock(&need_to_parsemtx);
         }
-      omp_unset_lock(&basemtx);
-      omp_unset_lock(&already_hashedmtx);
+    }
 
-      uintmax_t b_summ;
-#pragma omp atomic capture
+  return false;
+}
+
+void
+RefreshCollection::compareVectors(std::vector<UDBElement> &new_v,
+                                  const std::vector<UDBElement> &old_v)
+{
+  for(auto it = new_v.begin(); it != new_v.end(); it++)
+    {
+#pragma omp task
       {
-        bytes_summ += std::filesystem::file_size(file_to_hash);
-        b_summ = bytes_summ;
+        auto it_old = std::find_if(
+            old_v.begin(), old_v.end(),
+            [it](const UDBElement &el)
+              {
+                if(it->id == el.id)
+                  {
+                    if(std::filesystem::path(std::u8string(it->content.begin(),
+                                                           it->content.end()))
+                       == std::filesystem::path(std::u8string(
+                           el.content.begin(), el.content.end())))
+                      {
+                        return true;
+                      }
+                  }
+                return false;
+              });
+        if(it_old != old_v.end())
+          {
+            if(bid.getId(*it_old) == BaseID::File)
+              {
+                *it = *it_old;
+              }
+            else
+              {
+                compareVectors(it->subelements, it_old->subelements);
+              }
+          }
+        else if(bid.getId(*it) == BaseID::File)
+          {
+#pragma omp atomic update
+            total += 1.0;
+          }
       }
-      if(bytes_hashed)
-        {
-          bytes_hashed(static_cast<double>(b_summ));
-        }
-    }
-#endif
-}
-
-bool
-RefreshCollection::editBook(const BookBaseEntry &bbe_old,
-                            const BookBaseEntry &bbe_new)
-{
-  bool result = false;
-  std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-  bk->loadCollection(base_path.parent_path().filename().u8string());
-  std::vector<FileParseEntry> base = bk->get_base_vector();
-
-  auto itbase
-      = std::find_if(base.begin(), base.end(),
-                     std::bind(&RefreshCollection::compareFunction2, this,
-                               std::placeholders::_1, bbe_old.file_path));
-  if(itbase != base.end())
-    {
-      for(auto it = itbase->books.begin(); it != itbase->books.end(); it++)
-        {
-          std::filesystem::path p = books_path;
-          p /= std::filesystem::u8path(itbase->file_rel_path);
-          BookBaseEntry bbe(*it, p);
-          if(bbe == bbe_old)
-            {
-              *it = bbe_new.bpe;
-              result = true;
-            }
-        }
-    }
-
-  if(result)
-    {
-      std::filesystem::remove_all(base_path);
-      openBaseFile();
-      for(auto it = base.begin(); it != base.end(); it++)
-        {
-          write_file_to_base(*it);
-        }
-      closeBaseFile();
-      if(refresh_bookmarks)
-        {
-          std::vector<std::tuple<std::string, BookBaseEntry>> bmv
-              = bookmarks->getBookMarks();
-          std::tuple<std::string, BookBaseEntry> s_tup
-              = std::make_tuple(collection_name, bbe_old);
-          auto itbmv = std::find_if(
-              bmv.begin(), bmv.end(),
-              [s_tup](std::tuple<std::string, BookBaseEntry> &el)
-                {
-                  if(std::get<0>(el) == std::get<0>(s_tup)
-                     && std::get<1>(el) == std::get<1>(s_tup))
-                    {
-                      return true;
-                    }
-                  else
-                    {
-                      return false;
-                    }
-                });
-          if(itbmv != bmv.end())
-            {
-              bookmarks->removeBookMark(std::get<0>(*itbmv),
-                                        std::get<1>(*itbmv));
-              bookmarks->createBookMark(collection_name, bbe_new);
-            }
-        }
-    }
-
-  return result;
-}
-
-bool
-RefreshCollection::refreshBook(const BookBaseEntry &bbe)
-{
-  bool result = false;
-
-  std::shared_ptr<BaseKeeper> bk = std::make_shared<BaseKeeper>(af);
-  bk->loadCollection(base_path.parent_path().filename().u8string());
-  std::vector<FileParseEntry> base = bk->get_base_vector();
-
-  auto itbase
-      = std::find_if(base.begin(), base.end(),
-                     std::bind(&RefreshCollection::compareFunction2, this,
-                               std::placeholders::_1, bbe.file_path));
-  if(itbase != base.end())
-    {
-      auto itbpe = std::find_if(itbase->books.begin(), itbase->books.end(),
-                                [bbe](BookParseEntry &el)
-                                  {
-                                    return el == bbe.bpe;
-                                  });
-      if(itbpe != itbase->books.end())
-        {
-          *itbpe = bbe.bpe;
-          std::filesystem::remove_all(base_path);
-          openBaseFile();
-          for(auto it = base.begin(); it != base.end(); it++)
-            {
-              write_file_to_base(*it);
-            }
-          closeBaseFile();
-          result = true;
-        }
-    }
-
-  return result;
-}
-
-void
-RefreshCollection::set_rar_support(const bool &rar_support)
-{
-  this->rar_support = rar_support;
-}
-
-void
-RefreshCollection::refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk)
-{
-  bk->loadCollection(base_path.parent_path().filename().u8string());
-  std::vector<FileParseEntry> base = bk->get_base_vector();
-
-  std::vector<std::tuple<std::string, BookBaseEntry>> bmv
-      = bookmarks->getBookMarks();
-  for(auto it = bmv.begin(); it != bmv.end(); it++)
-    {
-      auto itbase = std::find_if(
-          base.begin(), base.end(),
-          std::bind(&RefreshCollection::compareFunction2, this,
-                    std::placeholders::_1, std::get<1>(*it).file_path));
-      if(itbase != base.end())
-        {
-          auto itbpe = std::find_if(itbase->books.begin(), itbase->books.end(),
-                                    [it](BookParseEntry &el)
-                                      {
-                                        return el == std::get<1>(*it).bpe;
-                                      });
-          if(itbpe == itbase->books.end())
-            {
-              bookmarks->removeBookMark(collection_name, std::get<1>(*it));
-            }
-        }
-      else
-        {
-          bookmarks->removeBookMark(collection_name, std::get<1>(*it));
-        }
-    }
-}
-
-void
-RefreshCollection::getFilenamesFromArchives(
-    const std::filesystem::path &arch_path, const std::string &prefix,
-    std::vector<std::string> &result, void *la)
-{
-  std::string ext = arch_path.extension().u8string();
-  std::vector<ArchEntry> files;
-  LibArchive *l_la = reinterpret_cast<LibArchive *>(la);
-  bool zip = false;
-  if(ext == ".zip" || ext == ".ZIP")
-    {
-      l_la->fileNames(arch_path, files);
-      zip = true;
-    }
-  else
-    {
-      l_la->fileNamesStream(arch_path, files);
-    }
-
-  std::vector<std::string> arch_types
-      = af->get_supported_archive_types_unpacking();
-  std::vector<std::string> types = af->get_supported_types();
-  for(auto it = files.begin(); it != files.end(); it++)
-    {
-      ext = af->getExtension(it->filename);
-      if(ext.size() > 0)
-        {
-          ext.erase(ext.begin());
-        }
-
-      auto it_t = std::find(arch_types.begin(), arch_types.end(), ext);
-
-      if(it_t != arch_types.end())
-        {
-          std::string l_prefix;
-          if(prefix.empty())
-            {
-              l_prefix = it->filename;
-            }
-          else
-            {
-              l_prefix = prefix + "\n" + it->filename;
-            }
-          std::filesystem::path p
-              = arch_path.parent_path()
-                / std::filesystem::u8path(af->randomFileName());
-          std::filesystem::path unpacked;
-          if(zip)
-            {
-              unpacked = l_la->unpackByPosition(arch_path, p, *it);
-            }
-          else
-            {
-              unpacked
-                  = l_la->unpackByFileNameStream(arch_path, p, it->filename);
-            }
-          getFilenamesFromArchives(unpacked, l_prefix, result, la);
-          std::filesystem::remove_all(p);
-        }
-      else
-        {
-          it_t = std::find(types.begin(), types.end(), ext);
-          if(it_t != types.end())
-            {
-              if(prefix.empty())
-                {
-                  result.push_back(it->filename);
-                }
-              else
-                {
-                  result.push_back(prefix + "\n" + it->filename);
-                }
-            }
-        }
     }
 }

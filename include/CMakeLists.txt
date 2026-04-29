@@ -1,42 +1,48 @@
-target_sources (mylibrary
-    PRIVATE AddBookGui.h
-    PRIVATE AddBookModelItem.h
-    PRIVATE BookInfoGui.h
-    PRIVATE BookMarksGui.h
-    PRIVATE BookMarksModelItem.h
-    PRIVATE BookMarksShow.h
-    PRIVATE BooksWindow.h
-    PRIVATE CollectionCrProcessGui.h
-    PRIVATE CopyBookGui.h
-    PRIVATE CoverPixBuf.h
-    PRIVATE CreateCollectionGui.h
-    PRIVATE EditBookGenreModelItem.h
-    PRIVATE EditBookGui.h
-    PRIVATE EmptyCollectionGui.h
-    PRIVATE ExportCollectionGui.h
-    PRIVATE FullSizeCover.h
-    PRIVATE ImportCollectionGui.h
-    PRIVATE LeftGrid.h
-    PRIVATE MainWindow.h
-    PRIVATE MagickModelItem.h
-    PRIVATE MyLibraryApplication.h
-    PRIVATE NotesGui.h
-    PRIVATE RefreshCollectionGui.h
-    PRIVATE RemoveBookGui.h
-    PRIVATE RemoveCollectionGui.h
-    PRIVATE RightGrid.h
-    PRIVATE SaveCover.h
-    PRIVATE SearchProcessGui.h
-    PRIVATE SearchResultModelItemAuth.h
-    PRIVATE SearchResultModelItemFL.h
-    PRIVATE SearchResultModelItem.h
-    PRIVATE SearchResultShow.h    
-    PRIVATE SettingsWindow.h
-    PRIVATE TransferBookGui.h
+target_sources(MyLibrary PRIVATE
+    AboutWindow.h
+    AddBooksWindow.h
+    AuthorEditWindow.h
+    AuthorsModel.h
+    BookDetailsWindow.h
+    BookMarksModel.h
+    BookMarksWindow.h
+    CollectionBaseExportWindow.h
+    CollectionBaseImportWindow.h
+    CollectionCreationProcWindow.h
+    CollectionRefreshingProcWindow.h
+    ColorButton.h
+    CoverWidget.h
+    CoverWindow.h
+    CreateCollectionWindow.h
+    CreateInpxCollectionWindow.h
+    FilesModel.h
+    GenreEditDelegate.h
+    GenreEditModel.h
+    GenreEditWindow.h
+    GenreModel.h
+    GenreView.h
+    MainWindow.h
+    MainWindowLeftWidget.h
+    MainWindowRightWidget.h
+    NotesManagerModel.h
+    NotesManagerWindow.h
+    NoteWindow.h
+    Plugin.h
+    PluginManager.h
+    PluginsWindow.h
+    RefreshCollectionWindow.h
+    RemoveBookWindow.h
+    RemoveCollectionWindow.h
+    SearchProcWindow.h
+    SearchResultItemDelegate.h
+    SearchViewModel.h
+    SearchViewModelAuthors.h
+    SearchViewModelFiles.h
+    SearchViewModelItem.h
+    SeriesEditWindow.h
+    SeriesModel.h
+    SettingsManager.h
+    SettingsWindow.h
+    StyledWindow.h
+    TableView.h
 )
-
-if(USE_PLUGINS)
-target_sources(mylibrary
-    PRIVATE PluginsKeeper.h
-)
-endif()

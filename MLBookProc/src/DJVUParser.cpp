@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -14,561 +14,577 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <ByteOrder.h>
 #include <DJVUParser.h>
+#include <algorithm>
 #include <chrono>
-#include <fstream>
 #include <iostream>
 #include <libdjvu/miniexp.h>
-#include <string>
-#include <unistd.h>
-
-#ifndef USE_OPENMP
+#include <syncstream>
 #include <thread>
-#endif
 
-#if defined(__linux)
-#include <cstring>
-#include <poll.h>
-#elif defined(_WIN32)
-#include <fileapi.h>
-#endif
-
-DJVUParser::DJVUParser(const std::shared_ptr<AuxFunc> &af)
+DJVUParser::DJVUParser(const std::shared_ptr<MLBookProc> &mlbp)
 {
-  this->af = af;
+  this->mlbp = mlbp;
 }
 
-BookParseEntry
-DJVUParser::djvu_parser(const std::filesystem::path &filepath)
+UDBElement
+DJVUParser::parseBook(const std::string &book_content)
 {
-  djvu_file_path = filepath;
-  BookParseEntry bpe;
+  UDBElement result;
+  bid.setId(result, BaseID::Book);
 
-  bpe.book_name = filepath.stem().u8string();
-  std::filesystem::file_time_type cr
-      = std::filesystem::last_write_time(filepath);
+  UDBElement el;
+  bid.setId(el, BaseID::BookTitle);
+  result.subelements.emplace_back(el);
 
-  auto sctp
-      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-          cr - std::filesystem::file_time_type::clock::now()
-          + std::chrono::system_clock::now());
-  time_t tt = std::chrono::system_clock::to_time_t(sctp);
+  el = UDBElement();
+  bid.setId(el, BaseID::Date);
+  result.subelements.emplace_back(el);
 
-  bpe.book_date = af->time_t_to_date(tt);
-
-  std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>> djvu_tup
-      = af->getDJVUContext();
-  std::shared_ptr<ddjvu_context_t> context = std::get<0>(djvu_tup);
-  int *pipe = std::get<1>(djvu_tup).get();
-  if(context)
+  std::shared_ptr<DJVUContext> ctx = mlbp->getDJVUContext();
+  if(!ctx.operator bool())
     {
-      std::shared_ptr<ddjvu_document_t> doc(
-          ddjvu_document_create(context.get(), nullptr, false),
-          [](ddjvu_document_t *doc) {
-            ddjvu_document_release(doc);
-          });
-
-      if(doc)
-        {
-          ddjvu_message_t *msg = handleDJVUmsgs(context, doc, pipe);
-          if(msg == nullptr)
-            {
-              return bpe;
-            }
-          if(msg->m_any.tag != DDJVU_NEWSTREAM)
-            {
-              if(msg->m_any.tag == DDJVU_ERROR)
-                {
-                  std::cout
-                      << "DJVUParser::djvu_parser: " << msg->m_error.message
-                      << " Function: " << msg->m_error.function
-                      << " File: " << djvu_file_path << std::endl;
-                }
-              ddjvu_message_pop(context.get());
-              return bpe;
-            }
-          else
-            {
-              int id = msg->m_newstream.streamid;
-              ddjvu_message_pop(context.get());
-              std::fstream f;
-              f.open(djvu_file_path,
-                     std::ios_base::in | std::ios_base::binary);
-              if(f.is_open())
-                {
-                  std::string data;
-                  f.seekg(0, std::ios_base::end);
-                  data.resize(f.tellg());
-                  f.seekg(0, std::ios_base::beg);
-                  f.read(data.data(), data.size());
-                  f.close();
-
-                  ddjvu_stream_write(doc.get(), id, data.c_str(),
-                                     static_cast<unsigned long>(data.size()));
-                  ddjvu_stream_close(doc.get(), id, false);
-                }
-              else
-                {
-                  return bpe;
-                }
-            }
-
-          msg = handleDJVUmsgs(context, doc, pipe);
-          if(msg)
-            {
-              if(msg->m_any.tag != DDJVU_DOCINFO)
-                {
-                  if(msg->m_any.tag == DDJVU_ERROR)
-                    {
-                      std::cout << "DJVUParser::djvu_parser: "
-                                << msg->m_error.message
-                                << " Function: " << msg->m_error.function
-                                << " File: " << djvu_file_path << std::endl;
-                    }
-                  ddjvu_message_pop(context.get());
-                  return bpe;
-                }
-              ddjvu_message_pop(context.get());
-            }
-
-          miniexp_t r;
-          std::chrono::milliseconds mlsc(10);
-          while((r = ddjvu_document_get_anno(doc.get(), true))
-                == miniexp_dummy)
-            {
-#ifdef USE_OPENMP
-              usleep(
-                  std::chrono::duration_cast<std::chrono::microseconds>(mlsc)
-                      .count());
-#else
-              std::this_thread::sleep_for(mlsc);
-#endif
-            }
-          if(r)
-            {
-              if(r != miniexp_nil)
-                {
-                  miniexp_t exp = miniexp_pname(r, 0);
-                  const char *val = miniexp_to_str(exp);
-                  if(val)
-                    {
-                      std::string exp_str(val);
-                      getTag(exp_str, "author", bpe.book_author);
-                      if(bpe.book_author.empty())
-                        {
-                          getTag(exp_str, "Author", bpe.book_author);
-                        }
-                      std::string::size_type n = 0;
-                      std::string find_str = "  ";
-                      for(;;)
-                        {
-                          n = bpe.book_author.find(find_str, n);
-                          if(n != std::string::npos)
-                            {
-                              bpe.book_author.erase(bpe.book_author.begin()
-                                                    + n);
-                            }
-                          else
-                            {
-                              break;
-                            }
-                        }
-
-                      bool stop = false;
-
-                      while(bpe.book_author.size() > 0)
-                        {
-                          switch(*bpe.book_author.rbegin())
-                            {
-                            case 0 ... 32:
-                              {
-                                bpe.book_author.pop_back();
-                                break;
-                              }
-                            default:
-                              {
-                                stop = true;
-                                break;
-                              }
-                            }
-                          if(stop)
-                            {
-                              break;
-                            }
-                        }
-
-                      stop = false;
-                      while(bpe.book_author.size() > 0)
-                        {
-                          switch(*bpe.book_author.begin())
-                            {
-                            case 0 ... 32:
-                              {
-                                bpe.book_author.erase(bpe.book_author.begin());
-                                break;
-                              }
-                            default:
-                              {
-                                stop = true;
-                                break;
-                              }
-                            }
-                          if(stop)
-                            {
-                              break;
-                            }
-                        }
-                      std::string tmp;
-                      getTag(exp_str, "title", tmp);
-                      if(tmp.empty())
-                        {
-                          getTag(exp_str, "Title", tmp);
-                        }
-                      if(!tmp.empty())
-                        {
-                          bpe.book_name = tmp;
-                        }
-                      getTag(exp_str, "series", bpe.book_series);
-                      if(bpe.book_series.empty())
-                        {
-                          getTag(exp_str, "Series", bpe.book_series);
-                        }
-                      tmp.clear();
-                      getTag(exp_str, "year", tmp);
-                      if(tmp.empty())
-                        {
-                          getTag(exp_str, "Year", tmp);
-                        }
-                      if(!tmp.empty())
-                        {
-                          bpe.book_date = tmp;
-                        }
-                    }
-                }
-            }
-        }
-      else
-        {
-          std::cout << "DJVUParser::djvu_parser: document has not been opened"
-                    << std::endl;
-        }
+      std::osyncstream(std::cout)
+          << "DJVUParser::parseBook: context object is null!" << std::endl;
+      return result;
     }
-  else
-    {
-      std::cout << "DJVUParser::djvu_parser: context has not been created"
-                << std::endl;
-    }
-#if defined(_WIN32)
-  HANDLE handle = *reinterpret_cast<HANDLE *>(pipe + 1);
-  uint8_t write = 255;
-  DWORD wb;
-  WriteFile(handle, &write, sizeof(write), &wb, nullptr);
-#endif
-  return bpe;
-}
 
-std::shared_ptr<BookInfoEntry>
-DJVUParser::djvu_book_info(const std::filesystem::path &filepath)
-{
-  djvu_file_path = filepath;
-  std::shared_ptr<BookInfoEntry> result = std::make_shared<BookInfoEntry>();
-
-  std::tuple<std::shared_ptr<ddjvu_context_t>, std::shared_ptr<int>> djvu_tup
-      = af->getDJVUContext();
-  std::shared_ptr<ddjvu_context_t> context = std::get<0>(djvu_tup);
-  int *pipe = std::get<1>(djvu_tup).get();
-  if(context)
-    {
-      std::shared_ptr<ddjvu_document_t> doc(
-          ddjvu_document_create(context.get(), nullptr, false),
-          [](ddjvu_document_t *doc) {
-            ddjvu_document_release(doc);
-          });
-
-      if(doc)
+  std::shared_ptr<ddjvu_document_t> doc(
+      ddjvu_document_create(ctx->context, nullptr, false),
+      [](ddjvu_document_t *doc)
         {
-          ddjvu_message_t *msg = handleDJVUmsgs(context, doc, pipe);
-          if(msg == nullptr)
-            {
-              return result;
-            }
-          if(msg->m_any.tag != DDJVU_NEWSTREAM)
-            {
-              if(msg->m_any.tag == DDJVU_ERROR)
-                {
-                  std::cout
-                      << "DJVUParser::djvu_book_info: " << msg->m_error.message
-                      << " Function: " << msg->m_error.function
-                      << " File: " << djvu_file_path << std::endl;
-                }
-              ddjvu_message_pop(context.get());
-              return result;
-            }
-          else
-            {
-              int id = msg->m_newstream.streamid;
-              ddjvu_message_pop(context.get());
-              std::fstream f;
-              f.open(djvu_file_path,
-                     std::ios_base::in | std::ios_base::binary);
-              if(f.is_open())
-                {
-                  std::string data;
-                  f.seekg(0, std::ios_base::end);
-                  data.resize(f.tellg());
-                  f.seekg(0, std::ios_base::beg);
-                  f.read(data.data(), data.size());
-                  f.close();
-                  ddjvu_stream_write(doc.get(), id, data.c_str(),
-                                     static_cast<unsigned long>(data.size()));
-                  ddjvu_stream_close(doc.get(), id, false);
-                }
-              else
-                {
-                  return result;
-                }
-            }
+          ddjvu_document_release(doc);
+        });
+  if(!doc.operator bool())
+    {
+      std::osyncstream(std::cout)
+          << "DJVUParser::parseBook: document object is null!" << std::endl;
+      return result;
+    }
 
-          msg = handleDJVUmsgs(context, doc, pipe);
-          if(msg)
+  if(!setBookContentToStream(ctx, doc, book_content))
+    {
+      return result;
+    }
+
+  if(!waitDocumentInfo(ctx, doc))
+    {
+      return result;
+    }
+
+  miniexp_t r;
+  std::chrono::milliseconds mlsc(5);
+  while((r = ddjvu_document_get_anno(doc.get(), true)) == miniexp_dummy)
+    {
+      std::this_thread::sleep_for(mlsc);
+    }
+  if(r)
+    {
+      if(r != miniexp_nil)
+        {
+          miniexp_t exp = miniexp_pname(r, 0);
+          const char *val = miniexp_to_str(exp);
+          if(val)
             {
-              if(msg->m_any.tag != DDJVU_DOCINFO)
+              el = UDBElement();
+              bid.setId(el, BaseID::Author);
+              std::string exp_str(val);
+              getTag(exp_str, "author", el.content);
+              if(el.content.empty())
                 {
-                  if(msg->m_any.tag == DDJVU_ERROR)
+                  getTag(exp_str, "Author", el.content);
+                }
+              std::string::size_type n = 0;
+              std::string find_str = "  ";
+              for(;;)
+                {
+                  n = el.content.find(find_str, n);
+                  if(n != std::string::npos)
                     {
-                      std::cout << "DJVUParser::djvu_book_info: "
-                                << msg->m_error.message
-                                << " Function: " << msg->m_error.function
-                                << " File: " << djvu_file_path << std::endl;
-                    }
-                  ddjvu_message_pop(context.get());
-                  return result;
-                }
-              ddjvu_message_pop(context.get());
-            }
-
-          miniexp_t r;
-
-          std::chrono::milliseconds mlsc(5);
-          while((r = ddjvu_document_get_anno(doc.get(), true))
-                == miniexp_dummy)
-            {
-#ifdef USE_OPENMP
-              usleep(
-                  std::chrono::duration_cast<std::chrono::microseconds>(mlsc)
-                      .count());
-#else
-              std::this_thread::sleep_for(mlsc);
-#endif
-            }
-          if(r)
-            {
-              if(r != miniexp_dummy)
-                {
-                  miniexp_t exp = miniexp_pname(r, 0);
-                  const char *val = miniexp_to_str(exp);
-                  if(val)
-                    {
-                      std::string exp_str(val);
-                      getTag(exp_str, "annote", result->annotation);
-                    }
-                }
-            }
-
-          std::shared_ptr<ddjvu_page_t> page(
-              ddjvu_page_create_by_pageno(doc.get(), 0), [](ddjvu_page_t *p) {
-                ddjvu_page_release(p);
-              });
-
-          if(page)
-            {
-              while(!ddjvu_page_decoding_done(page.get()))
-                {
-                  msg = handleDJVUmsgs(context, doc, pipe);
-                  if(msg)
-                    {
-                      if(msg->m_any.tag == DDJVU_ERROR)
-                        {
-                          std::cout << "DJVUParser::djvu_book_info: "
-                                    << msg->m_error.message
-                                    << " Function: " << msg->m_error.function
-                                    << " File: " << djvu_file_path
-                                    << std::endl;
-                          ddjvu_message_pop(context.get());
-                          return result;
-                        }
-                      ddjvu_message_pop(context.get());
-                    }
-                }
-              int iw = ddjvu_page_get_width(page.get());
-              int ih = ddjvu_page_get_height(page.get());
-
-              ddjvu_rect_t prect;
-              ddjvu_rect_t rrect;
-              prect.x = 0;
-              prect.y = 0;
-              prect.w = iw;
-              prect.h = ih;
-              rrect = prect;
-
-              unsigned int bitmask[4];
-              bitmask[0] = 255;
-              bitmask[1] = 65280;
-              bitmask[2] = 16711680;
-              bitmask[3] = 4278190080;
-
-              std::shared_ptr<ddjvu_format_t> fmt(
-                  ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 4, bitmask),
-                  [](ddjvu_format_t *fmt) {
-                    ddjvu_format_release(fmt);
-                  });
-
-              if(fmt)
-                {
-                  ddjvu_format_set_row_order(fmt.get(), 1);
-                  int rowsize = rrect.w * 4;
-                  result->cover.resize(rowsize * rrect.h);
-                  if(ddjvu_page_render(page.get(), DDJVU_RENDER_COLOR, &prect,
-                                       &rrect, fmt.get(), rowsize,
-                                       &result->cover[0]))
-                    {
-                      result->cover_type = BookInfoEntry::cover_types::rgba;
-                      result->bytes_per_row = rowsize;
+                      el.content.erase(el.content.begin() + n);
                     }
                   else
                     {
-                      std::cout << "DJVUParser::djvu_cover: DJVU render error"
-                                << std::endl;
-                      result->cover.clear();
+                      break;
                     }
                 }
-              else
+
+              bool stop = false;
+
+              while(el.content.size() > 0)
                 {
-                  std::cout << "DJVUParser::djvu_cover: error on format set"
-                            << std::endl;
+                  switch(*el.content.rbegin())
+                    {
+                    case 0 ... 32:
+                      {
+                        el.content.pop_back();
+                        break;
+                      }
+                    default:
+                      {
+                        stop = true;
+                        break;
+                      }
+                    }
+                  if(stop)
+                    {
+                      break;
+                    }
+                }
+
+              stop = false;
+              while(el.content.size() > 0)
+                {
+                  switch(*el.content.begin())
+                    {
+                    case 0 ... 32:
+                      {
+                        el.content.erase(el.content.begin());
+                        break;
+                      }
+                    default:
+                      {
+                        stop = true;
+                        break;
+                      }
+                    }
+                  if(stop)
+                    {
+                      break;
+                    }
+                }
+
+              result.subelements.emplace_back(el);
+
+              auto it_res = std::find_if(
+                  result.subelements.begin(), result.subelements.end(),
+                  [this](const UDBElement &el)
+                    {
+                      return bid.getId(el) == BaseID::BookTitle;
+                    });
+              if(it_res == result.subelements.end())
+                {
+                  return result;
+                }
+
+              std::string tmp;
+              getTag(exp_str, "title", tmp);
+              if(tmp.empty())
+                {
+                  getTag(exp_str, "Title", tmp);
+                }
+              if(!tmp.empty())
+                {
+                  it_res->content = tmp;
+                }
+
+              el = UDBElement();
+              bid.setId(el, BaseID::Sequence);
+              getTag(exp_str, "series", el.content);
+              if(el.content.empty())
+                {
+                  getTag(exp_str, "Series", el.content);
+                }
+              result.subelements.emplace_back(el);
+
+              it_res = std::find_if(result.subelements.begin(),
+                                    result.subelements.end(),
+                                    [this](const UDBElement &el)
+                                      {
+                                        return bid.getId(el) == BaseID::Date;
+                                      });
+              if(it_res == result.subelements.end())
+                {
+                  return result;
+                }
+
+              tmp.clear();
+              getTag(exp_str, "year", tmp);
+              if(tmp.empty())
+                {
+                  getTag(exp_str, "Year", tmp);
+                }
+              if(!tmp.empty())
+                {
+                  it_res->content = tmp;
                 }
             }
-          else
-            {
-              std::cout << "DJVUParser::djvu_cover: page has not been opened"
-                        << std::endl;
-            }
-        }
-      else
-        {
-          std::cout << "DJVUParser::djvu_cover: document has not been opened"
-                    << std::endl;
         }
     }
-  else
-    {
-      std::cout << "DJVUParser::djvu_cover: context has not been created"
-                << std::endl;
-    }
-#if defined(_WIN32)
-  HANDLE handle = *reinterpret_cast<HANDLE *>(pipe + 1);
-  uint8_t write = 255;
-  DWORD wb;
-  WriteFile(handle, &write, sizeof(write), &wb, nullptr);
-#endif
+
   return result;
 }
 
-ddjvu_message_t *
-DJVUParser::handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-                           const std::shared_ptr<ddjvu_document_t> &doc,
-                           int *pipe)
+UDBase
+DJVUParser::getBookInfo(const std::string &book_content)
 {
-  ddjvu_message_t *result = nullptr;
-  std::chrono::time_point<std::chrono::system_clock> start
-      = std::chrono::system_clock::now();
-  std::chrono::milliseconds dif(1000);
-  std::chrono::time_point<std::chrono::system_clock> end = start + dif;
-  for(;;)
+  UDBase result;
+
+  std::shared_ptr<DJVUContext> ctx = mlbp->getDJVUContext();
+  if(!ctx.operator bool())
     {
-#if defined(__linux)
-      pollfd fd;
-      fd.fd = *pipe;
-      fd.events = POLLIN;
-      int respol = poll(&fd, 1, dif.count());
-      if(respol > 0)
+      std::osyncstream(std::cout)
+          << "DJVUParser::getBookInfo: context object is null!" << std::endl;
+      return result;
+    }
+
+  std::shared_ptr<ddjvu_document_t> doc(
+      ddjvu_document_create(ctx->context, nullptr, false),
+      [](ddjvu_document_t *doc)
         {
-          if(fd.revents & POLLERR)
+          ddjvu_document_release(doc);
+        });
+  if(!doc.operator bool())
+    {
+      std::osyncstream(std::cout)
+          << "DJVUParser::getBookInfo: document object is null!" << std::endl;
+      return result;
+    }
+
+  if(!setBookContentToStream(ctx, doc, book_content))
+    {
+      return result;
+    }
+
+  if(!waitDocumentInfo(ctx, doc))
+    {
+      return result;
+    }
+
+  miniexp_t r;
+  std::chrono::milliseconds mlsc(5);
+  while((r = ddjvu_document_get_anno(doc.get(), true)) == miniexp_dummy)
+    {
+      std::this_thread::sleep_for(mlsc);
+    }
+  if(r != nullptr)
+    {
+      if(r != miniexp_nil)
+        {
+          miniexp_t exp = miniexp_pname(r, 0);
+          const char *val = miniexp_to_str(exp);
+          if(val)
             {
-              break;
-            }
-          if(fd.events & POLLIN)
-            {
-              uint8_t val;
-              read(*pipe, &val, sizeof(val));
-              if(val == 1)
+              std::string exp_str(val);
+              UDBElement el;
+              bid.setId(el, BaseID::Annotation);
+              getTag(exp_str, "annote", el.content);
+              if(!el.content.empty())
                 {
-                  result = ddjvu_message_peek(ctx.get());
-                  if(result)
-                    {
-                      if(result->m_any.document == doc.get())
-                        {
-                          break;
-                        }
-                      else
-                        {
-                          result = nullptr;
-                        }
-                    }
+                  result.addElement(el);
                 }
-              else
+
+              el = UDBElement();
+              bid.setId(el, BaseID::Keywords);
+              getTag(exp_str, "Keywords", el.content);
+              if(!el.content.empty())
                 {
-                  break;
+                  result.addElement(el);
                 }
-            }
-        }
-      else
-        {
-          if(respol < 0)
-            {
-              std::cout << "DJVUParser::handleDJVUmsgs poll error: "
-                        << std::strerror(errno) << std::endl;
-            }
-          break;
-        }
-#elif defined(_WIN32)
-      uint8_t val;
-      HANDLE handle = *reinterpret_cast<HANDLE *>(pipe);
-      DWORD rb;
-      ReadFile(handle, &val, sizeof(val), &rb, nullptr);
-      if(val == 1)
-        {
-          result = ddjvu_message_peek(ctx.get());
-          if(result)
-            {
-              if(result->m_any.document == doc.get())
+
+              el = UDBElement();
+              bid.setId(el, BaseID::DjvuPublisher);
+              getTag(exp_str, "publisher", el.content);
+              if(!el.content.empty())
                 {
-                  break;
+                  result.addElement(el);
                 }
-              else
+
+              el = UDBElement();
+              bid.setId(el, BaseID::EbookProgramUsed);
+              getTag(exp_str, "software", el.content);
+              if(!el.content.empty())
                 {
-                  result = nullptr;
+                  result.addElement(el);
                 }
             }
-        }
-      else if(val == 255)
-        {
-          break;
-        }
-#endif
-      std::chrono::time_point<std::chrono::system_clock> now
-          = std::chrono::system_clock::now();
-      if(now < end)
-        {
-          dif = std::chrono::duration_cast<std::chrono::milliseconds>(end
-                                                                      - now);
-        }
-      else
-        {
-          break;
         }
     }
 
+  std::shared_ptr<ddjvu_page_t> page = getFirstPage(ctx, doc);
+  if(!page.operator bool())
+    {
+      return result;
+    }
+
+  int iw = ddjvu_page_get_width(page.get());
+  int ih = ddjvu_page_get_height(page.get());
+
+  ddjvu_rect_t page_rect;
+  page_rect.x = 0;
+  page_rect.y = 0;
+  page_rect.w = iw;
+  page_rect.h = ih;
+
+  std::unique_ptr<uint32_t, std::function<void(uint32_t *)>> bitmask(
+      new uint32_t[4],
+      [](uint32_t *ptr)
+        {
+          delete[] ptr;
+        });
+  uint32_t val = 0x000000ff;
+  ByteOrder bo;
+  bo.setLittle(val);
+  *(bitmask.get()) = bo;
+
+  val = 0x0000ff00;
+  bo.setLittle(val);
+  *(bitmask.get() + 1) = bo;
+
+  val = 0x00ff0000;
+  bo.setLittle(val);
+  *(bitmask.get() + 2) = bo;
+
+  val = 0xff000000;
+  bo.setLittle(val);
+  *(bitmask.get() + 3) = bo;
+
+  std::shared_ptr<ddjvu_format_t> fmt(
+      ddjvu_format_create(DDJVU_FORMAT_RGBMASK32, 4, bitmask.get()),
+      [](ddjvu_format_t *fmt)
+        {
+          ddjvu_format_release(fmt);
+        });
+
+  if(!fmt.operator bool())
+    {
+      std::osyncstream(std::cout)
+          << "DJVUParser::getBookInfo: format object is null!" << std::endl;
+    }
+
+  ddjvu_format_set_row_order(fmt.get(), 1);
+  int rowsize = page_rect.w * 4;
+  UDBElement el;
+  bid.setId(el, BaseID::CoverPage);
+  el.content.resize(rowsize * page_rect.h);
+  if(ddjvu_page_render(page.get(), DDJVU_RENDER_COLOR, &page_rect, &page_rect,
+                       fmt.get(), rowsize, el.content.data()))
+    {
+      UDBElement type;
+      bid.setId(type, BaseID::CoverType);
+      type.content = "RGB";
+
+      UDBElement val;
+      bid.setId(val, BaseID::CoverHeight);
+      val.content.resize(sizeof(page_rect.h));
+      char *ptr = reinterpret_cast<char *>(&page_rect.h);
+      for(size_t i = 0; i < val.content.size(); i++)
+        {
+          val.content[i] = ptr[i];
+        }
+      type.subelements.emplace_back(val);
+
+      val = UDBElement();
+      bid.setId(val, BaseID::CoverWidth);
+      val.content.resize(sizeof(page_rect.w));
+      ptr = reinterpret_cast<char *>(&page_rect.w);
+      for(size_t i = 0; i < val.content.size(); i++)
+        {
+          val.content[i] = ptr[i];
+        }
+      type.subelements.emplace_back(val);
+
+      el.subelements.emplace_back(type);
+
+      result.addElement(el);
+    }
+  else
+    {
+      std::osyncstream(std::cout)
+          << "DJVUParser::getBookInfo: DJVU render error" << std::endl;
+    }
+
+  return result;
+}
+
+bool
+DJVUParser::setBookContentToStream(
+    const std::shared_ptr<DJVUContext> &ctx,
+    const std::shared_ptr<ddjvu_document_t> &doc,
+    const std::string &book_content)
+{
+  ddjvu_message_t *msg = nullptr;
+
+  std::unique_lock<std::mutex> ullock(ctx->context_mtx);
+  ctx->context_var.wait_for(
+      ullock, std::chrono::seconds(5),
+      [ctx, doc, &msg]
+        {
+          msg = ddjvu_message_peek(ctx->context);
+          if(msg == nullptr)
+            {
+              return false;
+            }
+          if(msg->m_any.document != doc.get())
+            {
+              msg = nullptr;
+              return false;
+            }
+          switch(msg->m_any.tag)
+            {
+            case DDJVU_ERROR:
+              {
+                std::osyncstream(std::cout)
+                    << "DJVUParser::setBookContentToStream error: "
+                    << msg->m_error.message
+                    << " function: " << msg->m_error.function << std::endl;
+                ddjvu_message_pop(ctx->context);
+                msg = nullptr;
+                break;
+              }
+            case DDJVU_NEWSTREAM:
+              {
+                break;
+              }
+            default:
+              {
+                ddjvu_message_pop(ctx->context);
+                msg = nullptr;
+                return false;
+              }
+            }
+          return true;
+        });
+
+  if(msg == nullptr)
+    {
+      return false;
+    }
+
+  ddjvu_stream_write(msg->m_any.document, msg->m_newstream.streamid,
+                     book_content.c_str(),
+                     static_cast<unsigned long>(book_content.size()));
+  ddjvu_stream_close(msg->m_any.document, msg->m_newstream.streamid, false);
+
+  ddjvu_message_pop(ctx->context);
+
+  return true;
+}
+
+bool
+DJVUParser::waitDocumentInfo(const std::shared_ptr<DJVUContext> &ctx,
+                             const std::shared_ptr<ddjvu_document_t> &doc)
+{
+  ddjvu_message_t *msg = nullptr;
+
+  std::unique_lock<std::mutex> ullock(ctx->context_mtx);
+  ctx->context_var.wait_for(
+      ullock, std::chrono::seconds(5),
+      [ctx, doc, &msg]
+        {
+          msg = ddjvu_message_peek(ctx->context);
+          if(msg == nullptr)
+            {
+              return false;
+            }
+          if(msg->m_any.document != doc.get())
+            {
+              msg = nullptr;
+              return false;
+            }
+          switch(msg->m_any.tag)
+            {
+            case DDJVU_ERROR:
+              {
+                std::osyncstream(std::cout)
+                    << "DJVUParser::waitDocumentInfo error: "
+                    << msg->m_error.message
+                    << " function: " << msg->m_error.function << std::endl;
+                ddjvu_message_pop(ctx->context);
+                msg = nullptr;
+                break;
+              }
+            case DDJVU_DOCINFO:
+              {
+                ddjvu_message_pop(ctx->context);
+                break;
+              }
+            default:
+              {
+                ddjvu_message_pop(ctx->context);
+                msg = nullptr;
+                return false;
+              }
+            }
+          return true;
+        });
+
+  if(msg == nullptr)
+    {
+      return false;
+    }
+  else
+    {
+      return true;
+    }
+}
+
+std::shared_ptr<ddjvu_page_t>
+DJVUParser::getFirstPage(const std::shared_ptr<DJVUContext> &ctx,
+                         const std::shared_ptr<ddjvu_document_t> &doc)
+{
+  std::shared_ptr<ddjvu_page_t> result(
+      ddjvu_page_create_by_pageno(doc.get(), 0),
+      [](ddjvu_page_t *p)
+        {
+          ddjvu_page_release(p);
+        });
+  if(!result.operator bool())
+    {
+      return result;
+    }
+
+  ddjvu_message_t *msg = nullptr;
+  std::unique_lock<std::mutex> ullock(ctx->context_mtx);
+  ctx->context_var.wait_for(
+      ullock, std::chrono::seconds(5),
+      [ctx, doc, &msg, result]
+        {
+          msg = ddjvu_message_peek(ctx->context);
+          if(msg == nullptr)
+            {
+              return false;
+            }
+          if(msg->m_any.document != doc.get())
+            {
+              msg = nullptr;
+              return false;
+            }
+          switch(msg->m_any.tag)
+            {
+            case DDJVU_ERROR:
+              {
+                std::osyncstream(std::cout)
+                    << "DJVUParser::getFirstPage error: "
+                    << msg->m_error.message
+                    << " function: " << msg->m_error.function << std::endl;
+                ddjvu_message_pop(ctx->context);
+                msg = nullptr;
+                break;
+              }
+            default:
+              {
+                if(!ddjvu_page_decoding_done(result.get()))
+                  {
+                    ddjvu_message_pop(ctx->context);
+                    msg = nullptr;
+                    return false;
+                  }
+                else
+                  {
+                    ddjvu_message_pop(ctx->context);
+                  }
+                break;
+              }
+            }
+
+          return true;
+        });
+  if(msg == nullptr)
+    {
+      result.reset();
+    }
   return result;
 }
 

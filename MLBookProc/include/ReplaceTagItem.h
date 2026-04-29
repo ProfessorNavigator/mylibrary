@@ -68,6 +68,12 @@ public:
    * \brief Replacement for end tag element.
    */
   std::string end_replacement;
+
+  /*!
+   * If set to \a false, XML element will be copied to result 'as is' without
+   * replacement.
+   */
+  bool replace = true;
 };
 
 #endif // REPLACETAGITEM_H

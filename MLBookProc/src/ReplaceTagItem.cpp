@@ -24,6 +24,7 @@ ReplaceTagItem::ReplaceTagItem(const ReplaceTagItem &other)
   tag_to_replace = other.tag_to_replace;
   begin_replacement = other.begin_replacement;
   end_replacement = other.end_replacement;
+  replace = other.replace;
 }
 
 ReplaceTagItem::ReplaceTagItem(ReplaceTagItem &&other)
@@ -31,6 +32,7 @@ ReplaceTagItem::ReplaceTagItem(ReplaceTagItem &&other)
   tag_to_replace = std::move(other.tag_to_replace);
   begin_replacement = std::move(other.begin_replacement);
   end_replacement = std::move(other.end_replacement);
+  replace = std::move(other.replace);
 }
 
 ReplaceTagItem &
@@ -41,6 +43,7 @@ ReplaceTagItem::operator=(const ReplaceTagItem &other)
       tag_to_replace = other.tag_to_replace;
       begin_replacement = other.begin_replacement;
       end_replacement = other.end_replacement;
+      replace = other.replace;
     }
   return *this;
 }
@@ -53,6 +56,7 @@ ReplaceTagItem::operator=(ReplaceTagItem &&other)
       tag_to_replace = std::move(other.tag_to_replace);
       begin_replacement = std::move(other.begin_replacement);
       end_replacement = std::move(other.end_replacement);
+      replace = std::move(other.replace);
     }
   return *this;
 }

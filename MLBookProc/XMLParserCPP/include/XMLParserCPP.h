@@ -17,8 +17,6 @@
 #define XMLPARSERCPP_H
 
 #include <XMLElement.h>
-#include <memory>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -67,26 +65,25 @@ public:
 
 private:
   void
-  parseElementAttribute(const std::string &document, size_t &position,
-                        std::shared_ptr<XMLElement> element);
-
-  void
-  parseProgramControlElement(const std::string &document, size_t &position,
-                             std::shared_ptr<XMLElement> element);
-
-  void
-  parseSpecialElement(const std::string &document, size_t &position,
-                      std::shared_ptr<XMLElement> element);
-
-  void
-  parseElementContent(const std::string &document, size_t &position,
-                      std::shared_ptr<XMLElement> element);
-
-  void
   replaceXMLEntities(std::vector<XMLElement> &elements);
 
   void
   replacementFunc(std::string &str);
+
+  XMLElement
+  parseTag(const std::string &document, size_t &position);
+
+  void
+  parseSpecialElement(const std::string &document, size_t &position,
+                      XMLElement &element);
+
+  XMLElementAttribute
+  parseElementAttribute(const std::string &document, size_t &position);
+
+  void
+  formResult(std::vector<XMLElement> &result,
+             std::vector<XMLElement>::iterator start,
+             std::vector<XMLElement>::iterator end);
 
   std::vector<std::tuple<std::string, std::string>> replacement;
 };

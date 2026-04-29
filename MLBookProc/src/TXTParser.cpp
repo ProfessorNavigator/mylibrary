@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -19,19 +19,46 @@
 #include <chrono>
 #include <fstream>
 
-TXTParser::TXTParser(const std::shared_ptr<AuxFunc> &af)
+TXTParser::TXTParser(const std::shared_ptr<MLBookProc> &mlbp)
 {
-  this->af = af;
+  this->mlbp = mlbp;
 }
 
-BookParseEntry
-TXTParser::txtParser(const std::filesystem::path &txt_path)
+UDBElement
+TXTParser::parseBook(const std::filesystem::path &file_path)
 {
-  BookParseEntry bpe;
+  UDBElement result;
+  bid.setId(result, BaseID::Book);
+  result.subelements.reserve(2);
 
-  bpe.book_name = txt_path.stem().u8string();
+  UDBElement el;
+  bid.setId(el, BaseID::BookTitle);
+  std::u8string u8str = file_path.stem().u8string();
+  el.content = std::string(u8str.begin(), u8str.end());
+  result.subelements.emplace_back(el);
+
+  el = UDBElement();
+  bid.setId(el, BaseID::Date);
   std::filesystem::file_time_type mod_tm_fl
-      = std::filesystem::last_write_time(txt_path);
+      = std::filesystem::last_write_time(file_path);
+  std::chrono::time_point<std::chrono::system_clock> mod_tm
+      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+          mod_tm_fl - std::filesystem::file_time_type::clock::now()
+          + std::chrono::system_clock::now());
+  time_t tmt = std::chrono::system_clock::to_time_t(mod_tm);
+  el.content = mlbp->timeToDate(tmt);
+  result.subelements.emplace_back(el);
+
+  return result;
+}
+
+UDBase
+TXTParser::getBookInfo(const std::filesystem::path &file_path)
+{
+  UDBase result;
+
+  std::filesystem::file_time_type mod_tm_fl
+      = std::filesystem::last_write_time(file_path);
   std::chrono::time_point<std::chrono::system_clock> mod_tm
       = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
           mod_tm_fl - std::filesystem::file_time_type::clock::now()
@@ -39,31 +66,17 @@ TXTParser::txtParser(const std::filesystem::path &txt_path)
 
   time_t tm_t = std::chrono::system_clock::to_time_t(mod_tm);
 
-  bpe.book_date = af->time_t_to_date(tm_t);
-
-  return bpe;
-}
-
-std::shared_ptr<BookInfoEntry>
-TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
-{
-  std::shared_ptr<BookInfoEntry> bie = std::make_shared<BookInfoEntry>();
-
-  std::filesystem::file_time_type mod_tm_fl
-      = std::filesystem::last_write_time(txt_path);
-  std::chrono::time_point<std::chrono::system_clock> mod_tm
-      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-          mod_tm_fl - std::filesystem::file_time_type::clock::now()
-          + std::chrono::system_clock::now());
-
-  time_t tm_t = std::chrono::system_clock::to_time_t(mod_tm);
-
-  bie->electro->date = af->time_t_to_date(tm_t);
-  bie->electro->available = true;
+  UDBElement el;
+  bid.setId(el, BaseID::EbookDate);
+  el.content = mlbp->timeToDate(tm_t);
+  if(!el.content.empty())
+    {
+      result.addElement(el);
+    }
 
   std::string buf;
   std::fstream f;
-  f.open(txt_path, std::ios_base::in | std::ios_base::binary);
+  f.open(file_path, std::ios_base::in | std::ios_base::binary);
   if(f.is_open())
     {
       f.seekg(0, std::ios_base::end);
@@ -74,19 +87,41 @@ TXTParser::txtBookInfo(const std::filesystem::path &txt_path)
     }
   else
     {
-      return bie;
+      return result;
     }
 
   if(buf.size() > 0)
     {
       std::vector<std::string> enc
-          = XMLTextEncoding::detectStringEncoding(buf);     
+          = XMLTextEncoding::detectStringEncoding(buf);
+      el = UDBElement();
+      bid.setId(el, BaseID::CoverPage);
       if(enc.size() > 0)
         {
-          XMLTextEncoding::convertToEncoding(buf, bie->cover, enc[0], "UTF-8");
-          bie->cover_type = BookInfoEntry::cover_types::text;
+          XMLTextEncoding::convertToEncoding(buf, el.content, enc[0], "UTF-8");
+        }
+      else
+        {
+          el.content = buf;
+        }
+      if(!el.content.empty())
+        {
+          std::string ext = mlbp->getExtension(file_path);
+          ext = mlbp->stringToLower(ext);
+          UDBElement type;
+          bid.setId(type, BaseID::CoverType);
+          if(ext == ".txt")
+            {
+              type.content = "txt";
+            }
+          else
+            {
+              type.content = "md";
+            }
+          el.subelements.emplace_back(type);
+          result.addElement(el);
         }
     }
 
-  return bie;
+  return result;
 }

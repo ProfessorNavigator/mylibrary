@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -15,198 +15,190 @@
  */
 
 #include <ODTParser.h>
+#include <XMLAlgorithms.h>
 #include <algorithm>
-#include <iostream>
 
-ODTParser::ODTParser(const std::shared_ptr<AuxFunc> &af) : LibArchive(af)
+ODTParser::ODTParser(const std::shared_ptr<MLBookProc> &mlbp)
 {
-  this->af = af;
-  dc = new DublinCoreParser;
+  this->mlbp = mlbp;
+
+  la = new LibArchive(mlbp);
+  dc_parser = new DublinCoreParser;
   xml_parser = new XMLParserCPP;
 }
 
 ODTParser::~ODTParser()
 {
-  delete dc;
+  delete la;
+  delete dc_parser;
   delete xml_parser;
 }
 
-BookParseEntry
-ODTParser::odtParser(const std::filesystem::path &odt_path)
+UDBElement
+ODTParser::parseBook(const std::string &book_content)
 {
-  BookParseEntry bpe;
+  UDBElement result;
+  bid.setId(result, BaseID::Book);
 
-  if(odt_path.extension().u8string() == ".odt")
-    {
-      std::vector<ArchEntry> files;
-      if(fileNames(odt_path, files) > 0)
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> files;
+  la->listFilesInZipBuffer(book_content, files);
+
+  std::filesystem::path sp = std::filesystem::path(u8"meta.xml");
+  auto it = std::find_if(
+      files.begin(), files.end(),
+      [sp](std::tuple<std::string, uint64_t, uint64_t> &el)
         {
-          std::filesystem::path sp = std::filesystem::u8path("meta.xml");
-          auto it
-              = std::find_if(files.begin(), files.end(),
-                             [sp](ArchEntry &el)
-                               {
-                                 std::filesystem::path fp
-                                     = std::filesystem::u8path(el.filename);
-                                 return fp.filename() == sp;
-                               });
-          if(it != files.end())
-            {
-              std::string meta_content = unpackByPositionStr(odt_path, *it);
-              try
-                {
-                  std::vector<XMLElement> elements
-                      = xml_parser->parseDocument(meta_content);
-                  bpe.book_name = dc->dcTitle(elements);
-                  if(bpe.book_name.empty())
-                    {
-                      bpe.book_name = odt_path.stem().u8string();
-                    }
-
-                  bpe.book_author = dc->dcAuthor(elements);
-
-                  bpe.book_genre = dc->dcGenre(elements);
-
-                  bpe.book_date = dc->dcDate(elements);
-                }
-              catch(std::exception &er)
-                {
-                  std::cout << "ODTParser::odtParser: \"" << er.what() << "\""
-                            << std::endl;
-                  bpe.book_name = odt_path.stem().u8string();
-
-                  std::filesystem::file_time_type cr
-                      = std::filesystem::last_write_time(odt_path);
-
-                  auto sctp = std::chrono::time_point_cast<
-                      std::chrono::system_clock::duration>(
-                      cr - std::filesystem::file_time_type::clock::now()
-                      + std::chrono::system_clock::now());
-                  time_t tt = std::chrono::system_clock::to_time_t(sctp);
-
-                  bpe.book_date = af->time_t_to_date(tt);
-                }
-            }
-          else
-            {
-              std::cout << "ODTParser::odtParser: cannot finde meta.xml"
-                        << std::endl;
-              bpe.book_name = odt_path.stem().u8string();
-
-              std::filesystem::file_time_type cr
-                  = std::filesystem::last_write_time(odt_path);
-
-              auto sctp = std::chrono::time_point_cast<
-                  std::chrono::system_clock::duration>(
-                  cr - std::filesystem::file_time_type::clock::now()
-                  + std::chrono::system_clock::now());
-              time_t tt = std::chrono::system_clock::to_time_t(sctp);
-
-              bpe.book_date = af->time_t_to_date(tt);
-            }
-        }
-      else
-        {
-          bpe.book_name = odt_path.stem().u8string();
-
-          std::filesystem::file_time_type cr
-              = std::filesystem::last_write_time(odt_path);
-
-          auto sctp = std::chrono::time_point_cast<
-              std::chrono::system_clock::duration>(
-              cr - std::filesystem::file_time_type::clock::now()
-              + std::chrono::system_clock::now());
-          time_t tt = std::chrono::system_clock::to_time_t(sctp);
-
-          bpe.book_date = af->time_t_to_date(tt);
-        }
-    }
-  else
+          std::filesystem::path fp = std::filesystem::path(
+              std::u8string(std::get<0>(el).begin(), std::get<0>(el).end()));
+          return fp.filename() == sp;
+        });
+  if(it != files.end())
     {
-      throw std::runtime_error("ODTParser::odtParser: not ODT file");
+      std::string meta_content
+          = la->unpackZipBufferFileToBuffer(book_content, std::get<0>(*it));
+      std::vector<XMLElement> elements
+          = xml_parser->parseDocument(meta_content);
+
+      std::vector<UDBElement> res = dc_parser->dcTitle(elements);
+      std::copy(res.begin(), res.end(),
+                std::back_inserter(result.subelements));
+
+      res = dc_parser->dcAuthor(elements);
+      std::copy(res.begin(), res.end(),
+                std::back_inserter(result.subelements));
+
+      res = dc_parser->dcGenre(elements);
+      std::copy(res.begin(), res.end(),
+                std::back_inserter(result.subelements));
+
+      res = dc_parser->dcDate(elements);
+      std::copy(res.begin(), res.end(),
+                std::back_inserter(result.subelements));
     }
 
-  return bpe;
+  return result;
 }
 
-std::shared_ptr<BookInfoEntry>
-ODTParser::odtBookInfo(const std::filesystem::path &odt_path)
+UDBase
+ODTParser::getBookInfo(const std::string &book_content)
 {
-  std::shared_ptr<BookInfoEntry> bie = std::make_shared<BookInfoEntry>();
+  UDBase result;
 
-  if(odt_path.extension().u8string() == ".odt")
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> filenames;
+  la->listFilesInZipBuffer(book_content, filenames);
+
+  auto it
+      = std::find_if(filenames.begin(), filenames.end(),
+                     [](const std::tuple<std::string, uint64_t, uint64_t> &el)
+                       {
+                         return std::get<0>(el) == "meta.xml";
+                       });
+  if(it != filenames.end())
     {
-      std::vector<ArchEntry> files;
-      if(fileNames(odt_path, files) > 0)
+      std::string buf = la->unpackBufferFileToBuffer(
+          book_content, std::get<0>(*it), std::get<2>(*it));
+      if(buf.size() > 0)
         {
-          std::filesystem::path sp
-              = std::filesystem::u8path("Thumbnails")
-                / std::filesystem::u8path("thumbnail.png");
-          auto it
-              = std::find_if(files.begin(), files.end(),
-                             [sp](ArchEntry &el)
-                               {
-                                 std::filesystem::path fp
-                                     = std::filesystem::u8path(el.filename);
-                                 return fp == sp;
-                               });
-          if(it != files.end())
+          std::vector<XMLElement> elements = xml_parser->parseDocument(buf);
+          UDBElement el;
+          bid.setId(el, BaseID::Annotation);
+          el.content = dc_parser->dcDescription(elements);
+          normalizeString(el.content);
+          if(!el.content.empty())
             {
-              bie->cover = unpackByPositionStr(odt_path, *it);
-              bie->cover_type = BookInfoEntry::cover_types::file;
+              result.addElement(el);
             }
 
-          sp = std::filesystem::u8path("meta.xml");
-          it = std::find_if(files.begin(), files.end(),
-                            [sp](ArchEntry &el)
-                              {
-                                std::filesystem::path fp
-                                    = std::filesystem::u8path(el.filename);
-                                return fp == sp;
-                              });
-          if(it != files.end())
+          std::vector<UDBElement> res = dc_parser->dcLanguage(elements);
+          result.addElements(res);
+
+          res = dc_parser->dcTranslator(elements);
+          result.addElements(res);
+
+          res = dc_parser->dcPublisher(elements);
+          result.addElements(res);
+
+          res = dc_parser->dcIdentifier(elements);
+          result.addElements(res);
+
+          res = dc_parser->dcSource(elements);
+          result.addElements(res);
+
+          std::vector<XMLElement *> meta;
+          XMLAlgorithms::searchElement(elements, "meta:generator", meta);
+          for(size_t i = 0; i < meta.size(); i++)
             {
-              std::string meta_content = unpackByPositionStr(odt_path, *it);
-
-              try
+              std::vector<XMLElement *> res2;
+              XMLAlgorithms::searchElement(meta, XMLElement::ElementContent,
+                                           res2);
+              if(res2.size() == 0)
                 {
-                  std::vector<XMLElement> elements
-                      = xml_parser->parseDocument(meta_content);
-
-                  bie->language = dc->dcLanguage(elements);
-                  bie->electro->publisher = dc->dcPublisher(elements);
-                  if(!bie->electro->publisher.empty())
-                    {
-                      bie->electro->available = true;
-                    }
-                  bie->electro->id = dc->dcIdentifier(elements);
-                  if(!bie->electro->id.empty())
-                    {
-                      bie->electro->available = true;
-                    }
-                  bie->electro->src_url = dc->dcSource(elements);
-                  if(!bie->electro->src_url.empty())
-                    {
-                      bie->electro->available = true;
-                    }
-                  bie->annotation = dc->dcDescription(elements);
+                  continue;
                 }
-              catch(std::exception &er)
+              el = UDBElement();
+              bid.setId(el, BaseID::EbookProgramUsed);
+              el.content = res2[0]->content;
+              normalizeString(el.content);
+              if(!el.content.empty())
                 {
-                  std::cout << "ODTParser::odtBookInfo: \"" << er.what()
-                            << "\"" << std::endl;
+                  result.addElement(el);
                 }
             }
+        }
+    }
+
+  it = std::find_if(filenames.begin(), filenames.end(),
+                    [](const std::tuple<std::string, uint64_t, uint64_t> &el)
+                      {
+                        return std::get<0>(el) == "Thumbnails/thumbnail.png";
+                      });
+  if(it != filenames.end())
+    {
+      UDBElement el;
+      bid.setId(el, BaseID::CoverPage);
+      el.content = la->unpackBufferFileToBuffer(book_content, std::get<0>(*it),
+                                                std::get<2>(*it));
+      if(!el.content.empty())
+        {
+          UDBElement type;
+          bid.setId(type, BaseID::CoverType);
+          type.content = "image";
+          el.subelements.emplace_back(type);
+
+          result.addElement(el);
+        }
+    }
+
+  result.shrinkToFit();
+
+  return result;
+}
+
+void
+ODTParser::normalizeString(std::string &str)
+{
+  while(str.size() > 0)
+    {
+      char el = *str.rbegin();
+      if(el >= 0 && el <= ' ')
+        {
+          str.pop_back();
         }
       else
         {
-          std::cout << "ODTParser::odtBookInfo error" << std::endl;
+          break;
         }
     }
-  else
-    {
-      throw std::runtime_error("ODTParser::odtBookInfo: not ODT file");
-    }
 
-  return bie;
+  for(auto it = str.begin(); it != str.end();)
+    {
+      if(*it >= 0 && *it <= ' ')
+        {
+          str.erase(it);
+        }
+      else
+        {
+          break;
+        }
+    }
 }

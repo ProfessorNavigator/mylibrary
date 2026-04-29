@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,101 +13,90 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef BOOKINFO_H
 #define BOOKINFO_H
 
-#include <ArchEntry.h>
-#include <AuxFunc.h>
-#include <BookBaseEntry.h>
-#include <BookInfoEntry.h>
-#include <memory>
-#include <string>
+#include <BaseID.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
 
 /*!
- * \brief The BookInfo class.
+ * \brief The BookInfo class
  *
- * This class contains methods to get extra information (like annotation,
- * cover, source paper book info, etc) from books.
+ * This class contains methods for receiving extra information about books.
  */
 class BookInfo
 {
 public:
   /*!
-   * \brief BookInfo constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \brief BookInfo constructor
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  BookInfo(const std::shared_ptr<AuxFunc> &af);
+  BookInfo(const std::shared_ptr<MLBookProc> &mlbp);
 
   /*!
-   * \brief Retruns information about book.
+   * Obtains extra information about book.
    *
-   * See also set_dpi().
+   * Result can contain objects of following types: BaseID::CoverPage,
+   * BaseID::Annotation, BaseID::Author, BaseID::Keywords, BaseID::Language,
+   * BaseID::SourceLanguage, BaseID::Translator, BaseID::SourceBookTitle,
+   * BaseID::SourceBookAuthor, BaseID::SourceBookSequence,
+   * BaseID::SourceBookGenre, BaseID::SourceBookDate,
+   * BaseID::SourceBookKeywords, BaseID::SourceBookLanguage,
+   * BaseID::SourceBookSourceLanguage, BaseID::SourceBookTranslator,
+   * BaseID::EbookAuthor, BaseID::EbookProgramUsed, BaseID::EbookDate,
+   * BaseID::EbookSourceUrl, BaseID::EbookSourceOCR, BaseID::EbookID,
+   * BaseID::EbookVersion, BaseID::EbookHistory, BaseID::EbookPublisher,
+   * BaseID::PaperBookName, BaseID::PaperBookPublisher, BaseID::PaperBookCity,
+   * BaseID::PaperBookYear, BaseID::PaperBookISBN, BaseID::PaperBookSequence,
+   * BaseID::CustomInfo, BaseID::DjvuPublisher
    *
-   * \deprecated This method is deprecated and will be removed infuture
-   * releases. Use getBookInfo() instead.
-   *
-   * \param bbe search result, returned by BaseKeeper::searchBook() method.
-   * \return Smart pointer to BookInfoEntry object containing various
-   * information about book.
+   * \param book_search_result UDBElement of BaseID::BookSearchResult type.
+   * \return UDBase object containing various information about book.
    */
-  __attribute__((deprecated)) std::shared_ptr<BookInfoEntry>
-  get_book_info(const BookBaseEntry &bbe);
+  UDBase
+  getBookInfo(const UDBElement &book_search_result);
 
   /*!
-   * \brief Retruns information about book.
+   * Sets internal <a
+   * href="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</a> values. It is
+   * needed for correct book cover creation of some book types. This method
+   * should be called before getBookInfo().
    *
-   * See also setDpi().
-   * \param bbe search result, returned by BaseKeeper::searchBook() method.
-   * \return Smart pointer to BookInfoEntry object containing various
-   * information about book.
-   */
-  std::shared_ptr<BookInfoEntry>
-  getBookInfo(const BookBaseEntry &bbe);
-
-  /*!
-   * \brief Sets DPI.
+   * Default values are: 72.0, 72.0.
    *
-   * This method should be called before get_book_info(). It sets <A
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A> to display
-   * books cover correctly. Default values are 72.0 and 72.0. It is not
-   * compulsory to call this method, but it is highly recommended.
-   *
-   * \param h_dpi horizontal
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
-   * \param v_dpi vertical
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
-   */
-  __attribute__((deprecated)) void
-  set_dpi(const double &h_dpi, const double &v_dpi);
-
-  /*!
-   * \brief Sets DPI.
-   *
-   * This method should be called before getBookInfo(). It sets <A
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A> to display
-   * books cover correctly. Default values are 72.0 and 72.0. It is not
-   * compulsory to call this method, but it is highly recommended.
-   *
-   * \param h_dpi horizontal
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
-   * \param v_dpi vertical
-   * HREF="https://en.wikipedia.org/wiki/Dots_per_inch">DPI</A>.
+   * \param horizontal_dpi Horizontal DPI.
+   * \param vertical_dpi Vertical DPI.
    */
   void
-  setDpi(const double &h_dpi, const double &v_dpi);
+  setDPI(const double &horizontal_dpi = double(72.0),
+         const double &vertical_dpi = double(72.0));
+
+  /*!
+   * Returns horizontal DPI.
+   * \return Horizontal DPI.
+   */
+  double
+  getHorizontalDPI();
+
+  /*!
+   * Returns vertical DPI.
+   *
+   * \return Vertical DPI.
+   */
+  double
+  getVerticalDPI();
 
 private:
-  std::shared_ptr<BookInfoEntry>
-  getFromArchive(const BookBaseEntry &bbe, const std::string &ext);
+  UDBase
+  bookInfo(const std::filesystem::path &p, const UDBElement &path);
 
-  bool
-  compareFunc(const ArchEntry &ent, const bool &encoding,
-              const std::string &conv_nm, const std::filesystem::path &ch_fbd);
+  std::shared_ptr<MLBookProc> mlbp;
 
-  std::shared_ptr<AuxFunc> af;
-  double h_dpi = 72.0;
-  double v_dpi = 72.0;
+  double horizontal_dpi = 72.0;
+  double vertical_dpi = 72.0;
+
+  BaseID bid;
 };
 
 #endif // BOOKINFO_H

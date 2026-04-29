@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,122 +16,88 @@
 #ifndef SETTINGSWINDOW_H
 #define SETTINGSWINDOW_H
 
-#include <AuxFunc.h>
-#include <filesystem>
-#include <functional>
-#include <gtkmm-4.0/gtkmm/entry.h>
-#include <gtkmm-4.0/gtkmm/window.h>
+#include <ColorButton.h>
+#include <QLineEdit>
+#include <QPaintEvent>
+#include <QWidget>
+#include <SettingsManager.h>
+#include <memory>
 
-#ifndef ML_GTK_OLD
-#include <gtkmm-4.0/gtkmm/filedialog.h>
-#else
-#include <gtkmm-4.0/gtkmm/filechooserdialog.h>
-#endif
-
-class SettingsWindow : public Gtk::Window
+class SettingsWindow : public QWidget
 {
+  Q_OBJECT
 public:
-  SettingsWindow(const std::shared_ptr<AuxFunc> &af,
-                 Gtk::Window *parent_window);
+  SettingsWindow(QWidget *parent,
+                 const std::shared_ptr<SettingsManager> &settings);
 
-  std::function<void(const std::filesystem::path &p)>
-      signal_new_background_path;
-
-  std::function<void(const double &)> signal_coef_coincedence;
-
-private:
   void
   createWindow();
 
-  Gtk::Widget *
-  colorTab();
+private:
+  QWidget *
+  windowsWidget();
 
-  Gtk::Widget *
-  searchTab();
+  QWidget *
+  comboboxWidget();
 
-  Gtk::Widget *
-  windowsSection();
+  QWidget *
+  labelWidget();
 
-  enum widget_type
-  {
-    apply_button,
-    cancel_button,
-    operation_button,
-    remove_button,
-    combo_box,
-    text_field,
-    entry,
-    label,
-    main_menu,
-    menu_button,
-    error_label,
-    warning_label,
-    progress_bar,
-    column_view,
-    frames
-  };
+  QWidget *
+  lineeditWidget();
 
-  Gtk::Widget *
-  formSection(const widget_type &wt);
+  QWidget *
+  clearbuttonWidget();
 
-  void
-  readSettings();
+  QWidget*
+  sliderWidget();
 
-  void
-  readSearchSettings();
+  QWidget *
+  applybuttonWidget();
 
-  void
-  parseSettings();
+  QWidget *
+  cancelbuttonWidget();
 
-  struct setting
-  {
-    std::string attribute_id;
-    std::string value;
-  };
+  QWidget *
+  tableWidget();
 
-  struct section
-  {
-    std::string section_id;
-    std::vector<setting> settings;
-  };
+  QWidget *
+  texteditWidget();
+
+  QWidget *
+  progressbarWidget();
+
+  QWidget *
+  menuWidget();
+
+  QWidget *
+  checkboxWidget();
+
+  QWidget *
+  frameWidget();
+
+  QWidget *
+  scrollareaWidget();
 
   void
-  parseSection(section &s, const std::string &section_str);
+  colorDialog(ColorButton *cb, const QColor &color, const std::string &id,
+              const std::string &attribute);
 
   void
-  applySettings();
+  openFileDialog(QLineEdit *line);
 
   void
-  applySearchSettings();
+  paintEvent(QPaintEvent *event) override;
 
   void
-  fileDialog(Gtk::Entry *ent);
-
-#ifndef ML_GTK_OLD
-  void
-  fileDialogSlot(const Glib::RefPtr<Gio::AsyncResult> &result,
-                 const Glib::RefPtr<Gtk::FileDialog> &fd, Gtk::Entry *ent);
-#else
-  void
-  fileDialogSlot(int respons_id, Gtk::FileChooserDialog *fd, Gtk::Entry *ent);
-#endif
+  resetToDafaultDialog(const bool &system_default);
 
   void
-  windowSize();
+  fontSelectionDialog(QPushButton *font_button);
 
-  std::string
-  loadStyles(const std::filesystem::path &sp);
+  std::shared_ptr<SettingsManager> settings;
 
-  std::shared_ptr<AuxFunc> af;
-  Gtk::Window *parent_window;
-
-  std::filesystem::path save_path;
-
-  std::string source_settings;
-
-  std::vector<section> settings_v;
-
-  double coef_coincedence_val = 0.7;
+  std::shared_ptr<SettingsManager> settings_copy;
 };
 
 #endif // SETTINGSWINDOW_H

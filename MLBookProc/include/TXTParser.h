@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,51 +16,48 @@
 #ifndef TXTPARSER_H
 #define TXTPARSER_H
 
-#include <AuxFunc.h>
-#include <BookInfoEntry.h>
-#include <BookParseEntry.h>
+#include <BaseID.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
 #include <filesystem>
 
 /*!
  * \brief The TXTParser class
  *
- * This class contains methods for txt files processing. In most cases you do
- * not need to use this class directly. Use CreateCollection, RefreshCollection
- * and BookInfo instead.
+ * This class contains methods for txt and md files parsing. In most cases you
+ * do not need to use it directly, use CreateCollection and BookInfo instead.
  */
 class TXTParser
 {
 public:
   /*!
    * \brief TXTParser constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  TXTParser(const std::shared_ptr<AuxFunc> &af);
+  TXTParser(const std::shared_ptr<MLBookProc> &mlbp);
 
   /*!
-   * \brief Parses txt files
+   *  Parses file.
    *
-   * This method can be used to obtain information from txt files.
-   *
-   * \param txt_path absolute path to txt file.
-   * \return BookParseEntry object.
+   * \param file_path Path to file to be parsed.
+   * \return BaseID::Book object.
    */
-  BookParseEntry
-  txtParser(const std::filesystem::path &txt_path);
+  UDBElement
+  parseBook(const std::filesystem::path &file_path);
 
   /*!
-   * \brief Gets some extra info from txt files.
+   * Gets extra info from file.
    *
-   * See also BookInfoEntry.
-   *
-   * \param txt_path absolute path to txt file.
-   * \return Smart pointer to BookInfoEntry object.
+   * \param file_path Path to file.
+   * \return UDBase containing information.
    */
-  std::shared_ptr<BookInfoEntry>
-  txtBookInfo(const std::filesystem::path &txt_path);
+  UDBase
+  getBookInfo(const std::filesystem::path &file_path);
 
 private:
-  std::shared_ptr<AuxFunc> af;
+  std::shared_ptr<MLBookProc> mlbp;
+
+  BaseID bid;
 };
 
 #endif // TXTPARSER_H

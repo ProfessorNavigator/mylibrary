@@ -15,24 +15,19 @@
  */
 
 #include <FormatAnnotation.h>
+#include <XMLAlgorithms.h>
 #include <algorithm>
 #include <iostream>
 
-FormatAnnotation::FormatAnnotation(const std::shared_ptr<AuxFunc> &af)
+FormatAnnotation::FormatAnnotation(const std::shared_ptr<MLBookProc> &mlbp)
 {
-  this->af = af;
+  this->mlbp = mlbp;
   xml_parser = new XMLParserCPP;
 }
 
 FormatAnnotation::~FormatAnnotation()
 {
   delete xml_parser;
-}
-
-void
-FormatAnnotation::remove_escape_sequences(std::string &annotation)
-{
-  removeEscapeSequences(annotation);
 }
 
 void
@@ -79,12 +74,6 @@ FormatAnnotation::removeEscapeSequences(std::string &annotation)
 }
 
 void
-FormatAnnotation::replace_tags(std::string &annotation)
-{
-  replaceTags(annotation);
-}
-
-void
 FormatAnnotation::replaceTags(std::string &annotation)
 {
   if(annotation.empty())
@@ -106,12 +95,8 @@ FormatAnnotation::replaceTags(std::string &annotation)
     {
       recursiveReplacement(elements, annotation);
     }
-}
 
-void
-FormatAnnotation::final_cleaning(std::string &annotation)
-{
-  finalCleaning(annotation);
+  annotation = replaceSymbols(annotation);
 }
 
 void
@@ -217,8 +202,10 @@ void
 FormatAnnotation::recursiveReplacement(const std::vector<XMLElement> &elements,
                                        std::string &annotation)
 {
+  bool replace;
   for(auto it_el = elements.begin(); it_el != elements.end(); it_el++)
     {
+      replace = true;
       auto it_rpl
           = std::find_if(replacement_table.begin(), replacement_table.end(),
                          [it_el](const ReplaceTagItem &el)
@@ -227,20 +214,36 @@ FormatAnnotation::recursiveReplacement(const std::vector<XMLElement> &elements,
                            });
       if(it_rpl != replacement_table.end())
         {
-          annotation += it_rpl->begin_replacement;
+          if(it_rpl->replace)
+            {
+              annotation += it_rpl->begin_replacement;
+            }
+          else
+            {
+              std::vector<XMLElement> el_v;
+              el_v.push_back(*it_el);
+              std::string str;
+              XMLAlgorithms::writeXML(el_v, str);
+              annotation += str;
+              replace = false;
+            }
         }
-      if(it_el->element_type == XMLElement::ElementContent
-         || it_el->element_type == XMLElement::CharData)
+
+      if(replace)
         {
-          annotation += replaceSymbols(it_el->content);
-        }
-      else
-        {
-          recursiveReplacement(it_el->elements, annotation);
-        }
-      if(it_rpl != replacement_table.end())
-        {
-          annotation += it_rpl->end_replacement;
+          if(it_el->element_type == XMLElement::ElementContent
+             || it_el->element_type == XMLElement::CharData)
+            {
+              annotation += replaceSymbols(it_el->content);
+            }
+          else
+            {
+              recursiveReplacement(it_el->elements, annotation);
+            }
+          if(it_rpl != replacement_table.end())
+            {
+              annotation += it_rpl->end_replacement;
+            }
         }
     }
 }
@@ -267,7 +270,6 @@ std::string
 FormatAnnotation::replaceSymbols(const std::string &source)
 {
   std::string result = source;
-
   std::string::size_type n;
   for(auto it = symbols_replacement.begin(); it != symbols_replacement.end();
       it++)
@@ -275,19 +277,16 @@ FormatAnnotation::replaceSymbols(const std::string &source)
       n = 0;
       for(;;)
         {
-          n = result.find(std::get<0>(*it), n);
-          if(n != std::string::npos)
-            {
-              result.replace(n, std::get<0>(*it).size(), std::get<1>(*it), 0,
-                             std::get<1>(*it).size());
-            }
-          else
+          n = result.find(std::get<1>(*it), n);
+          if(n == std::string::npos)
             {
               break;
             }
-          n += std::get<1>(*it).size();
+          result.erase(result.begin() + n,
+                       result.begin() + n + std::get<1>(*it).size());
+          result.insert(result.begin() + n, std::get<0>(*it).begin(),
+                        std::get<0>(*it).end());
         }
     }
-
   return result;
 }

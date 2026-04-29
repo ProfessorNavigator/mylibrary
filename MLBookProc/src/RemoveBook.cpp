@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -14,402 +14,293 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <ArchiveFileEntry.h>
-#include <ArchiveRemoveEntry.h>
-#include <BookParseEntry.h>
-#include <LibArchive.h>
 #include <RefreshCollection.h>
 #include <RemoveBook.h>
 #include <algorithm>
+#include <cstring>
 #include <iostream>
+#include <stdexcept>
+#include <thread>
 
-RemoveBook::RemoveBook(const std::shared_ptr<AuxFunc> &af,
-                       const BookBaseEntry &bbe, const std::string &col_name,
-                       const std::shared_ptr<BookMarks> &bookmarks)
+RemoveBook::RemoveBook(const std::shared_ptr<MLBookProc> &mlbp)
+    : LibArchive(mlbp)
 {
-  this->af = af;
-  this->bbe = bbe;
-  this->col_name = col_name;
-  this->bookmarks = bookmarks;
-  supported_archives = af->get_supported_archive_types_packing();
 }
 
 void
-RemoveBook::removeBook()
+RemoveBook::removeBook(const std::filesystem::path &base_path,
+                       const UDBElement &book_search_result)
 {
-  std::string ext = af->get_extension(bbe.file_path);
-  for(auto it = ext.begin(); it != ext.end();)
+  auto it_fl = std::find_if(book_search_result.subelements.begin(),
+                            book_search_result.subelements.end(),
+                            [this](const UDBElement &el)
+                              {
+                                return bid.getId(el) == BaseID::File;
+                              });
+  if(it_fl == book_search_result.subelements.end())
     {
-      if(*it == '.')
-        {
-          ext.erase(it);
-        }
-      else
-        {
-          break;
-        }
+      throw std::runtime_error(
+          "RemoveBook::removeBook: cannot find file path");
     }
 
-  auto it_sup
-      = std::find(supported_archives.begin(), supported_archives.end(), ext);
+  std::filesystem::path book_fl
+      = std::u8string(it_fl->content.begin(), it_fl->content.end());
 
-  if(it_sup == supported_archives.end())
+  auto it_book = std::find_if(book_search_result.subelements.begin(),
+                              book_search_result.subelements.end(),
+                              [this](const UDBElement &el)
+                                {
+                                  return bid.getId(el) == BaseID::Book;
+                                });
+
+  if(it_book == book_search_result.subelements.end())
     {
-      std::filesystem::remove_all(bbe.file_path);
+      throw std::runtime_error("RemoveBook::removeBook: not a book entry");
+    }
+
+  std::string ext = mlbp->getExtension(it_fl->content);
+  ext = mlbp->stringToLower(ext);
+  std::shared_ptr<RefreshCollection> refr(
+      new RefreshCollection(mlbp, std::thread::hardware_concurrency()));
+  refr->signal_parsing_progress = signal_parsing_progress;
+  if(ext == ".rar")
+    {
+      std::filesystem::remove_all(book_fl);
+      refr->refreshCollection(base_path);
     }
   else
     {
-      std::filesystem::path tmp = bbe.file_path.parent_path();
-      tmp /= std::filesystem::u8path(af->randomFileName());
-      SelfRemovingPath srp(tmp);
-      archiveRemove(bbe.file_path, bbe.bpe.book_path, srp.path);
-    }
+      std::vector<std::string> arch_type
+          = std::move(mlbp->getSupportedArchivesTypesPacking());
 
-  std::shared_ptr<RefreshCollection> rc = std::make_shared<RefreshCollection>(
-      af, col_name, 1, false, false, true, bookmarks);
-  rc->refreshFile(bbe);
-}
-
-void
-RemoveBook::archiveRemove(const std::filesystem::path &archive_path,
-                          const std::string &book_path,
-                          const std::filesystem::path &out_d)
-{
-  if(!std::filesystem::exists(archive_path))
-    {
-      std::cout << "RemoveBook::archiveRemove: source archive " << archive_path
-                << " does not exist" << std::endl;
-      return void();
-    }
-
-  if(book_path.empty())
-    {
-      std::cout << "RemoveBook::archiveRemove: book path is empty"
-                << std::endl;
-      return void();
-    }
-
-  std::string l_book_path;
-  bool final = false;
-  std::string find_str("\n");
-  std::string next_path = book_path;
-
-  std::string::size_type n = next_path.find(find_str);
-  if(n != std::string::npos)
-    {
-      l_book_path = next_path.substr(0, n);
-      std::string ext
-          = af->get_extension(std::filesystem::u8path(l_book_path));
-      for(auto it = ext.begin(); it != ext.end();)
-        {
-          if(*it == '.')
-            {
-              ext.erase(it);
-            }
-          else
-            {
-              break;
-            }
-        }
-
-      auto it = std::find(supported_archives.begin(), supported_archives.end(),
-                          ext);
-      if(it == supported_archives.end())
-        {
-          final = true;
-        }
-      else
-        {
-          next_path.erase(0, n + find_str.size());
-        }
-    }
-  else
-    {
-      l_book_path = next_path;
-      final = true;
-    }
-
-  if(l_book_path.empty())
-    {
-      std::cout << "RemoveBook::archiveRemove: file name is empty"
-                << std::endl;
-      return void();
-    }
-
-  std::string fbd_file_name;
-  if(final)
-    {
-      find_str = ".";
-      n = l_book_path.find(find_str);
+      std::string find_str(".");
+      std::string::size_type n = ext.find(find_str);
       if(n != std::string::npos)
         {
-          fbd_file_name = l_book_path.substr(0, n);
+          ext.erase(n, find_str.size());
+        }
+
+      auto it_sup = std::find(arch_type.begin(), arch_type.end(), ext);
+      if(it_sup == arch_type.end())
+        {
+          std::filesystem::remove_all(book_fl);
+          refr->refreshCollection(base_path);
         }
       else
         {
-          fbd_file_name = l_book_path;
+          auto it_path = std::find_if(
+              it_book->subelements.begin(), it_book->subelements.end(),
+              [this](const UDBElement &el)
+                {
+                  return bid.getId(el) == BaseID::PathInFile;
+                });
+          if(it_path == it_book->subelements.end())
+            {
+              throw std::runtime_error(
+                  "RemoveBook::removeBook: cannot find path in archive");
+            }
+          size_t count = removeFromArchive(*it_path, book_fl);
+          if(count == 0)
+            {
+              std::filesystem::remove_all(book_fl);
+            }
+          refr->refreshCollection(base_path);
         }
-      fbd_file_name += ".fbd";
+    }
+}
+
+size_t
+RemoveBook::removeFromArchive(const UDBElement &path,
+                              const std::filesystem::path &archive_path)
+{
+  size_t result = 0;
+
+  std::string fbd;
+  auto it_fbd = std::find_if(path.subelements.begin(), path.subelements.end(),
+                             [this](const UDBElement &el)
+                               {
+                                 return bid.getId(el) == BaseID::FBDPath;
+                               });
+  if(it_fbd != path.subelements.end())
+    {
+      fbd = it_fbd->content;
     }
 
-  std::filesystem::path new_arch_path
-      = out_d
-        / std::filesystem::u8path(af->randomFileName()
-                                  + af->get_extension(archive_path));
+  std::shared_ptr<LibArchiveFileData> fd_read(new LibArchiveFileData);
+  fd_read->path = archive_path;
+  fd_read->open_mode = std::ios_base::in | std::ios_base::binary;
 
-  std::unique_ptr<LibArchive> la(new LibArchive(af));
-  ArchiveRemoveEntry rm_e
-      = la->libarchive_remove_init(archive_path, new_arch_path);
-  if(rm_e.a_read.get() == nullptr || rm_e.a_write.get() == nullptr)
+  std::shared_ptr<archive> a_read = initForReading(fd_read);
+
+  int er = archive_read_set_seek_callback(a_read.get(),
+                                          &LibArchive::seekCallback);
+  if(er != ARCHIVE_OK)
     {
-      std::cout
-          << "RemoveBook::archiveRemove: error on creating libarchive objects"
-          << std::endl;
-      return void();
+      archiveError(a_read, "RemoveBook::removeFromArchive:");
     }
 
-  if(final)
+  er = archive_read_open2(a_read.get(), fd_read.get(),
+                          &LibArchive::openCallBack, &LibArchive::readCallBack,
+                          &LibArchive::skipCallback,
+                          &LibArchive::closeCallback);
+
+  if(er != ARCHIVE_OK)
     {
-      int er = ARCHIVE_OK;
-      unsigned long file_count = 0;
-      std::shared_ptr<archive_entry> read_ent(
-          archive_entry_new2(rm_e.a_read.get()),
-          [](archive_entry *e)
-            {
-              archive_entry_free(e);
-            });
-      std::shared_ptr<archive_entry> write_ent(
-          archive_entry_new2(rm_e.a_write.get()),
-          [](archive_entry *e)
-            {
-              archive_entry_free(e);
-            });
+      archiveError(a_read, "RemoveBook::removeFromArchive:");
+    }
 
-      std::filesystem::create_directories(out_d);
+  std::shared_ptr<LibArchiveFileData> fd_write(new LibArchiveFileData);
+  fd_write->path = archive_path.parent_path() / mlbp->randomFileName();
+  while(std::filesystem::exists(fd_write->path))
+    {
+      fd_write->path = archive_path.parent_path() / mlbp->randomFileName();
+    }
+  fd_write->open_mode = std::ios_base::out | std::ios_base::binary;
 
-      while(er == ARCHIVE_OK || er == ARCHIVE_WARN)
+  std::shared_ptr<archive> a_write = initForWriting(fd_write);
+
+  er = archive_write_set_format_filter_by_ext(a_write.get(),
+                                              archive_path.string().c_str());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "RemoveBook::removeFromArchive:");
+    }
+
+  er = archive_write_open(
+      a_write.get(), fd_write.get(), &LibArchive::openCallBack,
+      &LibArchive::writeCallback, &LibArchive::closeCallback);
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "RemoveBook::removeFromArchive:");
+    }
+
+  int retry_count = 0;
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      er = archive_read_next_header2(a_read.get(), e.get());
+      switch(er)
         {
-          archive_entry_clear(read_ent.get());
-          er = archive_read_next_header2(rm_e.a_read.get(), read_ent.get());
-          SelfRemovingPath srp_read;
-          std::string path_in_arch;
-          if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-            {
-              if(er == ARCHIVE_WARN)
-                {
-                  la->libarchive_error(
-                      rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
-                }
-              const char *chnm = archive_entry_pathname_utf8(read_ent.get());
-              if(chnm)
-                {
-                  path_in_arch = chnm;
-                }
-              if(!path_in_arch.empty())
-                {
-                  if(path_in_arch != l_book_path
-                     && path_in_arch != fbd_file_name)
-                    {
-                      srp_read = la->libarchive_read_entry(
-                          rm_e.a_read.get(), read_ent.get(), out_d);
-                    }
-                }
-            }
-          else
-            {
-              if(er != ARCHIVE_EOF)
-                {
-                  la->libarchive_error(
-                      rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
-                }
-              break;
-            }
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a_read.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LLibArchive::unpackFileToBuffer: \"") + str
+                      + "\"";
+              }
+            else
+              {
+                err = std::string("LLibArchive::unpackFileToBuffer: ")
+                      + std::strerror(archive_errno(a_read.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            const char *val = archive_entry_pathname_utf8(e.get());
+            if(val)
+              {
+                std::string path_in_arch(val);
+                if(path_in_arch == path.content)
+                  {
+                    auto it = std::find_if(
+                        path.subelements.begin(), path.subelements.end(),
+                        [this](const UDBElement &el)
+                          {
+                            return bid.getId(el) == BaseID::PathInFile;
+                          });
+                    if(it != path.subelements.end())
+                      {
+                        std::string ext = mlbp->getExtension(it->content);
+                        ext = mlbp->stringToLower(ext);
+                        if(ext != ".rar")
+                          {
+                            std::filesystem::path random
+                                = archive_path.parent_path()
+                                  / mlbp->randomFileName();
+                            while(std::filesystem::exists(random))
+                              {
+                                random = archive_path.parent_path()
+                                         / mlbp->randomFileName();
+                              }
+                            std::filesystem::create_directories(random);
+                            std::shared_ptr<std::filesystem::path> tmp_p(
+                                new std::filesystem::path(random),
+                                [](std::filesystem::path *p)
+                                  {
+                                    std::filesystem::remove_all(*p);
+                                    delete p;
+                                  });
+                            random = *tmp_p
+                                     / std::filesystem::path(
+                                           std::u8string(path.content.begin(),
+                                                         path.content.end()))
+                                           .filename();
 
-          if(!srp_read.path.empty() && std::filesystem::exists(srp_read.path))
-            {
-              archive_entry_clear(write_ent.get());
-              if(std::filesystem::is_directory(srp_read.path))
-                {
-                  er = la->libarchive_write_directory(
-                      rm_e.a_write.get(), write_ent.get(),
-                      std::filesystem::u8path(path_in_arch), srp_read.path);
-                }
-              else
-                {
-                  er = la->libarchive_write_file(
-                      rm_e.a_write.get(), write_ent.get(),
-                      std::filesystem::u8path(path_in_arch), srp_read.path);
-                }
-              if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-                {
-                  file_count++;
-                }
-              else
-                {
-                  la->libarchive_error(
-                      rm_e.a_write, "RemoveBook::archiveRemove writing:", er);
-                  break;
-                }
-            }
-        }
+                            unpackEntryToDirectory(a_read, e, random);
 
-      rm_e.reset();
-      if(er == ARCHIVE_EOF)
-        {
-          std::filesystem::remove_all(archive_path);
-          if(file_count > 0)
-            {
-              std::error_code ec;
-              std::filesystem::rename(new_arch_path, archive_path, ec);
-              if(ec)
-                {
-                  std::cout << "RemoveBook::archiveRemove "
-                               "std::filesystem::rename error: "
-                            << ec.message() << std::endl;
-                }
-            }
+                            size_t res = removeFromArchive(*it, random);
+                            if(res > 0)
+                              {
+                                std::filesystem::perms perms
+                                    = std::filesystem::perms::none;
+                                if(archive_entry_perm_is_set(e.get()))
+                                  {
+                                    perms = getPermissionsFromEntry(e);
+                                  }
+                                writeFile(a_write, random, path.content,
+                                          perms);
+                                result++;
+                              }
+                          }
+                      }
+                  }
+                else if(path_in_arch != fbd)
+                  {
+                    std::string buf
+                        = std::move(unpackEntryToBuffer(a_read, e));
+                    writeBufferToArchive(a_write, e, buf);
+                    result++;
+                  }
+              }
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        default:
+          {
+            archiveError(a_read, "LibArchive::unpackToBuffer:");
+            break;
+          }
         }
+      archive_entry_clear(e.get());
+    }
+
+  a_read.reset();
+  a_write.reset();
+  if(result > 0)
+    {
+      std::filesystem::remove_all(fd_read->path);
+      std::filesystem::rename(fd_write->path, fd_read->path);
     }
   else
     {
-      int er = ARCHIVE_OK;
-      unsigned long file_count = 0;
-      std::shared_ptr<archive_entry> read_ent(
-          archive_entry_new2(rm_e.a_read.get()),
-          [](archive_entry *e)
-            {
-              archive_entry_free(e);
-            });
-
-      std::shared_ptr<archive_entry> write_ent(
-          archive_entry_new2(rm_e.a_write.get()),
-          [](archive_entry *e)
-            {
-              archive_entry_free(e);
-            });
-
-      std::filesystem::path unpack_dir
-          = out_d / std::filesystem::u8path(af->randomFileName());
-      std::filesystem::create_directories(unpack_dir);
-
-      while(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-        {
-          archive_entry_clear(read_ent.get());
-          er = archive_read_next_header2(rm_e.a_read.get(), read_ent.get());
-          SelfRemovingPath srp_read;
-          std::string path_in_arch;
-          if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-            {
-              if(er == ARCHIVE_WARN)
-                {
-                  la->libarchive_error(
-                      rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
-                }
-              const char *chnm = archive_entry_pathname_utf8(read_ent.get());
-              if(chnm)
-                {
-                  path_in_arch = chnm;
-                }
-              srp_read = la->libarchive_read_entry(rm_e.a_read.get(),
-                                                   read_ent.get(), unpack_dir);
-            }
-          else
-            {
-              if(er != ARCHIVE_EOF)
-                {
-                  la->libarchive_error(
-                      rm_e.a_read, "RemoveBook::archiveRemove reading:", er);
-                }
-              break;
-            }
-
-          if(!srp_read.path.empty() && std::filesystem::exists(srp_read.path))
-            {
-              if(path_in_arch == l_book_path)
-                {
-                  SelfRemovingPath out_dir_l(
-                      unpack_dir
-                      / std::filesystem::u8path(af->randomFileName()));
-                  archiveRemove(srp_read.path, next_path, out_d);
-                  if(std::filesystem::exists(srp_read.path))
-                    {
-                      archive_entry_clear(write_ent.get());
-                      er = la->libarchive_write_file(
-                          rm_e.a_write.get(), write_ent.get(),
-                          std::filesystem::u8path(path_in_arch),
-                          srp_read.path);
-                      if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-                        {
-                          if(er == ARCHIVE_WARN)
-                            {
-                              la->libarchive_error(
-                                  rm_e.a_write,
-                                  "RemoveBook::archiveRemove writing:", er);
-                            }
-                          file_count++;
-                        }
-                      else
-                        {
-                          la->libarchive_error(
-                              rm_e.a_write,
-                              "RemoveBook::archiveRemove writing:", er);
-                          break;
-                        }
-                    }
-                }
-              else
-                {
-                  archive_entry_clear(write_ent.get());
-                  if(std::filesystem::is_directory(srp_read.path))
-                    {
-                      er = la->libarchive_write_directory(
-                          rm_e.a_write.get(), write_ent.get(),
-                          std::filesystem::u8path(path_in_arch),
-                          srp_read.path);
-                    }
-                  else
-                    {
-                      er = la->libarchive_write_file(
-                          rm_e.a_write.get(), write_ent.get(),
-                          std::filesystem::u8path(path_in_arch),
-                          srp_read.path);
-                    }
-                  if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-                    {
-                      if(er == ARCHIVE_WARN)
-                        {
-                          la->libarchive_error(
-                              rm_e.a_write,
-                              "RemoveBook::archiveRemove writing:", er);
-                        }
-                      file_count++;
-                    }
-                  else
-                    {
-                      la->libarchive_error(
-                          rm_e.a_write,
-                          "RemoveBook::archiveRemove writing:", er);
-                      break;
-                    }
-                }
-            }
-        }
-
-      rm_e.reset();
-      if(er == ARCHIVE_EOF)
-        {
-          std::filesystem::remove_all(archive_path);
-          if(file_count > 0)
-            {
-              std::error_code ec;
-              std::filesystem::rename(new_arch_path, archive_path, ec);
-              if(ec)
-                {
-                  std::cout << "RemoveBook::archiveRemove "
-                               "std::filesystem::rename error: "
-                            << ec.message() << std::endl;
-                }
-            }
-        }
+      std::filesystem::remove_all(fd_write->path);
     }
+
+  return result;
 }

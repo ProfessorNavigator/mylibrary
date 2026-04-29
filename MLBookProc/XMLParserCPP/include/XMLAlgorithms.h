@@ -17,6 +17,7 @@
 #define XMLALGORITHMS_H
 
 #include <XMLElement.h>
+#include <functional>
 
 /*!
  * \brief The XMLAlgorithms class
@@ -194,6 +195,39 @@ public:
                 const std::string &element_name,
                 const std::string &attribute_id,
                 const std::string &attribute_value,
+                std::vector<XMLElement *> &result);
+
+  /*!
+   * \brief Searches for XML elements.
+   *
+   * This method searches XML elements according to \a search_finction
+   * conditions.
+   *
+   *  \warning Resulting pointers can become invalid if any changes are made to
+   * the source elements vector.
+   *
+   * \param elements Vector of XMLElement objects search to be carried out on.
+   * \param search_function Search function.
+   * \param result Vector results of search to be put to.
+   */
+  static void
+  searchElement(const std::vector<XMLElement> &elements,
+                std::function<bool(const XMLElement &)> search_function,
+                std::vector<XMLElement *> &result);
+  /*!
+   * \brief Searches for XML elements.
+   *
+   * This method searches XML elements according to \a search_finction
+   * conditions.
+   *
+   * \param elements Vector of pointers to XMLElement search to be carried out
+   * on.
+   * \param search_function Search function.
+   * \param result Vector results of search to be put to.
+   */
+  static void
+  searchElement(const std::vector<XMLElement *> &elements,
+                std::function<bool(const XMLElement &)> search_function,
                 std::vector<XMLElement *> &result);
 
   /*!

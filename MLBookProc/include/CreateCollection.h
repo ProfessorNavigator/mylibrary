@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,244 +13,328 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef CREATECOLLECTION_H
 #define CREATECOLLECTION_H
 
-#include <AuxFunc.h>
-#include <FileParseEntry.h>
-#include <Hasher.h>
+#include <ArchiveParser.h>
+#include <BaseID.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
+#include <atomic>
+#include <condition_variable>
 #include <filesystem>
-#include <fstream>
-#include <memory>
-#include <string>
+#include <functional>
+#include <mutex>
 #include <tuple>
 #include <vector>
 
-#ifndef USE_OPENMP
-#include <condition_variable>
-#include <mutex>
-#else
-#include <omp.h>
-#endif
-
 /*!
- * \brief The CreateCollection class.
+ * \brief The CreateCollection class
  *
  * This class contains methods for collection database creation.
  */
-class CreateCollection : public Hasher
+class CreateCollection
 {
 public:
   /*!
    * \brief CreateCollection constructor.
-   * \param af smart pointer to AuxFunc object.
-   * \param collection_path absolute path to collection base directory (if it
-   * doesnt exsist, \b MLBookProc will create it).
-   * \param books_path absolute path to books directory.
-   * \param rar_support if \a true, rar archives will be processed, otherwise -
-   * not (some rar archives can cause errors).
-   * \param num_threads limit of working threads to be used.
+   * \param mlbp Smart pointer to MLBookProc object.
+   * \param threads_num Maximum permitted number of working threads.
    */
-  CreateCollection(const std::shared_ptr<AuxFunc> &af,
-                   const std::filesystem::path &collection_path,
-                   const std::filesystem::path &books_path,
-                   const bool &rar_support, const int &num_threads);
+  CreateCollection(const std::shared_ptr<MLBookProc> &mlbp,
+                   const int &threads_num = int(1));
 
-  /*!
-   * \brief CreateCollection destructor.
-   */
   virtual ~CreateCollection();
 
   /*!
-   * \brief Starts collection creation.
+   * Creates collection database.
    *
-   * \note This method can throw std::exception in case of errors.
+   * \param files_and_dirs Files, directories and symlinks to be included in
+   * collection.
+   * \param base_path Path to result database file.
    */
   void
-  createCollection();
+  createCollection(const std::vector<std::filesystem::path> &files_and_dirs,
+                   const std::filesystem::path &base_path);
 
   /*!
-   * \brief "Pulse" callback.
+   * Creates database from inpx file.
    *
-   * Emitted while preliminary files collecting to show that process is not
-   * frozen. Bind your method to it, if you need such information.
+   * \param path_to_inpx Path to inpx file.
+   * \param base_path Path to result database file.
    */
-  std::function<void()> pulse;
+  void
+  createInpxCollection(const std::filesystem::path &path_to_inpx,
+                       const std::filesystem::path &base_path);
 
   /*!
-   * \brief "Total bytes" callback.
-   *
-   * Emitted after preliminary files collecting completed to indicate total
-   * quantity of bytes to be processed. Bind your method to it, if you need
-   * such information.
+   * Stops all operations.
    */
-  std::function<void(const double &)> signal_total_bytes;
+  void
+  stopAll();
 
   /*!
-   * \brief "Progress" callback.
+   * Writes given base to file.
    *
-   * Emitted after each file processing completion. Indicates total quantity
-   * of bytes has been processed. Bind your method to it, if you need such
-   * information.
+   * \param base_path Path to database file.
+   * \param col_base Collection database.
    */
-  std::function<void(const double &progress)> progress;
+  static void
+  saveBase(const std::filesystem::path &base_path, UDBase &col_base);
+
+  /*!
+   * This callback function will be called during files collecting to indicate
+   * progress if set. \a files_found - total number of found files.
+   */
+  std::function<void(const size_t &files_found)> signal_files_collecting;
+
+  /*!
+   * This callback function will be called during files parsing to indicate
+   * progress, if set. \a processed - number of processed items, \a total -
+   * total number of items to be processed.
+   */
+  std::function<void(double processed, double total)> signal_parsing_progress;
 
 protected:
   /*!
-   * \brief CreateCollection constructor.
+   * Collects supported files and creates base template. In most cases you do
+   * not need to call this method yourself.
    *
-   *\warning Do not call this constructor yourself!
-   *
-   * This constructor is used by RefreshCollection class.
-   *
-   * \param af smart pointer to AuxFunc object.
-   * \param num_threads limit of working threads to be used.
-   */
-  CreateCollection(const std::shared_ptr<AuxFunc> &af, const int &num_threads);
-
-  /*!
-   * \brief Threads regulator.
-   *
-   * \warning Do not call this method yourself!
+   * \param files_and_dirs Files, directories and symlinks to be included in
+   * collection.
+   * \param col_base Result database.
    */
   void
-  threadRegulator();
+  filesCollecting(const std::vector<std::filesystem::path> &files_and_dirs,
+                  UDBase &col_base);
 
   /*!
-   * \brief Opens database file for writing.
+   * Counts BaseID::File objects in given vector.
    *
-   * \warning Do not call this method yourself!
+   * \param el_v Vector to be processed.
+   * \return Quantity of BaseID::File objects.
+   */
+  size_t
+  countFiles(const std::vector<UDBElement> &el_v);
+
+  /*!
+   * Collects all BaseID::File objects.
+   *
+   * \param el_v Vector to be processed.
+   * \return std::tuple. First element is pointer to vector where BaseID::File
+   * object has been found. Second element is objects iterator.
+   */
+  std::vector<std::tuple<const std::vector<UDBElement> *,
+                         std::vector<UDBElement>::const_iterator>>
+  getAllFiles(const std::vector<UDBElement> &el_v);
+
+  /*!
+   * Cleans given vector from repeated BaseID::File objects.
+   * \param files Vector obtained from getAllFiles() method.
    */
   void
-  openBaseFile();
+  removeDublicates(
+      std::vector<std::tuple<const std::vector<UDBElement> *,
+                             std::vector<UDBElement>::const_iterator>> &files);
 
   /*!
-   * \brief Finishes database writing.
+   * Processed given items.
    *
-   * \warning Do not call this method yourself!
+   * \param items Database template vector.
    */
   void
-  closeBaseFile();
+  processFiles(const std::vector<UDBElement> &items);
 
   /*!
-   * \brief Writes file data to database.
+   * Parses given BaseID::File object.
    *
-   * \warning Do not call this method yourself!
-   *
-   * \param fe FileParseEntry object.
+   * \param file Pointer to BaseID::File object.
    */
   void
-  write_file_to_base(const FileParseEntry &fe);
+  fileParsing(UDBElement *file);
 
   /*!
-   * \brief Absolute path to database.
-   *
-   * \warning Do not call or set this variable yourself!
+   * Removes all BaseID::File objects, not containing BaseID::Book objects.
+   * \param items Items to be cleaned.
    */
-  std::filesystem::path base_path;
+  void
+  cleanBase(std::vector<UDBElement> &items);  
 
   /*!
-   * \brief Absolute path to books directory.
+   * Parses fb2 and fbd file.
    *
-   * \warning Do not call or set this variable yourself!
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
    */
-  std::filesystem::path books_path;
+  void
+  fb2Parsing(UDBElement *file, const std::filesystem::path &file_path);
 
   /*!
-   * \brief If \a true, rar archives will be processed, otherwise - not.
+   * Parses epub file.
    *
-   * \warning Do not call or set this variable yourself!
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
    */
-  bool rar_support = false;
+  void
+  epubParsing(UDBElement *file, const std::filesystem::path &file_path);
 
   /*!
-   * \brief Hashed files.
+   * Parses pdf file.
    *
-   * This vector is used by RefreshCollection class to indicate files, has been
-   * already hashed.
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
+   */
+  void
+  pdfParsing(UDBElement *file, const std::filesystem::path &file_path);
+
+  /*!
+   * Parses djvu file.
    *
-   * \warning Do not call or set this vector yourself!
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
+   */
+  void
+  djvuParsing(UDBElement *file, const std::filesystem::path &file_path);
+
+  /*!
+   * Parses odt file.
+   *
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
+   */
+  void
+  odtParsing(UDBElement *file, const std::filesystem::path &file_path);
+
+  /*!
+   * Parses txt file.
+   *
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
+   */
+  void
+  txtParsing(UDBElement *file, const std::filesystem::path &file_path);
+
+  /*!
+   * Parses archive file.
+   *
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file to be parsed.
+   */
+  void
+  archiveParsing(UDBElement *file, const std::filesystem::path &file_path);
+
+  /*!
+   * Calcultes hash sum for given buffer.
+   *
+   * \param buf Buffer hash sum to be calculated for.
+   * \return std::string containing raw hash sum.
+   */
+  std::string
+  bufferHash(const std::string &buf);
+
+  /*!
+   * Calculates file hash sum.
+   *
+   * \param file_path Path to file hash sum to be calculated for.
+   * \return std::string containing raw hash sum.
+   */
+  std::string
+  fileHash(const std::filesystem::path &file_path);
+
+  /*!
+   * Calcultes hash sum for given BaseID::File object.
+   *
+   * Caller can provide \a file_path ot \a buf on his choice.
+   *
+   * \param file Pointer to BaseID::File object.
+   * \param file_path Path to file hash sum to be calculated for.
+   * \param buf Buffer hash sum to be calculted for.
+   */
+  void
+  bufHash(UDBElement *file, const std::filesystem::path &file_path,
+          const std::string &buf);
+
+  /*!
+   * Smart pointer to MlBookProc object.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::shared_ptr<MLBookProc> mlbp;
+
+  /*!
+   * Smart pointer to processors identificators buffer.
+   *
+   * First element of tuple - processor number. Second element indicates if
+   * processor is busy by any working thread of current collection creation
+   * process.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::shared_ptr<std::vector<std::tuple<unsigned, bool>>> threads_v;
+
+  /*!
+   * Smart pointer to mutex locking #threads_v.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::shared_ptr<std::mutex> threads_v_mtx;
+
+  /*!
+   * Smart pointer to conditional variable locking #threads_v.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::shared_ptr<std::condition_variable> threads_v_var;
+
+  /*!
+   * If set to true all processes will be stopped.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::atomic<bool> cancel;
+
+  /*!
+   * Vector of active archives parsing processes.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::vector<std::shared_ptr<ArchiveParser>> arch_proc;
+
+  /*!
+   * std::mutex locking #arch_proc vector.
+   *
+   * \warning Do not set or modify this object yourself.
+   */
+  std::mutex arch_proc_mtx;
+
+  /*!
+   * Vector of files for which hash sums has been calculated erlear (in
+   * RefreshCollection methods).
+   *
+   * First element of tuple - path to file. Second element - raw hash sum.
+   *
+   * \warning Do not set or modify this object yourself.
    */
   std::vector<std::tuple<std::filesystem::path, std::string>> already_hashed;
 
   /*!
-   * \brief "Need to parse" vector.
-   *
-   * This vector is used to indicate files, needed to be parsed.
-   *
-   * \warning Do not call or set this vector yourself!
+   * BaseID object.
    */
-  std::vector<std::filesystem::path> need_to_parse;
+  BaseID bid;
 
-#ifndef USE_OPENMP
   /*!
-   * \brief Keeps quantity of bytes have been processed.
+   * Number of processed items.
    *
-   * \warning Do not call or set this variable yourself!
+   * \warning Do not set or modify this object yourself.
    */
-  std::atomic<double> current_bytes;
-#else
+  std::atomic<double> processed;
+
   /*!
-   * \brief Keeps quantity of bytes have been processed.
+   * Total number of items to be processed.
    *
-   * \warning Do not call or set this variable yourself!
+   * \warning Do not set or modify this object yourself.
    */
-  double current_bytes = 0.0;
-#endif
-
-private:
-  void
-  threadFunc(const std::filesystem::path &need_to_parse);
-
-  void
-  fb2Thread(const std::filesystem::path &file_col_path,
-             const std::filesystem::path &resolved);
-
-  void
-  epubThread(const std::filesystem::path &file_col_path,
-              const std::filesystem::path &resolved);
-
-  void
-  pdfThread(const std::filesystem::path &file_col_path,
-             const std::filesystem::path &resolved);
-
-  void
-  djvuThread(const std::filesystem::path &file_col_path,
-              const std::filesystem::path &resolved);
-
-  void
-  odtThread(const std::filesystem::path &file_col_path,
-             const std::filesystem::path &resolved);
-
-  void
-  txtThread(const std::filesystem::path &file_col_path,
-            const std::filesystem::path &resolved);
-
-  void
-  archThread(const std::filesystem::path &file_col_path,
-              const std::filesystem::path &resolved);
-
-  void
-  bookEntryToFileEntry(std::string &file_entry,
-                           const std::string &book_entry);
-
-  std::shared_ptr<AuxFunc> af;
-  int num_threads = 1;
-  std::fstream base_strm;
-
-  std::vector<void *> archp_obj;
-
-#ifndef USE_OPENMP
-  std::mutex archp_obj_mtx;
-  std::vector<std::tuple<unsigned, bool>> thr_pool;
-  std::mutex run_threads_mtx;
-  std::condition_variable run_threads_var;  
-
-  std::mutex base_strm_mtx;
-#else
-  omp_lock_t archp_obj_mtx;
-#endif
+  double total;
 };
 
 #endif // CREATECOLLECTION_H

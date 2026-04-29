@@ -17,7 +17,7 @@
 #ifndef FORMATANNOTATION_H
 #define FORMATANNOTATION_H
 
-#include <AuxFunc.h>
+#include <MLBookProc.h>
 #include <ReplaceTagItem.h>
 #include <XMLParserCPP.h>
 #include <memory>
@@ -27,44 +27,24 @@
 /*!
  * \brief The FormatAnnotation class.
  *
- * This class contains different methods for annotation processing.
+ * This class contains methods for annotation processing.
  */
 class FormatAnnotation
 {
 public:
   /*!
-   * \brief FormatAnnotation constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \brief FormatAnnotation constructor
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  FormatAnnotation(const std::shared_ptr<AuxFunc> &af);
+  FormatAnnotation(const std::shared_ptr<MLBookProc> &mlbp);
 
-  /*!
-   * \brief FormatAnnotation destructor.
-   */
   virtual ~FormatAnnotation();
 
   /*!
    * \brief Removes escape sequences from annotation.
    *
-   * Removes <A
-   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</A> symbols
-   * 0 to 31 (inclusive) from annotation. Only exception is symbol 9
-   * (horizontal tab). It will be replaced by 32 (space). Also removes extra
-   * spaces from annotation beginning.
-   *
-   * \deprecated This method will be removed in future releases. Use
-   * removeEscapeSequences() instead.
-   *
-   * \param annotation UTF-8 annotation content string.
-   */
-  __attribute__((deprecated)) void
-  remove_escape_sequences(std::string &annotation);
-
-  /*!
-   * \brief Removes escape sequences from annotation.
-   *
-   * Removes <A
-   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</A> symbols
+   * Removes <a
+   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</a> symbols
    * 0 to 31 (inclusive) from annotation. Only exception is symbol 9
    * (horizontal tab). It will be replaced by 32 (space). Also removes extra
    * spaces from annotation beginning.
@@ -72,21 +52,6 @@ public:
    */
   void
   removeEscapeSequences(std::string &annotation);
-
-  /*!
-   * \brief Replaces XML tags.
-   *
-   * It is highly recommended to call setTagReplacementTable() method before
-   * this method call (but it is not compulsory). If tag replacement table is
-   * empty, all tags will be just removed.
-   *
-   * \deprecated This method will be removed in future releases. Use
-   * replaceTags() instead.
-   *
-   * \param annotation UTF-8 annotation content string.
-   */
-  __attribute__((deprecated)) void
-  replace_tags(std::string &annotation);
 
   /*!
    * \brief Replaces XML tags.
@@ -104,25 +69,8 @@ public:
    * \brief Cleans some sequences from annotation.
    *
    * Replaces "three spaces" by "two spaces" at the annotation beginning,
-   * removes "\n" from annotation beginning, removes 0 - 32 <A
-   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</A> symbols
-   * from the annotation end. Also replaces "\n\n\n" sequences by "\n\n" in
-   * whole annotation.
-   *
-   * \deprecated This method will be removed in future releases. Use
-   * finalCleaning() instead.
-   *
-   * \param annotation UTF-8 annotation content string.
-   */
-  __attribute__((deprecated)) void
-  final_cleaning(std::string &annotation);
-
-  /*!
-   * \brief Cleans some sequences from annotation.
-   *
-   * Replaces "three spaces" by "two spaces" at the annotation beginning,
-   * removes "\n" from annotation beginning, removes 0 - 32 <A
-   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</A> symbols
+   * removes "\n" from annotation beginning, removes 0 - 32 <a
+   * HREF="https://en.cppreference.com/w/cpp/language/ascii">ASCII</a> symbols
    * from the annotation end. Also replaces "\n\n\n" sequences by "\n\n" in
    * whole annotation.
    * \param annotation UTF-8 annotation content string.
@@ -145,6 +93,7 @@ public:
    *
    * If you need to replace XML tags by your own tags or text, you should call
    * this method before replaceTags() call to set replacement table.
+   *
    * \param replacement_table vector containing ReplaceTagItem objects.
    * \param symbols_replacement Vector of tuples. First element of tuple is
    * string to be replaced in tag content, second element is replacement
@@ -174,7 +123,7 @@ private:
 
   std::vector<std::tuple<std::string, std::string>> symbols_replacement;
 
-  std::shared_ptr<AuxFunc> af;
+  std::shared_ptr<MLBookProc> mlbp;
 };
 
 #endif // FORMATANNOTATION_H

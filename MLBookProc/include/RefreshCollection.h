@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,190 +13,78 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef REFRESHCOLLECTION_H
 #define REFRESHCOLLECTION_H
 
-#include <AuxFunc.h>
 #include <BaseKeeper.h>
-#include <BookBaseEntry.h>
-#include <BookMarks.h>
 #include <CreateCollection.h>
-#include <FileParseEntry.h>
-#include <cstdint>
-#include <filesystem>
-#include <functional>
 #include <memory>
-#include <string>
-#include <vector>
-
-#ifndef USE_OPENMP
-#include <atomic>
-#include <mutex>
-#else
-#include <omp.h>
-#endif
 
 /*!
  * \brief The RefreshCollection class
  *
- * This class contains various methods for collection database refreshing in
- * case of any changes were made to collection files.
+ * This class contains methods used for collection maintenance.
  */
 class RefreshCollection : public CreateCollection
 {
 public:
   /*!
    * \brief RefreshCollection constructor.
-   *
-   * \note See also set_rar_support() method.
-   * \param af smart pointer to AuxFunc object.
-   * \param collection_name collection name.
-   * \param num_threads number of threads to be used (see also
-   * CreateCollection::CreateCollection()).
-   * \param remove_empty if \a true, empty directories and files will be
-   * removed.
-   * \param fast_refresh if \a true, file hashes calculations will not be
-   * carried out (hashes of all collection files will be recalculated
-   * otherwise).
-   * \param refresh_bookmarks if \a true, bookmarks pointing to absent books
-   * will be removed.
-   * \param bookmarks smart pointer to BookMarks object.
+   * \param mlbp Smart pointer to MLBookProc object.
+   * \param threads_num Maximum number of threads to be used in operations.
    */
-  RefreshCollection(const std::shared_ptr<AuxFunc> &af,
-                    const std::string &collection_name, const int &num_threads,
-                    const bool &remove_empty, const bool &refresh_bookmarks,
-                    const bool &fast_refresh,
-                    const std::shared_ptr<BookMarks> &bookmarks);
+  RefreshCollection(const std::shared_ptr<MLBookProc> &mlbp,
+                    const int &threads_num = int(1));
 
-  /*!
-   * \brief RefreshCollection destructor.
-   */
   virtual ~RefreshCollection();
 
   /*!
-   * \brief "Total bytes to hash" signal.
+   * Refreshes given collection.
    *
-   * Emitted after files for refreshing have been collected, to indicate
-   * total quantity bytes to be hashed. Bind your method to \b
-   * total_bytes_to_hash, if you need such information.
-   */
-  std::function<void(const double &total_hash)> total_bytes_to_hash;
-
-  /*!
-   * \brief "Total bytes hashed" signal.
+   * Checks files existance and sizes. If size of file is not equal its
+   * database entry, file will be reparsed. If \a fast_refresh set to \a false,
+   * checks all files hash sums, and if file hash sum not equal its database
+   * entry, file will be reparsed. If given collection type is 'legacy' or
+   * 'inpx', collection will be recreated as 'native'.
    *
-   * Emitted after file has been hashed, to indicate total quantity of
-   * bytes have been hashed. Bind your method to \b bytes_hashed, if you need
-   * such information.
-   */
-  std::function<void(const double &hashed)> bytes_hashed;
-
-  /*!
-   * \brief Refreshes whole collection.
-   *
-   * Caries out collection refreshing.
-   * \note This method can throw std::exception in case of errors.
+   * \param base_path Path to collection database file.
+   * \param fast_refresh If \a true, file hash sums will not be checked.
    */
   void
-  refreshCollection();
+  refreshCollection(const std::filesystem::path &base_path,
+                    const bool &fast_refresh = bool(true));
 
   /*!
-   * \brief Refreshes iformation about particular file.
-   * \param bbe BookBaseEntry object (see BaseKeeper::searchBook()).
+   * Adds files, symlinks or directories to existing collection.
+   *
+   * \param base_path Path to collection database file.
+   * \param files_and_dirs List of files, symlinks or directories to be added
+   * to collection.
    */
   void
-  refreshFile(const BookBaseEntry &bbe);
+  addFilesAndDirs(const std::filesystem::path &base_path,
+                  const std::vector<std::filesystem::path> &files_and_dirs);
 
   /*!
-   * \brief Replaces information in database.
+   * If this callback set, it will be called to indicate files hashing
+   * progress.
    *
-   * Use this method, if you need to edit database entries manually.
-   * \param bbe_old existing BookBaseEntry (see BaseKeeper::searchBook()).
-   * \param bbe_new BookBaseEntry containing new information.
-   * \return Returns \a true, if operation has been successful.
+   * \a progress - number of items already hashed, \a total - total number of
+   * items to be hashed.
    */
-  bool
-  editBook(const BookBaseEntry &bbe_old, const BookBaseEntry &bbe_new);
-
-  /*!
-   * \brief Refreshes information in database about particular book.
-   * \param bbe BookBaseEntry object (see BaseKeeper::searchBook()).
-   * \return Returns \a true, if operation has been successful.
-   */
-  bool
-  refreshBook(const BookBaseEntry &bbe);
-
-  /*!
-   * \brief Enables support of rar archives.
-   *
-   * Set \b rar_support to \a true, if you need to parse rar archives (see also
-   * CreateCollection::CreateCollection()).
-   * \param rar_support if \a true, rar archives will be parsed.
-   */
-  void
-  set_rar_support(const bool &rar_support);
+  std::function<void(double processed, double total)> signal_file_hashed;
 
 private:
-  std::filesystem::path
-  getBasePath(const std::string &collection_name);
-
-  std::filesystem::path
-  getBooksPath();
-
-  void
-  compareVectors(std::vector<FileParseEntry> &base,
-                 std::vector<std::filesystem::path> &books_files);
-
   bool
-  compareFunction1(const std::filesystem::path &book_path,
-                   const FileParseEntry &ent);
-
-  bool
-  compareFunction2(const FileParseEntry &ent,
-                   const std::filesystem::path &book_path);
+  elementRemove(const UDBElement &el, const bool &fast_refresh);
 
   void
-  checkHashes(std::vector<FileParseEntry> *base,
-              std::vector<std::filesystem::path> *books_files);
+  compareVectors(std::vector<UDBElement> &new_v,
+                 const std::vector<UDBElement> &old_v);
 
-  void
-  hashThread(const std::filesystem::path &file_to_hash,
-             std::vector<FileParseEntry> *base);
+  BaseKeeper *base_keeper;
 
-  void
-  refreshBookMarks(const std::shared_ptr<BaseKeeper> &bk);
-
-  void
-  getFilenamesFromArchives(const std::filesystem::path &arch_path,
-                           const std::string &prefix,
-                           std::vector<std::string> &result, void *la);
-
-  std::shared_ptr<AuxFunc> af;
-  int num_threads = 1;
-  bool remove_empty = false;
-  bool fast_refresh = false;
-  bool refresh_bookmarks = false;
-  std::shared_ptr<BookMarks> bookmarks;
-
-  std::string collection_name;
-
-#ifndef USE_OPENMP
-  std::atomic<uintmax_t> bytes_summ;
-
-  std::mutex basemtx;
-  std::mutex already_hashedmtx;
-  std::mutex need_to_parsemtx;
-
-  std::mutex newthrmtx;
-  std::condition_variable continue_hashing;
-  std::vector<std::tuple<unsigned, bool>> thr_pool;
-#else
-  uintmax_t bytes_summ = 0;
-  omp_lock_t basemtx;
-  omp_lock_t already_hashedmtx;
-  omp_lock_t need_to_parsemtx;
-#endif
+  double l_processed = 0.0;
 };
 
 #endif // REFRESHCOLLECTION_H

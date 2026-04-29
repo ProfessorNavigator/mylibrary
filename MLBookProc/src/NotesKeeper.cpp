@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,757 +13,688 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#include <BaseKeeper.h>
+
 #include <ByteOrder.h>
 #include <NotesKeeper.h>
 #include <algorithm>
 #include <fstream>
-#include <functional>
 #include <iostream>
-#include <thread>
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#else
-#ifdef USE_PE
-#include <execution>
-#endif
-#endif
-
-NotesKeeper::NotesKeeper(const std::shared_ptr<AuxFunc> &af)
+NotesKeeper::NotesKeeper(const std::shared_ptr<MLBookProc> &mlbp) : UDBase()
 {
-  this->af = af;
-  base_directory_path = af->homePath();
-  base_directory_path /= std::filesystem::u8path(".local")
-                         / std::filesystem::u8path("share")
-                         / std::filesystem::u8path("MyLibrary")
-                         / std::filesystem::u8path("Notes");
-
-  std::thread thr(std::bind(&NotesKeeper::loadBase, this));
-  thr.detach();
-}
-
-NotesKeeper::~NotesKeeper()
-{
-  std::lock_guard<std::mutex> lglock(base_mtx);
+  this->mlbp = mlbp;
 }
 
 void
-NotesKeeper::loadBase()
+NotesKeeper::loadNotesBase(const std::filesystem::path &base_path)
 {
-  std::lock_guard<std::mutex> lglock(base_mtx);
+  std::lock_guard<std::shared_mutex> lglock(base_mtx);
+  this->base_path = base_path;
 
-  std::filesystem::path bp = base_directory_path;
-  bp /= std::filesystem::u8path("notes_base");
-
-  std::fstream f;
-  f.open(bp, std::ios_base::in | std::ios_base::binary);
-  if(f.is_open())
+  try
     {
-      std::string raw_base;
-      f.seekg(0, std::ios_base::end);
-      raw_base.resize(f.tellg());
-      f.seekg(0, std::ios_base::beg);
-      f.read(raw_base.data(), raw_base.size());
-      f.close();
-      try
-        {
-          parseRawBase(raw_base);
-        }
-      catch(std::exception &e)
-        {
-          std::cout << e.what() << std::endl;
-        }
+      readFromFile(base_path);
     }
-  base.shrink_to_fit();
+  catch(std::exception &er)
+    {
+      std::cout << "NotesKeeper::loadNotesBase: \"" << er.what() << "\""
+                << std::endl;      
+      loadLegacyBase(base_path);
+    }
+  shrinkToFit();
 }
 
-void
-NotesKeeper::editNote(const NotesBaseEntry &nbe, const std::string &note)
+UDBase
+NotesKeeper::searchNotes(const UDBElement &book_search_result)
 {
-  base_mtx.lock();
-#ifdef USE_OPENMP
-  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
-                                    [nbe](NotesBaseEntry &el) {
-                                      return el == nbe;
-                                    });
-#else
-#ifdef USE_PE
-  auto it = std::find_if(std::execution::par, base.begin(), base.end(),
-                         [nbe](NotesBaseEntry &el) {
-                           return el == nbe;
-                         });
-#else
-  auto it = std::find_if(base.begin(), base.end(), [nbe](NotesBaseEntry &el) {
-    return el == nbe;
-  });
-#endif
-#endif
-  if(it != base.end())
+  UDBase result;
+
+  auto it_fl = std::find_if(book_search_result.subelements.begin(),
+                            book_search_result.subelements.end(),
+                            [this](const UDBElement &el)
+                              {
+                                return bid.getId(el) == BaseID::File;
+                              });
+  if(it_fl == book_search_result.subelements.end())
     {
-      if(note.size() == 0)
-        {
-          base.erase(it);
-        }
+      return result;
+    }
+
+  auto it_book = std::find_if(book_search_result.subelements.begin(),
+                              book_search_result.subelements.end(),
+                              [this](const UDBElement &el)
+                                {
+                                  return bid.getId(el) == BaseID::Book;
+                                });
+  if(it_book == book_search_result.subelements.end())
+    {
+      return result;
+    }
+
+  auto it_path
+      = std::find_if(it_book->subelements.begin(), it_book->subelements.end(),
+                     [this](const UDBElement &el)
+                       {
+                         return bid.getId(el) == BaseID::PathInFile;
+                       });
+
+  std::filesystem::path fp
+      = std::u8string(it_fl->content.begin(), it_fl->content.end());
+  std::shared_lock shlock(base_mtx);
+
+  if(it_path == it_book->subelements.end())
+    {
+      result = std::move(searchElement(
+          [fp, this](const UDBElement &el)
+            {
+              auto it_fl
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::File;
+                                   });
+              if(it_fl == el.subelements.end())
+                {
+                  return false;
+                }
+              std::filesystem::path p = std::u8string(it_fl->content.begin(),
+                                                      it_fl->content.end());
+              if(fp != p)
+                {
+                  return false;
+                }
+              return true;
+            }));
     }
   else
     {
-      if(note.size() > 0)
-        {
-          base.push_back(nbe);
-          base.shrink_to_fit();
-        }
+      result = std::move(searchElement(
+          [this, fp, it_path](const UDBElement &el)
+            {
+              auto it_fl
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::File;
+                                   });
+              if(it_fl == el.subelements.end())
+                {
+                  return false;
+                }
+              std::filesystem::path p = std::u8string(it_fl->content.begin(),
+                                                      it_fl->content.end());
+              if(fp != p)
+                {
+                  return false;
+                }
+
+              auto it_p = std::find_if(
+                  el.subelements.begin(), el.subelements.end(),
+                  [this](const UDBElement &el)
+                    {
+                      return bid.getId(el) == BaseID::PathInFile;
+                    });
+              if(it_p == el.subelements.end())
+                {
+                  return false;
+                }
+              if(*it_p != *it_path)
+                {
+                  return false;
+                }
+              return true;
+            }));
     }
 
-  std::filesystem::create_directories(nbe.note_file_full_path.parent_path());
-  std::filesystem::remove_all(nbe.note_file_full_path);
-  if(note.size() > 0)
+  return result;
+}
+
+void
+NotesKeeper::addNote(const UDBElement &book_search_result,
+                     const std::string &note_txt)
+{
+  auto it_fl = std::find_if(book_search_result.subelements.begin(),
+                            book_search_result.subelements.end(),
+                            [this](const UDBElement &el)
+                              {
+                                return bid.getId(el) == BaseID::File;
+                              });
+  if(it_fl == book_search_result.subelements.end())
     {
-      std::fstream f;
-      f.open(nbe.note_file_full_path,
-             std::ios_base::out | std::ios_base::binary);
-      if(f.is_open())
-        {
-          std::string entry = nbe.collection_name + "\n";
-          entry += nbe.book_file_full_path.u8string() + "\n";
-          size_t sz = entry.size();
-          for(auto it = nbe.book_path.begin(); it != nbe.book_path.end(); it++)
+      return void();
+    }
+
+  auto it_book = std::find_if(book_search_result.subelements.begin(),
+                              book_search_result.subelements.end(),
+                              [this](const UDBElement &el)
+                                {
+                                  return bid.getId(el) == BaseID::Book;
+                                });
+  if(it_book == book_search_result.subelements.end())
+    {
+      return void();
+    }
+
+  auto it_path
+      = std::find_if(it_book->subelements.begin(), it_book->subelements.end(),
+                     [this](const UDBElement &el)
+                       {
+                         return bid.getId(el) == BaseID::PathInFile;
+                       });
+
+  std::filesystem::path fp
+      = std::u8string(it_fl->content.begin(), it_fl->content.end());
+
+  std::lock_guard<std::shared_mutex> lglock(base_mtx);
+
+  if(it_path == it_book->subelements.end())
+    {
+      auto it_note = std::find_if(
+          base.begin(), base.end(),
+          [fp, this](const UDBElement &el)
             {
-              char v = *it;
-              if(v == '\n')
+              auto it_fl
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::File;
+                                   });
+              if(it_fl == el.subelements.end())
                 {
-                  v = '/';
+                  return false;
                 }
-              entry.push_back(v);
-            }
-          if(sz < entry.size())
+              std::filesystem::path p = std::u8string(it_fl->content.begin(),
+                                                      it_fl->content.end());
+              if(fp != p)
+                {
+                  return false;
+                }
+              return true;
+            });
+      if(it_note == base.end())
+        {
+          if(note_txt.empty())
             {
-              entry += "\n\n";
+              return void();
             }
-          else
+          UDBElement note;
+          bid.setId(note, BaseID::BookNote);
+
+          note.subelements.push_back(*it_fl);
+
+          std::filesystem::path p
+              = base_path.parent_path() / mlbp->randomFileName();
+          while(std::filesystem::exists(p))
             {
-              entry += "\n";
+              p = base_path.parent_path() / mlbp->randomFileName();
             }
-          entry += note;
-          f.write(entry.c_str(), entry.size());
+
+          std::filesystem::create_directories(p.parent_path());
+          std::fstream f;
+          f.open(p, std::ios_base::out | std::ios_base::binary);
+          if(!f.is_open())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: cannot open note file");
+            }
+          std::string w_str = it_fl->content + "\n\n";
+          f.write(w_str.c_str(), w_str.size());
+          f.write(note_txt.c_str(), note_txt.size());
           f.close();
+
+          UDBElement el;
+          bid.setId(el, BaseID::BookNoteFile);
+          std::u8string u8str = p.u8string();
+          el.content = std::string(u8str.begin(), u8str.end());
+          note.subelements.emplace_back(el);
+
+          base.emplace_back(note);
         }
-    }
-  base_mtx.unlock();
-  saveBase();
-}
+      else
+        {
+          auto it_p = std::find_if(
+              it_note->subelements.begin(), it_note->subelements.end(),
+              [this](const UDBElement &el)
+                {
+                  return bid.getId(el) == BaseID::BookNoteFile;
+                });
+          if(it_p == it_note->subelements.end())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: incorrect note entry");
+            }
 
-NotesBaseEntry
-NotesKeeper::getNote(const std::string &collection_name,
-                     const std::filesystem::path &book_file_full_path,
-                     const std::string &book_path)
-{
-  NotesBaseEntry nbe(collection_name, book_file_full_path, book_path);
+          if(note_txt.empty())
+            {
+              std::filesystem::path p
+                  = std::u8string(it_p->content.begin(), it_p->content.end());
+              std::filesystem::remove_all(p);
+              base.erase(it_note);
+              std::filesystem::path tmp
+                  = base_path.parent_path() / mlbp->randomFileName();
+              while(std::filesystem::exists(tmp))
+                {
+                  tmp = base_path.parent_path() / mlbp->randomFileName();
+                }
+              writeToFile(tmp);
+              std::filesystem::remove_all(base_path);
+              std::filesystem::rename(tmp, base_path);
+              return void();
+            }
 
-  base_mtx.lock();
-#ifdef USE_OPENMP
-  auto it = AuxFunc::parallelFindIf(base.begin(), base.end(),
-                                    [nbe](NotesBaseEntry &el) {
-                                      return el == nbe;
-                                    });
-#else
-#ifdef USE_PE
-  auto it = std::find_if(std::execution::par, base.begin(), base.end(),
-                         [nbe](NotesBaseEntry &el) {
-                           return el == nbe;
-                         });
-#else
-  auto it = std::find_if(base.begin(), base.end(), [nbe](NotesBaseEntry &el) {
-    return el == nbe;
-  });
-#endif
-#endif
-  if(it != base.end())
-    {
-      nbe.note_file_full_path = it->note_file_full_path;
+          std::filesystem::path tmp
+              = base_path.parent_path() / mlbp->randomFileName();
+          while(std::filesystem::exists(tmp))
+            {
+              tmp = base_path.parent_path() / mlbp->randomFileName();
+            }
+
+          std::filesystem::create_directories(tmp.parent_path());
+          std::fstream f;
+          f.open(tmp, std::ios_base::out | std::ios_base::binary);
+          if(!f.is_open())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: cannot open note file");
+            }
+          std::string w_str = it_fl->content + "\n\n";
+          f.write(w_str.c_str(), w_str.size());
+          f.write(note_txt.c_str(), note_txt.size());
+          f.close();
+
+          std::filesystem::path p
+              = std::u8string(it_p->content.begin(), it_p->content.end());
+          std::filesystem::remove_all(p);
+          std::filesystem::rename(tmp, p);
+        }
     }
   else
     {
-      std::string rnd = af->randomFileName();
-      nbe.note_file_full_path = base_directory_path;
-      nbe.note_file_full_path /= std::filesystem::u8path(rnd);
+      auto it_note = std::find_if(
+          base.begin(), base.end(),
+          [this, fp, it_path](const UDBElement &el)
+            {
+              auto it_fl
+                  = std::find_if(el.subelements.begin(), el.subelements.end(),
+                                 [this](const UDBElement &el)
+                                   {
+                                     return bid.getId(el) == BaseID::File;
+                                   });
+              if(it_fl == el.subelements.end())
+                {
+                  return false;
+                }
+              std::filesystem::path p = std::u8string(it_fl->content.begin(),
+                                                      it_fl->content.end());
+              if(fp != p)
+                {
+                  return false;
+                }
 
-      while(std::filesystem::exists(nbe.note_file_full_path))
+              auto it_p = std::find_if(
+                  el.subelements.begin(), el.subelements.end(),
+                  [this](const UDBElement &el)
+                    {
+                      return bid.getId(el) == BaseID::PathInFile;
+                    });
+              if(it_p == el.subelements.end())
+                {
+                  return false;
+                }
+              if(*it_p != *it_path)
+                {
+                  return false;
+                }
+              return true;
+            });
+      if(it_note == base.end())
         {
-          rnd = af->randomFileName();
-          nbe.note_file_full_path = base_directory_path;
-          nbe.note_file_full_path /= std::filesystem::u8path(rnd);
+          if(note_txt.empty())
+            {
+              return void();
+            }
+          UDBElement note;
+          bid.setId(note, BaseID::BookNote);
+
+          note.subelements.push_back(*it_fl);
+          note.subelements.push_back(*it_path);
+
+          std::filesystem::path p
+              = base_path.parent_path() / mlbp->randomFileName();
+          while(std::filesystem::exists(p))
+            {
+              p = base_path.parent_path() / mlbp->randomFileName();
+            }
+
+          std::filesystem::create_directories(p.parent_path());
+          std::fstream f;
+          f.open(p, std::ios_base::out | std::ios_base::binary);
+          if(!f.is_open())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: cannot open note file");
+            }
+          std::string w_str = it_fl->content + "\n";
+          w_str += it_path->content;
+          for(;;)
+            {
+              auto it_p = std::find_if(
+                  it_path->subelements.begin(), it_path->subelements.end(),
+                  [this](const UDBElement &el)
+                    {
+                      return bid.getId(el) == BaseID::PathInFile;
+                    });
+              if(it_p == it_path->subelements.end())
+                {
+                  break;
+                }
+              else
+                {
+                  w_str += "/";
+                  w_str += it_p->content;
+                  it_path = it_p;
+                }
+            }
+          w_str += "\n\n";
+
+          f.write(w_str.c_str(), w_str.size());
+          f.write(note_txt.c_str(), note_txt.size());
+          f.close();
+
+          UDBElement el;
+          bid.setId(el, BaseID::BookNoteFile);
+          std::u8string u8str = p.u8string();
+          el.content = std::string(u8str.begin(), u8str.end());
+          note.subelements.emplace_back(el);
+
+          base.emplace_back(note);
+        }
+      else
+        {
+          auto it_p = std::find_if(
+              it_note->subelements.begin(), it_note->subelements.end(),
+              [this](const UDBElement &el)
+                {
+                  return bid.getId(el) == BaseID::BookNoteFile;
+                });
+          if(it_p == it_note->subelements.end())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: incorrect note entry");
+            }
+
+          if(note_txt.empty())
+            {
+              std::filesystem::path p
+                  = std::u8string(it_p->content.begin(), it_p->content.end());
+              std::filesystem::remove_all(p);
+              base.erase(it_note);
+              std::filesystem::path tmp
+                  = base_path.parent_path() / mlbp->randomFileName();
+              while(std::filesystem::exists(tmp))
+                {
+                  tmp = base_path.parent_path() / mlbp->randomFileName();
+                }
+              writeToFile(tmp);
+              std::filesystem::remove_all(base_path);
+              std::filesystem::rename(tmp, base_path);
+              return void();
+            }
+
+          std::filesystem::path tmp
+              = base_path.parent_path() / mlbp->randomFileName();
+          while(std::filesystem::exists(tmp))
+            {
+              tmp = base_path.parent_path() / mlbp->randomFileName();
+            }
+
+          std::filesystem::create_directories(tmp.parent_path());
+          std::fstream f;
+          f.open(tmp, std::ios_base::out | std::ios_base::binary);
+          if(!f.is_open())
+            {
+              throw std::runtime_error(
+                  "NotesKeeper::addNote: cannot open note file");
+            }
+          std::string w_str = it_fl->content + "\n";
+          w_str += it_path->content;
+          for(;;)
+            {
+              auto it_pin = std::find_if(
+                  it_path->subelements.begin(), it_path->subelements.end(),
+                  [this](const UDBElement &el)
+                    {
+                      return bid.getId(el) == BaseID::PathInFile;
+                    });
+              if(it_pin == it_path->subelements.end())
+                {
+                  break;
+                }
+              else
+                {
+                  w_str += "/";
+                  w_str += it_p->content;
+                  it_path = it_pin;
+                }
+            }
+          w_str += "\n\n";
+          f.write(w_str.c_str(), w_str.size());
+          f.write(note_txt.c_str(), note_txt.size());
+          f.close();
+
+          std::filesystem::path p
+              = std::u8string(it_p->content.begin(), it_p->content.end());
+          std::filesystem::remove_all(p);
+          std::filesystem::rename(tmp, p);
         }
     }
-  base_mtx.unlock();
 
-  return nbe;
+  std::filesystem::path tmp = base_path.parent_path() / mlbp->randomFileName();
+  while(std::filesystem::exists(tmp))
+    {
+      tmp = base_path.parent_path() / mlbp->randomFileName();
+    }
+  writeToFile(tmp);
+  std::filesystem::remove_all(base_path);
+  std::filesystem::rename(tmp, base_path);
 }
 
-std::string
-NotesKeeper::readNote(const NotesBaseEntry &nbe)
+void
+NotesKeeper::removeNote(const UDBElement &note)
 {
-  std::string result;
+  std::lock_guard<std::shared_mutex> lglock(base_mtx);
+  auto it = std::find(base.begin(), base.end(), note);
+  if(it == base.end())
+    {
+      return void();
+    }
+  auto it_fl = std::find_if(it->subelements.begin(), it->subelements.end(),
+                            [this](const UDBElement &el)
+                              {
+                                return bid.getId(el) == BaseID::BookNoteFile;
+                              });
+  if(it_fl != it->subelements.end())
+    {
+      std::filesystem::path p
+          = std::u8string(it_fl->content.begin(), it_fl->content.end());
+      std::filesystem::remove_all(p);
+    }
+  base.erase(it);
 
+  std::filesystem::path tmp = base_path.parent_path() / mlbp->randomFileName();
+  while(std::filesystem::exists(tmp))
+    {
+      tmp = base_path.parent_path() / mlbp->randomFileName();
+    }
+  writeToFile(tmp);
+  std::filesystem::remove_all(base_path);
+  std::filesystem::rename(tmp, base_path);
+}
+
+void
+NotesKeeper::loadLegacyBase(const std::filesystem::path &base_path)
+{
+  std::string buf;
   std::fstream f;
-  f.open(nbe.note_file_full_path, std::ios_base::in | std::ios_base::binary);
-  if(f.is_open())
+  f.open(base_path, std::ios_base::in | std::ios_base::binary);
+  if(!f.is_open())
     {
-      f.seekg(0, std::ios_base::end);
-      result.resize(f.tellg());
-      f.seekg(0, std::ios_base::beg);
-      f.read(result.data(), result.size());
-      f.close();
+      return void();
     }
+  f.seekg(0, std::ios_base::end);
+  buf.resize(static_cast<size_t>(f.tellg()));
+  f.seekg(0, std::ios_base::beg);
+  f.read(buf.data(), buf.size());
+  f.close();
 
-  return result;
-}
+  size_t rb = 0;
+  size_t buf_sz = buf.size();
+  uint64_t val64;
+  size_t sz_64 = sizeof(val64);
+  char *ptr = reinterpret_cast<char *>(&val64);
+  ByteOrder bo;
 
-std::string
-NotesKeeper::readNoteText(const NotesBaseEntry &nbe)
-{
-  std::string result = readNote(nbe);
-
-  std::string find_str("\n\n");
-  std::string::size_type n = result.find(find_str);
-  if(n != std::string::npos)
-    {
-      result.erase(0, n + find_str.size());
-    }
-
-  return result;
-}
-
-void
-NotesKeeper::removeNotes(const NotesBaseEntry &nbe,
-                         const std::filesystem::path &reserve_directory,
-                         const bool &make_reserve)
-{
-  std::vector<std::filesystem::path> to_remove;
-
-  base_mtx.lock();
-  if(nbe.book_file_full_path.extension().u8string() == ".rar")
-    {
-      base.erase(std::remove_if(
-                     base.begin(), base.end(),
-                     [nbe, &to_remove](NotesBaseEntry &el) {
-                       if(el.book_file_full_path == nbe.book_file_full_path)
-                         {
-                           to_remove.push_back(el.note_file_full_path);
-                           return true;
-                         }
-                       else
-                         {
-                           return false;
-                         }
-                     }),
-                 base.end());
-    }
-  else
-    {
-      base.erase(std::remove_if(base.begin(), base.end(),
-                                [nbe, &to_remove](NotesBaseEntry &el) {
-                                  if(el == nbe)
-                                    {
-                                      to_remove.push_back(
-                                          el.note_file_full_path);
-                                      return true;
-                                    }
-                                  else
-                                    {
-                                      return false;
-                                    }
-                                }),
-                 base.end());
-    }
-  base_mtx.unlock();
-
-  if(make_reserve)
-    {
-      if(to_remove.size() > 0)
-        {
-          std::filesystem::create_directories(reserve_directory);
-        }
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::error_code ec;
-          std::filesystem::path p = reserve_directory;
-          p /= it->filename();
-          std::filesystem::copy(*it, p, ec);
-          if(ec)
-            {
-              std::cout << "NotesKeeper::removeNotes " << *it << ": "
-                        << ec.message() << std::endl;
-            }
-          else
-            {
-              std::filesystem::remove_all(*it);
-            }
-        }
-    }
-  else
-    {
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::filesystem::remove_all(*it);
-        }
-    }
-
-  saveBase();
-}
-
-void
-NotesKeeper::removeCollection(const std::string &collection_name,
-                              const std::filesystem::path &reserve_directory,
-                              const bool &make_reserve)
-{
-  std::vector<std::filesystem::path> to_remove;
-
-  base_mtx.lock();
-  base.erase(std::remove_if(base.begin(), base.end(),
-                            [collection_name, &to_remove](NotesBaseEntry &el) {
-                              if(collection_name == el.collection_name)
-                                {
-                                  to_remove.push_back(el.note_file_full_path);
-                                  return true;
-                                }
-                              else
-                                {
-                                  return false;
-                                }
-                            }),
-             base.end());
-  base_mtx.unlock();
-
-  saveBase();
-
-  if(make_reserve)
-    {
-      if(to_remove.size() > 0)
-        {
-          std::filesystem::create_directories(reserve_directory);
-        }
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::error_code ec;
-          std::filesystem::path p = reserve_directory;
-          p /= it->filename();
-          std::filesystem::copy(*it, p, ec);
-          if(ec)
-            {
-              std::cout << "NotesKeeper::removeCollection " << *it << " "
-                        << ec.message() << std::endl;
-            }
-          else
-            {
-              std::filesystem::remove_all(*it);
-            }
-        }
-    }
-  else
-    {
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::filesystem::remove_all(*it);
-        }
-    }
-}
-
-void
-NotesKeeper::refreshCollection(const std::string &collection_name,
-                               const std::filesystem::path &reserve_directory,
-                               const bool &make_reserve)
-{
-  std::vector<NotesBaseEntry> to_remove;
-  std::vector<NotesBaseEntry> to_check;
-
-  base_mtx.lock();
-  for(auto it = base.begin(); it != base.end(); it++)
-    {
-      if(it->collection_name == collection_name)
-        {
-          to_check.push_back(*it);
-        }
-    }
-  base_mtx.unlock();
-  if(to_check.size() > 0)
-    {
-      BaseKeeper bk(af);
-      try
-        {
-          bk.loadCollection(collection_name);
-        }
-      catch(std::exception &e)
-        {
-          std::cout << "NotesKeeper::refreshCollection: " << e.what()
-                    << std::endl;
-          return void();
-        }
-
-      std::vector<FileParseEntry> bs = bk.get_base_vector();
-      std::filesystem::path books_path
-          = BaseKeeper::get_books_path(collection_name, af);
-      for(auto it = to_check.begin(); it != to_check.end(); it++)
-        {
-          std::filesystem::path file_path = it->book_file_full_path;
-          std::string b_p = it->book_path;
-          if(b_p.empty())
-            {
-              auto it_bs = std::find_if(
-                  bs.begin(), bs.end(),
-                  [books_path, file_path](FileParseEntry &el) {
-                    std::filesystem::path l_path = books_path;
-                    l_path /= std::filesystem::u8path(el.file_rel_path);
-                    return l_path == file_path;
-                  });
-              if(it_bs == bs.end())
-                {
-                  to_remove.push_back(*it);
-                }
-            }
-          else
-            {
-              auto it_bs = std::find_if(
-                  bs.begin(), bs.end(),
-                  [books_path, file_path, b_p](FileParseEntry &el) {
-                    std::filesystem::path l_path = books_path;
-                    l_path /= std::filesystem::u8path(el.file_rel_path);
-                    if(l_path == file_path)
-                      {
-                        auto it
-                            = std::find_if(el.books.begin(), el.books.end(),
-                                           [b_p](BookParseEntry &bbe) {
-                                             return bbe.book_path == b_p;
-                                           });
-                        if(it != el.books.end())
-                          {
-                            return true;
-                          }
-                        else
-                          {
-                            return false;
-                          }
-                      }
-                    else
-                      {
-                        return false;
-                      }
-                  });
-              if(it_bs == bs.end())
-                {
-                  to_remove.push_back(*it);
-                }
-            }
-        }
-    }
-
-  if(to_remove.size() > 0)
-    {
-      base_mtx.lock();
-
-      base.erase(std::remove_if(base.begin(), base.end(),
-                                [to_remove](NotesBaseEntry &el) {
-                                  auto it = std::find(to_remove.begin(),
-                                                      to_remove.end(), el);
-                                  if(it != to_remove.end())
-                                    {
-                                      return true;
-                                    }
-                                  else
-                                    {
-                                      return false;
-                                    }
-                                }),
-                 base.end());
-      base.shrink_to_fit();
-      base_mtx.unlock();
-      saveBase();
-    }
-  if(make_reserve)
-    {
-      if(to_remove.size() > 0)
-        {
-          std::filesystem::create_directories(reserve_directory);
-        }
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::filesystem::path p = reserve_directory;
-          p /= it->note_file_full_path.filename();
-          std::error_code ec;
-          std::filesystem::copy(it->note_file_full_path, p, ec);
-          if(ec)
-            {
-              std::cout << "NotesKeeper::refreshCollection "
-                        << it->note_file_full_path << " " << ec.message()
-                        << std::endl;
-            }
-          else
-            {
-              std::filesystem::remove_all(it->note_file_full_path);
-            }
-        }
-    }
-  else
-    {
-      for(auto it = to_remove.begin(); it != to_remove.end(); it++)
-        {
-          std::filesystem::remove_all(it->note_file_full_path);
-        }
-    }
-}
-
-std::vector<NotesBaseEntry>
-NotesKeeper::getNotesForCollection(const std::string &collection_name)
-{
-  std::vector<NotesBaseEntry> result;
-
-#ifndef USE_OPENMP
-  std::mutex result_mtx;
-  base_mtx.lock();
-#ifdef USE_PE
-  std::for_each(std::execution::par, base.begin(), base.end(),
-                [collection_name, &result, &result_mtx](NotesBaseEntry &el) {
-                  if(el.collection_name == collection_name)
-                    {
-                      result_mtx.lock();
-                      result.push_back(el);
-                      result_mtx.unlock();
-                    }
-                });
-#else
-  std::for_each(base.begin(), base.end(),
-                [collection_name, &result, &result_mtx](NotesBaseEntry &el) {
-                  if(el.collection_name == collection_name)
-                    {
-                      result_mtx.lock();
-                      result.push_back(el);
-                      result_mtx.unlock();
-                    }
-                });
-#endif
-  base_mtx.unlock();
-#else
-  base_mtx.lock();
-#pragma omp parallel for
-  for(auto it = base.begin(); it != base.end(); it++)
-    {
-      if(it->collection_name == collection_name)
-        {
-#pragma omp critical
+#pragma omp parallel
+#pragma omp masked
+  {
+    while(rb < buf_sz)
+      {
+        if(rb + sz_64 > buf_sz)
           {
-            result.push_back(*it);
+            base.clear();
+            throw std::runtime_error(
+                "NotesKeeper::loadLegacyBase: incorrect entry size");
           }
-        }
-    }
-  base_mtx.unlock();
-#endif
+        for(size_t i = 0; i < sz_64; i++)
+          {
+            ptr[i] = buf[rb + i];
+          }
+        rb += sz_64;
 
-  return result;
+        bo.setLittle(val64);
+        val64 = bo;
+
+        size_t sz = static_cast<size_t>(val64);
+        if(rb + sz > buf_sz)
+          {
+            base.clear();
+            throw std::runtime_error(
+                "NotesKeeper::loadLegacyBase: incorrect entry");
+          }
+        std::string entry;
+        entry.reserve(sz);
+        std::copy(buf.begin() + rb, buf.begin() + rb + sz,
+                  std::back_inserter(entry));
+        rb += entry.size();
+
+#pragma omp task
+        {
+          parseLegacyEntry(entry);
+        }
+      }
+  }
 }
 
 void
-NotesKeeper::parseRawBase(const std::string &raw_base)
+NotesKeeper::parseLegacyEntry(const std::string &entry)
 {
   size_t rb = 0;
-  ByteOrder bo;
-  uint64_t val64;
-  size_t sz_64 = sizeof(val64);
-  size_t limit = raw_base.size();
-  size_t sz;
-  while(rb < limit)
-    {
-      if(rb + sz_64 <= limit)
-        {
-          std::memcpy(&val64, &raw_base[rb], sz_64);
-          rb += sz_64;
-          bo.set_little(val64);
-          val64 = bo;
-        }
-      else
-        {
-          throw std::runtime_error(
-              "NotesKeeper::parseRawBase: incorrect entry size");
-        }
-
-      sz = static_cast<size_t>(val64);
-
-      if(rb + sz <= limit)
-        {
-          std::string entry = raw_base.substr(rb, sz);
-          rb += sz;
-          try
-            {
-              parseEntry(entry);
-            }
-          catch(std::exception &e)
-            {
-              std::cout << e.what() << std::endl;
-            }
-        }
-      else
-        {
-          throw std::runtime_error(
-              "NotesKeeper::parseRawBase: incorrect entry");
-        }
-    }
-}
-
-void
-NotesKeeper::parseEntry(const std::string &entry)
-{
   uint32_t val32;
   size_t sz_32 = sizeof(val32);
-  size_t rb = 0;
-  size_t limit = entry.size();
+  char *ptr = reinterpret_cast<char *>(&val32);
   ByteOrder bo;
-  NotesBaseEntry nbe;
-  size_t sz;
-  for(int i = 1; i <= 4; i++)
+  size_t entry_sz = entry.size();
+
+  UDBElement note_entry;
+  bid.setId(note_entry, BaseID::BookNote);
+
+  int count = 1;
+  while(rb < entry_sz && count <= 4)
     {
-      if(rb + sz_32 <= limit)
-        {
-          std::memcpy(&val32, &entry[rb], sz_32);
-          rb += sz_32;
-          bo.set_little(val32);
-          val32 = bo;
+      if(rb + sz_32 > entry_sz)
+        {          
+          throw std::runtime_error(
+              "NotesKeeper::parseLegacyEntry: incorrect size");
         }
-      else
+      for(size_t j = 0; j < sz_32; j++)
+        {
+          ptr[j] = entry[rb + j];
+        }
+      rb += sz_32;
+
+      bo.setLittle(val32);
+      val32 = bo;
+
+      size_t sz = static_cast<size_t>(val32);
+      if(rb + sz > entry_sz)
         {
           throw std::runtime_error(
-              "NotesKeeper::parseEntry: incorrect entry size");
+              "NotesKeeper::parseLegacyEntry: incorrect entry");
         }
-      sz = static_cast<size_t>(val32);
-      if(rb + sz <= limit)
+      std::string l_entry;
+      l_entry.reserve(sz);
+      std::copy(entry.begin() + rb, entry.begin() + rb + sz,
+                std::back_inserter(l_entry));
+      rb += l_entry.size();
+
+      switch(count)
         {
-          switch(i)
-            {
-            case 1:
+        case 2:
+          {
+            UDBElement el;
+            bid.setId(el, BaseID::File);
+            el.content = std::move(l_entry);
+            note_entry.subelements.emplace_back(el);
+            break;
+          }
+        case 3:
+          {
+            if(l_entry.size() > 0)
               {
-                nbe.collection_name = entry.substr(rb, sz);
-                break;
+                UDBElement path;
+                bid.setId(path, BaseID::PathInFile);
+                UDBElement *prev = &path;
+                std::string::size_type n = 0;
+                std::string find_str("\n");
+                while(n != std::string::npos)
+                  {
+                    n = l_entry.find(find_str);
+                    if(n != std::string::npos)
+                      {
+                        prev->content = l_entry.substr(0, n);
+                        l_entry.erase(0, n + find_str.size());
+                        UDBElement el;
+                        bid.setId(el, BaseID::PathInFile);
+                        prev->subelements.emplace_back(el);
+                        prev
+                            = &prev->subelements[prev->subelements.size() - 1];
+                      }
+                    else if(l_entry.size() > 0)
+                      {
+                        prev->content = l_entry;
+                      }
+                  }
+                note_entry.subelements.emplace_back(path);
               }
-            case 2:
-              {
-                nbe.book_file_full_path
-                    = std::filesystem::u8path(entry.substr(rb, sz));
-                break;
-              }
-            case 3:
-              {
-                nbe.book_path = entry.substr(rb, sz);
-                break;
-              }
-            case 4:
-              {
-                nbe.note_file_full_path
-                    = std::filesystem::u8path(entry.substr(rb, sz));
-                break;
-              }
-            }
-          rb += sz;
+            break;
+          }
+        case 4:
+          {
+            UDBElement el;
+            bid.setId(el, BaseID::BookNoteFile);
+            el.content = std::move(l_entry);
+            note_entry.subelements.emplace_back(el);
+            break;
+          }
+        default:
+          break;
         }
-      else
-        {
-          throw std::runtime_error("NotesKeeper::parseEntry: incorrect entry");
-        }
+
+      count++;
     }
-  base.emplace_back(nbe);
-}
 
-void
-NotesKeeper::saveBase()
-{
-  uint64_t val64;
-  uint32_t val32;
-  size_t sz_64 = sizeof(val64);
-  size_t sz_32 = sizeof(val32);
-  ByteOrder bo;
-  size_t sz;
-
-  std::filesystem::path bp = base_directory_path;
-  bp /= std::filesystem::u8path("notes_base");
-  std::filesystem::create_directories(bp.parent_path());
-
-  std::lock_guard<std::mutex> lglock(base_mtx);
-  std::filesystem::remove_all(bp);
-
-  std::fstream f;
-  f.open(bp, std::ios_base::out | std::ios_base::binary);
-  if(f.is_open())
-    {
-      for(auto it = base.begin(); it != base.end(); it++)
-        {
-          std::string entry;
-          for(int i = 1; i <= 4; i++)
-            {
-              switch(i)
-                {
-                case 1:
-                  {
-                    val32 = static_cast<uint32_t>(it->collection_name.size());
-                    break;
-                  }
-                case 2:
-                  {
-                    val32 = static_cast<uint32_t>(
-                        it->book_file_full_path.u8string().size());
-                    break;
-                  }
-                case 3:
-                  {
-                    val32 = static_cast<uint32_t>(it->book_path.size());
-                    break;
-                  }
-                case 4:
-                  {
-                    val32 = static_cast<uint32_t>(
-                        it->note_file_full_path.u8string().size());
-                    break;
-                  }
-                }
-              bo = val32;
-              bo.get_little(val32);
-
-              sz = entry.size();
-              entry.resize(sz + sz_32);
-              std::memcpy(&entry[sz], &val32, sz_32);
-
-              switch(i)
-                {
-                case 1:
-                  {
-                    entry += it->collection_name;
-                    break;
-                  }
-                case 2:
-                  {
-                    entry += it->book_file_full_path.u8string();
-                    break;
-                  }
-                case 3:
-                  {
-                    entry += it->book_path;
-                    break;
-                  }
-                case 4:
-                  {
-                    entry += it->note_file_full_path.u8string();
-                    break;
-                  }
-                }
-            }
-
-          val64 = entry.size();
-          bo = val64;
-          bo.get_little(val64);
-
-          f.write(reinterpret_cast<char *>(&val64), sz_64);
-          f.write(entry.c_str(), entry.size());
-        }
-      f.close();
-    }
-  else
-    {
-      std::cout << "NotesKeeper::saveBase: cannot save base!" << std::endl;
-    }
+#pragma omp critical
+  {
+    base.emplace_back(note_entry);
+  }
 }

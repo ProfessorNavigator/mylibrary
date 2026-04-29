@@ -48,10 +48,18 @@ public:
   /*!
    * \brief operator =
    * \param other XMLElement to be copied.
-   * \return XMLElement.
+   * \return Reference to this XMLElement.
    */
   XMLElement &
   operator=(const XMLElement &other);
+
+  /*!
+   * \brief operator =
+   * \param other XMLElement to be moved.
+   * \return Reference to this XMLElement.
+   */
+  XMLElement &
+  operator=(XMLElement &&other);
 
   /*!
    * \brief XML element name.
@@ -82,7 +90,6 @@ public:
      * \code{.unparsed}<?xml version="1.0" encoding="UTF-8"?>\endcode
      */
     ProgramControlElement,
-
     /*! Char data elements \code{.unparsed}<![CDATA[]]>\endcode*/
     CharData,
     /*! XML comments \code{.unparsed}<!-- Comment -->\endcode*/
@@ -102,12 +109,22 @@ public:
   Type element_type = Type::OrdinaryElement;
 
   /*!
-   * \brief If \a true indicates XML elements without content.
-   *
-   * Example:
-   * \code{.unsorted}<empty-line/>\endcode
+   * \brief Enumerator for empty elements
    */
-  bool empty = false;
+  enum Empty
+  {
+    /*! Indicates empty XML element \code{.unparsed}<element />\endcode*/
+    XML,
+    /*! Indicates empty HTML element \code{.unparsed}<element>\endcode*/
+    HTML,
+    /*! Indicates not empty element*/
+    NotEmpty
+  };
+
+  /*!
+   * \brief Element emptiness indicator.
+   */
+  Empty empty = NotEmpty;
 };
 
 #endif // XMLELEMENT_H

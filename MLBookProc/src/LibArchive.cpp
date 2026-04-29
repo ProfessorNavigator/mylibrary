@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,1285 +16,2284 @@
 
 #include <ByteOrder.h>
 #include <LibArchive.h>
-#include <SelfRemovingPath.h>
+#include <XMLTextEncoding.h>
 #include <algorithm>
-#include <archive.h>
+#include <archive_entry.h>
 #include <chrono>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <iostream>
-#include <unistd.h>
 
-LibArchive::LibArchive(const std::shared_ptr<AuxFunc> &af)
+LibArchive::LibArchive(const std::shared_ptr<MLBookProc> &mlbp)
 {
-  this->af = af;
+  this->mlbp = mlbp;
 }
 
-std::filesystem::path
-LibArchive::unpackByPosition(const std::filesystem::path &archaddress,
-                             const std::filesystem::path &outfolder,
-                             const ArchEntry &entry)
+LibArchive::~LibArchive()
 {
-  std::filesystem::path result;
-  std::shared_ptr<ArchiveFileEntry> fl
-      = createArchFile(archaddress, entry.position);
-  std::shared_ptr<archive> a;
-  if(fl)
+}
+
+void
+LibArchive::listFilesInArchive(
+    const std::filesystem::path &archive_path,
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result)
+{
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->path = archive_path;
+  fd->open_mode = std::ios_base::in | std::ios_base::binary;
+
+  std::shared_ptr<archive> a = initForReading(fd);
+
+  int er = archive_read_set_seek_callback(a.get(), &LibArchive::seekCallback);
+  if(er != ARCHIVE_OK)
     {
-      a = libarchive_read_init(fl);
+      archiveError(a, "LibArchive::listFilesInArchive:");
     }
-  else
+
+  er = archive_read_open2(a.get(), fd.get(), &LibArchive::openCallBack,
+                          &LibArchive::readCallBack, &LibArchive::skipCallback,
+                          &LibArchive::closeCallback);
+
+  if(er != ARCHIVE_OK)
     {
-      fl = createArchFile(archaddress, 0);
+      archiveError(a, "LibArchive::listFilesInArchive:");
     }
-  if(!a)
+
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+  int retry_count = 0;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
     {
-      a = libarchive_read_init_fallback(fl);
-    }
-  if(a)
-    {
-      std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e)
-                                             {
-                                               archive_entry_free(e);
-                                             });
-      int er = archive_read_next_header2(a.get(), entry.get());
+      er = archive_read_next_header2(a.get(), e.get());
       switch(er)
         {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LibArchive::listFilesInArchive: \"") + str
+                      + "\"";
+              }
+            else
+              {
+                err = std::string("LibArchive::listFilesInArchive: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
         case ARCHIVE_OK:
           {
-            result = libarchive_read_entry(a.get(), entry.get(), outfolder);
+            retry_count = 0;
+            const char *val = archive_entry_pathname_utf8(e.get());
+            la_int64_t sz = 0;
+            if(archive_entry_size_is_set(e.get()))
+              {
+                sz = archive_entry_size(e.get());
+                if(sz < 0)
+                  {
+                    sz = 0;
+                  }
+              }
+            if(val)
+              {
+                result.push_back(std::make_tuple(
+                    std::string(val), static_cast<uint64_t>(sz), 0));
+              }
             break;
           }
         case ARCHIVE_EOF:
           {
-            std::cout
-                << "LibArchive::unpackByPosition(p) read error: EOF reached"
-                << std::endl;
             break;
           }
-        case ARCHIVE_FATAL:
+        case ARCHIVE_RETRY:
           {
-            libarchive_error(
-                a, "LibArchive::unpackByPosition(p) critical read error:", er);
+            retry_count++;
             break;
           }
         default:
           {
-            libarchive_error(
-                a, "LibArchive::unpackByPosition(p) read error:", er);
+            result.clear();
+            archiveError(a, "LibArchive::listFilesInArchive:");
             break;
           }
         }
+      archive_entry_clear(e.get());
+    }
+}
+
+void
+LibArchive::listFilesInArchiveBuffer(
+    const std::string &buffer,
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result)
+{
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->source_buffer = buffer;
+
+  std::shared_ptr<archive> a = initForReading(fd);
+
+  int er = archive_read_set_seek_callback(a.get(), &LibArchive::seekCallback);
+
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a, "LibArchive::listFilesInArchiveBuffer:");
+    }
+
+  er = archive_read_open2(a.get(), fd.get(), &LibArchive::openCallBack,
+                          &LibArchive::readCallBack, &LibArchive::skipCallback,
+                          &LibArchive::closeCallback);
+
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a, "LibArchive::listFilesInArchiveBuffer:");
+    }
+
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+  int retry_count = 0;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      er = archive_read_next_header2(a.get(), e.get());
+      switch(er)
+        {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LibArchive::listFilesInArchiveBuffer: \"")
+                      + str + "\"";
+              }
+            else
+              {
+                err = std::string("LibArchive::listFilesInArchiveBuffer: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            const char *val = archive_entry_pathname_utf8(e.get());
+            la_int64_t sz = 0;
+            if(archive_entry_size_is_set(e.get()))
+              {
+                sz = archive_entry_size(e.get());
+                if(sz < 0)
+                  {
+                    sz = 0;
+                  }
+              }
+            if(val)
+              {
+                result.push_back(std::make_tuple(
+                    std::string(val), static_cast<uint64_t>(sz), 0));
+              }
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        default:
+          {
+            result.clear();
+            archiveError(a, "LibArchive::listFilesInArchiveBuffer:");
+            break;
+          }
+        }
+      archive_entry_clear(e.get());
+    }
+}
+
+void
+LibArchive::listFilesInZip(
+    const std::filesystem::path &archive_path,
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result)
+{
+  std::shared_ptr<std::fstream> f(new std::fstream,
+                                  [](std::fstream *f)
+                                    {
+                                      delete f;
+                                    });
+  f->open(archive_path, std::ios_base::in | std::ios_base::binary);
+  if(!f->is_open())
+    {
+      std::string err = "LibArchive::listFilesInZip: cannot open file ";
+      std::u8string u8str = archive_path.u8string();
+      err += std::string(u8str.begin(), u8str.end());
+      throw std::runtime_error(err);
+    }
+
+  f->seekg(0, std::ios_base::end);
+  uint64_t fsz = static_cast<uint64_t>(f->tellg());
+
+  std::string central_directory;
+  try
+    {
+      getCentralDirectory(f, fsz, central_directory);
+
+      parseCentralDirectory(central_directory, result);
+    }
+  catch(std::exception &er)
+    {
+      f.reset();
+      std::cout << er.what() << std::endl;
+      result.clear();
+      listFilesInArchive(archive_path, result);
+    }
+}
+
+void
+LibArchive::listFilesInZipBuffer(
+    const std::string &buffer,
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result)
+{
+  std::shared_ptr<std::stringstream> str(new std::stringstream,
+                                         [](std::stringstream *str)
+                                           {
+                                             delete str;
+                                           });
+  str->str(buffer);
+
+  str->seekg(0, std::ios_base::end);
+  uint64_t fsz = static_cast<uint64_t>(str->tellg());
+
+  std::string central_directory;
+  try
+    {
+      getCentralDirectory(str, fsz, central_directory);
+
+      parseCentralDirectory(central_directory, result);
+    }
+  catch(std::exception &er)
+    {
+      str.reset();
+      std::cout << er.what() << std::endl;
+      result.clear();
+      listFilesInArchiveBuffer(buffer, result);
+    }
+}
+
+std::filesystem::path
+LibArchive::unpackFileToDirectory(const std::filesystem::path &archive_path,
+                                  const std::string &filename,
+                                  const std::filesystem::path &directory,
+                                  const size_t &offset)
+{
+  std::filesystem::path result;
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->path = archive_path;
+  fd->open_mode = std::ios_base::in | std::ios_base::binary;
+  fd->start_offset = offset;
+
+  result = unpackToDirectory(fd, filename, directory);
+
+  return result;
+}
+
+std::filesystem::path
+LibArchive::unpackBufferFileToDirectory(const std::string &buffer,
+                                        const std::string &filename,
+                                        const std::filesystem::path &directory,
+                                        const size_t &offset)
+{
+  std::filesystem::path result;
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->source_buffer = buffer;
+  fd->start_offset = offset;
+
+  result = unpackToDirectory(fd, filename, directory);
+
+  return result;
+}
+
+std::filesystem::path
+LibArchive::unpackZipFileToDirectory(const std::filesystem::path &archive_path,
+                                     const std::string &filename,
+                                     const std::filesystem::path &directory)
+{
+  std::filesystem::path result;
+
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> list;
+  listFilesInZip(archive_path, list);
+  auto it_res = std::find_if(
+      list.begin(), list.end(),
+      [filename](const std::tuple<std::string, uint64_t, uint64_t> &el)
+        {
+          return std::get<0>(el) == filename;
+        });
+
+  if(it_res != list.end())
+    {
+      result = unpackFileToDirectory(archive_path, filename, directory,
+                                     std::get<2>(*it_res));
+    }
+  else
+    {
+      result = unpackFileToDirectory(archive_path, filename, directory);
+    }
+
+  return result;
+}
+
+std::filesystem::path
+LibArchive::unpackZipBufferFileToDirectory(
+    const std::string &buffer, const std::string &filename,
+    const std::filesystem::path &directory)
+{
+  std::filesystem::path result;
+
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> list;
+  listFilesInZipBuffer(buffer, list);
+  auto it_res = std::find_if(
+      list.begin(), list.end(),
+      [filename](const std::tuple<std::string, uint64_t, uint64_t> &el)
+        {
+          return std::get<0>(el) == filename;
+        });
+  if(it_res != list.end())
+    {
+      result = unpackBufferFileToDirectory(buffer, filename, directory,
+                                           std::get<2>(*it_res));
     }
 
   return result;
 }
 
 std::string
-LibArchive::unpackByPositionStr(const std::filesystem::path &archaddress,
-                                const ArchEntry &entry)
+LibArchive::unpackFileToBuffer(const std::filesystem::path &archive_path,
+                               const std::string &filename,
+                               const size_t &offset)
+{
+  std::string result;
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->path = archive_path;
+  fd->open_mode = std::ios_base::in | std::ios_base::binary;
+  fd->start_offset = offset;
+
+  unpackToBuffer(fd, filename, result);
+
+  return result;
+}
+
+std::string
+LibArchive::unpackBufferFileToBuffer(const std::string &buffer,
+                                     const std::string &filename,
+                                     const size_t &offset)
+{
+  std::string result;
+  std::shared_ptr<LibArchiveFileData> fd(new LibArchiveFileData);
+  fd->source_buffer = buffer;
+  fd->start_offset = offset;
+
+  unpackToBuffer(fd, filename, result);
+
+  return result;
+}
+
+std::string
+LibArchive::unpackZipFileToBuffer(const std::filesystem::path &archive_path,
+                                  const std::string &filename)
 {
   std::string result;
 
-  std::shared_ptr<ArchiveFileEntry> fl
-      = createArchFile(archaddress, entry.position);
-
-  std::shared_ptr<archive> a;
-  if(fl)
-    {
-      a = libarchive_read_init(fl);
-    }
-  else
-    {
-      fl = createArchFile(archaddress, 0);
-    }
-  if(!a)
-    {
-      a = libarchive_read_init_fallback(fl);
-    }
-  if(a)
-    {
-      std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e)
-                                             {
-                                               archive_entry_free(e);
-                                             });
-      int er = archive_read_next_header2(a.get(), entry.get());
-      switch(er)
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> list;
+  listFilesInZip(archive_path, list);
+  auto it_res = std::find_if(
+      list.begin(), list.end(),
+      [filename](const std::tuple<std::string, uint64_t, uint64_t> &el)
         {
-        case ARCHIVE_OK:
-          {
-            result = libarchive_read_entry_str(a.get(), entry.get());
-            break;
-          }
-        case ARCHIVE_EOF:
-          {
-            std::cout << "LibArchive::unpackByPosition read error: EOF reached"
-                      << std::endl;
-            break;
-          }
-        case ARCHIVE_FATAL:
-          {
-            libarchive_error(
-                a, "LibArchive::unpackByPosition critical read error:", er);
-            break;
-          }
-        default:
-          {
-            libarchive_error(a,
-                             "LibArchive::unpackByPosition read error:", er);
-            break;
-          }
-        }
+          return std::get<0>(el) == filename;
+        });
+
+  if(it_res != list.end())
+    {
+      result
+          = unpackFileToBuffer(archive_path, filename, std::get<2>(*it_res));
     }
 
   return result;
 }
 
-std::filesystem::path
-LibArchive::libarchive_read_entry(archive *a, archive_entry *entry,
-                                  const std::filesystem::path &outfolder)
+std::string
+LibArchive::unpackZipBufferFileToBuffer(const std::string &buffer,
+                                        const std::string &filename)
 {
-  std::filesystem::path result;
-  switch(archive_entry_filetype(entry))
+  std::string result;
+
+  std::vector<std::tuple<std::string, uint64_t, uint64_t>> list;
+  listFilesInZipBuffer(buffer, list);
+  auto it_res = std::find_if(
+      list.begin(), list.end(),
+      [filename](const std::tuple<std::string, uint64_t, uint64_t> &el)
+        {
+          return std::get<0>(el) == filename;
+        });
+
+  if(it_res != list.end())
     {
-    case AE_IFREG:
-      {
-        const char *path = archive_entry_pathname_utf8(entry);
-        if(path)
-          {
-            std::filesystem::path finarch = std::filesystem::u8path(path);
-            std::filesystem::path outpath = outfolder;
-            outpath /= finarch;
-            if(!std::filesystem::exists(outpath.parent_path()))
+      result
+          = unpackBufferFileToBuffer(buffer, filename, std::get<2>(*it_res));
+    }
+
+  return result;
+}
+
+void
+LibArchive::writeToArchive(const std::filesystem::path &source_object,
+                           const std::filesystem::path &archive_path,
+                           std::string name_in_archive,
+                           const std::filesystem::perms &perms,
+                           const bool &overwrite_existing)
+{
+  if(!std::filesystem::exists(source_object))
+    {
+      throw std::runtime_error(
+          "LibArchive::writeToArchive: source object does not exist!");
+    }
+  if(name_in_archive.empty())
+    {
+      std::u8string u8str = source_object.filename().u8string();
+      name_in_archive = std::string(u8str.begin(), u8str.end());
+    }
+
+  if(std::filesystem::path::preferred_separator == '\\')
+    {
+      for(auto it = name_in_archive.begin(); it != name_in_archive.end(); it++)
+        {
+          if(*it == std::filesystem::path::preferred_separator)
+            {
+              *it = '/';
+            }
+        }
+    }
+
+  if(overwrite_existing)
+    {
+      std::filesystem::remove_all(archive_path);
+      std::filesystem::create_directories(archive_path.parent_path());
+    }
+
+  bool exist = std::filesystem::exists(archive_path);
+  std::shared_ptr<LibArchiveFileData> fd_write(new LibArchiveFileData);
+  fd_write->path = archive_path;
+  if(exist)
+    {
+      while(std::filesystem::exists(fd_write->path))
+        {
+          fd_write->path = archive_path.parent_path() / mlbp->randomFileName();
+        }
+    }
+  fd_write->open_mode = std::ios_base::out | std::ios_base::binary;
+
+  std::shared_ptr<archive> a_write = initForWriting(fd_write);
+
+  int er = archive_write_set_format_filter_by_ext(
+      a_write.get(), archive_path.string().c_str());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "LibArchive::writeToArchive:");
+    }
+
+  er = archive_write_open(
+      a_write.get(), fd_write.get(), &LibArchive::openCallBack,
+      &LibArchive::writeCallback, &LibArchive::closeCallback);
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "LibArchive::writeToArchive:");
+    }
+
+  std::vector<std::string> names;
+  if(exist)
+    {
+      std::shared_ptr<LibArchiveFileData> fd_read(new LibArchiveFileData);
+      fd_read->path = archive_path;
+      fd_read->open_mode = std::ios_base::in | std::ios_base::binary;
+
+      std::shared_ptr<archive> a_read = initForReading(fd_read);
+      er = archive_read_set_seek_callback(a_read.get(),
+                                          &LibArchive::seekCallback);
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a_read, "LibArchive::writeToArchive:");
+        }
+
+      er = archive_read_open2(
+          a_read.get(), fd_read.get(), &LibArchive::openCallBack,
+          &LibArchive::readCallBack, &LibArchive::skipCallback,
+          &LibArchive::closeCallback);
+
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a_read, "LibArchive::writeToArchive:");
+        }
+
+      std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                       [](archive_entry *e)
+                                         {
+                                           archive_entry_free(e);
+                                         });
+      int retry_count = 0;
+      while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+        {
+          er = archive_read_next_header2(a_read.get(), e.get());
+          switch(er)
+            {
+            case ARCHIVE_WARN:
               {
-                std::filesystem::create_directories(outpath.parent_path());
-              }
-            std::fstream f;
-            f.open(outpath, std::ios_base::out | std::ios_base::binary);
-            if(f.is_open())
-              {
-                for(;;)
+                const char *str = archive_error_string(a_read.get());
+                std::string err;
+                if(str)
                   {
-                    void *buf = nullptr;
-                    size_t len;
-                    la_int64_t offset;
-                    int er = archive_read_data_block(
-                        a, const_cast<const void **>(&buf), &len, &offset);
-                    if(er == ARCHIVE_OK)
+                    err = std::string("LibArchive::writeToArchive: \"") + str
+                          + "\"";
+                  }
+                else
+                  {
+                    err = std::string("LibArchive::writeToArchive: ")
+                          + std::strerror(archive_errno(a_read.get()));
+                  }
+                std::cout << err << std::endl;
+              }
+            case ARCHIVE_OK:
+              {
+                retry_count = 0;
+                const char *val = archive_entry_pathname_utf8(e.get());
+                if(val)
+                  {
+                    std::string p_in_arch(val);
+                    if(p_in_arch == name_in_archive)
                       {
-                        if(buf && len > 0)
-                          {
-                            f.seekg(offset, std::ios_base::beg);
-                            f.write(reinterpret_cast<char *>(buf), len);
-                          }
+                        a_write.reset();
+                        fd_write->f.reset();
+                        std::filesystem::remove_all(fd_write->path);
+                        throw std::runtime_error("LibArchive::writeToArchive: "
+                                                 "file already in archive!");
                       }
-                    else
+                    names.emplace_back(p_in_arch);
+                  }
+
+                std::string buf = unpackEntryToBuffer(a_read, e);
+                if(buf.size() > 0)
+                  {
+                    writeBufferToArchive(a_write, e, buf);
+                  }
+                else
+                  {
+                    er = archive_write_header(a_write.get(), e.get());
+                    if(er != ARCHIVE_OK)
                       {
-                        break;
+                        archiveError(a_write, "LibArchive::writeToArchive:");
                       }
                   }
-                f.close();
-                result = outpath;
+                break;
               }
-          }
-        else
+            case ARCHIVE_EOF:
+              {
+                break;
+              }
+            case ARCHIVE_RETRY:
+              {
+                retry_count++;
+                break;
+              }
+            default:
+              {
+                archiveError(a_read, "LibArchive::writeToArchive:");
+                break;
+              }
+            }
+          archive_entry_clear(e.get());
+        }
+    }
+
+  std::filesystem::file_status status
+      = std::filesystem::symlink_status(source_object);
+  switch(status.type())
+    {
+    case std::filesystem::file_type::directory:
+      {
+        for(auto &dir_it :
+            std::filesystem::recursive_directory_iterator(source_object))
           {
-            std::cout
-                << "LibArchive::libarchive_read_entry: path string is empty"
-                << std::endl;
-            return result;
+            std::filesystem::path p = dir_it.path();
+            status = std::filesystem::symlink_status(p);
+            switch(status.type())
+              {
+              case std::filesystem::file_type::regular:
+                {
+                  std::filesystem::path relative
+                      = p.lexically_relative(source_object);
+                  relative
+                      = std::filesystem::path(std::u8string(
+                            name_in_archive.begin(), name_in_archive.end()))
+                        / relative;
+                  std::u8string u8str = relative.u8string();
+                  auto it = std::find(names.begin(), names.end(),
+                                      std::string(u8str.begin(), u8str.end()));
+                  if(it != names.end())
+                    {
+                      a_write.reset();
+                      fd_write->f.reset();
+                      std::filesystem::remove_all(fd_write->path);
+                      throw std::runtime_error("LibArchive::writeToArchive: "
+                                               "file already in archive!");
+                    }
+                  writeFile(a_write, p,
+                            std::string(u8str.begin(), u8str.end()), perms);
+                  break;
+                }
+              case std::filesystem::file_type::symlink:
+                {
+                  std::filesystem::path relative
+                      = p.lexically_relative(source_object);
+                  relative
+                      = std::filesystem::path(std::u8string(
+                            name_in_archive.begin(), name_in_archive.end()))
+                        / relative;
+                  std::vector<
+                      std::tuple<std::filesystem::path, std::filesystem::path>>
+                      paths = symlinkWriteResolver(relative, p);
+                  for(auto it = paths.begin(); it != paths.end(); it++)
+                    {
+                      std::u8string u8str = std::get<0>(*it).u8string();
+                      auto it_n
+                          = std::find(names.begin(), names.end(),
+                                      std::string(u8str.begin(), u8str.end()));
+                      if(it_n != names.end())
+                        {
+                          a_write.reset();
+                          fd_write->f.reset();
+                          std::filesystem::remove_all(fd_write->path);
+                          throw std::runtime_error(
+                              "LibArchive::writeToArchive: "
+                              "file already in archive!");
+                        }
+                      writeFile(a_write, std::get<1>(*it),
+                                std::string(u8str.begin(), u8str.end()),
+                                perms);
+                    }
+                  break;
+                }
+              default:
+                break;
+              }
           }
         break;
       }
-    case AE_IFDIR:
+    case std::filesystem::file_type::regular:
       {
-        const char *path = archive_entry_pathname_utf8(entry);
-        if(path)
+        auto it_n = std::find(names.begin(), names.end(), name_in_archive);
+        if(it_n != names.end())
           {
-            std::filesystem::path finarch = std::filesystem::u8path(path);
-            std::filesystem::path outpath = outfolder;
-            outpath /= finarch;
-            std::filesystem::create_directories(outpath);
-            result = outpath;
+            a_write.reset();
+            fd_write->f.reset();
+            std::filesystem::remove_all(fd_write->path);
+            throw std::runtime_error("LibArchive::writeToArchive: "
+                                     "file already in archive!");
+          }
+        writeFile(a_write, source_object, name_in_archive, perms);
+        break;
+      }
+    case std::filesystem::file_type::symlink:
+      {
+        std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
+            paths = symlinkWriteResolver(
+                std::filesystem::path(std::u8string(name_in_archive.begin(),
+                                                    name_in_archive.end())),
+                source_object);
+        for(auto it = paths.begin(); it != paths.end(); it++)
+          {
+            std::u8string u8str = std::get<0>(*it).u8string();
+            auto it_n = std::find(names.begin(), names.end(),
+                                  std::string(u8str.begin(), u8str.end()));
+            if(it_n != names.end())
+              {
+                a_write.reset();
+                fd_write->f.reset();
+                std::filesystem::remove_all(fd_write->path);
+                throw std::runtime_error("LibArchive::writeToArchive: "
+                                         "file already in archive!");
+              }
+            writeFile(a_write, std::get<1>(*it),
+                      std::string(u8str.begin(), u8str.end()), perms);
           }
         break;
       }
     default:
       break;
     }
+  if(exist)
+    {
+      a_write.reset();
+      fd_write->f.reset();
+      std::filesystem::remove_all(archive_path);
+      std::filesystem::rename(fd_write->path, archive_path);
+    }
+}
+
+void
+LibArchive::writeBufferObjectToArchive(
+    const std::string &buffer, const std::filesystem::path &archive_path,
+    std::string name_in_archive, const std::filesystem::perms &perms,
+    const bool &overwrite_existing)
+{
+  if(name_in_archive.empty())
+    {
+      throw std::runtime_error(
+          "LibArchive::writeBufferToArchive: name_in_archive is empty!");
+    }
+
+  if(std::filesystem::path::preferred_separator == '\\')
+    {
+      for(auto it = name_in_archive.begin(); it != name_in_archive.end(); it++)
+        {
+          if(*it == std::filesystem::path::preferred_separator)
+            {
+              *it = '/';
+            }
+        }
+    }
+
+  if(overwrite_existing)
+    {
+      std::filesystem::remove_all(archive_path);
+      std::filesystem::create_directories(archive_path.parent_path());
+    }
+
+  bool exist = std::filesystem::exists(archive_path);
+  std::shared_ptr<LibArchiveFileData> fd_write(new LibArchiveFileData);
+  fd_write->path = archive_path;
+  if(exist)
+    {
+      while(std::filesystem::exists(fd_write->path))
+        {
+          fd_write->path = archive_path.parent_path() / mlbp->randomFileName();
+        }
+    }
+  fd_write->open_mode = std::ios_base::out | std::ios_base::binary;
+
+  std::shared_ptr<archive> a_write = initForWriting(fd_write);
+
+  int er = archive_write_set_format_filter_by_ext(
+      a_write.get(), archive_path.string().c_str());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "LibArchive::writeBufferToArchive:");
+    }
+
+  er = archive_write_open(
+      a_write.get(), fd_write.get(), &LibArchive::openCallBack,
+      &LibArchive::writeCallback, &LibArchive::closeCallback);
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a_write, "LibArchive::writeBufferToArchive:");
+    }
+
+  std::vector<std::string> names;
+  if(exist)
+    {
+      std::shared_ptr<LibArchiveFileData> fd_read(new LibArchiveFileData);
+      fd_read->path = archive_path;
+      fd_read->open_mode = std::ios_base::in | std::ios_base::binary;
+
+      std::shared_ptr<archive> a_read = initForReading(fd_read);
+      er = archive_read_set_seek_callback(a_read.get(),
+                                          &LibArchive::seekCallback);
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a_read, "LibArchive::writeBufferToArchive:");
+        }
+
+      er = archive_read_open2(
+          a_read.get(), fd_read.get(), &LibArchive::openCallBack,
+          &LibArchive::readCallBack, &LibArchive::skipCallback,
+          &LibArchive::closeCallback);
+
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a_read, "LibArchive::writeBufferToArchive:");
+        }
+
+      std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                       [](archive_entry *e)
+                                         {
+                                           archive_entry_free(e);
+                                         });
+      int retry_count = 0;
+      while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+        {
+          er = archive_read_next_header2(a_read.get(), e.get());
+          switch(er)
+            {
+            case ARCHIVE_WARN:
+              {
+                const char *str = archive_error_string(a_read.get());
+                std::string err;
+                if(str)
+                  {
+                    err = std::string("LibArchive::writeBufferToArchive: \"")
+                          + str + "\"";
+                  }
+                else
+                  {
+                    err = std::string("LibArchive::writeBufferToArchive: ")
+                          + std::strerror(archive_errno(a_read.get()));
+                  }
+                std::cout << err << std::endl;
+              }
+            case ARCHIVE_OK:
+              {
+                retry_count = 0;
+                const char *val = archive_entry_pathname_utf8(e.get());
+                if(val)
+                  {
+                    std::string p_in_arch(val);
+                    if(p_in_arch == name_in_archive)
+                      {
+                        a_write.reset();
+                        fd_write->f.reset();
+                        std::filesystem::remove_all(fd_write->path);
+                        throw std::runtime_error(
+                            "LibArchive::writeBufferToArchive: "
+                            "file already in archive!");
+                      }
+                    names.emplace_back(p_in_arch);
+                  }
+
+                std::string buf = unpackEntryToBuffer(a_read, e);
+                if(buf.size() > 0)
+                  {
+                    writeBufferToArchive(a_write, e, buf);
+                  }
+                else
+                  {
+                    er = archive_write_header(a_write.get(), e.get());
+                    if(er != ARCHIVE_OK)
+                      {
+                        archiveError(a_write,
+                                     "LibArchive::writeBufferToArchive:");
+                      }
+                  }
+                break;
+              }
+            case ARCHIVE_EOF:
+              {
+                break;
+              }
+            case ARCHIVE_RETRY:
+              {
+                retry_count++;
+                break;
+              }
+            default:
+              {
+                archiveError(a_read, "LibArchive::writeBufferToArchive:");
+                break;
+              }
+            }
+          archive_entry_clear(e.get());
+        }
+    }
+
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+
+  if(std::filesystem::path::preferred_separator == '\\')
+    {
+      for(auto it = name_in_archive.begin(); it != name_in_archive.end(); it++)
+        {
+          if(*it == std::filesystem::path::preferred_separator)
+            {
+              *it = '/';
+            }
+        }
+    }
+
+  archive_entry_set_pathname_utf8(e.get(), name_in_archive.c_str());
+
+  archive_entry_set_perm(e.get(), static_cast<__LA_MODE_T>(perms));
+
+  archive_entry_set_filetype(e.get(), AE_IFREG);
+
+  archive_entry_set_size(e.get(), static_cast<la_int64_t>(buffer.size()));
+
+  auto sytem_clock_tp = std::chrono::system_clock::now();
+  time_t lwt = std::chrono::system_clock::to_time_t(sytem_clock_tp);
+  archive_entry_set_mtime(e.get(), lwt, 0);
+
+  writeBufferToArchive(a_write, e, buffer);
+
+  if(exist)
+    {
+      a_write.reset();
+      fd_write->f.reset();
+      std::filesystem::remove_all(archive_path);
+      std::filesystem::rename(fd_write->path, archive_path);
+    }
+}
+
+std::shared_ptr<archive>
+LibArchive::initForReading(const std::shared_ptr<LibArchiveFileData> &fd)
+{
+  std::shared_ptr<archive> result(archive_read_new(),
+                                  [fd](archive *a)
+                                    {
+                                      archive_read_free(a);
+                                    });
+  int er = archive_read_support_filter_all(result.get());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(result, "LibArchive::openForReading:");
+    }
+
+  er = archive_read_support_format_all(result.get());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(result, "LibArchive::openForReading:");
+    }
 
   return result;
 }
 
 std::shared_ptr<archive>
-LibArchive::libarchive_read_init_fallback(std::shared_ptr<ArchiveFileEntry> fl)
+LibArchive::initForWriting(const std::shared_ptr<LibArchiveFileData> &fd)
 {
-  std::shared_ptr<archive> a;
-  int er;
-  a = std::shared_ptr<archive>(archive_read_new(),
-                               [](archive *a)
-                                 {
-                                   archive_free(a);
-                                 });
-  er = archive_read_support_filter_all(a.get());
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a,
-          "LibArchive::libarchive_read_init_fallback filter set error:", er);
-      a.reset();
-      return a;
-    }
-  er = archive_read_support_format_all(a.get());
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a,
-          "LibArchive::libarchive_read_init_fallback format set error:", er);
-      a.reset();
-      return a;
-    }
-
-  archive_read_set_seek_callback(a.get(),
-                                 &LibArchive::libarchive_seek_callback);
-
-  if(fl)
-    {
-      fl->read_bytes = 0;
-      er = archive_read_open2(a.get(), reinterpret_cast<void *>(fl.get()),
-                              &LibArchive::libarchive_open_callback,
-                              &LibArchive::libarchive_read_callback,
-                              &LibArchive::libarchive_skip_callback,
-                              &LibArchive::libarchive_close_callback);
-      if(er != ARCHIVE_OK)
-        {
-          libarchive_error(
-              a,
-              "LibArchive::libarchive_read_init_fallback archive open error:",
-              er);
-          a.reset();
-          return a;
-        }
-    }
-  else
-    {
-      er = ARCHIVE_FATAL;
-      archive_set_error(a.get(), er, "%s", "File struct pointer is null");
-      libarchive_error(a,
-                       "LibArchive::libarchive_read_init_fallback error:", er);
-      a.reset();
-      return a;
-    }
-
-  return a;
-}
-
-std::shared_ptr<ArchiveFileEntry>
-LibArchive::createArchFile(const std::filesystem::path &archaddress,
-                           const la_int64_t &position)
-{
-  std::shared_ptr<ArchiveFileEntry> fl = std::make_shared<ArchiveFileEntry>();
-
-  fl->file_path = archaddress;
-  std::error_code ec;
-  fl->buf_sz
-      = static_cast<la_ssize_t>(std::filesystem::file_size(fl->file_path, ec))
-        / 10;
-  if(ec)
-    {
-      fl.reset();
-      std::cout << "LibArchive::createArchFile: " << ec.message() << " ("
-                << archaddress.u8string() << ")" << std::endl;
-      return fl;
-    }
-
-  if(fl->buf_sz > 52428800)
-    {
-      fl->buf_sz = 52428800;
-    }
-  else if(fl->buf_sz == 0)
-    {
-      fl->buf_sz = 1;
-    }
-  fl->read_bytes = position;
-
-  return fl;
-}
-
-la_int64_t
-LibArchive::libarchive_seek_callback(archive *a, void *data, la_int64_t offset,
-                                     int whence)
-{
-  la_int64_t result = ARCHIVE_FATAL;
-
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(fl)
-    {
-      switch(whence)
-        {
-        case SEEK_SET:
-          {
-            fl->file.seekg(offset, std::ios_base::beg);
-            if(!fl->file.fail())
-              {
-                result = static_cast<la_int64_t>(fl->file.tellg());
-              }
-            break;
-          }
-        case SEEK_CUR:
-          {
-            fl->file.seekg(offset, std::ios_base::beg);
-            if(!fl->file.fail())
-              {
-                result = static_cast<la_int64_t>(fl->file.tellg());
-              }
-            break;
-          }
-        case SEEK_END:
-          {
-            fl->file.seekg(offset, std::ios_base::end);
-            if(!fl->file.fail())
-              {
-                result = static_cast<la_int64_t>(fl->file.tellg());
-              }
-            break;
-          }
-        default:
-          break;
-        }
-      if(result == ARCHIVE_FATAL)
-        {
-          archive_set_error(a, EINVAL, "%s", "File position set error");
-        }
-    }
-  else
-    {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
-    }
+  std::shared_ptr<archive> result
+      = std::shared_ptr<archive>(archive_write_new(),
+                                 [](archive *a)
+                                   {
+                                     archive_free(a);
+                                   });
 
   return result;
 }
 
-std::string
-LibArchive::libarchive_read_entry_str(archive *a, archive_entry *entry)
+void
+LibArchive::archiveError(const std::shared_ptr<archive> &a,
+                         const std::string &message)
 {
-  std::string result;
-
-  if(archive_entry_filetype(entry) == AE_IFREG)
+  const char *str = archive_error_string(a.get());
+  if(str)
     {
-      for(;;)
-        {
-          void *buf = nullptr;
-          size_t len;
-          la_int64_t offset;
-          int er = archive_read_data_block(a, const_cast<const void **>(&buf),
-                                           &len, &offset);
-          if(er == ARCHIVE_OK)
-            {
-              if(buf && len > 0)
-                {
-                  char *lbuf = reinterpret_cast<char *>(buf);
-                  for(size_t i = 0; i < len; i++)
-                    {
-                      result.push_back(*(lbuf + i));
-                    }
-                }
-            }
-          else
-            {
-              break;
-            }
-        }
+      std::string err = message + " \"" + str + "\"";
+      throw std::runtime_error(err);
     }
-
-  return result;
+  else
+    {
+      std::string err = message + " " + std::strerror(archive_errno(a.get()));
+      throw std::runtime_error(err);
+    }
 }
 
 int
-LibArchive::libarchive_open_callback(archive *a, void *data)
+LibArchive::openCallBack(archive *a, void *client_data)
 {
   int result = ARCHIVE_FATAL;
 
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(fl)
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
+  if(fd->source_buffer.empty())
     {
-      fl->file.open(fl->file_path, std::ios_base::in | std::ios_base::binary);
-      if(fl->file.is_open())
+      std::shared_ptr<std::fstream> f(new std::fstream);
+      f->open(fd->path, fd->open_mode);
+      if(f->is_open())
         {
-          fl->file.seekg(0, std::ios_base::end);
-          fl->file_size = static_cast<la_ssize_t>(fl->file.tellg());
-          fl->file.seekg(0, std::ios_base::beg);
-          fl->read_buf = new char[fl->buf_sz];
-          fl->file.seekg(fl->read_bytes, std::ios_base::beg);
-          if(!fl->file.fail())
-            {
-              result = ARCHIVE_OK;
-            }
-          else
-            {
-              archive_set_error(a, EINVAL, "%s", "Wrong file position");
-            }
+          f->seekg(0, std::ios_base::end);
+          fd->file_size = static_cast<size_t>(f->tellg());
+          f->seekg(fd->start_offset, std::ios_base::beg);
+          fd->f = f;
+          result = ARCHIVE_OK;
         }
       else
         {
-          archive_set_error(a, EBADF, "%s", "File is not opened");
+          archive_set_error(a, ENOENT, "%s", "File has not been opened!");
         }
     }
   else
     {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
+      std::shared_ptr<std::stringstream> strm(new std::stringstream);
+      strm->str(fd->source_buffer);
+      strm->seekg(0, std::ios_base::end);
+      fd->file_size = static_cast<size_t>(strm->tellg());
+      strm->seekg(fd->start_offset, std::ios_base::beg);
+      fd->f = strm;
+      result = ARCHIVE_OK;
     }
 
   return result;
 }
 
 la_ssize_t
-LibArchive::libarchive_read_callback(archive *a, void *data,
-                                     const void **buffer)
+LibArchive::readCallBack(archive *a, void *client_data, const void **buffer)
 {
-  la_ssize_t result = -1;
+  la_ssize_t result = 0;
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
 
-  ArchiveFileEntry *f = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(f)
+  if(fd->f)
     {
-      la_ssize_t chsz
-          = f->file_size - static_cast<la_ssize_t>(f->file.tellp());
-
-      if(chsz < f->buf_sz)
+      if(fd->f->good())
         {
-          f->file.read(f->read_buf, chsz);
-          result = chsz;
+          size_t rb = static_cast<size_t>(fd->f->tellg());
+          size_t left = fd->file_size - rb;
+          if(left > fd->buffer_size)
+            {
+              fd->f->read(fd->buffer, fd->buffer_size);
+              result = static_cast<la_ssize_t>(fd->buffer_size);
+            }
+          else
+            {
+              result = static_cast<la_ssize_t>(left);
+              if(left > 0)
+                {
+                  fd->f->read(fd->buffer, left);
+                }
+            }
+          *buffer = fd->buffer;
         }
-      else
+      else if(!fd->f->eof())
         {
-          f->file.read(f->read_buf, f->buf_sz);
-          result = f->buf_sz;
-        }
-
-      *buffer = f->read_buf;
-
-      if(f->file.fail())
-        {
-          result = -1;
-          archive_set_error(a, EINVAL, "%s", "File read error");
+          archive_set_error(a, EIO, "%s", "Bad stream condition!");
         }
     }
   else
     {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
+      archive_set_error(a, EINVAL, "%s", "Stream object is null!");
     }
 
   return result;
 }
 
 la_int64_t
-LibArchive::libarchive_skip_callback(archive *, void *data, la_int64_t request)
+LibArchive::skipCallback(archive *a, void *client_data, la_int64_t request)
 {
   la_int64_t result = 0;
 
-  ArchiveFileEntry *f = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(f)
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
+
+  if(fd->f)
     {
-      f->file.seekg(request, std::ios_base::cur);
-      if(!f->file.fail())
+      if(fd->f->good())
         {
+          fd->f->seekg(request, std::ios_base::cur);
           result = request;
         }
+      else if(!fd->f->eof())
+        {
+          archive_set_error(a, EIO, "%s", "Bad stream condition!");
+        }
+    }
+  else
+    {
+      archive_set_error(a, EINVAL, "%s", "Stream object is null!");
     }
 
   return result;
 }
 
 int
-LibArchive::libarchive_close_callback(archive *a, void *data)
+LibArchive::closeCallback(archive *a, void *client_data)
 {
   int result = ARCHIVE_FATAL;
 
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(fl)
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
+
+  if(fd->f)
     {
-      if(fl->file.is_open())
-        {
-          fl->file.close();
-        }
+      fd->f.reset();
       result = ARCHIVE_OK;
     }
   else
     {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
+      archive_set_error(a, EINVAL, "%s", "Stream object is null!");
     }
 
   return result;
 }
 
-int
-LibArchive::fileNames(const std::filesystem::path &filepath,
-                      std::vector<ArchEntry> &filenames)
+la_int64_t
+LibArchive::seekCallback(archive *a, void *client_data, la_int64_t offset,
+                         int whence)
 {
-  int result = 0;
-  std::fstream f;
-  f.open(filepath, std::ios_base::in | std::ios_base::binary);
-  if(f.is_open())
+  la_int64_t result = 0;
+
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
+
+  if(fd->f)
     {
-      std::string eocd;
-      uint32_t var = 0x06054b50;
-      ByteOrder bo = var;
-      bo.get_little(var);
-      std::string findstr;
-      findstr.resize(sizeof(var));
-      std::memcpy(findstr.data(), &var, sizeof(var));
-      std::string::size_type n;
-      std::string read;
-      int64_t offset;
-      for(;;)
+      if(fd->f->good())
         {
-          read.clear();
-          read.resize(22);
-          offset = static_cast<int64_t>(eocd.size() + read.size());
-          offset = -offset;
-          f.seekg(offset, std::ios_base::end);
-          if(f.fail())
+          switch(whence)
             {
-              std::cout << "LibArchive::fileNames critical error" << std::endl;
-              f.close();
-              return -1;
-            }
-          f.read(read.data(), read.size());
-          eocd = read + eocd;
-          n = eocd.find(findstr);
-          if(n != std::string::npos)
-            {
-              eocd.erase(0, n);
-              break;
+            case SEEK_SET:
+              {
+                fd->f->seekg(offset, std::ios_base::beg);
+                result = static_cast<la_int64_t>(fd->f->tellg());
+                break;
+              }
+            case SEEK_CUR:
+              {
+                fd->f->seekg(offset, std::ios_base::cur);
+                result = static_cast<la_int64_t>(fd->f->tellg());
+                break;
+              }
+            case SEEK_END:
+              {
+
+                fd->f->seekg(offset, std::ios_base::end);
+                result = static_cast<la_int64_t>(fd->f->tellg());
+                break;
+              }
+            default:
+              {
+                result = ARCHIVE_FATAL;
+                break;
+              }
             }
         }
-
-      uint32_t socd = 0;
-      std::memcpy(&socd, &eocd[12], sizeof(socd));
-      bo.set_little(socd);
-      socd = bo;
-      uint32_t oscd = 0;
-      std::memcpy(&oscd, &eocd[16], sizeof(oscd));
-      bo.set_little(oscd);
-      oscd = bo;
-      uint64_t cdoffset = static_cast<uint64_t>(oscd);
-      uint64_t cdsize = static_cast<uint64_t>(socd);
-      if(socd == 0xffffffff || oscd == 0xffffffff)
+      else
         {
-          size_t locoffset = eocd.size();
-          eocd.clear();
-          f.seekg(-(locoffset), std::ios_base::end);
-          var = 0x06064b50;
-          bo = var;
-          bo.get_little(var);
-          findstr.clear();
-          findstr.resize(sizeof(var));
-          std::memcpy(findstr.data(), &var, sizeof(var));
-          std::string::size_type n;
-          for(;;)
-            {
-              read.clear();
-              read.resize(22);
-              f.seekg(-(eocd.size() + read.size() + locoffset),
-                      std::ios_base::end);
-              f.read(read.data(), read.size());
-              eocd = read + eocd;
-              n = eocd.find(findstr);
-              if(n != std::string::npos)
-                {
-                  eocd.erase(0, n);
-                  break;
-                }
-              if(eocd.size() > 1024)
-                {
-                  std::cout << "LibArchive::fileNames: too big record"
-                            << std::endl;
-                  f.close();
-                  return -1;
-                }
-            }
-          if(socd == 0xffffffff)
-            {
-              std::memcpy(&cdsize, &eocd[40], sizeof(cdsize));
-              bo.set_little(cdsize);
-              cdsize = bo;
-            }
-          if(oscd == 0xffffffff)
-            {
-              std::memcpy(&cdoffset, &eocd[48], sizeof(cdoffset));
-              bo.set_little(cdoffset);
-              cdoffset = bo;
-            }
-          if(eocd.size() >= 60)
-            {
-              uint32_t locator = 0;
-              std::memcpy(&locator, &eocd[56], sizeof(locator));
-              bo.set_little(locator);
-              locator = bo;
-              if(locator != 0x07064b50)
-                {
-                  std::cout << "LibArchive::fileNames: central directory is "
-                               "encrypted "
-                               "or compressed, need fall back mode"
-                            << std::endl;
-                  f.close();
-                  return -2;
-                }
-            }
-        }
-      if(cdoffset == 0 || cdsize == 0)
-        {
-          f.close();
-          return -1;
-        }
-      std::string cd;
-      cd.resize(static_cast<size_t>(cdsize));
-      f.seekg(cdoffset, std::ios_base::beg);
-      f.read(cd.data(), cd.size());
-      f.close();
-      var = 0x02014b50;
-      bo = var;
-      bo.get_little(var);
-      findstr.clear();
-      findstr.resize(sizeof(var));
-      std::memcpy(findstr.data(), &var, sizeof(var));
-      n = cd.find(findstr);
-      if(n != std::string::npos)
-        {
-          cd.erase(0, n);
-          size_t off = 0;
-          size_t cd_sz = cd.size();
-          size_t var_sz = sizeof(uint32_t) + 42;
-          while(off < cd.size())
-            {
-              if(off + var_sz > cd_sz)
-                {
-                  std::cout << "LibArchive::fileNames error: "
-                               "incorrect central directory entry size (1)"
-                            << std::endl;
-                  filenames.clear();
-                  return -1;
-                }
-
-              uint32_t c_sz = 0;
-              std::memcpy(&c_sz, &cd[off + 20], sizeof(c_sz));
-              bo.set_little(c_sz);
-              c_sz = bo;
-
-              uint32_t u_sz = 0;
-              std::memcpy(&u_sz, &cd[off + 24], sizeof(u_sz));
-              bo.set_little(u_sz);
-              u_sz = bo;
-
-              uint16_t fnml = 0;
-              std::memcpy(&fnml, &cd[off + 28], sizeof(fnml));
-              bo.set_little(fnml);
-              fnml = bo;
-              if(off + static_cast<size_t>(fnml) + 46 > cd_sz)
-                {
-                  std::cout << "LibArchive::fileNames error: "
-                               "incorrect central directory entry size (2)"
-                            << std::endl;
-                  filenames.clear();
-                  return -1;
-                }
-
-              uint16_t efl = 0;
-              std::memcpy(&efl, &cd[off + 30], sizeof(efl));
-              bo.set_little(efl);
-              efl = bo;
-
-              uint16_t fkl = 0;
-              std::memcpy(&fkl, &cd[off + 32], sizeof(fkl));
-              bo.set_little(fkl);
-              fkl = bo;
-
-              uint32_t offset = 0;
-              std::memcpy(&offset, &cd[off + 42], sizeof(offset));
-              bo.set_little(offset);
-              offset = bo;
-
-              std::string fnm;
-              fnm.resize(fnml);
-              std::memcpy(fnm.data(), &cd[off + 46], fnm.size());
-
-              if(c_sz == 0xffffffff || u_sz == 0xffffffff
-                 || offset == 0xffffffff)
-                {
-                  if(off + static_cast<size_t>(fnml) + static_cast<size_t>(efl)
-                         + 46
-                     > cd_sz)
-                    {
-                      std::cout << "LibArchive::fileNames error: "
-                                   "incorrect central directory entry size (3)"
-                                << std::endl;
-                      filenames.clear();
-                      return -1;
-                    }
-                  std::string extra;
-                  extra.resize(efl);
-                  std::memcpy(&extra[0], &cd[off + 46 + fnml], extra.size());
-                  std::string data;
-                  for(;;)
-                    {
-                      if(extra.size() >= 4)
-                        {
-                          uint16_t id = 0;
-                          uint16_t sz = 0;
-                          std::memcpy(&id, &extra[0], sizeof(id));
-                          extra.erase(0, 2);
-                          std::memcpy(&sz, &extra[0], sizeof(sz));
-                          extra.erase(0, 2);
-                          bo.set_little(id);
-                          id = bo;
-                          bo.set_little(sz);
-                          sz = bo;
-                          if(id == 0x0001)
-                            {
-                              if(extra.size() >= static_cast<size_t>(sz))
-                                {
-                                  std::copy(extra.begin(), extra.begin() + sz,
-                                            std::back_inserter(data));
-                                }
-                              break;
-                            }
-                          else
-                            {
-                              if(extra.size() >= static_cast<size_t>(sz))
-                                {
-                                  extra.erase(0, sz);
-                                }
-                              else
-                                {
-                                  break;
-                                }
-                            }
-                        }
-                      else
-                        {
-                          break;
-                        }
-                    }
-                  if(data.size() < 8)
-                    {
-                      return -1;
-                    }
-                  int variant = 1;
-                  uint64_t c = 0;
-                  uint64_t u = 0;
-                  uint64_t o = 0;
-                  while(data.size() >= 8)
-                    {
-                      switch(variant)
-                        {
-                        case 1:
-                          {
-                            if(u_sz == 0xffffffff)
-                              {
-                                std::memcpy(&u, &data[0], sizeof(u));
-                                bo.set_little(u);
-                                u = bo;
-                                data.erase(0, sizeof(u));
-                              }
-                            else
-                              {
-                                u = static_cast<uint64_t>(u_sz);
-                              }
-                            break;
-                          }
-                        case 2:
-                          {
-                            if(c_sz == 0xffffffff)
-                              {
-                                std::memcpy(&c, &data[0], sizeof(c));
-                                bo.set_little(c);
-                                c = bo;
-                                data.erase(0, sizeof(c));
-                              }
-                            else
-                              {
-                                c = static_cast<uint64_t>(c_sz);
-                              }
-                            break;
-                          }
-                        case 3:
-                          {
-                            if(offset == 0xffffffff)
-                              {
-                                std::memcpy(&o, &data[0], sizeof(o));
-                                bo.set_little(o);
-                                o = bo;
-                                data.erase(0, sizeof(o));
-                              }
-                            else
-                              {
-                                o = static_cast<uint64_t>(offset);
-                              }
-                            break;
-                          }
-                        default:
-                          {
-                            data.clear();
-                            break;
-                          }
-                        }
-                      variant++;
-                    }
-                  ArchEntry ent;
-                  ent.size = u;
-                  ent.compressed_size = c;
-                  ent.position = static_cast<la_int64_t>(o);
-                  ent.filename = fnm;
-                  filenames.emplace_back(ent);
-                }
-              else
-                {
-                  ArchEntry ent;
-                  ent.size = static_cast<uint64_t>(u_sz);
-                  ent.compressed_size = static_cast<uint64_t>(c_sz);
-                  ent.position = static_cast<la_int64_t>(offset);
-                  ent.filename = fnm;
-                  filenames.emplace_back(ent);
-                }
-              off += 46 + fnml + efl + fkl;
-            }
-          result = 1;
-        }
-    }
-  return result;
-}
-
-ArchEntry
-LibArchive::fileinfo(const std::filesystem::path &address,
-                     const std::string &filename)
-{
-  std::filesystem::path p = address;
-  ArchEntry result;
-  std::string ext = p.extension().u8string();
-  ext = af->stringToLower(ext);
-  if(ext == ".zip")
-    {
-      std::vector<ArchEntry> archv;
-      fileNames(address, archv);
-      auto itav = std::find_if(archv.begin(), archv.end(),
-                               [filename](ArchEntry &el)
-                                 {
-                                   return el.filename == filename;
-                                 });
-      if(itav != archv.end())
-        {
-          result = *itav;
+          archive_set_error(a, EIO, "%s", "Stream error!");
         }
     }
   else
     {
-      std::shared_ptr<ArchiveFileEntry> fl = createArchFile(address, 0);
-      std::shared_ptr<archive> a = libarchive_read_init_fallback(fl);
-      if(a)
-        {
-          int er;
-          std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                               [](archive_entry *e)
-                                                 {
-                                                   archive_entry_free(e);
-                                                 });
-          bool interrupt = false;
-          std::string ch_fnm;
-          while(!interrupt)
-            {
-              archive_entry_clear(entry.get());
-              er = archive_read_next_header2(a.get(), entry.get());
-              switch(er)
-                {
-                case ARCHIVE_OK:
-                  {
-                    ch_fnm.clear();
-                    const char *chnm
-                        = archive_entry_pathname_utf8(entry.get());
-                    if(chnm)
-                      {
-                        ch_fnm = chnm;
-                      }
-                    if(ch_fnm == filename)
-                      {
-                        result.filename = ch_fnm;
-                        result.size = static_cast<uint64_t>(
-                            archive_entry_size(entry.get()));
-                        result.compressed_size = 0;
-                        interrupt = true;
-                      }
-                    break;
-                  }
-                case ARCHIVE_EOF:
-                  {
-                    interrupt = true;
-                    break;
-                  }
-                case ARCHIVE_FATAL:
-                  {
-                    libarchive_error(
-                        a, "LibArchive::fileinfo critical error:", er);
-                    interrupt = true;
-                    break;
-                  }
-                default:
-                  {
-                    libarchive_error(a, "LibArchive::fileinfo error:", er);
-                    break;
-                  }
-                }
-            }
-        }
+      archive_set_error(a, EINVAL, "%s", "Stream object is null!");
     }
 
   return result;
 }
 
-std::filesystem::path
-LibArchive::unpackByFileNameStream(const std::filesystem::path &archaddress,
-                                   const std::filesystem::path &outfolder,
-                                   const std::string &filename)
+la_ssize_t
+LibArchive::writeCallback(archive *a, void *client_data, const void *buffer,
+                          size_t length)
 {
-  std::filesystem::path result;
-
-  std::shared_ptr<ArchiveFileEntry> fl = createArchFile(archaddress, 0);
-  std::shared_ptr<archive> a = libarchive_read_init_fallback(fl);
-  if(a)
+  la_ssize_t result = -1;
+  LibArchiveFileData *fd = reinterpret_cast<LibArchiveFileData *>(client_data);
+  if(fd != nullptr)
     {
-      std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e)
-                                             {
-                                               archive_entry_free(e);
-                                             });
-      std::string ch_fnm;
-      bool interrupt = false;
-      int er;
-      while(!interrupt)
+      if(fd->f)
         {
-          archive_entry_clear(entry.get());
-          er = archive_read_next_header2(a.get(), entry.get());
-          switch(er)
-            {
-            case ARCHIVE_OK:
-              {
-                ch_fnm.clear();
-                const char *chnm = archive_entry_pathname_utf8(entry.get());
-                if(chnm)
-                  {
-                    ch_fnm = chnm;
-                  }
-                if(ch_fnm == filename)
-                  {
-                    result = libarchive_read_entry(a.get(), entry.get(),
-                                                   outfolder);
-                    interrupt = true;
-                  }
-                break;
-              }
-            case ARCHIVE_EOF:
-              {
-                interrupt = true;
-                break;
-              }
-            case ARCHIVE_FATAL:
-              {
-                libarchive_error(
-                    a,
-                    "LibArchive::unpackByIndexStream fatal read error:", er);
-                interrupt = true;
-                break;
-              }
-            default:
-              {
-                libarchive_error(
-                    a, "LibArchive::unpackByIndexStream read error:", er);
-                break;
-              }
-            }
+          fd->f->write(reinterpret_cast<const char *>(buffer), length);
+          result = static_cast<la_ssize_t>(length);
         }
-    }
-
-  return result;
-}
-
-std::string
-LibArchive::unpackByFileNameStreamStr(const std::filesystem::path &archaddress,
-                                      const std::string &filename)
-{
-  std::string result;
-
-  std::shared_ptr<ArchiveFileEntry> fl = createArchFile(archaddress, 0);
-
-  std::shared_ptr<archive> a = libarchive_read_init_fallback(fl);
-
-  if(a)
-    {
-      std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e)
-                                             {
-                                               archive_entry_free(e);
-                                             });
-      bool interrupt = false;
-      int er;
-      std::string ch_fnm;
-      while(!interrupt)
+      else
         {
-          archive_entry_clear(entry.get());
-          er = archive_read_next_header2(a.get(), entry.get());
-          switch(er)
-            {
-            case ARCHIVE_OK:
-              {
-                ch_fnm.clear();
-                const char *chnm = archive_entry_pathname_utf8(entry.get());
-                if(chnm)
-                  {
-                    ch_fnm = chnm;
-                  }
-                if(ch_fnm == filename)
-                  {
-                    result = libarchive_read_entry_str(a.get(), entry.get());
-                    interrupt = true;
-                  }
-                break;
-              }
-            case ARCHIVE_EOF:
-              {
-                interrupt = true;
-                break;
-              }
-            case ARCHIVE_FATAL:
-              {
-                libarchive_error(
-                    a,
-                    "LibArchive::unpackByIndexStream fatal read error:", er);
-                interrupt = true;
-                break;
-              }
-            default:
-              {
-                libarchive_error(
-                    a, "LibArchive::unpackByIndexStream read error:", er);
-                break;
-              }
-            }
-        }
-    }
-
-  return result;
-}
-
-std::shared_ptr<archive>
-LibArchive::libarchive_read_init(std::shared_ptr<ArchiveFileEntry> fl)
-{
-  std::shared_ptr<archive> a;
-  int er;
-  a = std::shared_ptr<archive>(archive_read_new(),
-                               [](archive *a)
-                                 {
-                                   archive_free(a);
-                                 });
-  er = archive_read_support_filter_all(a.get());
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a, "LibArchive::libarchive_read_init filter set error:", er);
-      a.reset();
-      return a;
-    }
-  er = archive_read_support_format_all(a.get());
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a, "LibArchive::libarchive_read_init format set error:", er);
-      a.reset();
-      return a;
-    }
-
-  if(fl)
-    {
-      er = archive_read_open2(a.get(), reinterpret_cast<void *>(fl.get()),
-                              &LibArchive::libarchive_open_callback,
-                              &LibArchive::libarchive_read_callback,
-                              &LibArchive::libarchive_skip_callback,
-                              &LibArchive::libarchive_close_callback);
-      if(er != ARCHIVE_OK)
-        {
-          libarchive_error(
-              a, "LibArchive::libarchive_read_init archive open error:", er);
-          a.reset();
-          return a;
+          archive_set_error(a, EPERM, "%s", "Cannot write to stream!");
         }
     }
   else
     {
-      er = ARCHIVE_FATAL;
-      archive_set_error(a.get(), er, "%s", "File struct pointer is null");
-      libarchive_error(
-          a, "LibArchive::libarchive_read_init archive open error:", er);
-      a.reset();
-      return a;
+      archive_set_error(a, EINVAL, "%s", "Stream object is null!");
     }
 
-  return a;
-}
-
-int
-LibArchive::fileNamesStream(const std::filesystem::path &address,
-                            std::vector<ArchEntry> &filenames)
-{
-  std::shared_ptr<ArchiveFileEntry> fl = createArchFile(address, 0);
-
-  std::shared_ptr<archive> a = libarchive_read_init_fallback(fl);
-  int er = ARCHIVE_OK;
-  if(a)
-    {
-      std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                           [](archive_entry *e)
-                                             {
-                                               archive_entry_free(e);
-                                             });
-      bool interrupt = false;
-      while(!interrupt)
-        {
-          archive_entry_clear(entry.get());
-          er = archive_read_next_header2(a.get(), entry.get());
-          switch(er)
-            {
-            case ARCHIVE_OK:
-              {
-                ArchEntry ent;
-                ent.size = static_cast<int>(archive_entry_size(entry.get()));
-                const char *path = archive_entry_pathname_utf8(entry.get());
-                if(path)
-                  {
-                    ent.filename = path;
-                    if(!ent.filename.empty())
-                      {
-                        filenames.emplace_back(ent);
-                      }
-                  }
-                break;
-              }
-            case ARCHIVE_EOF:
-              {
-                interrupt = true;
-                break;
-              }
-            case ARCHIVE_FATAL:
-              {
-                libarchive_error(
-                    a, "LibArchive::fileNamesStream critical error:", er);
-                interrupt = true;
-                break;
-              }
-            default:
-              {
-                libarchive_error(a, "LibArchive::fileNamesStream error:", er);
-                break;
-              }
-            }
-        }
-    }
-
-  if(er == ARCHIVE_EOF)
-    {
-      er = ARCHIVE_OK;
-    }
-
-  return er;
+  return result;
 }
 
 void
-LibArchive::libarchive_error(const std::shared_ptr<archive> &a,
-                             const std::string &message,
-                             const int &error_number)
+LibArchive::getCentralDirectory(std::shared_ptr<std::istream> f,
+                                const uint64_t &fsz, std::string &result)
 {
-  const char *error = archive_error_string(a.get());
-  if(error)
+  std::tuple<uint64_t, uint64_t> cd_tup = parseEOCDRecord(f, fsz);
+  if(std::get<0>(cd_tup) == 0 || std::get<1>(cd_tup) == 0)
     {
-      std::cout << message << " " << error << std::endl;
+      throw std::runtime_error(
+          "LibArchive::getCentralDirectory: cannot find central directory");
+    }
+  if(std::get<0>(cd_tup) + std::get<1>(cd_tup) > fsz)
+    {
+      throw std::runtime_error(
+          "LibArchive::getCentralDirectory: incorrect zip file");
+    }
+
+  result.resize(std::get<1>(cd_tup));
+  f->clear(std::ios_base::eofbit);
+  f->seekg(std::get<0>(cd_tup), std::ios_base::beg);
+  f->read(result.data(), result.size());
+}
+
+std::tuple<uint64_t, uint64_t>
+LibArchive::parseEOCDRecord(std::shared_ptr<std::istream> f,
+                            const uint64_t &fsz)
+{
+  if(fsz < 22)
+    {
+      throw std::runtime_error(
+          "LibArchive::parseEOCDRecord: incorrect file size");
+    }
+
+  std::tuple<uint64_t, uint64_t> result = std::make_tuple(0, 0);
+
+  uint32_t eocd_signature = 101010256;
+  ByteOrder bo(eocd_signature);
+  bo.getLittle(eocd_signature);
+
+  uint32_t val;
+  size_t sz_32 = sizeof(val);
+  uint64_t offset = fsz - 22;
+  while(offset >= 0)
+    {
+      f->seekg(offset, std::ios_base::beg);
+      f->read(reinterpret_cast<char *>(&val), sz_32);
+      if(val == eocd_signature)
+        {
+          break;
+        }
+      if(offset == 0)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseEOCDRecord: not a zip file");
+        }
+      offset--;
+    }
+
+  std::string eocd;
+  eocd.resize(fsz - offset);
+  f->read(eocd.data(), eocd.size());
+
+  uint32_t cd_size = 0;
+  size_t lim = 8 + sz_32;
+  char *ptr = reinterpret_cast<char *>(&cd_size);
+  for(size_t i = 8; i < lim; i++)
+    {
+      ptr[i - 8] = eocd[i];
+    }
+
+  if(cd_size == 0xffffffff)
+    {
+      result
+          = parseEOCDRecordZip64(f, fsz, static_cast<uint64_t>(eocd.size()));
+      return result;
+    }
+  bo.setLittle(cd_size);
+  cd_size = bo;
+
+  uint32_t cd_offset = 0;
+  ptr = reinterpret_cast<char *>(&cd_offset);
+  lim = 12 + sz_32;
+  for(size_t i = 12; i < lim; i++)
+    {
+      ptr[i - 12] = eocd[i];
+    }
+  if(cd_offset == 0xffffffff)
+    {
+      result
+          = parseEOCDRecordZip64(f, fsz, static_cast<uint64_t>(eocd.size()));
+      return result;
+    }
+  bo.setLittle(cd_offset);
+  cd_offset = bo;
+
+  std::get<0>(result) = static_cast<uint64_t>(cd_offset);
+  std::get<1>(result) = static_cast<uint64_t>(cd_size);
+
+  return result;
+}
+
+std::tuple<uint64_t, uint64_t>
+LibArchive::parseEOCDRecordZip64(std::shared_ptr<std::istream> f,
+                                 const uint64_t &fsz,
+                                 const uint64_t &eocd_record_size)
+{
+  if(fsz < eocd_record_size + 76)
+    {
+      throw std::runtime_error(
+          "LibArchive::parseEOCDRecordZip64: incorrect zip file");
+    }
+  std::tuple<uint64_t, uint64_t> result = std::make_tuple(0, 0);
+  uint64_t offset = fsz - eocd_record_size - 76;
+
+  uint32_t signature = 101075792;
+  ByteOrder bo(signature);
+  bo.getLittle(signature);
+  uint32_t val;
+  f->clear(std::ios_base::eofbit);
+  while(offset >= 0)
+    {
+      f->seekg(offset, std::ios_base::beg);
+      f->read(reinterpret_cast<char *>(&val), sizeof(val));
+      if(val == signature)
+        {
+          break;
+        }
+      if(offset == 0)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseEOCDRecordZip64: not zip file");
+        }
+      offset--;
+    }
+  uint64_t eocd_size;
+  f->read(reinterpret_cast<char *>(&eocd_size), sizeof(eocd_size));
+  bo.setLittle(eocd_size);
+  eocd_size = bo;
+  if(eocd_size + static_cast<uint64_t>(f->tellg()) > fsz)
+    {
+      throw std::runtime_error(
+          "LibArchive::parseEOCDRecordZip64: incorrect eocd");
+    }
+  std::string eocd;
+  eocd.resize(eocd_size);
+  f->read(eocd.data(), eocd.size());
+
+  uint64_t cd_size;
+  char *ptr = reinterpret_cast<char *>(&cd_size);
+  for(size_t i = 28; i < 28 + sizeof(cd_size); i++)
+    {
+      ptr[i - 28] = eocd[i];
+    }
+  bo.setLittle(cd_size);
+  cd_size = bo;
+
+  uint64_t cd_offset;
+  ptr = reinterpret_cast<char *>(&cd_offset);
+  for(size_t i = 36; i < 36 + sizeof(cd_offset); i++)
+    {
+      ptr[i - 36] = eocd[i];
+    }
+  bo.setLittle(cd_offset);
+  cd_offset = bo;
+
+  std::get<0>(result) = cd_offset;
+  std::get<1>(result) = cd_size;
+
+  return result;
+}
+
+void
+LibArchive::parseCentralDirectory(
+    const std::string &central_directory,
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> &result)
+{
+  size_t rb = 0;
+  uint32_t signature = 33639248;
+  ByteOrder bo(signature);
+  bo.getLittle(signature);
+  uint32_t val32;
+  size_t sz_32 = sizeof(val32);
+  uint16_t val16;
+  size_t sz_16 = sizeof(val16);
+  size_t cd_sz = central_directory.size();
+  char *ptr;
+  size_t sum;
+
+  uint16_t utf8bit = 1;
+  utf8bit = utf8bit << 10;
+  bo = utf8bit;
+  bo.getLittle(utf8bit);
+
+  uint16_t n;
+  uint16_t m;
+  uint16_t k;
+
+  while(rb < cd_sz)
+    {
+      std::tuple<std::string, uint64_t, uint64_t> res
+          = std::make_tuple("", 0, 0);
+
+      sum = rb;
+      if(sum + sz_32 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (1)");
+        }
+      ptr = reinterpret_cast<char *>(&val32);
+      for(size_t i = sum; i < sum + sz_32; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      if(val32 != signature)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (2)");
+        }
+
+      sum = rb + 8;
+      if(sum + sz_16 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (3)");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = sum; i < sum + sz_16; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      bool utf8 = false;
+      if(uint16_t(val16 & utf8bit) != 0)
+        {
+          utf8 = true;
+        }
+
+      sum = rb + 20;
+      if(sum + sz_32 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (4)");
+        }
+      ptr = reinterpret_cast<char *>(&val32);
+      for(size_t i = sum; i < sum + sz_32; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      int zip64 = 0;
+      if(val32 == 0xffffffff)
+        {
+          zip64 = zip64 | ZIP64_COMPRESSED;
+        }
+      else
+        {
+          bo.setLittle(val32);
+          val32 = bo;
+          std::get<1>(res) = static_cast<uint64_t>(val32);
+        }
+
+      sum = rb + 24;
+      if(sum + sz_32 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (5)");
+        }
+      ptr = reinterpret_cast<char *>(&val32);
+      for(size_t i = sum; i < sum + sz_32; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      if(val32 == 0xffffffff)
+        {
+          zip64 = zip64 | ZIP64_UNCOMPRESSED;
+        }
+
+      sum = rb + 28;
+      if(sum + sz_16 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (6)");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = sum; i < sum + sz_16; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      bo.setLittle(val16);
+      n = bo;
+
+      sum = rb + 30;
+      if(sum + sz_16 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (7)");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = sum; i < sum + sz_16; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      bo.setLittle(val16);
+      m = bo;
+
+      sum = rb + 32;
+      if(sum + sz_16 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (8)");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = sum; i < sum + sz_16; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      bo.setLittle(val16);
+      k = bo;
+
+      sum = rb + 42;
+      if(sum + sz_32 > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (9)");
+        }
+      ptr = reinterpret_cast<char *>(&val32);
+      for(size_t i = sum; i < sum + sz_32; i++)
+        {
+          ptr[i - sum] = central_directory[i];
+        }
+      if(val32 == 0xffffffff)
+        {
+          zip64 = zip64 | ZIP64_OFFSET;
+        }
+      else
+        {
+          bo.setLittle(val32);
+          val32 = bo;
+          std::get<2>(res) = static_cast<uint64_t>(val32);
+        }
+
+      sum = rb + 46;
+      size_t nm_sz = static_cast<size_t>(n);
+      if(sum + nm_sz > cd_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseCentralDirectory: incorrect file record (10)");
+        }
+      std::get<0>(res).reserve(nm_sz);
+      std::copy(central_directory.begin() + sum,
+                central_directory.begin() + sum + nm_sz,
+                std::back_inserter(std::get<0>(res)));
+      if(!utf8)
+        {
+          std::vector<std::string> code_pages
+              = XMLTextEncoding::detectStringEncoding(std::get<0>(res));
+          if(code_pages.size() > 0)
+            {
+              std::string r;
+              XMLTextEncoding::convertToEncoding(std::get<0>(res), r,
+                                                 code_pages[0], "UTF-8");
+              std::get<0>(res) = r;
+            }
+        }
+
+      if(zip64 != 0)
+        {
+          sum = rb + 46 + static_cast<size_t>(n);
+          size_t extra_sz = static_cast<size_t>(m);
+          if(sum + extra_sz > cd_sz)
+            {
+              throw std::runtime_error("LibArchive::parseCentralDirectory: "
+                                       "incorrect file record (11)");
+            }
+          std::string extra;
+          extra.reserve(extra_sz);
+          std::copy(central_directory.begin() + sum,
+                    central_directory.begin() + sum + extra_sz,
+                    std::back_inserter(extra));
+          parseExtraField(extra, std::get<1>(res), std::get<2>(res), zip64);
+        }
+      else
+        {
+          sum = rb + 42;
+          if(sum + sz_32 > cd_sz)
+            {
+              throw std::runtime_error("LibArchive::parseCentralDirectory: "
+                                       "incorrect file record (12)");
+            }
+          ptr = reinterpret_cast<char *>(&val32);
+          for(size_t i = sum; i < sum + sz_32; i++)
+            {
+              ptr[i - sum] = central_directory[i];
+            }
+          bo.setLittle(val32);
+          val32 = bo;
+          std::get<2>(res) = static_cast<uint64_t>(val32);
+        }
+
+      result.emplace_back(res);
+      rb += 46 + static_cast<size_t>(n) + static_cast<size_t>(m)
+            + static_cast<size_t>(k);
+    }
+}
+
+void
+LibArchive::parseExtraField(const std::string &extra, uint64_t &compressed_sz,
+                            uint64_t &offset, const int &mask)
+{
+  uint16_t header_id = 1;
+  ByteOrder bo(header_id);
+  bo.getLittle(header_id);
+  uint16_t val16;
+  size_t sz_16 = sizeof(val16);
+  size_t rb = 0;
+  size_t extra_sz = extra.size();
+  size_t sum;
+  size_t sz_64 = sizeof(uint64_t);
+  char *ptr;
+  while(rb < extra_sz)
+    {
+      sum = rb + sz_16;
+      if(sum > extra_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseExtraField: incorrect header id");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = rb; i < sum; i++)
+        {
+          ptr[i - rb] = extra[i];
+        }
+      rb += sz_16;
+      bool found = false;
+      if(header_id == val16)
+        {
+          found = true;
+        }
+
+      sum = rb + sz_16;
+      if(sum > extra_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseExtraField: incorrect data size");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = rb; i < sum; i++)
+        {
+          ptr[i - rb] = extra[i];
+        }
+      rb += sz_16;
+      bo.setLittle(val16);
+      val16 = bo;
+
+      if(found)
+        {
+          size_t lsum = rb;
+          if(int(mask & ZIP64_UNCOMPRESSED) != 0)
+            {
+              lsum += sz_64;
+            }
+          if(int(mask & ZIP64_COMPRESSED) != 0)
+            {
+              sum = lsum + sz_64;
+              if(sum > extra_sz)
+                {
+                  throw std::runtime_error("LibArchive::parseExtraField: "
+                                           "incorrect compressed data size");
+                }
+              ptr = reinterpret_cast<char *>(&compressed_sz);
+              for(size_t i = lsum; i < sum; i++)
+                {
+                  ptr[i - lsum] = extra[i];
+                }
+              bo.setLittle(compressed_sz);
+              compressed_sz = bo;
+              lsum += sz_64;
+            }
+
+          if(int(mask & ZIP64_OFFSET) != 0)
+            {
+              sum = lsum + sz_64;
+              if(sum > extra_sz)
+                {
+                  throw std::runtime_error("LibArchive::parseExtraField: "
+                                           "incorrect offset");
+                }
+              ptr = reinterpret_cast<char *>(&offset);
+              for(size_t i = lsum; i < sum; i++)
+                {
+                  ptr[i - lsum] = extra[i];
+                }
+              bo.setLittle(offset);
+              offset = bo;
+              lsum += sz_64;
+            }
+        }
+      rb += static_cast<size_t>(val16);
+    }
+}
+
+std::filesystem::path
+LibArchive::unpackToDirectory(std::shared_ptr<LibArchiveFileData> fd,
+                              const std::string &filename,
+                              const std::filesystem::path &directory)
+{
+  std::filesystem::path result;
+  std::shared_ptr<archive> a = initForReading(fd);
+
+  int er;
+  if(fd->start_offset == 0)
+    {
+      er = archive_read_set_seek_callback(a.get(), &LibArchive::seekCallback);
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a, "LibArchive::unpackToDirectory:");
+        }
+    }
+
+  er = archive_read_open2(a.get(), fd.get(), &LibArchive::openCallBack,
+                          &LibArchive::readCallBack, &LibArchive::skipCallback,
+                          &LibArchive::closeCallback);
+
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a, "LibArchive::unpackToDirectory:");
+    }
+
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+  int retry_count = 0;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      er = archive_read_next_header2(a.get(), e.get());
+      switch(er)
+        {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LibArchive::unpackToDirectory: \"") + str
+                      + "\"";
+              }
+            else
+              {
+                err = std::string("LibArchive::unpackToDirectory: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            const char *val = archive_entry_pathname_utf8(e.get());
+            if(val)
+              {
+                if(std::string(val) == filename)
+                  {
+
+                    result = directory
+                             / std::u8string(
+                                 reinterpret_cast<const char8_t *>(val));
+                    std::filesystem::create_directories(result.parent_path());
+
+                    unpackEntryToDirectory(a, e, result);
+
+                    retry_count = 3;
+                  }
+              }
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        default:
+          {
+            archiveError(a, "LibArchive::unpackToDirectory:");
+            break;
+          }
+        }
+      archive_entry_clear(e.get());
+    }
+
+  return result;
+}
+
+void
+LibArchive::unpackToBuffer(std::shared_ptr<LibArchiveFileData> fd,
+                           const std::string &filename, std::string &result)
+{
+  std::shared_ptr<archive> a = initForReading(fd);
+
+  int er;
+  if(fd->start_offset == 0)
+    {
+      er = archive_read_set_seek_callback(a.get(), &LibArchive::seekCallback);
+      if(er != ARCHIVE_OK)
+        {
+          archiveError(a, "LibArchive::unpackToBuffer:");
+        }
+    }
+
+  er = archive_read_open2(a.get(), fd.get(), &LibArchive::openCallBack,
+                          &LibArchive::readCallBack, &LibArchive::skipCallback,
+                          &LibArchive::closeCallback);
+
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a, "LibArchive::unpackToBuffer:");
+    }
+
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
+  int retry_count = 0;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      er = archive_read_next_header2(a.get(), e.get());
+      switch(er)
+        {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LLibArchive::unpackFileToBuffer: \"") + str
+                      + "\"";
+              }
+            else
+              {
+                err = std::string("LLibArchive::unpackFileToBuffer: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            const char *val = archive_entry_pathname_utf8(e.get());
+            if(val)
+              {
+                if(std::string(val) == filename)
+                  {
+                    result = unpackEntryToBuffer(a, e);
+                    retry_count = 3;
+                  }
+              }
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        default:
+          {
+            archiveError(a, "LibArchive::unpackToBuffer:");
+            break;
+          }
+        }
+      archive_entry_clear(e.get());
+    }
+}
+
+void
+LibArchive::unpackEntryToDirectory(std::shared_ptr<archive> a,
+                                   std::shared_ptr<archive_entry> e,
+                                   const std::filesystem::path &file_path)
+{
+  if(archive_entry_filetype_is_set(e.get()))
+    {
+      switch(archive_entry_filetype(e.get()))
+        {
+        case AE_IFREG:
+          {
+            break;
+          }
+        case AE_IFDIR:
+          {
+            std::filesystem::create_directories(file_path);
+            return void();
+          }
+        case AE_IFLNK:
+          {
+            const char *t = archive_entry_symlink_utf8(e.get());
+            if(t)
+              {
+                std::filesystem::path target
+                    = std::u8string(reinterpret_cast<const char8_t *>(t));
+                std::error_code ec;
+                std::filesystem::create_symlink(target, file_path, ec);
+                if(ec)
+                  {
+                    std::cout << "LibArchive::unpackEntryToDirectory: \""
+                              << ec.message() << "\"" << std::endl;
+                  }
+              }
+            return void();
+          }
+        default:
+          return void();
+        }
     }
   else
     {
-      std::cout << message << " " << error_number << std::endl;
+      la_int64_t sz = 0;
+      if(archive_entry_size_is_set(e.get()))
+        {
+          sz = archive_entry_size(e.get());
+          if(sz < 0)
+            {
+              sz = 0;
+            }
+        }
+      if(sz == 0)
+        {
+          std::filesystem::create_directories(file_path);
+          return void();
+        }
+    }
+
+  int er = ARCHIVE_OK;
+  int retry_count = 0;
+  std::unique_ptr<std::fstream, std::function<void(std::fstream *)>> f(
+      new std::fstream,
+      [](std::fstream *f)
+        {
+          if(f->is_open())
+            {
+              f->close();
+            }
+          delete f;
+        });
+  f->open(file_path, std::ios_base::out | std::ios_base::binary);
+  if(!f->is_open())
+    {
+      std::cout << "LibArchive::unpackEntryToDirectory: cannot create file "
+                << file_path << std::endl;
+      return void();
+    }
+  size_t sz;
+  la_int64_t offset;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      const char *buf;
+      sz = 0;
+      offset = 0;
+      er = archive_read_data_block(
+          a.get(), reinterpret_cast<const void **>(&buf), &sz, &offset);
+      switch(er)
+        {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LibArchive::unpackEntryToDirectory: \"")
+                      + str + "\"";
+              }
+            else
+              {
+                err = std::string("LibArchive::unpackEntryToDirectory: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            f->seekg(offset, std::ios_base::beg);
+            f->write(buf, sz);
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        default:
+          {
+            archiveError(a, "LibArchive::unpackEntryToDirectory:");
+            break;
+          }
+        }
+    }
+  std::filesystem::perms perms = getPermissionsFromEntry(e);
+  std::error_code ec;
+  std::filesystem::permissions(file_path, perms, ec);
+  if(ec)
+    {
+      std::cout << "LibArchive::unpackEntryToDirectory: " << ec.message()
+                << std::endl;
     }
 }
 
-int
-LibArchive::libarchive_packing(const std::filesystem::path &sourcepath,
-                               const std::filesystem::path &outpath)
+std::string
+LibArchive::unpackEntryToBuffer(std::shared_ptr<archive> a,
+                                std::shared_ptr<archive_entry> e)
 {
-  std::shared_ptr<archive> a = libarchive_write_init(outpath);
-  return libarchive_packing(a, sourcepath, false, "");
+  std::string result;
+  if(archive_entry_filetype_is_set(e.get()))
+    {
+      switch(archive_entry_filetype(e.get()))
+        {
+        case AE_IFREG:
+          {
+            break;
+          }
+        default:
+          return result;
+        }
+    }
+  else
+    {
+      la_int64_t sz = 0;
+      if(archive_entry_size_is_set(e.get()))
+        {
+          sz = archive_entry_size(e.get());
+          if(sz < 0)
+            {
+              sz = 0;
+            }
+        }
+      if(sz == 0)
+        {
+          return result;
+        }
+    }
+
+  int er = ARCHIVE_OK;
+  int retry_count = 0;
+  size_t sz;
+  la_int64_t offset;
+  while(er >= ARCHIVE_WARN && er <= ARCHIVE_OK && retry_count < 3)
+    {
+      const char *buf;
+      sz = 0;
+      offset = 0;
+      er = archive_read_data_block(
+          a.get(), reinterpret_cast<const void **>(&buf), &sz, &offset);
+      switch(er)
+        {
+        case ARCHIVE_WARN:
+          {
+            const char *str = archive_error_string(a.get());
+            std::string err;
+            if(str)
+              {
+                err = std::string("LibArchive::unpackEntryToBuffer: \"") + str
+                      + "\"";
+              }
+            else
+              {
+                err = std::string("LibArchive::unpackEntryToBuffer: ")
+                      + std::strerror(archive_errno(a.get()));
+              }
+            std::cout << err << std::endl;
+          }
+        case ARCHIVE_OK:
+          {
+            retry_count = 0;
+            result.resize(offset);
+            for(size_t i = 0; i < sz; i++)
+              {
+                result.push_back(buf[i]);
+              }
+            break;
+          }
+        case ARCHIVE_RETRY:
+          {
+            retry_count++;
+            break;
+          }
+        case ARCHIVE_EOF:
+          {
+            break;
+          }
+        default:
+          {
+            archiveError(a, "LibArchive::unpackEntryToBuffer:");
+            break;
+          }
+        }
+    }
+
+  return result;
 }
 
-int
-LibArchive::writeToArchive(std::shared_ptr<archive> a,
-                           const std::filesystem::path &source,
-                           const std::filesystem::path &path_in_arch)
+void
+LibArchive::writeFile(std::shared_ptr<archive> a,
+                      const std::filesystem::path &path,
+                      std::string name_in_archive,
+                      const std::filesystem::perms &perms)
 {
-  int er = ARCHIVE_FATAL;
-  std::shared_ptr<archive_entry> entry(archive_entry_new2(a.get()),
-                                       [](archive_entry *e)
-                                         {
-                                           archive_entry_free(e);
-                                         });
+  std::shared_ptr<archive_entry> e(archive_entry_new(),
+                                   [](archive_entry *e)
+                                     {
+                                       archive_entry_free(e);
+                                     });
 
-  switch(std::filesystem::symlink_status(source).type())
+  if(std::filesystem::path::preferred_separator == '\\')
     {
-    case std::filesystem::file_type::directory:
-      {
-        er = libarchive_write_directory(a.get(), entry.get(), path_in_arch,
-                                        source);
-        break;
-      }
+      for(auto it = name_in_archive.begin(); it != name_in_archive.end(); it++)
+        {
+          if(*it == std::filesystem::path::preferred_separator)
+            {
+              *it = '/';
+            }
+        }
+    }
+
+  archive_entry_set_pathname_utf8(e.get(), name_in_archive.c_str());
+
+  if(perms == std::filesystem::perms::none)
+    {
+      std::filesystem::file_status f_stat
+          = std::filesystem::symlink_status(path);
+      archive_entry_set_perm(e.get(),
+                             static_cast<__LA_MODE_T>(f_stat.permissions()));
+    }
+  else
+    {
+      archive_entry_set_perm(e.get(), static_cast<__LA_MODE_T>(perms));
+    }
+
+  archive_entry_set_filetype(e.get(), AE_IFREG);
+
+  archive_entry_set_size(
+      e.get(), static_cast<la_int64_t>(std::filesystem::file_size(path)));
+
+  std::filesystem::file_time_type last_write
+      = std::filesystem::last_write_time(path);
+  auto sytem_clock_tp
+      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+          last_write - std::filesystem::file_time_type::clock::now()
+          + std::chrono::system_clock::now());
+  time_t lwt = std::chrono::system_clock::to_time_t(sytem_clock_tp);
+  archive_entry_set_mtime(e.get(), lwt, 0);
+
+  int er = archive_write_header(a.get(), e.get());
+  if(er != ARCHIVE_OK)
+    {
+      archiveError(a, "LibArchive::writeFile:");
+    }
+
+  std::unique_ptr<std::fstream, std::function<void(std::fstream *)>> f(
+      new std::fstream,
+      [](std::fstream *f)
+        {
+          if(f->is_open())
+            {
+              f->close();
+            }
+          delete f;
+        });
+  f->open(path, std::ios_base::in | std::ios_base::binary);
+
+  if(!f->is_open())
+    {
+      throw std::runtime_error(
+          "LibArchive::writeFile: cannot open source file");
+    }
+
+  f->seekg(0, std::ios_base::end);
+  size_t fsz = static_cast<size_t>(f->tellg());
+  f->seekg(0, std::ios_base::beg);
+  size_t rb = 0;
+  std::string buf;
+  size_t diff;
+  size_t buf_sz = 4194304;
+
+  la_ssize_t wb;
+  size_t pos;
+  while(rb < fsz)
+    {
+      diff = fsz - rb;
+      if(diff > buf_sz)
+        {
+          buf.resize(buf_sz);
+        }
+      else
+        {
+          buf.resize(diff);
+        }
+      f->read(buf.data(), buf.size());
+      rb += buf.size();
+
+      pos = 0;
+      while(pos < buf.size())
+        {
+          wb = archive_write_data(
+              a.get(), reinterpret_cast<const void *>(buf.c_str() + pos),
+              buf.size() - pos);
+          if(wb <= 0)
+            {
+              throw std::runtime_error(
+                  "LibArchive::writeFile: error on writing file to archive");
+            }
+          else
+            {
+              pos += static_cast<size_t>(wb);
+            }
+        }
+    }
+}
+
+std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
+LibArchive::symlinkWriteResolver(const std::filesystem::path &relative,
+                                 const std::filesystem::path &symlink)
+{
+  std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> result;
+
+  std::error_code ec;
+  std::filesystem::path resolved = std::filesystem::read_symlink(symlink, ec);
+  if(ec)
+    {
+      std::cout << "LibArchive::symlinkWriteResolver: " << ec.message() << " "
+                << symlink << std::endl;
+      return result;
+    }
+
+  std::filesystem::file_status status
+      = std::filesystem::symlink_status(resolved);
+  switch(status.type())
+    {
     case std::filesystem::file_type::regular:
       {
-        er = libarchive_write_file(a.get(), entry.get(), path_in_arch, source);
+        result.push_back(std::make_tuple(relative, resolved));
         break;
       }
     case std::filesystem::file_type::symlink:
       {
-        std::filesystem::path chp = std::filesystem::read_symlink(source);
-        if(std::filesystem::exists(chp))
+        std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
+            loc_res = symlinkWriteResolver(resolved.parent_path(), resolved);
+        for(auto it = loc_res.begin(); it != loc_res.end(); it++)
           {
-            switch(std::filesystem::status(chp).type())
+            result.push_back(std::make_tuple(relative / std::get<0>(*it),
+                                             std::get<1>(*it)));
+          }
+        break;
+      }
+    case std::filesystem::file_type::directory:
+      {
+        std::filesystem::path l_base = resolved;
+        for(auto &dir_it :
+            std::filesystem::recursive_directory_iterator(resolved))
+          {
+            std::filesystem::path p = dir_it.path();
+            status = std::filesystem::symlink_status(p);
+            switch(status.type())
               {
               case std::filesystem::file_type::regular:
                 {
-                  er = libarchive_write_file(a.get(), entry.get(),
-                                             path_in_arch, chp);
+                  std::filesystem::path l_relative
+                      = p.lexically_relative(l_base);
+                  result.push_back(std::make_tuple(relative / l_relative, p));
                   break;
                 }
-              case std::filesystem::file_type::directory:
+              case std::filesystem::file_type::symlink:
                 {
                   std::vector<
                       std::tuple<std::filesystem::path, std::filesystem::path>>
-                      res;
-                  res = dir_symlink_resolver(chp, path_in_arch);
-                  for(auto it = res.begin(); it != res.end(); it++)
+                      loc_res = symlinkWriteResolver(p.parent_path(), p);
+                  for(auto it = loc_res.begin(); it != loc_res.end(); it++)
                     {
-                      std::shared_ptr<archive_entry> lent(
-                          archive_entry_new2(a.get()),
-                          [](archive_entry *e)
-                            {
-                              archive_entry_free(e);
-                            });
-                      if(std::filesystem::is_directory(std::get<0>(*it)))
-                        {
-                          er = libarchive_write_directory(a.get(), lent.get(),
-                                                          std::get<1>(*it),
-                                                          std::get<0>(*it));
-                        }
-                      else
-                        {
-                          er = libarchive_write_file(a.get(), lent.get(),
-                                                     std::get<1>(*it),
-                                                     std::get<0>(*it));
-                        }
+                      result.push_back(std::make_tuple(
+                          relative / std::get<0>(*it), std::get<1>(*it)));
                     }
                   break;
                 }
@@ -1308,610 +2307,87 @@ LibArchive::writeToArchive(std::shared_ptr<archive> a,
       break;
     }
 
-  return er;
+  return result;
 }
 
-std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
-LibArchive::dir_symlink_resolver(const std::filesystem::path &source,
-                                 const std::filesystem::path &append_to)
+void
+LibArchive::writeBufferToArchive(std::shared_ptr<archive> a,
+                                 std::shared_ptr<archive_entry> e,
+                                 const std::string &buf)
 {
-  std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> result;
-
-  std::filesystem::path chp = source;
-  for(auto &dirit : std::filesystem::recursive_directory_iterator(chp))
+  int er = archive_write_header(a.get(), e.get());
+  if(er != ARCHIVE_OK)
     {
-      std::filesystem::path p = dirit.path();
-      std::filesystem::path p_in_a = append_to;
-      p_in_a /= p.lexically_proximate(chp);
-      result.emplace_back(std::make_tuple(p, p_in_a));
+      archiveError(a, "LibArchive::writeBufferToArchive:");
     }
 
-  std::vector<std::tuple<std::filesystem::path, std::filesystem::path>> add;
-  for(auto it = result.begin(); it != result.end(); it++)
+  la_ssize_t wb;
+  size_t pos;
+  pos = 0;
+  while(pos < buf.size())
     {
-      std::filesystem::file_type ft
-          = std::filesystem::symlink_status(std::get<0>(*it)).type();
-      if(ft == std::filesystem::file_type::symlink)
+      wb = archive_write_data(
+          a.get(), reinterpret_cast<const void *>(buf.c_str() + pos),
+          buf.size() - pos);
+      if(wb <= 0)
         {
-          std::filesystem::path p
-              = std::filesystem::read_symlink(std::get<0>(*it));
-          switch(std::filesystem::status(p).type())
-            {
-            case std::filesystem::file_type::regular:
-              {
-                std::filesystem::path p_in_a = std::get<1>(*it);
-                p_in_a /= p.lexically_proximate(std::get<0>(*it));
-                add.emplace_back(std::make_tuple(p, p_in_a));
-                break;
-              }
-            case std::filesystem::file_type::directory:
-              {
-                add = dir_symlink_resolver(p, std::get<1>(*it));
-                break;
-              }
-            default:
-              break;
-            }
-        }
-    }
-  std::copy(add.begin(), add.end(), std::back_inserter(result));
-
-  result.erase(
-      std::remove_if(
-          result.begin(), result.end(),
-          [](std::tuple<std::filesystem::path, std::filesystem::path> &el)
-            {
-              if(!std::filesystem::exists(std::get<0>(el)))
-                {
-                  return true;
-                }
-              else
-                {
-                  return false;
-                }
-            }),
-      result.end());
-
-  for(size_t i = 0;; i++)
-    {
-      auto it = result.begin() + i;
-      if(it != result.end())
-        {
-          if(it + 1 != result.end())
-            {
-              for(auto itr = it + 1; itr != result.end();)
-                {
-                  if(std::get<0>(*itr) == std::get<0>(*it))
-                    {
-                      result.erase(itr);
-                    }
-                  else
-                    {
-                      itr++;
-                    }
-                }
-            }
-          else
-            {
-              break;
-            }
+          throw std::runtime_error("LibArchive::writeBufferToArchive: error "
+                                   "on writing buffer to archive");
         }
       else
         {
-          break;
+          pos += static_cast<size_t>(wb);
+        }
+    }
+}
+
+std::filesystem::perms
+LibArchive::getPermissionsFromEntry(const std::shared_ptr<archive_entry> &e)
+{
+  std::filesystem::perms result = std::filesystem::perms::none;
+
+  if(archive_entry_perm_is_set(e.get()))
+    {
+      mode_t perms = archive_entry_perm(e.get());
+      if(perms & S_IRUSR)
+        {
+          result |= std::filesystem::perms::owner_read;
+        }
+      if(perms & S_IWUSR)
+        {
+          result |= std::filesystem::perms::owner_write;
+        }
+      if(perms & S_IXUSR)
+        {
+          result |= std::filesystem::perms::owner_exec;
+        }
+
+      if(perms & S_IRGRP)
+        {
+          result |= std::filesystem::perms::group_read;
+        }
+      if(perms & S_IWGRP)
+        {
+          result |= std::filesystem::perms::group_write;
+        }
+      if(perms & S_IXGRP)
+        {
+          result |= std::filesystem::perms::group_exec;
+        }
+
+      if(perms & S_IROTH)
+        {
+          result |= std::filesystem::perms::others_read;
+        }
+      if(perms & S_IWOTH)
+        {
+          result |= std::filesystem::perms::others_write;
+        }
+      if(perms & S_IXOTH)
+        {
+          result |= std::filesystem::perms::others_exec;
         }
     }
 
   return result;
-}
-
-int
-LibArchive::libarchive_write_directory(
-    archive *a, archive_entry *entry,
-    const std::filesystem::path &path_in_arch,
-    const std::filesystem::path &source)
-{
-  archive_entry_set_pathname_utf8(entry, path_in_arch.u8string().c_str());
-  std::filesystem::file_status f_stat = std::filesystem::status(source);
-  archive_entry_set_perm(entry,
-                         static_cast<__LA_MODE_T>(f_stat.permissions()));
-  archive_entry_set_filetype(entry, AE_IFDIR);
-  std::filesystem::file_time_type last_write
-      = std::filesystem::last_write_time(source);
-  auto sytem_clock_tp
-      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-          last_write - std::filesystem::file_time_type::clock::now()
-          + std::chrono::system_clock::now());
-  time_t l_w_t = std::chrono::system_clock::to_time_t(sytem_clock_tp);
-  archive_entry_set_mtime(entry, l_w_t, 0);
-  int er = archive_write_header(a, entry);
-  if(er != ARCHIVE_OK)
-    {
-      std::shared_ptr<archive> aa(a,
-                                  [](archive *)
-                                    {
-                                    });
-      libarchive_error(aa,
-                       "LibArchive::write_directory write header error:", er);
-    }
-  return er;
-}
-
-int
-LibArchive::libarchive_write_file(archive *a, archive_entry *entry,
-                                  const std::filesystem::path &path_in_arch,
-                                  const std::filesystem::path &source)
-{
-  archive_entry_set_pathname_utf8(entry, path_in_arch.u8string().c_str());
-  std::filesystem::file_status f_stat = std::filesystem::status(source);
-  archive_entry_set_perm(entry,
-                         static_cast<__LA_MODE_T>(f_stat.permissions()));
-  archive_entry_set_filetype(entry, AE_IFREG);
-  archive_entry_set_size(
-      entry, static_cast<la_int64_t>(std::filesystem::file_size(source)));
-  std::filesystem::file_time_type last_write
-      = std::filesystem::last_write_time(source);
-  auto sytem_clock_tp
-      = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-          last_write - std::filesystem::file_time_type::clock::now()
-          + std::chrono::system_clock::now());
-  time_t l_w_t = std::chrono::system_clock::to_time_t(sytem_clock_tp);
-  archive_entry_set_mtime(entry, l_w_t, 0);
-  int er = archive_write_header(a, entry);
-  if(er != ARCHIVE_OK)
-    {
-      std::shared_ptr<archive> aa(a,
-                                  [](archive *)
-                                    {
-                                    });
-      libarchive_error(
-          aa, "LibArchive::libarchive_write_file write header error:", er);
-      return er;
-    }
-
-  er = libarchive_write_data_from_file(a, source);
-
-  return er;
-}
-
-la_ssize_t
-LibArchive::libarchive_write_callback(archive *a, void *data,
-                                      const void *buffer, size_t length)
-{
-  la_ssize_t result = -1;
-
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(fl)
-    {
-      fl->file.write(reinterpret_cast<const char *>(buffer), length);
-      fl->read_bytes += static_cast<la_ssize_t>(length);
-      result = static_cast<la_ssize_t>(length);
-    }
-  else
-    {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
-    }
-
-  return result;
-}
-
-int
-LibArchive::libarchive_free_callback(archive *, void *data)
-{
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  delete fl;
-  return ARCHIVE_OK;
-}
-
-int
-LibArchive::libarchive_write_data_from_file(
-    archive *a, const std::filesystem::path &source)
-{
-  int er = ARCHIVE_OK;
-  struct self_close
-  {
-    std::fstream f;
-    ~self_close()
-    {
-      if(f.is_open())
-        {
-          f.close();
-        }
-    }
-  } self_d;
-
-  std::string buf;
-  size_t byteread = 0;
-  size_t fsz;
-  self_d.f.open(source, std::ios_base::in | std::ios_base::binary);
-  if(self_d.f.is_open())
-    {
-      self_d.f.seekg(0, std::ios_base::end);
-      fsz = static_cast<size_t>(self_d.f.tellg());
-      self_d.f.seekg(0, std::ios_base::beg);
-      size_t ch;
-      while(byteread < fsz)
-        {
-          ch = fsz - byteread;
-          buf.clear();
-          if(ch > 1048576)
-            {
-              buf.resize(1048576);
-            }
-          else
-            {
-              buf.resize(ch);
-            }
-          ch = buf.size();
-          self_d.f.read(&buf[0], buf.size());
-          er = libarchive_write_data(a, buf);
-          if(er != ARCHIVE_OK)
-            {
-              return er;
-            }
-          byteread = byteread + ch;
-        }
-    }
-  else
-    {
-      std::cout << "LibArchive::libarchive_write_data_from_file: "
-                   "source file not opened"
-                << std::endl;
-      er = ARCHIVE_FATAL;
-    }
-
-  return er;
-}
-
-int
-LibArchive::libarchive_open_callback_write(archive *a, void *data)
-{
-  int result = ARCHIVE_FATAL;
-
-  ArchiveFileEntry *fl = reinterpret_cast<ArchiveFileEntry *>(data);
-  if(fl)
-    {
-      fl->file.open(fl->file_path, std::ios_base::out | std::ios_base::binary);
-      if(fl->file.is_open())
-        {
-          result = ARCHIVE_OK;
-        }
-      else
-        {
-          archive_set_error(a, EBADF, "%s",
-                            "File has not been opened for writing");
-        }
-    }
-  else
-    {
-      archive_set_error(a, EBADF, "%s", "File struct pointer is null");
-    }
-
-  return result;
-}
-
-ArchiveRemoveEntry
-LibArchive::libarchive_remove_init(const std::filesystem::path &sourcepath,
-                                   const std::filesystem::path &outpath)
-{
-  ArchiveRemoveEntry result;
-
-  result.fl = createArchFile(sourcepath, 0);
-  result.a_read = libarchive_read_init_fallback(result.fl);
-  result.a_write = libarchive_write_init(outpath);
-
-  return result;
-}
-
-int
-LibArchive::libarchive_remove_entry(ArchiveRemoveEntry rm_e,
-                                    const std::vector<ArchEntry> &to_remove)
-{
-  int er = ARCHIVE_OK;
-
-  bool interrupt = false;
-  std::shared_ptr<archive_entry> entry(archive_entry_new2(rm_e.a_read.get()),
-                                       [](archive_entry *e)
-                                         {
-                                           archive_entry_free(e);
-                                         });
-  std::string ch_fnm;
-  while(!interrupt)
-    {
-      archive_entry_clear(entry.get());
-      er = archive_read_next_header2(rm_e.a_read.get(), entry.get());
-      switch(er)
-        {
-        case ARCHIVE_OK:
-          {
-            ch_fnm.clear();
-            const char *chnm = archive_entry_pathname_utf8(entry.get());
-            if(chnm)
-              {
-                ch_fnm = chnm;
-              }
-            auto it = std::find_if(to_remove.begin(), to_remove.end(),
-                                   [ch_fnm](const ArchEntry &el)
-                                     {
-                                       return ch_fnm == el.filename;
-                                     });
-            if(it == to_remove.end())
-              {
-                std::filesystem::path tmp = af->tempPath();
-                tmp /= std::filesystem::u8path(af->randomFileName());
-                std::filesystem::create_directories(tmp);
-                SelfRemovingPath srp(tmp);
-
-                tmp = libarchive_read_entry(rm_e.a_read.get(), entry.get(),
-                                            srp.path);
-
-                if(std::filesystem::exists(tmp))
-                  {
-                    er = archive_write_header(rm_e.a_write.get(), entry.get());
-                    if(er == ARCHIVE_OK || er == ARCHIVE_WARN)
-                      {
-                        if(er == ARCHIVE_WARN)
-                          {
-                            libarchive_error(rm_e.a_write,
-                                             "RemoveBook::libarchive_remove_"
-                                             "entry writing warning",
-                                             er);
-                            er = ARCHIVE_OK;
-                          }
-                        if(!std::filesystem::is_directory(tmp))
-                          {
-                            er = libarchive_write_data_from_file(
-                                rm_e.a_write.get(), tmp);
-                          }
-                      }
-                    if(er != ARCHIVE_OK)
-                      {
-                        std::cout << "RemoveBook::libarchive_remove_entry "
-                                     "writing error: "
-                                  << er << std::endl;
-                      }
-                  }
-                else
-                  {
-                    std::cout << "RemoveBook::libarchive_remove_entry writing "
-                                 "error: "
-                                 "file from source archive was not unpacked"
-                              << std::endl;
-                  }
-              }
-            break;
-          }
-        case ARCHIVE_EOF:
-          {
-            interrupt = true;
-            break;
-          }
-        case ARCHIVE_FATAL:
-          {
-            libarchive_error(
-                rm_e.a_read,
-                "RemoveBook::libarchive_remove_entry fatal read error: "
-                    + rm_e.fl->file_path.u8string(),
-                er);
-            interrupt = true;
-            break;
-          }
-        default:
-          {
-            libarchive_error(
-                rm_e.a_read,
-                "RemoveBook::libarchive_remove_entry read error:", er);
-            break;
-          }
-        }
-    }
-
-  if(er == ARCHIVE_EOF)
-    {
-      er = ARCHIVE_OK;
-    }
-  return er;
-}
-
-int
-LibArchive::libarchive_write_data(archive *a, const std::string &data)
-{
-  std::string buf = data;
-  ssize_t wb = archive_write_data(a, &buf[0], buf.size());
-  if(wb < 0)
-    {
-      archive_set_error(a, ECANCELED, "%s",
-                        "Data cannot be written to archive (1)");
-      return ARCHIVE_FATAL;
-    }
-  else
-    {
-      while(wb != static_cast<ssize_t>(buf.size()))
-        {
-          buf.erase(buf.begin(), buf.begin() + wb);
-          wb = archive_write_data(a, &buf[0], buf.size());
-          if(wb < 0)
-            {
-              archive_set_error(a, ECANCELED, "%s",
-                                "Data cannot be written to archive (2)");
-              return ARCHIVE_FATAL;
-            }
-        }
-    }
-  return ARCHIVE_OK;
-}
-
-std::shared_ptr<archive>
-LibArchive::libarchive_write_init(const std::filesystem::path &outpath)
-{
-  std::shared_ptr<archive> a = std::shared_ptr<archive>(archive_write_new(),
-                                                        [](archive *a)
-                                                          {
-                                                            archive_free(a);
-                                                          });
-  int er;
-  er = archive_write_set_format_filter_by_ext(a.get(),
-                                              outpath.string().c_str());
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a, "LibArchive::libarchive_write_init format setting error:", er);
-      a.reset();
-      return a;
-    }
-
-  er = archive_write_set_options(a.get(), "hdrcharset=UTF-8");
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a, "LibArchive::libarchive_write_init options setting error:", er);
-      if(er == ARCHIVE_FATAL)
-        {
-          a.reset();
-          return a;
-        }
-    }
-
-  std::filesystem::create_directories(outpath.parent_path());
-
-  ArchiveFileEntry *fl = new ArchiveFileEntry;
-  fl->file_path = outpath;
-  er = archive_write_open2(a.get(), reinterpret_cast<void *>(fl),
-                           &LibArchive::libarchive_open_callback_write,
-                           &LibArchive::libarchive_write_callback,
-                           &LibArchive::libarchive_close_callback,
-                           &LibArchive::libarchive_free_callback);
-  if(er != ARCHIVE_OK)
-    {
-      libarchive_error(
-          a, "LibArchive::libarchive_write_init archive open error:", er);
-      a.reset();
-      return a;
-    }
-
-  return a;
-}
-
-int
-LibArchive::libarchive_packing(const std::shared_ptr<archive> &a,
-                               const std::filesystem::path &sourcepath,
-                               const bool &rename_source,
-                               const std::string &new_source_name)
-{
-  if(!std::filesystem::exists(sourcepath))
-    {
-      return -100;
-    }
-  if(a)
-    {
-      // writev tuple: 0-source path, 1-path in archive
-      std::vector<std::tuple<std::filesystem::path, std::filesystem::path>>
-          writev;
-
-      std::filesystem::path base = sourcepath.parent_path();
-
-      std::filesystem::file_type ft
-          = std::filesystem::status(sourcepath).type();
-      switch(ft)
-        {
-        case std::filesystem::file_type::directory:
-          {
-            std::tuple<std::filesystem::path, std::filesystem::path> ttup;
-            std::get<0>(ttup) = sourcepath;
-            std::get<1>(ttup) = std::filesystem::relative(sourcepath, base);
-            if(rename_source)
-              {
-                std::string remove_str = sourcepath.filename().u8string();
-                std::string path = std::get<1>(ttup).u8string();
-                std::string::size_type n = path.find(remove_str);
-                if(n != std::string::npos)
-                  {
-                    path.erase(n, remove_str.size());
-                    path.insert(n, new_source_name);
-                    std::get<1>(ttup) = std::filesystem::u8path(path);
-                  }
-              }
-            writev.emplace_back(ttup);
-            for(auto &dirit :
-                std::filesystem::recursive_directory_iterator(sourcepath))
-              {
-                std::filesystem::path p = dirit.path();
-                std::filesystem::file_type ft
-                    = std::filesystem::status(p).type();
-                switch(ft)
-                  {
-                  case std::filesystem::file_type::directory:
-                  case std::filesystem::file_type::regular:
-                  case std::filesystem::file_type::symlink:
-                    {
-                      std::tuple<std::filesystem::path, std::filesystem::path>
-                          ttup;
-                      std::get<0>(ttup) = p;
-                      std::get<1>(ttup) = p.lexically_proximate(base);
-                      if(rename_source)
-                        {
-                          std::string remove_str
-                              = sourcepath.filename().u8string();
-                          std::string path = std::get<1>(ttup).u8string();
-                          std::string::size_type n = path.find(remove_str);
-                          if(n != std::string::npos)
-                            {
-                              path.erase(n, remove_str.size());
-                              path.insert(n, new_source_name);
-                              std::get<1>(ttup)
-                                  = std::filesystem::u8path(path);
-                            }
-                        }
-                      writev.emplace_back(ttup);
-                      break;
-                    }
-                  default:
-                    break;
-                  }
-              }
-            break;
-          }
-        case std::filesystem::file_type::regular:
-        case std::filesystem::file_type::symlink:
-          {
-            std::tuple<std::filesystem::path, std::filesystem::path> ttup;
-            std::get<0>(ttup) = sourcepath;
-            std::get<1>(ttup) = std::filesystem::relative(sourcepath, base);
-            if(rename_source)
-              {
-                std::string remove_str = sourcepath.filename().u8string();
-                std::string path = std::get<1>(ttup).u8string();
-                std::string::size_type n = path.find(remove_str);
-                if(n != std::string::npos)
-                  {
-                    path.erase(n, remove_str.size());
-                    path.insert(n, new_source_name);
-                    std::get<1>(ttup) = std::filesystem::u8path(path);
-                  }
-              }
-            writev.emplace_back(ttup);
-            break;
-          }
-        default:
-          break;
-        }
-      int er;
-      for(auto it = writev.begin(); it != writev.end(); it++)
-        {
-          er = writeToArchive(a, std::get<0>(*it), std::get<1>(*it));
-          if(er != ARCHIVE_OK)
-            {
-              std::cout
-                  << "LibArchive::libarchive_packing: archive writing error"
-                  << std::endl;
-              return er;
-            }
-        }
-    }
-  else
-    {
-      return -200;
-    }
-
-  return 0;
 }

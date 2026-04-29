@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,60 +13,67 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 #ifndef DJVUPARSER_H
 #define DJVUPARSER_H
 
-#include <AuxFunc.h>
-#include <BookInfoEntry.h>
-#include <BookParseEntry.h>
-#include <filesystem>
+#include <BaseID.h>
+#include <MLBookProc.h>
+#include <UDBase.h>
 #include <libdjvu/ddjvuapi.h>
-#include <memory>
 
 /*!
- * \brief The DJVUParser class.
+ * \brief The DJVUParser class
  *
- * This class contains various methods for djvu books processing. In most cases
- * you do not need to use this class directly. Use CreateCollection,
- * RefreshCollection and BookInfo instead.
+ * This class contains methods for djvu files parsing. In most cases you do not
+ * need to use it directly. Use CreateCollection and BookInfo instead.
  */
 class DJVUParser
 {
 public:
   /*!
    * \brief DJVUParser constructor.
-   * \param af smart pointer to AuxFunc object.
+   * \param mlbp Smart pointer to MLBookProc object.
    */
-  DJVUParser(const std::shared_ptr<AuxFunc> &af);
+  DJVUParser(const std::shared_ptr<MLBookProc> &mlbp);
 
   /*!
-   * \brief Parses djvu book.
-   * \param filepath absolute path to djvu book.
-   * \return BookParseEntry object.
+   * Parses djvu file.
+   *
+   * \param book_content Content of djvu file.
+   * \return BaseID::Book object.
    */
-  BookParseEntry
-  djvu_parser(const std::filesystem::path &filepath);
+  UDBElement
+  parseBook(const std::string &book_content);
 
   /*!
-   * \brief Returns book info and book cover.
-   * \param filepath absolute path to djvu book.
-   * \return Smart pointer to BookInfoEntry object.
+   * Obtains extra information from djvu file.
+   *
+   * \param book_content Content of djvu file.
+   * \return UDBase object containing informatiton (see BookInfo).
    */
-  std::shared_ptr<BookInfoEntry>
-  djvu_book_info(const std::filesystem::path &filepath);
+  UDBase
+  getBookInfo(const std::string &book_content);
 
 private:
-  ddjvu_message_t *
-  handleDJVUmsgs(const std::shared_ptr<ddjvu_context_t> &ctx,
-                 const std::shared_ptr<ddjvu_document_t> &doc, int *pipe);
+  bool
+  setBookContentToStream(const std::shared_ptr<DJVUContext> &ctx,
+                         const std::shared_ptr<ddjvu_document_t> &doc,
+                         const std::string &book_content);
+
+  bool
+  waitDocumentInfo(const std::shared_ptr<DJVUContext> &ctx,
+                   const std::shared_ptr<ddjvu_document_t> &doc);
+
+  std::shared_ptr<ddjvu_page_t>
+  getFirstPage(const std::shared_ptr<DJVUContext> &ctx,
+               const std::shared_ptr<ddjvu_document_t> &doc);
 
   void
   getTag(const std::string &exp, const std::string &tag, std::string &line);
 
-  std::shared_ptr<AuxFunc> af;
+  std::shared_ptr<MLBookProc> mlbp;
 
-  std::filesystem::path djvu_file_path;
+  BaseID bid;
 };
 
 #endif // DJVUPARSER_H

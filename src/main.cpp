@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Yury Bobylev <bobilev_yury@mail.ru>
+ * Copyright (C) 2026 Yury Bobylev <bobilev_yury@mail.ru>
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -13,50 +13,34 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
+#include "MainWindow.h"
 
-#include <AuxFunc.h>
-#include <MyLibraryApplication.h>
-#include <iostream>
-#include <libintl.h>
+#include <QApplication>
+#include <QIcon>
+#include <QLocale>
+#include <QTranslator>
 
 int
 main(int argc, char *argv[])
 {
-  std::shared_ptr<AuxFunc> af = AuxFunc::create();
+  QApplication a(argc, argv);
 
-  if(af->get_activated())
+  QTranslator translator;
+  const QStringList uiLanguages = QLocale::system().uiLanguages();
+  for(const QString &locale : uiLanguages)
     {
-      std::filesystem::path p = af->sharePath();
-      p /= std::filesystem::u8path("locale");
-      char *report = bindtextdomain("MyLibrary", p.u8string().c_str());
-      if(report)
+      const QString baseName = "MyLibrary_" + QLocale(locale).name();
+      if(translator.load(":/i18n/" + baseName))
         {
-          std::cout << "MyLibrary text domain path: " << report << std::endl;
+          a.installTranslator(&translator);
+          break;
         }
-      report = bind_textdomain_codeset("MyLibrary", "UTF-8");
-      if(report)
-        {
-          std::cout << "MyLibrary codeset: " << report << std::endl;
-        }
-      report = textdomain("MyLibrary");
-      if(report)
-        {
-          std::cout << "MyLibrary text domain: " << report << std::endl;
-        }
+    }
 
-      int result;
-      auto app = MyLibraryApplication::create(af);
-      result = app->run(argc, argv);
-      app.reset();
-      af.reset();
-      return result;
-    }
-  else
-    {
-      std::cout << "MyLibrary: MLBookProc has not been initialized, "
-                   "finishing the application"
-                << std::endl;
-      af.reset();
-      return 1;
-    }
+  QIcon icon(":/icons/mylibrary.svg");
+  a.setWindowIcon(icon);
+
+  MainWindow w;
+  w.show();
+  return a.exec();
 }
