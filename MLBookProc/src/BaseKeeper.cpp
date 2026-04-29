@@ -122,7 +122,7 @@ BaseKeeper::loadCollection(const std::filesystem::path &base_path)
               }
             }
           }
-      }      
+      }
     }
   catch(std::exception &er)
     {
@@ -773,7 +773,8 @@ BaseKeeper::exportBase(const std::filesystem::path &result_path)
                        });
   if(it_type == it->subelements.end())
     {
-      throw std::runtime_error("BaseKeeper::exportBase: incorrect collection");
+      throw std::runtime_error(
+          "BaseKeeper::exportBase: cannot find collection type");
     }
 
   if(it_type->content != "native")
@@ -2226,19 +2227,7 @@ BaseKeeper::setRelativePath(std::vector<UDBElement> &src,
           {
             std::filesystem::path p
                 = std::u8string(it->content.begin(), it->content.end());
-            std::error_code ec;
-            std::filesystem::path rel
-                = std::filesystem::relative(p, base_path, ec);
-            if(ec)
-              {
-#pragma omp critical
-                {
-                  std::cout << "BaseKeeper::setRelativePath: \""
-                            << ec.message() << "\" " << p << std::endl;
-                }
-                it->content.clear();
-                break;
-              }
+            std::filesystem::path rel = p.lexically_relative(base_path);
             std::u8string u8str = rel.u8string();
             it->content = std::string(u8str.begin(), u8str.end());
 #ifdef _WIN32
@@ -2251,19 +2240,7 @@ BaseKeeper::setRelativePath(std::vector<UDBElement> &src,
           {
             std::filesystem::path p
                 = std::u8string(it->content.begin(), it->content.end());
-            std::error_code ec;
-            std::filesystem::path rel
-                = std::filesystem::relative(p, base_path, ec);
-            if(ec)
-              {
-#pragma omp critical
-                {
-                  std::cout << "BaseKeeper::setRelativePath: \""
-                            << ec.message() << "\" " << p << std::endl;
-                }
-                it->content.clear();
-                break;
-              }
+            std::filesystem::path rel = p.lexically_relative(base_path);
             std::u8string u8str = rel.u8string();
             it->content = std::string(u8str.begin(), u8str.end());
 #ifdef _WIN32
@@ -2296,19 +2273,14 @@ BaseKeeper::setAbsolutePath(std::vector<UDBElement> &src,
             std::filesystem::path p
                 = std::u8string(it->content.begin(), it->content.end());
             p = base_path / p;
-            std::error_code ec;
-            std::filesystem::path res = std::filesystem::canonical(p, ec);
-            if(ec)
-              {
-#pragma omp critical
-                {
-                  std::cout << "BaseKeeper::setAbsolutePath: \""
-                            << ec.message() << "\" " << p << std::endl;
-                }
-                it->content.clear();
-                break;
-              }
+            std::filesystem::path res = p.lexically_normal();
             std::u8string u8str = res.u8string();
+#ifdef _WIN32
+            if(*u8str.begin() == '\\')
+              {
+                u8str.insert(u8str.begin(), '\\');
+              }
+#endif
             it->content = std::string(u8str.begin(), u8str.end());
             break;
           }
@@ -2318,19 +2290,14 @@ BaseKeeper::setAbsolutePath(std::vector<UDBElement> &src,
             std::filesystem::path p
                 = std::u8string(it->content.begin(), it->content.end());
             p = base_path / p;
-            std::error_code ec;
-            std::filesystem::path res = std::filesystem::canonical(p, ec);
-            if(ec)
-              {
-#pragma omp critical
-                {
-                  std::cout << "BaseKeeper::setAbsolutePath: \""
-                            << ec.message() << "\" " << p << std::endl;
-                }
-                it->content.clear();
-                break;
-              }
+            std::filesystem::path res = p.lexically_normal();
             std::u8string u8str = res.u8string();
+#ifdef _WIN32
+            if(*u8str.begin() == '\\')
+              {
+                u8str.insert(u8str.begin(), '\\');
+              }
+#endif
             it->content = std::string(u8str.begin(), u8str.end());
             BaseKeeper::setAbsolutePath(it->subelements, base_path);
             break;

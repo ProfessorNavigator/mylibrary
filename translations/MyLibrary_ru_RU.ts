@@ -1246,49 +1246,49 @@
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="839"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="850"/>
         <source>Add to bookmarks</source>
         <translation>Добавить в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="858"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="869"/>
         <source>Save as...</source>
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="863"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="874"/>
         <source>Notes</source>
         <translation>Заметки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="888"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="899"/>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="900"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="911"/>
         <source>Remove book</source>
         <translation>Удалить книгу</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="942"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="966"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="953"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="977"/>
         <source>Show books</source>
         <translation>Показать книги</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="950"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="987"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="961"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="998"/>
         <source>Show books in separate window</source>
         <translation>Показать книги в отдельном окне</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1346"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1357"/>
         <source>Book has been successfully added to bookmarks</source>
         <translation>Книга была успешно добавлена в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1351"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1362"/>
         <source>Error!</source>
         <translation>Ошибка!</translation>
     </message>

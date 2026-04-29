@@ -824,8 +824,19 @@ MainWindowRightWidget::bookActions(const Qt::ItemFlags &editable)
                           index.constInternalPointer());
                   if(el != nullptr)
                     {
-                      UDBase info
-                          = book_info->getBookInfo(el->book_search_result);
+                      UDBase info;
+                      try
+                        {
+                          info
+                              = book_info->getBookInfo(el->book_search_result);
+                        }
+                      catch(std::exception &er)
+                        {
+                          std::cout << "MainWindowRightWidget::bookActions: \""
+                                    << er.what() << "\"" << std::endl;
+                          return void();
+                        }
+
                       BookDetailsWindow *bdw = new BookDetailsWindow(
                           this->window(), info, el->book_search_result,
                           format_annotation, bases.genres_base);
