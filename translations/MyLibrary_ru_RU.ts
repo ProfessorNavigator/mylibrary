@@ -496,52 +496,52 @@
 <context>
     <name>CollectionBaseExportWindow</name>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="37"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="36"/>
         <source>Collection export</source>
         <translation>Экспорт коллекции</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="64"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="63"/>
         <source>Collection to export:</source>
         <translation>Коллекция для экспорта:</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="79"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="78"/>
         <source>Path to result:</source>
         <translation>Путь результата:</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="87"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="86"/>
         <source>Save as...</source>
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="102"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="101"/>
         <source>Export</source>
         <translation>Экспортировать</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="114"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="113"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="190"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="189"/>
         <source>Result path is empty!</source>
         <translation>Путь результата пуст!</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="200"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="199"/>
         <source>Error!</source>
         <translation>Ошибка!</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="215"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="214"/>
         <source>Base has been exported!</source>
         <translation>База данных была экспортирована!</translation>
     </message>
     <message>
-        <location filename="../src/CollectionBaseExportWindow.cpp" line="234"/>
+        <location filename="../src/CollectionBaseExportWindow.cpp" line="233"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -1190,95 +1190,95 @@
 <context>
     <name>MainWindowRightWidget</name>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="473"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="469"/>
         <source>Operations</source>
         <translation>Операции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="509"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="505"/>
         <source>Filter</source>
         <translation>Фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="535"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="531"/>
         <source>Apply filter</source>
         <translation>Применить фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="547"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="543"/>
         <source>Remove filter</source>
         <translation>Убрать фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="673"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="691"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="669"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="687"/>
         <source>Author</source>
         <translation>Автор</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="674"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="670"/>
         <source>Book</source>
         <translation>Книга</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="675"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="671"/>
         <source>Series</source>
         <translation>Серия</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="676"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="672"/>
         <source>Genre</source>
         <translation>Жанр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="677"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="673"/>
         <source>Date</source>
         <translation>Дата</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="684"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="680"/>
         <source>File path</source>
         <translation>Путь к файлу</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="784"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="780"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="850"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="846"/>
         <source>Add to bookmarks</source>
         <translation>Добавить в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="869"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="865"/>
         <source>Save as...</source>
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="874"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="870"/>
         <source>Notes</source>
         <translation>Заметки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="899"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="895"/>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="911"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="907"/>
         <source>Remove book</source>
         <translation>Удалить книгу</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="953"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="977"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="949"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="973"/>
         <source>Show books</source>
         <translation>Показать книги</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="961"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="998"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="957"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="994"/>
         <source>Show books in separate window</source>
         <translation>Показать книги в отдельном окне</translation>
     </message>
@@ -1288,12 +1288,17 @@
         <translation>Книга была успешно добавлена в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1362"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1364"/>
         <source>Error!</source>
         <translation>Ошибка!</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="815"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1374"/>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <location filename="../src/MainWindowRightWidget.cpp" line="811"/>
         <source>Book info</source>
         <translation>Информация о книге</translation>
     </message>
@@ -1517,52 +1522,52 @@
 <context>
     <name>RemoveBookWindow</name>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="79"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="78"/>
         <source>Book to remove:</source>
         <translation>Книга для удаления:</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="118"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="117"/>
         <source>Note: if book is in archive, archive will be repacked</source>
         <translation>Замечание: если книга находится в архиве, архив будет перепакован</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="124"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="123"/>
         <source>Note: if book is in rar archive, whole archive will be removed</source>
         <translation>Замечание: если книга находится в rar архиве, то будет удалён весь архив целиком</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="129"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="128"/>
         <source>Continue?</source>
         <translation>Продолжить?</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="136"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="135"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="152"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="151"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="176"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="175"/>
         <source>Removing...</source>
         <translation>Удаление...</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="256"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="255"/>
         <source>Error on book removing!</source>
         <translation>Ошибка при удалении книги!</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="268"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="267"/>
         <source>Book has been removed</source>
         <translation>Книга была удалена</translation>
     </message>
     <message>
-        <location filename="../src/RemoveBookWindow.cpp" line="274"/>
+        <location filename="../src/RemoveBookWindow.cpp" line="273"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>

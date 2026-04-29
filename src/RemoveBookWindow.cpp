@@ -19,7 +19,6 @@
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QMessageBox>
 #include <QPainter>
 #include <QProgressBar>
 #include <QPushButton>

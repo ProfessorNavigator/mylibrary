@@ -26,7 +26,6 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QMenu>
-#include <QMessageBox>
 #include <QScreen>
 #include <QScrollBar>
 #include <QUrl>
@@ -38,6 +37,7 @@
 #include <SearchViewModel.h>
 #include <SearchViewModelAuthors.h>
 #include <SearchViewModelFiles.h>
+#include <StyledWindow.h>
 #include <atomic>
 #include <iostream>
 #include <thread>
@@ -133,13 +133,12 @@ MainWindowRightWidget::setBookSearchResult(
   search_view->setSortingEnabled(true);
   resizeColumns();
 
-  search_result_resize
-      = connect(search_view, &TableView::signalResized, this,
-                [this](const QSize &sz)
-                  {
-                    search_view_width = sz.width();
-                    resizeColumns();
-                  });
+  search_result_resize = connect(search_view, &TableView::signalResized, this,
+                                 [this](const QSize &sz)
+                                   {
+                                     search_view_width = sz.width();
+                                     resizeColumns();
+                                   });
 
   setFiltersBook();
 
@@ -214,9 +213,8 @@ MainWindowRightWidget::setBookSearchResult(
     {
       disconnect(search_result_singleclicked);
     }
-  search_result_singleclicked
-      = connect(search_view, &TableView::clicked, this,
-                &MainWindowRightWidget::getBookInfo);
+  search_result_singleclicked = connect(search_view, &TableView::clicked, this,
+                                        &MainWindowRightWidget::getBookInfo);
 
   search_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
@@ -270,13 +268,12 @@ MainWindowRightWidget::setFilesSearchResult(
   search_view->setSortingEnabled(true);
   resizeColumns();
 
-  search_result_resize
-      = connect(search_view, &TableView::signalResized, this,
-                [this](const QSize &sz)
-                  {
-                    search_view_width = sz.width();
-                    resizeColumns();
-                  });
+  search_result_resize = connect(search_view, &TableView::signalResized, this,
+                                 [this](const QSize &sz)
+                                   {
+                                     search_view_width = sz.width();
+                                     resizeColumns();
+                                   });
 
   setFiltersFiles();
 
@@ -375,13 +372,12 @@ MainWindowRightWidget::setAuthorsSearchResult(
   search_view->setSortingEnabled(true);
   resizeColumns();
 
-  search_result_resize
-      = connect(search_view, &TableView::signalResized, this,
-                [this](const QSize &sz)
-                  {
-                    search_view_width = sz.width();
-                    resizeColumns();
-                  });
+  search_result_resize = connect(search_view, &TableView::signalResized, this,
+                                 [this](const QSize &sz)
+                                   {
+                                     search_view_width = sz.width();
+                                     resizeColumns();
+                                   });
 
   setFiltersAuthors();
 
@@ -909,36 +905,36 @@ MainWindowRightWidget::bookActions(const Qt::ItemFlags &editable)
       result.append(act);
 
       act = new QAction(tr("Remove book"));
-      connect(act, &QAction::triggered, this,
-              [this]
+      connect(
+          act, &QAction::triggered, this,
+          [this]
+            {
+              QModelIndex index = search_view->currentIndex();
+              if(index.isValid())
                 {
-                  QModelIndex index = search_view->currentIndex();
-                  if(index.isValid())
+                  const SearchViewModelItem *el
+                      = reinterpret_cast<const SearchViewModelItem *>(
+                          index.constInternalPointer());
+                  if(el != nullptr)
                     {
-                      const SearchViewModelItem *el
-                          = reinterpret_cast<const SearchViewModelItem *>(
-                              index.constInternalPointer());
-                      if(el != nullptr)
-                        {
-                          UDBElement to_remove(el->book_search_result);
-                          RemoveBookWindow *rbw = new RemoveBookWindow(
-                              this->window(), bases.mlbp);
-                          connect(rbw, &RemoveBookWindow::signalBookRemoved,
-                                  this,
-                                  [this](const UDBElement &el)
+                      UDBElement to_remove(el->book_search_result);
+                      RemoveBookWindow *rbw
+                          = new RemoveBookWindow(this->window(), bases.mlbp);
+                      connect(rbw, &RemoveBookWindow::signalBookRemoved, this,
+                              [this](const UDBElement &el)
+                                {
+                                  SearchViewModel *mdl
+                                      = dynamic_cast<SearchViewModel *>(
+                                          search_view->model());
+                                  if(mdl != nullptr)
                                     {
-                                      SearchViewModel *mdl
-                                          = dynamic_cast<SearchViewModel *>(
-                                              search_view->model());
-                                      if(mdl != nullptr)
-                                        {
-                                          mdl->removeBook(el);
-                                        }
-                                    });
-                          rbw->showWindow(to_remove, collection_base_path);
-                        }
+                                      mdl->removeBook(el);
+                                    }
+                                });
+                      rbw->showWindow(to_remove, collection_base_path);
                     }
-                });
+                }
+            });
       result.append(act);
     }
 
@@ -1347,23 +1343,45 @@ MainWindowRightWidget::addBookToBookMarks(const UDBElement &book_search_result)
       er_msg = er.what();
     }
 
-  QMessageBox *msg = new QMessageBox(this->window());
-  msg->setAttribute(Qt::WA_DeleteOnClose);
-  msg->setWindowModality(Qt::WindowModal);
+  StyledWindow *window = new StyledWindow(this->window());
+  window->setWindowModality(Qt::WindowModal);
+  window->setObjectName("Window");
+
+  QVBoxLayout *v_box = new QVBoxLayout;
+  window->setLayout(v_box);
 
   if(er_msg.isEmpty())
     {
-      msg->setIcon(QMessageBox::Information);
-      msg->setText(tr("Book has been successfully added to bookmarks"));
+      QLabel *lab = new QLabel;
+      lab->setObjectName("Label");
+      lab->setText(tr("Book has been successfully added to bookmarks"));
+      v_box->addWidget(lab, 0, Qt::AlignCenter);
     }
   else
     {
-      msg->setIcon(QMessageBox::Critical);
-      msg->setText(tr("Error!"));
-      msg->setDetailedText(er_msg);
+      QLabel *lab = new QLabel;
+      lab->setObjectName("Label");
+      lab->setText(tr("Error!"));
+      v_box->addWidget(lab, 0, Qt::AlignCenter);
+
+      lab = new QLabel;
+      lab->setObjectName("Label");
+      lab->setText(er_msg);
+      v_box->addWidget(lab, 0, Qt::AlignCenter);
     }
 
-  msg->show();
+  QPushButton *close = new QPushButton;
+  close->setText(tr("Close"));
+  QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(close);
+  shadow->setBlurRadius(12);
+  shadow->setOffset(0, 2);
+  shadow->setColor(QColor(0, 0, 0, 120));
+  close->setGraphicsEffect(shadow);
+  close->setObjectName("ApplyButton");
+  connect(close, &QPushButton::clicked, window, &StyledWindow::close);
+  v_box->addWidget(close, 0, Qt::AlignCenter);
+
+  window->show();
 }
 
 void
