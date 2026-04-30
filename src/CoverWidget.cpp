@@ -421,6 +421,30 @@ CoverWidget::saveImageDialog()
         }
     }
   filters.removeDuplicates();
+
+  connect(fd, &QFileDialog::filterSelected,
+          [fd](const QString &filter)
+            {
+              QString local = filter;
+              QString search = " ";
+              qsizetype n = local.indexOf(search);
+              if(n >= 0)
+                {
+                  local.erase(local.begin() + n, local.end());
+                }
+              search = "*.";
+              n = local.indexOf(search);
+              if(n >= 0)
+                {
+                  local.erase(local.begin(),
+                              local.begin() + n + search.size());
+                }
+              if(!local.isEmpty())
+                {
+                  fd->setDefaultSuffix(local);
+                }
+            });
+
   fd->setMimeTypeFilters(filters);
   fd->selectMimeTypeFilter(default_filter);
   fd->setDirectory(QDir::homePath());
