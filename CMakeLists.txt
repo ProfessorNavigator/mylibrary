@@ -27,7 +27,7 @@ qt_add_translations(
 
 qt_add_resources(MyLibrary "styles"
     PREFIX "/"
-    FILES "styles/styles.css"
+    FILES "styles/styles.css" "styles/checkbox.png"
 )
 
 qt_add_resources(MyLibrary "icon"

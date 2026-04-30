@@ -132,6 +132,15 @@
     color: rgba(255, 255, 255, 255);
 }
 
+#CheckBox::indicator {
+    width: 20px;
+    height: 20px;
+}
+
+#CheckBox::indicator:checked {
+    image: url(:/styles/checkbox.png);
+}
+
 #Frame {
     border-radius: 5px;
     border-color: rgba(0, 0, 255, 255);
