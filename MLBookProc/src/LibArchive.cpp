@@ -28,6 +28,13 @@
 LibArchive::LibArchive(const std::shared_ptr<MLBookProc> &mlbp)
 {
   this->mlbp = mlbp;
+  ByteOrder bo;
+  bo = ZIP64_UNCOMPRESSED;
+  bo.getLittle(ZIP64_UNCOMPRESSED);
+  bo = ZIP64_COMPRESSED;
+  bo.getLittle(ZIP64_COMPRESSED);
+  bo = ZIP64_OFFSET;
+  bo.getLittle(ZIP64_OFFSET);
 }
 
 LibArchive::~LibArchive()
@@ -1549,23 +1556,55 @@ LibArchive::parseCentralDirectory(
       size_t nm_sz = static_cast<size_t>(n);
       if(sum + nm_sz > cd_sz)
         {
-          throw std::runtime_error(
-              "LibArchive::parseCentralDirectory: incorrect file record (10)");
+          throw std::runtime_error("LibArchive::parseCentralDirectory: "
+                                   "incorrect file record (10)");
         }
       std::get<0>(res).reserve(nm_sz);
       std::copy(central_directory.begin() + sum,
                 central_directory.begin() + sum + nm_sz,
                 std::back_inserter(std::get<0>(res)));
+      std::string extra;
       if(!utf8)
         {
-          std::vector<std::string> code_pages
-              = XMLTextEncoding::detectStringEncoding(std::get<0>(res));
-          if(code_pages.size() > 0)
+          sum = rb + 46 + static_cast<size_t>(n);
+          size_t extra_sz = static_cast<size_t>(m);
+          if(sum + extra_sz > cd_sz)
             {
-              std::string r;
-              XMLTextEncoding::convertToEncoding(std::get<0>(res), r,
-                                                 code_pages[0], "UTF-8");
-              std::get<0>(res) = r;
+              throw std::runtime_error("LibArchive::parseCentralDirectory: "
+                                       "incorrect file record (11)");
+            }
+          extra.reserve(extra_sz);
+          std::copy(central_directory.begin() + sum,
+                    central_directory.begin() + sum + extra_sz,
+                    std::back_inserter(extra));
+          std::string u8name;
+          bool use = getUTFfilename(extra,
+                                    crc32Sum(reinterpret_cast<unsigned char *>(
+                                                 std::get<0>(res).data()),
+                                             std::get<0>(res).size()),
+                                    u8name);
+          if(u8name.empty())
+            {
+              if(!use)
+                {
+                  std::vector<std::string> code_pages
+                      = XMLTextEncoding::detectStringEncoding(
+                          std::get<0>(res));
+                  if(code_pages.size() > 0)
+                    {
+                      std::string r;
+                      XMLTextEncoding::convertToEncoding(
+                          std::get<0>(res), r, code_pages[0], "UTF-8");
+                      std::get<0>(res) = r;
+                    }
+                }
+            }
+          else
+            {
+              if(use)
+                {
+                  std::get<0>(res) = u8name;
+                }
             }
         }
 
@@ -1578,11 +1617,13 @@ LibArchive::parseCentralDirectory(
               throw std::runtime_error("LibArchive::parseCentralDirectory: "
                                        "incorrect file record (11)");
             }
-          std::string extra;
-          extra.reserve(extra_sz);
-          std::copy(central_directory.begin() + sum,
-                    central_directory.begin() + sum + extra_sz,
-                    std::back_inserter(extra));
+          if(extra.empty())
+            {
+              extra.reserve(extra_sz);
+              std::copy(central_directory.begin() + sum,
+                        central_directory.begin() + sum + extra_sz,
+                        std::back_inserter(extra));
+            }
           parseExtraField(extra, std::get<1>(res), std::get<2>(res), zip64);
         }
       else
@@ -1698,7 +1739,6 @@ LibArchive::parseExtraField(const std::string &extra, uint64_t &compressed_sz,
                 }
               bo.setLittle(offset);
               offset = bo;
-              lsum += sz_64;
             }
         }
       rb += static_cast<size_t>(val16);
@@ -2308,6 +2348,166 @@ LibArchive::symlinkWriteResolver(const std::filesystem::path &relative,
     }
 
   return result;
+}
+
+bool
+LibArchive::getUTFfilename(const std::string &extra_field,
+                           const std::string &crc_sum, std::string &filename)
+{
+  bool result = false;
+
+  uint16_t header_id = 0x7075;
+  ByteOrder bo(header_id);
+  bo.getLittle(header_id);
+  uint16_t val16;
+  size_t sz_16 = sizeof(val16);
+  size_t rb = 0;
+  size_t extra_sz = extra_field.size();
+  size_t sum;
+  size_t sz_64 = sizeof(uint64_t);
+  char *ptr;
+  while(rb < extra_sz)
+    {
+      sum = rb + sz_16;
+      if(sum > extra_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseExtraField: incorrect header id");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = rb; i < sum; i++)
+        {
+          ptr[i - rb] = extra_field[i];
+        }
+      rb += sz_16;
+      bool found = false;
+      if(header_id == val16)
+        {
+          found = true;
+        }
+
+      sum = rb + sz_16;
+      if(sum > extra_sz)
+        {
+          throw std::runtime_error(
+              "LibArchive::parseExtraField: incorrect data size");
+        }
+      ptr = reinterpret_cast<char *>(&val16);
+      for(size_t i = rb; i < sum; i++)
+        {
+          ptr[i - rb] = extra_field[i];
+        }
+      rb += sz_16;
+      bo.setLittle(val16);
+      val16 = bo;
+
+      if(found)
+        {
+          if(rb + static_cast<size_t>(val16) > extra_sz)
+            {
+              break;
+            }
+          if(val16 < 5)
+            {
+              break;
+            }
+
+          std::string crc;
+          std::copy(extra_field.begin() + rb + 1, extra_field.begin() + rb + 5,
+                    std::back_inserter(crc));
+
+          if(crc != crc_sum)
+            {
+              break;
+            }
+          result = true;
+
+          val16 -= 5;
+          size_t pos = rb + 5;
+          std::copy(extra_field.begin() + pos,
+                    extra_field.begin() + pos + static_cast<size_t>(val16),
+                    std::back_inserter(filename));
+          break;
+        }
+
+      rb += static_cast<size_t>(val16);
+    }
+
+  return result;
+}
+
+std::string
+LibArchive::crc32Sum(unsigned char *buf, size_t len)
+{
+  uint32_t result = 0;
+
+  uint32_t crc_table[256];
+  uint32_t crc;
+
+  uint32_t xor_v;
+  unsigned char *uptr = reinterpret_cast<unsigned char *>(&xor_v);
+  for(size_t i = 0; i < sizeof(xor_v); i++)
+    {
+      switch(i)
+        {
+        case 0:
+          {
+            uptr[i] = 0x20;
+            break;
+          }
+        case 1:
+          {
+            uptr[i] = 0x83;
+            break;
+          }
+        case 2:
+          {
+            uptr[i] = 0xb8;
+            break;
+          }
+        case 3:
+          {
+            uptr[i] = 0xed;
+            break;
+          }
+        default:
+          break;
+        }
+    }
+
+  for(int i = 0; i < 256; i++)
+    {
+      crc = i;
+      for(int j = 0; j < 8; j++)
+        {
+          if(crc & 1)
+            {
+              crc = (crc >> 1) ^ xor_v;
+            }
+          else
+            {
+              crc = crc >> 1;
+            }
+        }
+      crc_table[i] = crc;
+    }
+
+  crc = 0xFFFFFFFF;
+  for(size_t i = 0; i < len; i++)
+    {
+      crc = crc_table[(crc ^ buf[i]) & 255] ^ (crc >> 8);
+    }
+  result = crc ^ 0xFFFFFFFF;
+
+  std::string res;
+  char *ptr = reinterpret_cast<char *>(&result);
+  res.resize(sizeof(result));
+  for(size_t i = 0; i < sizeof(result); i++)
+    {
+      res[i] = ptr[i];
+    }
+
+  return res;
 }
 
 void

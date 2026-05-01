@@ -515,6 +515,13 @@ private:
   symlinkWriteResolver(const std::filesystem::path &relative,
                        const std::filesystem::path &symlink);
 
+  bool
+  getUTFfilename(const std::string &extra_field, const std::string &crc_sum,
+                 std::string &filename);
+
+  std::string
+  crc32Sum(unsigned char *buf, size_t len);
+
   int ZIP64_UNCOMPRESSED = 1;
   int ZIP64_COMPRESSED = 2;
   int ZIP64_OFFSET = 4;
