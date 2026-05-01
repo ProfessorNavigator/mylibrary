@@ -22,7 +22,6 @@
 #include <gpg-error.h>
 #include <memory>
 #include <mutex>
-#include <random>
 #include <string>
 #include <vector>
 
@@ -215,8 +214,6 @@ private:
   djvuMessageCallback(ddjvu_context_t *context, void *closure);
 
   std::vector<std::string> supported_types;
-
-  std::mt19937_64 *rng;
 
   std::weak_ptr<DJVUContext> djvu_contex;
   std::mutex djvu_context_mtx;

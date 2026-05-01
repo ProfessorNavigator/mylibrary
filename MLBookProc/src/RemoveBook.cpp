@@ -166,6 +166,19 @@ RemoveBook::removeFromArchive(const UDBElement &path,
       archiveError(a_write, "RemoveBook::removeFromArchive:");
     }
 
+  er = archive_write_set_options(a_write.get(), "hdrcharset=UTF-8");
+  if(er != ARCHIVE_OK)
+    {
+      try
+        {
+          archiveError(a_write, "RemoveBook::removeFromArchive:");
+        }
+      catch(std::exception &ex)
+        {
+          std::cout << ex.what() << std::endl;
+        }
+    }
+
   er = archive_write_open(
       a_write.get(), fd_write.get(), &LibArchive::openCallBack,
       &LibArchive::writeCallback, &LibArchive::closeCallback);

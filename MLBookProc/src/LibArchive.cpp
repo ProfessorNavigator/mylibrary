@@ -517,6 +517,19 @@ LibArchive::writeToArchive(const std::filesystem::path &source_object,
       archiveError(a_write, "LibArchive::writeToArchive:");
     }
 
+  er = archive_write_set_options(a_write.get(), "hdrcharset=UTF-8");
+  if(er != ARCHIVE_OK)
+    {
+      try
+        {
+          archiveError(a_write, "LibArchive::writeToArchive:");
+        }
+      catch(std::exception &ex)
+        {
+          std::cout << ex.what() << std::endl;
+        }
+    }
+
   er = archive_write_open(
       a_write.get(), fd_write.get(), &LibArchive::openCallBack,
       &LibArchive::writeCallback, &LibArchive::closeCallback);
@@ -802,6 +815,19 @@ LibArchive::writeBufferObjectToArchive(
   if(er != ARCHIVE_OK)
     {
       archiveError(a_write, "LibArchive::writeBufferToArchive:");
+    }
+
+  er = archive_write_set_options(a_write.get(), "hdrcharset=UTF-8");
+  if(er != ARCHIVE_OK)
+    {
+      try
+        {
+          archiveError(a_write, "LibArchive::writeBufferToArchive:");
+        }
+      catch(std::exception &ex)
+        {
+          std::cout << ex.what() << std::endl;
+        }
     }
 
   er = archive_write_open(

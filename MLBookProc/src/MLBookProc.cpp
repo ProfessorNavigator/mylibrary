@@ -21,17 +21,11 @@
 #include <cstring>
 #include <iostream>
 #include <omp.h>
+#include <random>
 #include <unicode/unistr.h>
 
 MLBookProc::MLBookProc()
 {
-  std::chrono::time_point<std::chrono::high_resolution_clock> ctm_p
-      = std::chrono::high_resolution_clock::now();
-  uint64_t ctm = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                     ctm_p.time_since_epoch())
-                     .count();
-  rng = new std::mt19937_64(ctm);
-
   activation();
   supported_types.push_back("fb2");
   supported_types.push_back("epub");
@@ -56,7 +50,6 @@ MLBookProc::MLBookProc()
 MLBookProc::~MLBookProc()
 {
   std::lock_guard<std::mutex> lglock(djvu_context_mtx);
-  delete rng;
 }
 
 void
@@ -66,7 +59,7 @@ MLBookProc::activation()
   if(!err)
     {
       char *report = const_cast<char *>(gcry_check_version(nullptr));
-      if(report)
+      if(report != nullptr)
         {
           err = gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
           if(err != 0)
@@ -77,21 +70,37 @@ MLBookProc::activation()
                     << report << std::endl;
 
           report = const_cast<char *>(archive_version_details());
-          if(report)
+          if(report != nullptr)
             {
               std::cout << "MLBookProc: " << report << std::endl;
             }
 
           report = const_cast<char *>(ddjvu_get_version_string());
-          if(report)
+          if(report != nullptr)
             {
               std::cout << "MLBookProc: " << report << std::endl;
             }
 
           report = setlocale(LC_CTYPE, "");
-          if(report)
+          if(report != nullptr)
             {
-              std::cout << "MLBookProc set locale: " << report << std::endl;
+              std::string str(report);
+              std::string::size_type n = str.find(".");
+              if(n != std::string::npos)
+                {
+                  str.erase(str.begin() + n, str.end());
+                }
+              str += ".UTF-8";
+              report = setlocale(LC_CTYPE, str.c_str());
+              if(report != nullptr)
+                {
+                  std::cout << "MLBookProc set locale: " << report
+                            << std::endl;
+                }
+              else
+                {
+                  std::cout << "MLBookProc: cannot set locale" << std::endl;
+                }
             }
           else
             {
@@ -279,7 +288,13 @@ MLBookProc::randomNumber()
 {
   std::numeric_limits<T> lim;
   std::uniform_int_distribution<T> dist(lim.min() + 1, lim.max());
-  return dist(*rng);
+  std::chrono::time_point<std::chrono::high_resolution_clock> ctm_p
+      = std::chrono::high_resolution_clock::now();
+  uint64_t ctm = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                     ctm_p.time_since_epoch())
+                     .count();
+  std::mt19937_64 lrng(ctm);
+  return dist(lrng);
 }
 
 std::filesystem::path
