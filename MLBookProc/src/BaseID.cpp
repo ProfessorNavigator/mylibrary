@@ -29,409 +29,477 @@ BaseID::setId(UDBElement &result, const ID &id)
     {
     case ID::Dir:
       {
-        id_str.push_back(-128);
+        int8_t val = -128;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::File:
       {
-        id_str.push_back(-127);
+        int8_t val = -127;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Symlink:
       {
-        id_str.push_back(-126);
+        int8_t val = -126;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Book:
       {
-        id_str.push_back(-125);
+        int8_t val = -125;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BookTitle:
       {
-        id_str.push_back(-124);
+        int8_t val = -124;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookTitle:
       {
-        id_str.push_back(-123);
+        int8_t val = -123;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Author:
       {
-        id_str.push_back(-122);
+        int8_t val = -122;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookAuthor:
       {
-        id_str.push_back(-121);
+        int8_t val = -121;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Sequence:
       {
-        id_str.push_back(-120);
+        int8_t val = -120;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookAuthor:
       {
-        id_str.push_back(-119);
+        int8_t val = -119;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookSequence:
       {
-        id_str.push_back(-118);
+        int8_t val = -118;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookSequence:
       {
-        id_str.push_back(-117);
+        int8_t val = -117;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Genre:
       {
-        id_str.push_back(-116);
+        int8_t val = -116;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookGenre:
       {
-        id_str.push_back(-115);
+        int8_t val = -115;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Date:
       {
-        id_str.push_back(-114);
+        int8_t val = -114;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookDate:
       {
-        id_str.push_back(-113);
+        int8_t val = -113;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PathInFile:
       {
-        id_str.push_back(-112);
+        int8_t val = -112;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BookSearchResult:
       {
-        id_str.push_back(-111);
+        int8_t val = -111;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::FBDPath:
       {
-        id_str.push_back(-110);
+        int8_t val = -110;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::LastName:
       {
-        id_str.push_back(-109);
+        int8_t val = -109;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::FirstName:
       {
-        id_str.push_back(-108);
+        int8_t val = -108;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::MiddleName:
       {
-        id_str.push_back(-107);
+        int8_t val = -107;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Language:
       {
-        id_str.push_back(-106);
+        int8_t val = -106;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceLanguage:
       {
-        id_str.push_back(-105);
+        int8_t val = -105;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookLanguage:
       {
-        id_str.push_back(-104);
+        int8_t val = -104;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookSourceLanguage:
       {
-        id_str.push_back(-103);
+        int8_t val = -103;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Keywords:
       {
-        id_str.push_back(-102);
+        int8_t val = -102;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Translator:
       {
-        id_str.push_back(-101);
+        int8_t val = -101;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SequenceName:
       {
-        id_str.push_back(-100);
+        int8_t val = -100;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SequenceNumber:
       {
-        id_str.push_back(-99);
+        int8_t val = -99;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookKeywords:
       {
-        id_str.push_back(-98);
+        int8_t val = -98;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookTranslator:
       {
-        id_str.push_back(-97);
+        int8_t val = -97;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::SourceBookDublinCore:
       {
-        id_str.push_back(-96);
+        int8_t val = -96;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookProgramUsed:
       {
-        id_str.push_back(-95);
+        int8_t val = -95;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookDate:
       {
-        id_str.push_back(-94);
+        int8_t val = -94;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookSourceUrl:
       {
-        id_str.push_back(-93);
+        int8_t val = -93;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookSourceOCR:
       {
-        id_str.push_back(-92);
+        int8_t val = -92;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookID:
       {
-        id_str.push_back(-91);
+        int8_t val = -91;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookVersion:
       {
-        id_str.push_back(-90);
+        int8_t val = -90;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookHistory:
       {
-        id_str.push_back(-89);
+        int8_t val = -89;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EbookPublisher:
       {
-        id_str.push_back(-88);
+        int8_t val = -88;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookPublisher:
       {
-        id_str.push_back(-87);
+        int8_t val = -87;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookName:
       {
-        id_str.push_back(-86);
+        int8_t val = -86;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookCity:
       {
-        id_str.push_back(-85);
+        int8_t val = -85;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookYear:
       {
-        id_str.push_back(-84);
+        int8_t val = -84;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::PaperBookISBN:
       {
-        id_str.push_back(-83);
+        int8_t val = -83;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CustomInfo:
       {
-        id_str.push_back(-82);
+        int8_t val = -82;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::DjvuPublisher:
       {
-        id_str.push_back(-81);
+        int8_t val = -81;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CollectionInfo:
       {
-        id_str.push_back(-80);
+        int8_t val = -80;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CollectionType:
       {
-        id_str.push_back(-79);
+        int8_t val = -79;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CoverType:
       {
-        id_str.push_back(-78);
+        int8_t val = -78;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BooksDirectory:
       {
-        id_str.push_back(-77);
+        int8_t val = -77;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::InpxPath:
       {
-        id_str.push_back(-76);
+        int8_t val = -76;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::FileHash:
       {
-        id_str.push_back(-75);
+        int8_t val = -75;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::FileSize:
       {
-        id_str.push_back(-74);
+        int8_t val = -74;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Annotation:
       {
-        id_str.push_back(-73);
+        int8_t val = -73;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CoverPage:
       {
-        id_str.push_back(-72);
+        int8_t val = -72;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CoverHeight:
       {
-        id_str.push_back(-71);
+        int8_t val = -71;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::CoverWidth:
       {
-        id_str.push_back(-70);
+        int8_t val = -70;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::Nickname:
       {
-        id_str.push_back(-69);
+        int8_t val = -69;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::HomePage:
       {
-        id_str.push_back(-68);
+        int8_t val = -68;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::EMail:
       {
-        id_str.push_back(-67);
+        int8_t val = -67;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::AuthorID:
       {
-        id_str.push_back(-66);
+        int8_t val = -66;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BookMark:
       {
-        id_str.push_back(-65);
+        int8_t val = -65;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BookNote:
       {
-        id_str.push_back(-64);
+        int8_t val = -64;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::BookNoteFile:
       {
-        id_str.push_back(-63);
+        int8_t val = -63;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::AuthorSearchResult:
       {
-        id_str.push_back(-62);
+        int8_t val = -62;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
     case ID::AnchorBasePath:
       {
-        id_str.push_back(-61);
+        int8_t val = -61;
+        id_str.push_back(*reinterpret_cast<char *>(&val));
         result.id = id_str;
         break;
       }
@@ -449,7 +517,9 @@ BaseID::getId(const UDBElement &el) const
     }
   ID result;
 
-  switch(el.id[0])
+  int8_t id = *reinterpret_cast<const int8_t *>(&el.id[0]);
+
+  switch(id)
     {
     case -128:
       {
