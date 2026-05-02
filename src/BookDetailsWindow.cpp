@@ -511,7 +511,7 @@ BookDetailsWindow::bookDate(QLayout *layout,
   QString str;
   for(auto it_b = book.begin(); it_b != book.end(); it_b++)
     {
-      if(bid.getId(*it_b) != BaseID::Date)
+      if(bid.getId(*it_b) != search)
         {
           continue;
         }

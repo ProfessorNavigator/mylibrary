@@ -70,7 +70,7 @@ public:
   /*!
    * Stops all operations.
    */
-  void
+  virtual void
   stopAll();
 
   /*!

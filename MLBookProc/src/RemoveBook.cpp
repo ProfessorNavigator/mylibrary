@@ -279,6 +279,7 @@ RemoveBook::removeFromArchive(const UDBElement &path,
                   {
                     std::string buf
                         = std::move(unpackEntryToBuffer(a_read, e));
+                    setUsernameGroupname(e);
                     writeBufferToArchive(a_write, e, buf);
                     result++;
                   }

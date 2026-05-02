@@ -61,7 +61,7 @@ CreateCollection::CreateCollection(const std::shared_ptr<MLBookProc> &mlbp,
 
 CreateCollection::~CreateCollection()
 {
-  stopAll();
+  CreateCollection::stopAll();
   std::unique_lock<std::mutex> ullock(*threads_v_mtx);
   threads_v_var->wait(ullock,
                       [this]

@@ -36,6 +36,7 @@ void
 RefreshCollection::refreshCollection(const std::filesystem::path &base_path,
                                      const bool &fast_refresh)
 {
+  cancel_local = false;
   base_keeper->loadCollection(base_path);
   std::string base_type = base_keeper->getCollectionType();
   if(base_type == "legacy" || base_type == "inpx")
@@ -94,7 +95,7 @@ RefreshCollection::refreshCollection(const std::filesystem::path &base_path,
 #pragma omp parallel
 #pragma omp masked
       {
-        compareVectors(*new_raw_base, *raw_base);
+        compareVectors(new_raw_base, raw_base);
       }
 
       if(signal_files_collecting)
@@ -113,6 +114,10 @@ RefreshCollection::refreshCollection(const std::filesystem::path &base_path,
       new_raw_base->insert(new_raw_base->begin(), coll_info);
 
       l_processed = 0.0;
+      if(signal_parsing_progress)
+        {
+          signal_parsing_progress(l_processed, total);
+        }
       processFiles(*new_raw_base);
       std::unique_lock<std::mutex> ullock(*threads_v_mtx);
       threads_v_var->wait(ullock,
@@ -386,15 +391,22 @@ RefreshCollection::elementRemove(const UDBElement &el,
 }
 
 void
-RefreshCollection::compareVectors(std::vector<UDBElement> &new_v,
-                                  const std::vector<UDBElement> &old_v)
+RefreshCollection::compareVectors(std::vector<UDBElement> *new_v,
+                                  const std::vector<UDBElement> *old_v)
 {
-  for(auto it = new_v.begin(); it != new_v.end(); it++)
+  for(auto it = new_v->begin(); it != new_v->end(); it++)
     {
+      bool cncl;
+#pragma omp atomic read
+      cncl = cancel_local;
+      if(cncl)
+        {
+          break;
+        }
 #pragma omp task
       {
         auto it_old = std::find_if(
-            old_v.begin(), old_v.end(),
+            old_v->begin(), old_v->end(),
             [it](const UDBElement &el)
               {
                 if(it->id == el.id)
@@ -409,7 +421,7 @@ RefreshCollection::compareVectors(std::vector<UDBElement> &new_v,
                   }
                 return false;
               });
-        if(it_old != old_v.end())
+        if(it_old != old_v->end())
           {
             if(bid.getId(*it_old) == BaseID::File)
               {
@@ -417,14 +429,32 @@ RefreshCollection::compareVectors(std::vector<UDBElement> &new_v,
               }
             else
               {
-                compareVectors(it->subelements, it_old->subelements);
+                std::vector<UDBElement> *l_ptr = &it->subelements;
+                const std::vector<UDBElement> *l_old = &it_old->subelements;
+#pragma omp task
+                {
+                  compareVectors(l_ptr, l_old);
+                }
               }
           }
         else if(bid.getId(*it) == BaseID::File)
           {
 #pragma omp atomic update
             total += 1.0;
+            if(signal_files_collecting)
+              {
+                signal_files_collecting(static_cast<size_t>(total));
+              }
           }
       }
     }
+}
+
+void
+RefreshCollection::stopAll()
+{
+#pragma omp atomic write
+  cancel_local = true;
+
+  CreateCollection::stopAll();
 }

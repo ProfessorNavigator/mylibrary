@@ -25,6 +25,15 @@
 #include <functional>
 #include <iostream>
 
+#ifdef __linux
+#include <grp.h>
+#include <pwd.h>
+#include <unistd.h>
+#elif defined(_WIN32)
+#include <Lmcons.h>
+#include <windows.h>
+#endif
+
 LibArchive::LibArchive(const std::shared_ptr<MLBookProc> &mlbp)
 {
   this->mlbp = mlbp;
@@ -609,6 +618,7 @@ LibArchive::writeToArchive(const std::filesystem::path &source_object,
                   }
 
                 std::string buf = unpackEntryToBuffer(a_read, e);
+                setUsernameGroupname(e);
                 if(buf.size() > 0)
                   {
                     writeBufferToArchive(a_write, e, buf);
@@ -910,6 +920,7 @@ LibArchive::writeBufferObjectToArchive(
                   }
 
                 std::string buf = unpackEntryToBuffer(a_read, e);
+                setUsernameGroupname(e);
                 if(buf.size() > 0)
                   {
                     writeBufferToArchive(a_write, e, buf);
@@ -972,6 +983,8 @@ LibArchive::writeBufferObjectToArchive(
   auto sytem_clock_tp = std::chrono::system_clock::now();
   time_t lwt = std::chrono::system_clock::to_time_t(sytem_clock_tp);
   archive_entry_set_mtime(e.get(), lwt, 0);
+
+  setUsernameGroupname(e);
 
   writeBufferToArchive(a_write, e, buffer);
 
@@ -2232,6 +2245,8 @@ LibArchive::writeFile(std::shared_ptr<archive> a,
   time_t lwt = std::chrono::system_clock::to_time_t(sytem_clock_tp);
   archive_entry_set_mtime(e.get(), lwt, 0);
 
+  setUsernameGroupname(e);
+
   int er = archive_write_header(a.get(), e.get());
   if(er != ARCHIVE_OK)
     {
@@ -2616,4 +2631,49 @@ LibArchive::getPermissionsFromEntry(const std::shared_ptr<archive_entry> &e)
     }
 
   return result;
+}
+
+void
+LibArchive::setUsernameGroupname(std::shared_ptr<archive_entry> e)
+{
+#ifdef __linux
+  passwd *pw = getpwuid(getuid());
+  if(pw == nullptr)
+    {
+      return void();
+    }
+  archive_entry_set_uid(e.get(), static_cast<la_int64_t>(pw->pw_uid));
+  archive_entry_set_gid(e.get(), static_cast<la_int64_t>(pw->pw_gid));
+  if(pw->pw_name != nullptr)
+    {
+      std::string str(pw->pw_name);
+      std::string u8str;
+      XMLTextEncoding::convertToEncoding(str, u8str, "", "UTF-8");
+      archive_entry_set_uname_utf8(e.get(), u8str.c_str());
+    }
+  group *gr = getgrgid(pw->pw_gid);
+  if(gr != nullptr)
+    {
+      if(gr->gr_name != nullptr)
+        {
+          std::string str = std::string(gr->gr_name);
+          std::string u8str;
+          XMLTextEncoding::convertToEncoding(str, u8str, "", "UTF-8");
+          archive_entry_set_gname_utf8(e.get(), u8str.c_str());
+        }
+    }
+#elif defined(_WIN32)
+  std::string uname;
+  uname.resize(UNLEN + 1);
+  DWORD sz = UNLEN + 1;
+  GetUserNameA(uname.data(), &sz);
+  if(sz > 0)
+    {
+      uname.resize(sz - 1);
+    }
+  std::string u8name;
+  XMLTextEncoding::convertToEncoding(uname, u8name, "", "UTF-8");
+  archive_entry_set_uname_utf8(e.get(), u8name.c_str());
+  archive_entry_set_gname_utf8(e.get(), "users");
+#endif
 }

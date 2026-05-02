@@ -97,7 +97,6 @@ BaseKeeper::loadCollection(const std::filesystem::path &base_path)
               }
             size_t lrb = rb;
             rb += bz_sz;
-
 #pragma omp task
             {
               UDBase b;
@@ -117,6 +116,7 @@ BaseKeeper::loadCollection(const std::filesystem::path &base_path)
               std::vector<UDBElement> *b_ptr = b.getRawBase();
 #pragma omp critical
               {
+                base.reserve(base.size() + b_ptr->size());
                 std::copy(b_ptr->begin(), b_ptr->end(),
                           std::back_inserter(base));
               }
@@ -999,6 +999,7 @@ BaseKeeper::loadCollectionLegacy(const std::vector<char> &buf)
                   std::back_inserter(str));
         rb += str.size();
 
+        omp_event_handle_t event;
 #pragma omp task
         {
           parseFileEntryLegacy(str, books_path);
@@ -1434,7 +1435,10 @@ BaseKeeper::searchFunc(
             {
               break;
             }
-          searchFunc(*it, result, l_request);
+#pragma omp task
+          {
+            searchFunc(*it, result, l_request);
+          }
         }
     }
 }
@@ -1443,8 +1447,7 @@ bool
 BaseKeeper::authorSearch(const UDBElement &book_el,
                          const UDBElement &to_search,
                          const double &coef_coincidence)
-{
-
+{  
   if(to_search.subelements.size() == 0)
     {
       for(auto it = book_el.subelements.begin();
@@ -1542,6 +1545,7 @@ BaseKeeper::authorSearch(const UDBElement &book_el,
             }
           if(it->content.empty())
             {
+              size_t found = 0;
               for(auto it_sub = to_search.subelements.begin();
                   it_sub != to_search.subelements.end(); it_sub++)
                 {
@@ -1553,18 +1557,21 @@ BaseKeeper::authorSearch(const UDBElement &book_el,
                                                 });
                   if(it_book != it->subelements.end())
                     {
-                      if(!searchLineFunc(it_sub->content, it_book->content,
-                                         coef_coincidence))
+                      if(searchLineFunc(it_sub->content, it_book->content,
+                                        coef_coincidence))
                         {
-                          return false;
+                          found++;
                         }
                     }
                   else
                     {
-                      return false;
+                      break;
                     }
                 }
-              return true;
+              if(found == to_search.subelements.size())
+                {
+                  return true;
+                }
             }
           else
             {

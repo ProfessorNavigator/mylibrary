@@ -66,6 +66,12 @@ public:
                   const std::vector<std::filesystem::path> &files_and_dirs);
 
   /*!
+   * Stops all operations.
+   */
+  void
+  stopAll() override;
+
+  /*!
    * If this callback set, it will be called to indicate files hashing
    * progress.
    *
@@ -79,12 +85,14 @@ private:
   elementRemove(const UDBElement &el, const bool &fast_refresh);
 
   void
-  compareVectors(std::vector<UDBElement> &new_v,
-                 const std::vector<UDBElement> &old_v);
+  compareVectors(std::vector<UDBElement> *new_v,
+                 const std::vector<UDBElement> *old_v);
 
   BaseKeeper *base_keeper;
 
   double l_processed = 0.0;
+
+  bool cancel_local = false;
 };
 
 #endif // REFRESHCOLLECTION_H

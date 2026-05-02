@@ -484,6 +484,14 @@ protected:
   getPermissionsFromEntry(const std::shared_ptr<archive_entry> &e);
 
   /*!
+   * Sets user id, group id (only Linux), user name and group name to entry.
+   * \param e  Smart pointer to `archive_entry` object (see <a
+   * href="https://libarchive.org/">libarchive</a> documentation for details).
+   */
+  void
+  setUsernameGroupname(std::shared_ptr<archive_entry> e);
+
+  /*!
    * Smart pointer to MLBookProc object.
    *
    * \warning Do not set or modify this object yourself.
