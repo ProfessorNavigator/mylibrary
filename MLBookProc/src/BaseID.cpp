@@ -15,6 +15,7 @@
  */
 
 #include <BaseID.h>
+#include <cstdint>
 #include <stdexcept>
 
 BaseID::BaseID()
