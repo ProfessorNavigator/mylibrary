@@ -8,6 +8,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_options(-Wall)
+
 option(BUILD_MLPLUGIN_DOCS "Build documentation for plugin interface" OFF)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets)

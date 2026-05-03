@@ -169,6 +169,47 @@ MainWindowLeftWidget::reloadCollection(const QString &col_name)
 }
 
 void
+MainWindowLeftWidget::reloadCurrentCollection()
+{
+  if(!collections->currentText().isEmpty())
+    {
+      QVariant var = collections->currentData();
+      if(var.isNull())
+        {
+          return void();
+        }
+      std::filesystem::path base_path = var.value<std::filesystem::path>();
+      if(base_loading_thr)
+        {
+          if(base_loading_thr->joinable())
+            {
+              base_loading_thr->join();
+            }
+        }
+      base_loading_thr = std::shared_ptr<std::thread>(new std::thread(
+          [this, base_path]
+            {
+              emit signalCollectionLoaded(tr("loading"), tr("loading"));
+              try
+                {
+                  bases.base_keeper->loadCollection(base_path);
+                }
+              catch(std::exception &er)
+                {
+                  std::cout << er.what() << std::endl;
+                  emit signalCollectionLoaded(tr("error"), tr("error"));
+                  return void();
+                }
+              size_t sz = bases.base_keeper->getBooksQuantity();
+              QString str;
+              str.setNum(sz);
+              emit signalCollectionLoaded(
+                  str, bases.base_keeper->getCollectionType().c_str());
+            }));
+    }
+}
+
+void
 MainWindowLeftWidget::editBook(const UDBElement &book_search_result)
 {
   bases.base_keeper->editBookEntry(book_search_result);
@@ -203,8 +244,7 @@ MainWindowLeftWidget::searchAuthorsBooks(
   std::thread thr(
       [this, request, coef, spw, sep_window]
         {
-          UDBase base
-              = std::move(bases.base_keeper->searchBook(request, coef));
+          UDBase base = bases.base_keeper->searchBook(request, coef);
           emit spw->signalStartSorting();
           if(sep_window)
             {
@@ -703,7 +743,7 @@ MainWindowLeftWidget::setActiveCollection()
 
 void
 MainWindowLeftWidget::selectCollection(int index)
-{
+{  
   QVariant var = collections->itemData(index);
   if(var.isNull())
     {
@@ -916,8 +956,7 @@ MainWindowLeftWidget::searchBook(const SearchType &type)
         std::thread thr(
             [this, request, coef, spw]
               {
-                UDBase base
-                    = std::move(bases.base_keeper->searchBook(request, coef));
+                UDBase base = bases.base_keeper->searchBook(request, coef);
                 emit spw->signalStartSorting();
                 emit signalBookSearchFinished(base, spw,
                                               current_collection_base_path);
@@ -940,8 +979,8 @@ MainWindowLeftWidget::searchBook(const SearchType &type)
         std::thread thr(
             [this, spw]
               {
-                UDBase base = std::move(
-                    bases.base_keeper->searchBooksWithNotes(bases.notes));
+                UDBase base
+                    = bases.base_keeper->searchBooksWithNotes(bases.notes);
                 emit spw->signalStartSorting();
                 emit signalBookSearchFinished(base, spw,
                                               current_collection_base_path);
@@ -974,7 +1013,7 @@ MainWindowLeftWidget::showFiles()
   std::thread thr(
       [this, spw]
         {
-          UDBase base = std::move(bases.base_keeper->getAllFiles());
+          UDBase base = bases.base_keeper->getAllFiles();
           emit spw->signalStartSorting();
           emit signalFilesSearchFinished(base, spw,
                                          current_collection_base_path);
@@ -1002,7 +1041,7 @@ MainWindowLeftWidget::showAuthors()
   std::thread thr(
       [this, spw]
         {
-          UDBase base = std::move(bases.base_keeper->listAllAuthors());
+          UDBase base = bases.base_keeper->listAllAuthors();
           emit spw->signalStartSorting();
           emit signalAuthorsSearchFinished(base, spw,
                                            current_collection_base_path);

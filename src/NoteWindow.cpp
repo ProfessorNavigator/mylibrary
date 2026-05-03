@@ -142,7 +142,7 @@ NoteWindow::createWindow()
     }
 
   QString txt;
-  UDBase notes_base = std::move(notes->searchNotes(book_search_result));
+  UDBase notes_base = notes->searchNotes(book_search_result);
   std::vector<UDBElement> *raw_base = notes_base.getRawBase();
   std::string find_str("\n\n");
 

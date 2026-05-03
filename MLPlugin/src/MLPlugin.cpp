@@ -22,6 +22,10 @@ MLPlugin::MLPlugin(void *bases, void *plugin_path)
   this->plugin_path = *reinterpret_cast<std::filesystem::path *>(plugin_path);
 }
 
+MLPlugin::~MLPlugin()
+{
+}
+
 void
 MLPlugin::createWindow(QWidget *parent)
 {

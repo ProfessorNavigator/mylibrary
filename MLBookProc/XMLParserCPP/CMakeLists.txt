@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(CREATE_DOCS_XMLPARSERCPP "Build html documentation for XMLParserCPP" OFF)
 
+add_compile_options(-Wall)
+
 if(BUILD_SHARED_LIBS)
     add_library(XMLParserCPP SHARED)
     set_target_properties(XMLParserCPP PROPERTIES

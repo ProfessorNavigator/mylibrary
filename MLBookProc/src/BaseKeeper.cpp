@@ -408,7 +408,7 @@ BaseKeeper::searchBook(const std::vector<UDBElement> &requests,
         }
     }
 
-  result = std::move(searchElement(
+  result = searchElement(
       [l_request, this](const UDBElement &el, UDBase &result)
         {
           if(bid.getId(el) == BaseID::CollectionInfo)
@@ -422,7 +422,7 @@ BaseKeeper::searchBook(const std::vector<UDBElement> &requests,
             {
               searchFunc(el, &result, l_request);
             }
-        }));
+        });
 
   bool cncl;
 #pragma omp atomic read
@@ -544,8 +544,7 @@ BaseKeeper::editBookEntry(const UDBElement &book_search_result)
 
   std::shared_lock shlock(base_mtx);
 
-  std::vector<UDBElement *> files
-      = std::move(searchFile(base, it_fl->content));
+  std::vector<UDBElement *> files = searchFile(base, it_fl->content);
   if(files.size() == 0)
     {
       return void();
@@ -629,7 +628,7 @@ BaseKeeper::searchBooksWithNotes(const std::shared_ptr<NotesKeeper> &notes)
   std::shared_lock shlock(base_mtx);
   UDBase result;
 
-  result = std::move(searchInNotes(base, notes));
+  result = searchInNotes(base, notes);
 
   bool cncl;
 #pragma omp atomic read
@@ -668,7 +667,7 @@ BaseKeeper::getAllFiles()
   cancel_search = false;
 
   std::shared_lock shlock(base_mtx);
-  UDBase result = std::move(getFiles(base));
+  UDBase result = getFiles(base);
 
   bool cncl;
 #pragma omp atomic read
@@ -999,7 +998,6 @@ BaseKeeper::loadCollectionLegacy(const std::vector<char> &buf)
                   std::back_inserter(str));
         rb += str.size();
 
-        omp_event_handle_t event;
 #pragma omp task
         {
           parseFileEntryLegacy(str, books_path);
@@ -1447,7 +1445,7 @@ bool
 BaseKeeper::authorSearch(const UDBElement &book_el,
                          const UDBElement &to_search,
                          const double &coef_coincidence)
-{  
+{
   if(to_search.subelements.size() == 0)
     {
       for(auto it = book_el.subelements.begin();
@@ -1725,7 +1723,7 @@ BaseKeeper::searchFile(const std::vector<UDBElement> &src,
 #pragma omp task
             {
               std::vector<UDBElement *> res
-                  = std::move(searchFile(i->subelements, file_path));
+                  = searchFile(i->subelements, file_path);
 #pragma omp critical
               {
                 std::copy(res.begin(), res.end(), std::back_inserter(result));
@@ -2053,7 +2051,7 @@ BaseKeeper::searchInNotes(const std::vector<UDBElement> &src,
         }
       else
         {
-          UDBase res = std::move(searchInNotes(it->subelements, notes));
+          UDBase res = searchInNotes(it->subelements, notes);
 #pragma omp critical
           {
             result += res;
@@ -2092,7 +2090,7 @@ BaseKeeper::getFiles(const std::vector<UDBElement> &src)
         }
       else
         {
-          UDBase res = std::move(getFiles(it->subelements));
+          UDBase res = getFiles(it->subelements);
 #pragma omp critical
           {
             result += res;

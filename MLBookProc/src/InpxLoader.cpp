@@ -14,6 +14,7 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Algorithm.h>
 #include <InpxLoader.h>
 #include <XMLTextEncoding.h>
 #include <cstring>
@@ -167,32 +168,17 @@ InpxLoader::parseEntry(std::shared_ptr<archive> a,
     }
   inp_p.replace_extension("");
 
-  std::vector<std::filesystem::path>::iterator it_res
-      = books_directory_files.end();
-#pragma omp parallel
-#pragma omp for
-  for(auto it = books_directory_files.begin();
-      it != books_directory_files.end(); it++)
-    {
-      std::filesystem::path ch_p = *it;
-      ch_p = ch_p.lexically_relative(books_directory);
-      if(ch_p.has_extension())
+  auto it_res = Algorithm::parallelFindIf(
+      books_directory_files.begin(), books_directory_files.end(),
+      [books_directory, inp_p](const std::filesystem::path &el)
         {
-          ch_p.replace_extension("");
-        }
-      if(ch_p == inp_p)
-        {
-#pragma omp critical
-          {
-            if(it < it_res)
-              {
-                it_res = it;
-              }
-          }
-#pragma omp cancel for
-        }
-    }
-
+          std::filesystem::path ch_p = el.lexically_relative(books_directory);
+          if(ch_p.has_extension())
+            {
+              ch_p.replace_extension("");
+            }
+          return inp_p == ch_p;
+        });
   if(it_res == books_directory_files.end())
     {
       return void();

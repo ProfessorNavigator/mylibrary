@@ -60,6 +60,8 @@ public:
    */
   MLPlugin(void *bases, void *plugin_path);
 
+  virtual ~MLPlugin();
+
   /*!
    *
    * This method will be called when user requests to show plugin window.

@@ -217,7 +217,7 @@ BookMarksWindow::createWindow()
                   static_cast<double>(screen->physicalDotsPerInchY()));
               try
                 {
-                  UDBase info = std::move(book_info->getBookInfo(*bm));
+                  UDBase info = book_info->getBookInfo(*bm);
 
                   BookDetailsWindow *bdw = new BookDetailsWindow(
                       this, info, *bm, format_annot, genre_base);

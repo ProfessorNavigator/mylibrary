@@ -102,27 +102,27 @@ BookMarksModel::data(const QModelIndex &index, int role) const
     {
     case 0:
       {
-        result = std::move(authorData(it_b->subelements, role));
+        result = authorData(it_b->subelements, role);
         break;
       }
     case 1:
       {
-        result = std::move(bookData(it_b->subelements, role));
+        result = bookData(it_b->subelements, role);
         break;
       }
     case 2:
       {
-        result = std::move(seriesData(it_b->subelements, role));
+        result = seriesData(it_b->subelements, role);
         break;
       }
     case 3:
       {
-        result = std::move(genreData(it_b->subelements, role));
+        result = genreData(it_b->subelements, role);
         break;
       }
     case 4:
       {
-        result = std::move(dateData(it_b->subelements, role));
+        result = dateData(it_b->subelements, role);
         break;
       }
     default:

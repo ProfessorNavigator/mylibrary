@@ -127,7 +127,7 @@
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="310"/>
+        <location filename="../src/AddBooksWindow.cpp" line="311"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
@@ -1016,42 +1016,47 @@
         <translation>Импортировать базу данных коллекции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="394"/>
+        <location filename="../src/MainWindow.cpp" line="382"/>
+        <source>Reload current collection</source>
+        <translation>Перезагрузить текущую коллекцию</translation>
+    </message>
+    <message>
+        <location filename="../src/MainWindow.cpp" line="412"/>
         <source>Instruments</source>
         <translation>Инструменты</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="397"/>
+        <location filename="../src/MainWindow.cpp" line="415"/>
         <source>Notes manager</source>
         <translation>Менеджер заметок</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="409"/>
+        <location filename="../src/MainWindow.cpp" line="427"/>
         <source>Plugins manager</source>
         <translation>Менеджер плагинов</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="420"/>
+        <location filename="../src/MainWindow.cpp" line="438"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="431"/>
+        <location filename="../src/MainWindow.cpp" line="449"/>
         <source>About</source>
         <translation>О программе</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="434"/>
+        <location filename="../src/MainWindow.cpp" line="452"/>
         <source>About MyLibrary</source>
         <translation>О MyLibrary</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="445"/>
+        <location filename="../src/MainWindow.cpp" line="463"/>
         <source>About Qt</source>
         <translation>О Qt</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="382"/>
+        <location filename="../src/MainWindow.cpp" line="400"/>
         <source>Bookmarks</source>
         <translation>Закладки</translation>
     </message>
@@ -1059,130 +1064,132 @@
 <context>
     <name>MainWindowLeftWidget</name>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="248"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="288"/>
         <source>Collection</source>
         <translation>Коллекция</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="273"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="313"/>
         <source>Collection type:</source>
         <translation>Тип коллекции:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="289"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="329"/>
         <source>Books quantity:</source>
         <translation>Количество книг:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="306"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="346"/>
         <source>native</source>
         <translation>нативная</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="310"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="350"/>
         <source>legacy</source>
         <translation>устаревшая</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="342"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="557"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="382"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="597"/>
         <source>Search</source>
         <translation>Поиск</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="350"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="390"/>
         <source>Author</source>
         <translation>Автор</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="355"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="395"/>
         <source>Surname:</source>
         <translation>Фамилия:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="369"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="409"/>
         <source>First name:</source>
         <translation>Имя:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="383"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="423"/>
         <source>Second name:</source>
         <translation>Отчество:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="397"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="437"/>
         <source>Nickname:</source>
         <translation>Псевдоним:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="414"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="454"/>
         <source>Book</source>
         <translation>Книга</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="419"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="459"/>
         <source>Book name:</source>
         <translation>Название книги:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="436"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="476"/>
         <source>Series:</source>
         <translation>Серия:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="450"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="490"/>
         <source>Number:</source>
         <translation>Номер:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="464"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="504"/>
         <source>Genre:</source>
         <translation>Жанр:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="480"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="511"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="806"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="520"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="551"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="846"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="505"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="572"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="545"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="612"/>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="521"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="561"/>
         <source>Coefficient of coincidence:</source>
         <translation>Коэффициент совпадения:</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="598"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="638"/>
         <source>Show collection files</source>
         <translation>Показать файлы коллекции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="610"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="650"/>
         <source>Show collection authors</source>
         <translation>Показать авторов коллекции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="622"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="662"/>
         <source>Books with notes</source>
         <translation>Книги с заметками</translation>
     </message>
     <message>
         <location filename="../src/MainWindowLeftWidget.cpp" line="110"/>
         <location filename="../src/MainWindowLeftWidget.cpp" line="151"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="728"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="192"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="768"/>
         <source>loading</source>
         <translation>загрузка</translation>
     </message>
     <message>
         <location filename="../src/MainWindowLeftWidget.cpp" line="118"/>
         <location filename="../src/MainWindowLeftWidget.cpp" line="159"/>
-        <location filename="../src/MainWindowLeftWidget.cpp" line="736"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="200"/>
+        <location filename="../src/MainWindowLeftWidget.cpp" line="776"/>
         <source>error</source>
         <translation>ошибка</translation>
     </message>
@@ -1514,7 +1521,7 @@
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/RefreshCollectionWindow.cpp" line="237"/>
+        <location filename="../src/RefreshCollectionWindow.cpp" line="238"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>

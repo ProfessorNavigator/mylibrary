@@ -2405,7 +2405,6 @@ LibArchive::getUTFfilename(const std::string &extra_field,
   size_t rb = 0;
   size_t extra_sz = extra_field.size();
   size_t sum;
-  size_t sz_64 = sizeof(uint64_t);
   char *ptr;
   while(rb < extra_sz)
     {

@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(BUILD_MLBOOKPROC_DOCS "Build documentation for MLBookProc library" OFF)
 
+add_compile_options(-Wall)
+
 if(BUILD_SHARED_LIBS)
     add_library(MLBookProc SHARED)
     set_target_properties(MLBookProc PROPERTIES

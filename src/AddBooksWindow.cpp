@@ -303,6 +303,7 @@ AddBooksWindow::confirmationDialog(const std::filesystem::path &base_path)
                       files);
               this->close();
               window->close();
+              (void)(proc);
             });
   h_box->addWidget(yes, 0, Qt::AlignCenter);
 

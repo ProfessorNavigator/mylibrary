@@ -379,6 +379,24 @@ MainWindow::createMainMenu()
   menu->addAction(action);
   list.push_back(action);
 
+  action = new QAction(tr("Reload current collection"));
+  connect(action, &QAction ::triggered, this,
+          []
+            {
+              QWidgetList list = qApp->allWidgets();
+              for(qsizetype i = 0; i < list.size(); i++)
+                {
+                  MainWindowLeftWidget *mwlw
+                      = dynamic_cast<MainWindowLeftWidget *>(list[i]);
+                  if(mwlw != nullptr)
+                    {
+                      mwlw->reloadCurrentCollection();
+                    }
+                }
+            });
+  menu->addAction(action);
+  list.push_back(action);
+
   action = new QAction(tr("Bookmarks"));
   connect(action, &QAction::triggered, this,
           [this]

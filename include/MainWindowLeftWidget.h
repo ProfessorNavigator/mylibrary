@@ -46,6 +46,9 @@ public:
   reloadCollection(const QString &col_name);
 
   void
+  reloadCurrentCollection();
+
+  void
   editBook(const UDBElement &book_search_result);
 
   void

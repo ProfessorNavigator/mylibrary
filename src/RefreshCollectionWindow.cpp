@@ -230,6 +230,7 @@ RefreshCollectionWindow::confirmationDialog()
                       this->parentWidget(), mlbp, base_path, thr, f);
               window->close();
               this->close();
+              (void)(crpw);
             });
   h_box->addWidget(yes, 0, Qt::AlignCenter);
 

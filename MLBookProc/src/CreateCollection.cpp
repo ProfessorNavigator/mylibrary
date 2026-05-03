@@ -460,7 +460,7 @@ CreateCollection::getAllFiles(const std::vector<UDBElement> &el_v)
         {
           std::vector<std::tuple<const std::vector<UDBElement> *,
                                  std::vector<UDBElement>::const_iterator>>
-              res = std::move(getAllFiles(it->subelements));
+              res = getAllFiles(it->subelements);
           std::copy(res.begin(), res.end(), std::back_inserter(result));
         }
     }

@@ -71,7 +71,7 @@ RemoveBook::removeBook(const std::filesystem::path &base_path,
   else
     {
       std::vector<std::string> arch_type
-          = std::move(mlbp->getSupportedArchivesTypesPacking());
+          = mlbp->getSupportedArchivesTypesPacking();
 
       std::string find_str(".");
       std::string::size_type n = ext.find(find_str);
@@ -277,8 +277,7 @@ RemoveBook::removeFromArchive(const UDBElement &path,
                   }
                 else if(path_in_arch != fbd)
                   {
-                    std::string buf
-                        = std::move(unpackEntryToBuffer(a_read, e));
+                    std::string buf = unpackEntryToBuffer(a_read, e);
                     setUsernameGroupname(e);
                     writeBufferToArchive(a_write, e, buf);
                     result++;
