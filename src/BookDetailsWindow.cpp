@@ -229,7 +229,7 @@ BookDetailsWindow::bookTitle(QLayout *layout,
         {
           str += ", ";
         }
-      str += it_b->content;
+      str += it_b->content.c_str();
     }
   if(!str.isEmpty())
     {

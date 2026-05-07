@@ -1970,56 +1970,36 @@ LibArchive::unpackEntryToDirectory(std::shared_ptr<archive> a,
                                    std::shared_ptr<archive_entry> e,
                                    const std::filesystem::path &file_path)
 {
-  if(archive_entry_filetype_is_set(e.get()))
+  switch(archive_entry_filetype(e.get()))
     {
-      switch(archive_entry_filetype(e.get()))
-        {
-        case AE_IFREG:
+    case AE_IFREG:
+      {
+        break;
+      }
+    case AE_IFDIR:
+      {
+        std::filesystem::create_directories(file_path);
+        return void();
+      }
+    case AE_IFLNK:
+      {
+        const char *t = archive_entry_symlink_utf8(e.get());
+        if(t)
           {
-            break;
-          }
-        case AE_IFDIR:
-          {
-            std::filesystem::create_directories(file_path);
-            return void();
-          }
-        case AE_IFLNK:
-          {
-            const char *t = archive_entry_symlink_utf8(e.get());
-            if(t)
+            std::filesystem::path target
+                = std::u8string(reinterpret_cast<const char8_t *>(t));
+            std::error_code ec;
+            std::filesystem::create_symlink(target, file_path, ec);
+            if(ec)
               {
-                std::filesystem::path target
-                    = std::u8string(reinterpret_cast<const char8_t *>(t));
-                std::error_code ec;
-                std::filesystem::create_symlink(target, file_path, ec);
-                if(ec)
-                  {
-                    std::cout << "LibArchive::unpackEntryToDirectory: \""
-                              << ec.message() << "\"" << std::endl;
-                  }
+                std::cout << "LibArchive::unpackEntryToDirectory: \""
+                          << ec.message() << "\"" << std::endl;
               }
-            return void();
           }
-        default:
-          return void();
-        }
-    }
-  else
-    {
-      la_int64_t sz = 0;
-      if(archive_entry_size_is_set(e.get()))
-        {
-          sz = archive_entry_size(e.get());
-          if(sz < 0)
-            {
-              sz = 0;
-            }
-        }
-      if(sz == 0)
-        {
-          std::filesystem::create_directories(file_path);
-          return void();
-        }
+        return void();
+      }
+    default:
+      return void();
     }
 
   int er = ARCHIVE_OK;
@@ -2106,33 +2086,14 @@ LibArchive::unpackEntryToBuffer(std::shared_ptr<archive> a,
                                 std::shared_ptr<archive_entry> e)
 {
   std::string result;
-  if(archive_entry_filetype_is_set(e.get()))
+  switch(archive_entry_filetype(e.get()))
     {
-      switch(archive_entry_filetype(e.get()))
-        {
-        case AE_IFREG:
-          {
-            break;
-          }
-        default:
-          return result;
-        }
-    }
-  else
-    {
-      la_int64_t sz = 0;
-      if(archive_entry_size_is_set(e.get()))
-        {
-          sz = archive_entry_size(e.get());
-          if(sz < 0)
-            {
-              sz = 0;
-            }
-        }
-      if(sz == 0)
-        {
-          return result;
-        }
+    case AE_IFREG:
+      {
+        break;
+      }
+    default:
+      return result;
     }
 
   int er = ARCHIVE_OK;
@@ -2586,47 +2547,42 @@ LibArchive::getPermissionsFromEntry(const std::shared_ptr<archive_entry> &e)
 {
   std::filesystem::perms result = std::filesystem::perms::none;
 
-  if(archive_entry_perm_is_set(e.get()))
+  mode_t perms = archive_entry_perm(e.get());
+  if(perms & S_IRUSR)
     {
-      mode_t perms = archive_entry_perm(e.get());
-      if(perms & S_IRUSR)
-        {
-          result |= std::filesystem::perms::owner_read;
-        }
-      if(perms & S_IWUSR)
-        {
-          result |= std::filesystem::perms::owner_write;
-        }
-      if(perms & S_IXUSR)
-        {
-          result |= std::filesystem::perms::owner_exec;
-        }
-
-      if(perms & S_IRGRP)
-        {
-          result |= std::filesystem::perms::group_read;
-        }
-      if(perms & S_IWGRP)
-        {
-          result |= std::filesystem::perms::group_write;
-        }
-      if(perms & S_IXGRP)
-        {
-          result |= std::filesystem::perms::group_exec;
-        }
-
-      if(perms & S_IROTH)
-        {
-          result |= std::filesystem::perms::others_read;
-        }
-      if(perms & S_IWOTH)
-        {
-          result |= std::filesystem::perms::others_write;
-        }
-      if(perms & S_IXOTH)
-        {
-          result |= std::filesystem::perms::others_exec;
-        }
+      result |= std::filesystem::perms::owner_read;
+    }
+  if(perms & S_IWUSR)
+    {
+      result |= std::filesystem::perms::owner_write;
+    }
+  if(perms & S_IXUSR)
+    {
+      result |= std::filesystem::perms::owner_exec;
+    }
+  if(perms & S_IRGRP)
+    {
+      result |= std::filesystem::perms::group_read;
+    }
+  if(perms & S_IWGRP)
+    {
+      result |= std::filesystem::perms::group_write;
+    }
+  if(perms & S_IXGRP)
+    {
+      result |= std::filesystem::perms::group_exec;
+    }
+  if(perms & S_IROTH)
+    {
+      result |= std::filesystem::perms::others_read;
+    }
+  if(perms & S_IWOTH)
+    {
+      result |= std::filesystem::perms::others_write;
+    }
+  if(perms & S_IXOTH)
+    {
+      result |= std::filesystem::perms::others_exec;
     }
 
   return result;

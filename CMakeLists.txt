@@ -19,12 +19,8 @@ add_subdirectory(src)
 add_subdirectory(MLBookProc)
 add_subdirectory(MLPlugin)
 
-qt_collect_translation_source_targets(i18n_targets DIRECTORY src)
-
-qt_add_translations(
-    TARGETS MyLibrary
-    SOURCE_TARGETS ${i18n_targets}
-    TS_FILES translations/MyLibrary_ru_RU.ts    
+qt_add_translations(MyLibrary
+    TS_FILES translations/MyLibrary_ru_RU.ts
 )
 
 qt_add_resources(MyLibrary "styles"

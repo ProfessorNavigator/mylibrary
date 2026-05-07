@@ -263,11 +263,7 @@ RemoveBook::removeFromArchive(const UDBElement &path,
                             if(res > 0)
                               {
                                 std::filesystem::perms perms
-                                    = std::filesystem::perms::none;
-                                if(archive_entry_perm_is_set(e.get()))
-                                  {
-                                    perms = getPermissionsFromEntry(e);
-                                  }
+                                    = getPermissionsFromEntry(e);
                                 writeFile(a_write, random, path.content,
                                           perms);
                                 result++;
