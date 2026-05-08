@@ -45,7 +45,7 @@ StyledItemDelegate::paint(QPainter *painter,
       color = settings->stringToColor(
           settings->getStyleAttributeValue("Table", "selection-color")
               .toStdString());
-      opt.palette.setColor(QPalette::Text, Qt::white);
+      opt.palette.setColor(QPalette::Text, color);
     }
   QStyledItemDelegate::paint(painter, opt, index);
 }
