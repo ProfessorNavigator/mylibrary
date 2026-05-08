@@ -32,6 +32,7 @@
 #include <QToolButton>
 #include <QWidget>
 #include <ReplaceTagItem.h>
+#include <SettingsManager.h>
 #include <TableView.h>
 #include <UDBase.h>
 #include <condition_variable>
@@ -41,7 +42,8 @@ class MainWindowRightWidget : public QWidget
 {
   Q_OBJECT
 public:
-  MainWindowRightWidget(QWidget *parent, const Bases &bases);
+  MainWindowRightWidget(QWidget *parent, const Bases &bases,
+                        const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~MainWindowRightWidget();
 
@@ -130,6 +132,7 @@ private:
   paintEvent(QPaintEvent *event) override;
 
   Bases bases;
+  std::shared_ptr<SettingsManager> settings;
 
   TableView *search_view;
 

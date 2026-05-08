@@ -24,12 +24,17 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QVBoxLayout>
-#include <TableView.h>
 #include <SeriesEditWindow.h>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
+#include <TableView.h>
 
-SeriesEditWindow::SeriesEditWindow(QWidget *parent) : QWidget(parent)
+SeriesEditWindow::SeriesEditWindow(
+    QWidget *parent, const std::shared_ptr<SettingsManager> &settings)
+    : QWidget(parent)
 {
+  this->settings = settings;
+
   this->setAttribute(Qt::WA_DeleteOnClose);
   this->setWindowTitle(tr("Series editor"));
   this->setWindowFlag(Qt::Window, true);
@@ -40,10 +45,7 @@ SeriesEditWindow::SeriesEditWindow(QWidget *parent) : QWidget(parent)
 
 SeriesEditWindow::~SeriesEditWindow()
 {
-  if(model != nullptr)
-    {
-      model->deleteLater();
-    }
+  delete model;
 }
 
 void
@@ -68,6 +70,10 @@ SeriesEditWindow::createWindow(const QModelIndex &index)
   TableView *table = new TableView;
   table->setObjectName("Table");
   table->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = table->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(table, settings);
+  table->setItemDelegate(item_delegate);
+  delete delegate;
   connect(table, &TableView::signalResized, table,
           [table](const QSize &sz)
             {

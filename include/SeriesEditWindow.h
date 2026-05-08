@@ -20,12 +20,14 @@
 #include <QPaintEvent>
 #include <QWidget>
 #include <SeriesModel.h>
+#include <SettingsManager.h>
 
 class SeriesEditWindow : public QWidget
 {
   Q_OBJECT
 public:
-  SeriesEditWindow(QWidget *parent = nullptr);
+  SeriesEditWindow(QWidget *parent,
+                   const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~SeriesEditWindow();
 
@@ -46,6 +48,8 @@ private:
 
   void
   paintEvent(QPaintEvent *event) override;
+
+  std::shared_ptr<SettingsManager> settings;
 
   SeriesModel *model = nullptr;
 };

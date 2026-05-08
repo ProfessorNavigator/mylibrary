@@ -30,18 +30,21 @@
 #include <QScrollBar>
 #include <QTextBrowser>
 #include <QVBoxLayout>
+#include <StyledItemDelegate.h>
 #include <TableView.h>
 
 BookDetailsWindow::BookDetailsWindow(
     QWidget *parent, const UDBase &info, const UDBElement &book_search_result,
     const std::shared_ptr<FormatAnnotation> &format_annotation,
-    const std::shared_ptr<GenreBase> &genre_base)
+    const std::shared_ptr<GenreBase> &genre_base,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->info = info;
   this->book_search_result = book_search_result;
   this->format_annotation = format_annotation;
   this->genre_base = genre_base;
+  this->settings = settings;
 
   this->setAttribute(Qt::WA_DeleteOnClose);
   this->setWindowTitle(tr("Book info"));
@@ -277,6 +280,10 @@ BookDetailsWindow::bookAuthor(QLayout *layout,
   TableView *srt = new TableView;
   srt->setObjectName("Table");
   srt->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = srt->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(srt, settings);
+  srt->setItemDelegate(item_delegate);
+  delete delegate;
   QAbstractItemModel *prev = srt->model();
   AuthorsModel *model = new AuthorsModel(nullptr, authors);
   connect(srt, &TableView::destroyed, model,
@@ -605,7 +612,7 @@ BookDetailsWindow::bookTranslator(QLayout *layout, int &row,
     }
 
   std::vector<UDBElement> authors = info.searchElementV(
-      [search, this](const UDBElement &el)
+      [this](const UDBElement &el)
         {
           return bid.getId(el) == BaseID::Translator;
         });
@@ -622,6 +629,10 @@ BookDetailsWindow::bookTranslator(QLayout *layout, int &row,
   TableView *srt = new TableView;
   srt->setObjectName("Table");
   srt->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = srt->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(srt, settings);
+  srt->setItemDelegate(item_delegate);
+  delete delegate;
   QAbstractItemModel *prev = srt->model();
   AuthorsModel *model = new AuthorsModel(nullptr, authors);
   connect(srt, &TableView::destroyed, model,
@@ -849,6 +860,10 @@ BookDetailsWindow::ebookPublisher(QLayout *layout, int &row)
   TableView *srt = new TableView;
   srt->setObjectName("Table");
   srt->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = srt->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(srt, settings);
+  srt->setItemDelegate(item_delegate);
+  delete delegate;
   QAbstractItemModel *prev = srt->model();
   AuthorsModel *model = new AuthorsModel(nullptr, authors);
   connect(srt, &TableView::destroyed, model,

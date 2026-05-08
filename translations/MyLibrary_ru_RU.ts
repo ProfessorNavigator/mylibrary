@@ -67,67 +67,67 @@
 <context>
     <name>AddBooksWindow</name>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="41"/>
+        <location filename="../src/AddBooksWindow.cpp" line="45"/>
         <source>Books adding</source>
         <translation>Добавление книг</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="66"/>
+        <location filename="../src/AddBooksWindow.cpp" line="70"/>
         <source>Collection</source>
         <translation>Коллекция</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="127"/>
+        <location filename="../src/AddBooksWindow.cpp" line="145"/>
         <source>Remove item</source>
         <translation>Удалить запись</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="151"/>
+        <location filename="../src/AddBooksWindow.cpp" line="169"/>
         <source>Add files</source>
         <translation>Добавить файлы</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="163"/>
+        <location filename="../src/AddBooksWindow.cpp" line="181"/>
         <source>Add directory</source>
         <translation>Добавить папку</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="175"/>
+        <location filename="../src/AddBooksWindow.cpp" line="193"/>
         <source>Remove selected item</source>
         <translation>Удалить выбранную запись</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="191"/>
+        <location filename="../src/AddBooksWindow.cpp" line="209"/>
         <source>Threads number</source>
         <translation>Количество потоков</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="212"/>
+        <location filename="../src/AddBooksWindow.cpp" line="230"/>
         <source>Add</source>
         <translation>Добавить</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="223"/>
+        <location filename="../src/AddBooksWindow.cpp" line="241"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="267"/>
+        <location filename="../src/AddBooksWindow.cpp" line="285"/>
         <source>Collection books to be add to:</source>
         <translation>Коллекция для добавления книг:</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="280"/>
+        <location filename="../src/AddBooksWindow.cpp" line="298"/>
         <source>Are you sure?</source>
         <translation>Вы уверены?</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="288"/>
+        <location filename="../src/AddBooksWindow.cpp" line="306"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/AddBooksWindow.cpp" line="311"/>
+        <location filename="../src/AddBooksWindow.cpp" line="329"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
@@ -135,65 +135,65 @@
 <context>
     <name>AuthorEditWindow</name>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="219"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="228"/>
         <source>Author editor</source>
         <translation>Редактирование автора</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="121"/>
-        <location filename="../src/AuthorEditWindow.cpp" line="141"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="130"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="150"/>
         <source>Add author</source>
         <translation>Добавить автора</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="34"/>
-        <location filename="../src/AuthorEditWindow.cpp" line="59"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="39"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="64"/>
         <source>Authors editor</source>
         <translation>Редактирование авторов</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="108"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="117"/>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="152"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="161"/>
         <source>Remove selected author</source>
         <translation>Удалить выбранного автора</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="174"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="183"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="227"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="236"/>
         <source>Surname:</source>
         <translation>Фамилия:</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="236"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="245"/>
         <source>Name:</source>
         <translation>Имя:</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="245"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="254"/>
         <source>Second name:</source>
         <translation>Отчество:</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="254"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="263"/>
         <source>Nickname:</source>
         <translation>Псевдоним:</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="265"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="274"/>
         <source>Add</source>
         <translation>Добавить</translation>
     </message>
     <message>
-        <location filename="../src/AuthorEditWindow.cpp" line="190"/>
-        <location filename="../src/AuthorEditWindow.cpp" line="305"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="199"/>
+        <location filename="../src/AuthorEditWindow.cpp" line="314"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
@@ -239,163 +239,163 @@
 <context>
     <name>BookDetailsWindow</name>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="47"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="82"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="50"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="85"/>
         <source>Book info</source>
         <translation>Информация о книге</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="179"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="182"/>
         <source>Book</source>
         <translation>Книга</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="238"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="241"/>
         <source>Book title</source>
         <translation>Название книги</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="618"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="625"/>
         <source>Translators</source>
         <translation>Переводчики</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="432"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="439"/>
         <source>Series</source>
         <translation>Серия</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="273"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="276"/>
         <source>Authors</source>
         <translation>Авторы</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="484"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="491"/>
         <source>Genre</source>
         <translation>Жанр</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="532"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="539"/>
         <source>Date</source>
         <translation>Дата</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="198"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="728"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="201"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="739"/>
         <source>Keywords</source>
         <translation>Ключевые слова</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="199"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="729"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="202"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="740"/>
         <source>Language</source>
         <translation>Язык</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="200"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="731"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="203"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="742"/>
         <source>Source language</source>
         <translation>Исходный язык</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="308"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="653"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="315"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="664"/>
         <source>Copy</source>
         <translation>Копировать</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="719"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="730"/>
         <source>Original book</source>
         <translation>Исходная книга</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="733"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="744"/>
         <source>Source</source>
         <translation>Источник</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="758"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="769"/>
         <source>E-Book</source>
         <translation>Электронная книга</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="763"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="774"/>
         <source>Program</source>
         <translation>Программа</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="765"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="776"/>
         <source>Source URL</source>
         <translation>Адрес исходной публикации</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="766"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="777"/>
         <source>Original E-Book author</source>
         <translation>Автор исходной электронной книги</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="767"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="778"/>
         <source>ID</source>
         <translation>Идентификатор</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="768"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="779"/>
         <source>Version</source>
         <translation>Версия</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="808"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="819"/>
         <source>History</source>
         <translation>История</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="845"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="856"/>
         <source>Publishers</source>
         <translation>Издатели</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="909"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="924"/>
         <source>Paper book</source>
         <translation>Бумажная книга</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="913"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="928"/>
         <source>Book name</source>
         <translation>Название книги</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="771"/>
-        <location filename="../src/BookDetailsWindow.cpp" line="914"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="782"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="929"/>
         <source>Publisher</source>
         <translation>Издатель</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="915"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="930"/>
         <source>City</source>
         <translation>Город</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="916"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="931"/>
         <source>Year</source>
         <translation>Год</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="943"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="958"/>
         <source>Custom info</source>
         <translation>Дополнительная информация</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="1002"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="1017"/>
         <source>File info</source>
         <translation>Информация о файле</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="1017"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="1032"/>
         <source>File path</source>
         <translation>Путь</translation>
     </message>
     <message>
-        <location filename="../src/BookDetailsWindow.cpp" line="1063"/>
+        <location filename="../src/BookDetailsWindow.cpp" line="1078"/>
         <source>Path in file</source>
         <translation>Путь в файле</translation>
     </message>
@@ -431,64 +431,64 @@
 <context>
     <name>BookMarksWindow</name>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="56"/>
-        <location filename="../src/BookMarksWindow.cpp" line="91"/>
+        <location filename="../src/BookMarksWindow.cpp" line="59"/>
+        <location filename="../src/BookMarksWindow.cpp" line="94"/>
         <source>Bookmarks</source>
         <translation>Закладки</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="163"/>
+        <location filename="../src/BookMarksWindow.cpp" line="170"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="199"/>
-        <location filename="../src/BookMarksWindow.cpp" line="279"/>
+        <location filename="../src/BookMarksWindow.cpp" line="206"/>
+        <location filename="../src/BookMarksWindow.cpp" line="286"/>
         <source>Book info</source>
         <translation>Информация о книге</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="235"/>
+        <location filename="../src/BookMarksWindow.cpp" line="242"/>
         <source>Save as...</source>
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="244"/>
+        <location filename="../src/BookMarksWindow.cpp" line="251"/>
         <source>Remove from bookmarks</source>
         <translation>Удалить из закладок</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="268"/>
+        <location filename="../src/BookMarksWindow.cpp" line="275"/>
         <source>Open selected</source>
         <translation>Открыть выбранное</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="290"/>
+        <location filename="../src/BookMarksWindow.cpp" line="297"/>
         <source>Save selected as...</source>
         <translation>Сохранить выбранное как...</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="301"/>
+        <location filename="../src/BookMarksWindow.cpp" line="308"/>
         <source>Remove selected</source>
         <translation>Удалить выбранное</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="449"/>
+        <location filename="../src/BookMarksWindow.cpp" line="456"/>
         <source>Bookmark to remove:</source>
         <translation>Закладка для удаления:</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="462"/>
+        <location filename="../src/BookMarksWindow.cpp" line="469"/>
         <source>Are you sure?</source>
         <translation>Вы уверены?</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="469"/>
+        <location filename="../src/BookMarksWindow.cpp" line="476"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/BookMarksWindow.cpp" line="485"/>
+        <location filename="../src/BookMarksWindow.cpp" line="492"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
@@ -768,68 +768,68 @@
 <context>
     <name>CreateCollectionWindow</name>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="38"/>
-        <location filename="../src/CreateCollectionWindow.cpp" line="62"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="41"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="65"/>
         <source>Collection creation</source>
         <translation>Создание коллекции</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="67"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="70"/>
         <source>Collection name:</source>
         <translation>Название коллекции:</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="76"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="79"/>
         <source>Collection files and directories</source>
         <translation>Файлы и папки коллекции</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="114"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="119"/>
         <source>Remove item</source>
         <translation>Удалить запись</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="140"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="145"/>
         <source>Add files</source>
         <translation>Добавить файлы</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="152"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="157"/>
         <source>Add directory</source>
         <translation>Добавить папку</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="164"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="169"/>
         <source>Remove selected item</source>
         <translation>Удалить выбранное</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="180"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="185"/>
         <source>Threads number</source>
         <translation>Количество потоков</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="201"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="206"/>
         <source>Create collection</source>
         <translation>Создать коллекцию</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="213"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="218"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="353"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="358"/>
         <source>Collection name is empty!</source>
         <translation>Название коллеккции не заполнено!</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="361"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="366"/>
         <source>Collection already exists!</source>
         <translation>Коллекция уже существует!</translation>
     </message>
     <message>
-        <location filename="../src/CreateCollectionWindow.cpp" line="370"/>
+        <location filename="../src/CreateCollectionWindow.cpp" line="375"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -1006,57 +1006,57 @@
         <translation>Добавить файлы и/или папки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="348"/>
+        <location filename="../src/MainWindow.cpp" line="349"/>
         <source>Export current collection base (native only)</source>
         <translation>Экспортировать базу данных текущей коллекции (только для нативных)</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="363"/>
+        <location filename="../src/MainWindow.cpp" line="364"/>
         <source>Import collection base</source>
         <translation>Импортировать базу данных коллекции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="382"/>
+        <location filename="../src/MainWindow.cpp" line="383"/>
         <source>Reload current collection</source>
         <translation>Перезагрузить текущую коллекцию</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="412"/>
+        <location filename="../src/MainWindow.cpp" line="413"/>
         <source>Instruments</source>
         <translation>Инструменты</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="415"/>
+        <location filename="../src/MainWindow.cpp" line="416"/>
         <source>Notes manager</source>
         <translation>Менеджер заметок</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="427"/>
+        <location filename="../src/MainWindow.cpp" line="428"/>
         <source>Plugins manager</source>
         <translation>Менеджер плагинов</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="438"/>
+        <location filename="../src/MainWindow.cpp" line="439"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="449"/>
+        <location filename="../src/MainWindow.cpp" line="450"/>
         <source>About</source>
         <translation>О программе</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="452"/>
+        <location filename="../src/MainWindow.cpp" line="453"/>
         <source>About MyLibrary</source>
         <translation>О MyLibrary</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="463"/>
+        <location filename="../src/MainWindow.cpp" line="464"/>
         <source>About Qt</source>
         <translation>О Qt</translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="400"/>
+        <location filename="../src/MainWindow.cpp" line="401"/>
         <source>Bookmarks</source>
         <translation>Закладки</translation>
     </message>
@@ -1197,115 +1197,115 @@
 <context>
     <name>MainWindowRightWidget</name>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="469"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="474"/>
         <source>Operations</source>
         <translation>Операции</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="505"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="510"/>
         <source>Filter</source>
         <translation>Фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="531"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="536"/>
         <source>Apply filter</source>
         <translation>Применить фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="543"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="548"/>
         <source>Remove filter</source>
         <translation>Убрать фильтр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="669"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="687"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="674"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="692"/>
         <source>Author</source>
         <translation>Автор</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="670"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="675"/>
         <source>Book</source>
         <translation>Книга</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="671"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="676"/>
         <source>Series</source>
         <translation>Серия</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="672"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="677"/>
         <source>Genre</source>
         <translation>Жанр</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="673"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="678"/>
         <source>Date</source>
         <translation>Дата</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="680"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="685"/>
         <source>File path</source>
         <translation>Путь к файлу</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="780"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="785"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="846"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="851"/>
         <source>Add to bookmarks</source>
         <translation>Добавить в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="865"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="870"/>
         <source>Save as...</source>
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="870"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="875"/>
         <source>Notes</source>
         <translation>Заметки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="895"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="900"/>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="907"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="912"/>
         <source>Remove book</source>
         <translation>Удалить книгу</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="949"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="973"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="954"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="978"/>
         <source>Show books</source>
         <translation>Показать книги</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="957"/>
-        <location filename="../src/MainWindowRightWidget.cpp" line="994"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="962"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="999"/>
         <source>Show books in separate window</source>
         <translation>Показать книги в отдельном окне</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1357"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1362"/>
         <source>Book has been successfully added to bookmarks</source>
         <translation>Книга была успешно добавлена в закладки</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1364"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1369"/>
         <source>Error!</source>
         <translation>Ошибка!</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="1374"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="1379"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../src/MainWindowRightWidget.cpp" line="811"/>
+        <location filename="../src/MainWindowRightWidget.cpp" line="816"/>
         <source>Book info</source>
         <translation>Информация о книге</translation>
     </message>
@@ -1374,48 +1374,48 @@
 <context>
     <name>NotesManagerWindow</name>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="41"/>
-        <location filename="../src/NotesManagerWindow.cpp" line="67"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="44"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="70"/>
         <source>Notes manager</source>
         <translation>Менеджер заметок</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="90"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="94"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="105"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="109"/>
         <source>Save note file as...</source>
         <translation>Сохранить файл заметок как...</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="149"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="153"/>
         <source>Remove selected</source>
         <translation>Удалить выбранное</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="160"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="164"/>
         <source>Save selected note file as...</source>
         <translation>Сохранить выбранный файл заметок как...</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="171"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="175"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="200"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="204"/>
         <source>Are you sure?</source>
         <translation>Вы уверены?</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="207"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="211"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/NotesManagerWindow.cpp" line="223"/>
+        <location filename="../src/NotesManagerWindow.cpp" line="227"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
@@ -1741,56 +1741,56 @@
 <context>
     <name>SeriesEditWindow</name>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="34"/>
-        <location filename="../src/SeriesEditWindow.cpp" line="60"/>
-        <location filename="../src/SeriesEditWindow.cpp" line="227"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="39"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="62"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="233"/>
         <source>Series editor</source>
         <translation>Редактор серий</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="103"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="109"/>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="118"/>
-        <location filename="../src/SeriesEditWindow.cpp" line="148"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="124"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="154"/>
         <source>Add series</source>
         <translation>Добавить серию</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="124"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="130"/>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="159"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="165"/>
         <source>Remove selected</source>
         <translation>Удалить выбранное</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="174"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="180"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="236"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="242"/>
         <source>Series name:</source>
         <translation>Название серии:</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="245"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="251"/>
         <source>Number:</source>
         <translation>Номер:</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="256"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="262"/>
         <source>Add</source>
         <translation>Добавить</translation>
     </message>
     <message>
-        <location filename="../src/SeriesEditWindow.cpp" line="190"/>
-        <location filename="../src/SeriesEditWindow.cpp" line="295"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="196"/>
+        <location filename="../src/SeriesEditWindow.cpp" line="301"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>

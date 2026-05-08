@@ -23,6 +23,7 @@
 #include <OpenBook.h>
 #include <QPaintEvent>
 #include <QWidget>
+#include <SettingsManager.h>
 #include <TableView.h>
 #include <condition_variable>
 #include <mutex>
@@ -32,7 +33,8 @@ class BookMarksWindow : public QWidget
   Q_OBJECT
 public:
   BookMarksWindow(QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
-                  const std::shared_ptr<BookmarksKeeper> &bookmarks);
+                  const std::shared_ptr<BookmarksKeeper> &bookmarks,
+                  const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~BookMarksWindow();
 
@@ -62,6 +64,7 @@ private:
 
   std::shared_ptr<MLBookProc> mlbp;
   std::shared_ptr<BookmarksKeeper> bookmarks;
+  std::shared_ptr<SettingsManager> settings;
 
   BookMarksModel *model = nullptr;
   std::shared_ptr<GenreBase> genre_base;

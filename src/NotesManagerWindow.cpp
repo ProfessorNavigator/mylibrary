@@ -25,17 +25,20 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QVBoxLayout>
-#include <TableView.h>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
+#include <TableView.h>
 #include <iostream>
 
 NotesManagerWindow::NotesManagerWindow(
     QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
-    const std::shared_ptr<NotesKeeper> &notes)
+    const std::shared_ptr<NotesKeeper> &notes,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->mlbp = mlbp;
   this->notes = notes;
+  this->settings = settings;
 
   this->setAttribute(Qt::WA_DeleteOnClose);
   this->setWindowTitle(tr("Notes manager"));
@@ -72,12 +75,13 @@ NotesManagerWindow::createWindow()
   TableView *table = new TableView;
   table->setObjectName("Table");
   table->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = table->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(table, settings);
+  table->setItemDelegate(item_delegate);
+  delete delegate;
   QAbstractItemModel *prev = table->model();
   table->setModel(model);
-  if(prev != nullptr)
-    {
-      prev->deleteLater();
-    }
+  delete prev;
   QHeaderView *hh = table->horizontalHeader();
   for(int i = 0; i < hh->count(); i++)
     {
@@ -121,8 +125,8 @@ NotesManagerWindow::createWindow()
                 }
             });
 
-  connect(table, &TableView::customContextMenuRequested, table,
-          [table, this](const QPoint &pos)
+  connect(table, &TableView::customContextMenuRequested,
+          [table](const QPoint &pos)
             {
               table->setCurrentIndex(table->indexAt(pos));
               QList<QAction *> actions = table->actions();

@@ -26,14 +26,17 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <TableView.h>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
+#include <TableView.h>
 
 CreateCollectionWindow::CreateCollectionWindow(
-    QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp)
+    QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->mlbp = mlbp;
+  this->settings = settings;
 
   this->setWindowTitle(tr("Collection creation"));
   this->setAttribute(Qt::WA_DeleteOnClose);
@@ -81,12 +84,14 @@ CreateCollectionWindow::createWindow()
   TableView *collection_files = new TableView;
   collection_files->setObjectName("Table");
   collection_files->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = collection_files->itemDelegate();
+  StyledItemDelegate *item_delegate
+      = new StyledItemDelegate(collection_files, settings);
+  collection_files->setItemDelegate(item_delegate);
+  delete delegate;
   QAbstractItemModel *m = collection_files->model();
   collection_files->setModel(model);
-  if(m != nullptr)
-    {
-      m->deleteLater();
-    }
+  delete m;
   collection_files->setTextElideMode(Qt::ElideNone);
   collection_files->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(collection_files, &TableView::customContextMenuRequested,

@@ -27,16 +27,19 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QVBoxLayout>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
 #include <iostream>
 
 BookMarksWindow::BookMarksWindow(
     QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
-    const std::shared_ptr<BookmarksKeeper> &bookmarks)
+    const std::shared_ptr<BookmarksKeeper> &bookmarks,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->mlbp = mlbp;
   this->bookmarks = bookmarks;
+  this->settings = settings;
   genre_base = std::make_shared<GenreBase>();
 
   book_open_dir = mlbp->tempDirPath() / std::filesystem::path(u8"MyLibrary");
@@ -96,6 +99,10 @@ BookMarksWindow::createWindow()
   TableView *table = new TableView;
   table->setObjectName("Table");
   table->viewport()->setObjectName("TableViewport");
+  QAbstractItemDelegate *delegate = table->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(table, settings);
+  table->setItemDelegate(item_delegate);
+  delete delegate;
   connect(table, &TableView::signalResized, table,
           [table](const QSize &sz)
             {
@@ -220,14 +227,14 @@ BookMarksWindow::createWindow()
                   UDBase info = book_info->getBookInfo(*bm);
 
                   BookDetailsWindow *bdw = new BookDetailsWindow(
-                      this, info, *bm, format_annot, genre_base);
+                      this, info, *bm, format_annot, genre_base, settings);
                   bdw->createWindow();
                   bdw->show();
                 }
               catch(std::exception &er)
                 {
                   std::cout << er.what() << std::endl;
-                }             
+                }
             });
   table->addAction(info_act);
   act_list.push_back(info_act);
@@ -264,7 +271,7 @@ BookMarksWindow::createWindow()
   QHBoxLayout *h_box = new QHBoxLayout;
   v_box->addLayout(h_box);
 
-  QPushButton *open = new QPushButton; 
+  QPushButton *open = new QPushButton;
   open->setText(tr("Open selected"));
   QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(open);
   shadow->setBlurRadius(12);
@@ -275,7 +282,7 @@ BookMarksWindow::createWindow()
   connect(open, &QPushButton::clicked, open_act, &QAction::trigger);
   h_box->addWidget(open, 0, Qt::AlignCenter);
 
-  QPushButton *info = new QPushButton;  
+  QPushButton *info = new QPushButton;
   info->setText(tr("Book info"));
   shadow = new QGraphicsDropShadowEffect(info);
   shadow->setBlurRadius(12);
@@ -465,7 +472,7 @@ BookMarksWindow::bookmarkRemoveDialog(const QModelIndex &index)
   h_box = new QHBoxLayout;
   v_box->addLayout(h_box);
 
-  QPushButton *yes = new QPushButton;  
+  QPushButton *yes = new QPushButton;
   yes->setText(tr("Yes"));
   QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(yes);
   shadow->setBlurRadius(12);

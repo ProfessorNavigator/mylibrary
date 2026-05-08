@@ -240,7 +240,7 @@ MainWindow::createWindow()
   central_widget->insertWidget(1, left_widget);
 
   MainWindowRightWidget *right_widget
-      = new MainWindowRightWidget(central_widget, bases);
+      = new MainWindowRightWidget(central_widget, bases, settings);
   central_widget->insertWidget(2, right_widget);
 
   connect(this, &MainWindow::signalCollectionRemoved, left_widget,
@@ -287,7 +287,7 @@ MainWindow::createMainMenu()
           [this]
             {
               CreateCollectionWindow *ccw
-                  = new CreateCollectionWindow(this, bases.mlbp);
+                  = new CreateCollectionWindow(this, bases.mlbp, settings);
               ccw->createWindow();
               ccw->show();
             });
@@ -339,7 +339,8 @@ MainWindow::createMainMenu()
   connect(action, &QAction::triggered, this,
           [this]
             {
-              AddBooksWindow *abw = new AddBooksWindow(this, bases.mlbp);
+              AddBooksWindow *abw
+                  = new AddBooksWindow(this, bases.mlbp, settings);
               abw->showWindow();
             });
   menu->addAction(action);
@@ -401,8 +402,8 @@ MainWindow::createMainMenu()
   connect(action, &QAction::triggered, this,
           [this]
             {
-              BookMarksWindow *bmw
-                  = new BookMarksWindow(this, bases.mlbp, bases.bookmarks);
+              BookMarksWindow *bmw = new BookMarksWindow(
+                  this, bases.mlbp, bases.bookmarks, settings);
               bmw->createWindow();
               bmw->show();
             });
@@ -416,8 +417,8 @@ MainWindow::createMainMenu()
   connect(action, &QAction::triggered, this,
           [this]
             {
-              NotesManagerWindow *nmw
-                  = new NotesManagerWindow(this, bases.mlbp, bases.notes);
+              NotesManagerWindow *nmw = new NotesManagerWindow(
+                  this, bases.mlbp, bases.notes, settings);
               nmw->createWindow();
               nmw->show();
             });
@@ -462,7 +463,7 @@ MainWindow::createMainMenu()
 
   action = new QAction(tr("About Qt"));
   connect(action, &QAction::triggered, this,
-          [this]
+          []
             {
               qApp->aboutQt();
             });

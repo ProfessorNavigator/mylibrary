@@ -44,6 +44,7 @@ target_sources(MyLibrary PRIVATE
     SeriesModel.cpp
     SettingsWindow.cpp
     SettingsManager.cpp
+    StyledItemDelegate.cpp
     StyledWindow.cpp    
     TableView.cpp
 )

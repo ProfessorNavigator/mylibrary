@@ -13,44 +13,27 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef NOTESMANAGERWINDOW_H
-#define NOTESMANAGERWINDOW_H
+#ifndef STYLEDITEMDELEGATE_H
+#define STYLEDITEMDELEGATE_H
 
-#include <MLBookProc.h>
-#include <NotesKeeper.h>
-#include <NotesManagerModel.h>
-#include <QPaintEvent>
-#include <QWidget>
+#include <QObject>
+#include <QStyledItemDelegate>
 #include <SettingsManager.h>
 
-class NotesManagerWindow : public QWidget
+class StyledItemDelegate : public QStyledItemDelegate
 {
-  Q_OBJECT
 public:
-  NotesManagerWindow(QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
-                     const std::shared_ptr<NotesKeeper> &notes,
+  StyledItemDelegate(QObject *parent,
                      const std::shared_ptr<SettingsManager> &settings);
 
-  virtual ~NotesManagerWindow();
+  virtual ~StyledItemDelegate();
 
-  void
-  createWindow();
+  virtual void
+  paint(QPainter *painter, const QStyleOptionViewItem &option,
+        const QModelIndex &index) const override;
 
-private:
-  void
-  removeDialog(const QModelIndex &index);
-
-  void
-  saveDialog(const QModelIndex &index);
-
-  void
-  paintEvent(QPaintEvent *event) override;
-
-  std::shared_ptr<MLBookProc> mlbp;
-  std::shared_ptr<NotesKeeper> notes;
+protected:
   std::shared_ptr<SettingsManager> settings;
-
-  NotesManagerModel *model = nullptr;
 };
 
-#endif // NOTESMANAGERWINDOW_H
+#endif // STYLEDITEMDELEGATE_H

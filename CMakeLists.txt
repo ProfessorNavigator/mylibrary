@@ -11,7 +11,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets LinguistTools)
 qt_standard_project_setup()
 
 qt_add_executable(MyLibrary
-    WIN32 MACOSX_BUNDLE
+    WIN32 MACOSX_BUNDLE     
 )
 
 add_subdirectory(include)

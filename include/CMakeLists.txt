@@ -43,6 +43,7 @@ target_sources(MyLibrary PRIVATE
     SeriesModel.h
     SettingsManager.h
     SettingsWindow.h
+    StyledItemDelegate.h
     StyledWindow.h
     TableView.h
 )

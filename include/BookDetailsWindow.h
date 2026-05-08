@@ -24,6 +24,7 @@
 #include <QPaintEvent>
 #include <QShowEvent>
 #include <QWidget>
+#include <SettingsManager.h>
 #include <UDBase.h>
 #include <memory>
 
@@ -34,7 +35,8 @@ public:
   BookDetailsWindow(QWidget *parent, const UDBase &info,
                     const UDBElement &book_search_result,
                     const std::shared_ptr<FormatAnnotation> &format_annotation,
-                    const std::shared_ptr<GenreBase> &genre_base);
+                    const std::shared_ptr<GenreBase> &genre_base,
+                    const std::shared_ptr<SettingsManager> &settings);
 
   void
   createWindow();
@@ -101,6 +103,7 @@ private:
   UDBElement book_search_result;
   std::shared_ptr<FormatAnnotation> format_annotation;
   std::shared_ptr<GenreBase> genre_base;
+  std::shared_ptr<SettingsManager> settings;
 
   UDBElement cover_el;
   CoverWidget *cover = nullptr;

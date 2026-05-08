@@ -22,12 +22,14 @@
 #include <QLineEdit>
 #include <QPaintEvent>
 #include <QWidget>
+#include <SettingsManager.h>
 
 class AddBooksWindow : public QWidget
 {
   Q_OBJECT
 public:
-  AddBooksWindow(QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp);
+  AddBooksWindow(QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
+                 const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~AddBooksWindow();
 
@@ -51,6 +53,7 @@ private:
   paintEvent(QPaintEvent *event) override;
 
   std::shared_ptr<MLBookProc> mlbp;
+  std::shared_ptr<SettingsManager> settings;
 
   QComboBox *collections;
   QLineEdit *threads;

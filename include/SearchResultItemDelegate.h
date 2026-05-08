@@ -18,12 +18,14 @@
 
 #include <QObject>
 #include <QPainter>
-#include <QStyledItemDelegate>
+#include <SettingsManager.h>
+#include <StyledItemDelegate.h>
 
-class SearchResultItemDelegate : public QStyledItemDelegate
+class SearchResultItemDelegate : public StyledItemDelegate
 {
 public:
-  SearchResultItemDelegate(QObject *obj = nullptr);
+  SearchResultItemDelegate(QObject *obj,
+                           const std::shared_ptr<SettingsManager> &settings);
 
   QWidget *
   createEditor(QWidget *parent, const QStyleOptionViewItem &option,
@@ -35,6 +37,9 @@ public:
   void
   setModelData(QWidget *editor, QAbstractItemModel *model,
                const QModelIndex &index) const override;
+
+  void
+  destroyEditor(QWidget *editor, const QModelIndex &index) const override;
 };
 
 #endif // SEARCHRESULTITEMDELEGATE_H

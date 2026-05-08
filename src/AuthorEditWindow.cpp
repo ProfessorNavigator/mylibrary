@@ -25,11 +25,16 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QVBoxLayout>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
 #include <TableView.h>
 
-AuthorEditWindow::AuthorEditWindow(QWidget *parent) : QWidget(parent)
+AuthorEditWindow::AuthorEditWindow(
+    QWidget *parent, const std::shared_ptr<SettingsManager> &settings)
+    : QWidget(parent)
 {
+  this->settings = settings;
+
   this->setAttribute(Qt::WA_DeleteOnClose);
   this->setWindowTitle(tr("Authors editor"));
   this->setWindowFlag(Qt::Window, true);
@@ -66,6 +71,10 @@ AuthorEditWindow::createWindow(const QModelIndex &index)
 
   TableView *table = new TableView;
   table->setObjectName("Table");
+  QAbstractItemDelegate *delegate = table->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(table, settings);
+  table->setItemDelegate(item_delegate);
+  delete delegate;
   table->viewport()->setObjectName("TableViewport");
   QAbstractItemModel *prev = table->model();
   table->setModel(model);

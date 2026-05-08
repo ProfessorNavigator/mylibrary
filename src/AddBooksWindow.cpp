@@ -22,21 +22,25 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMenu>
 #include <QPainter>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <TableView.h>
+#include <StyledItemDelegate.h>
 #include <StyledWindow.h>
+#include <TableView.h>
 #include <filesystem>
 #include <iostream>
 #include <thread>
 
-AddBooksWindow::AddBooksWindow(QWidget *parent,
-                               const std::shared_ptr<MLBookProc> &mlbp)
+AddBooksWindow::AddBooksWindow(
+    QWidget *parent, const std::shared_ptr<MLBookProc> &mlbp,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->mlbp = mlbp;
+  this->settings = settings;
   this->setAttribute(Qt::WA_DeleteOnClose, true);
   this->setWindowTitle(tr("Books adding"));
   this->setWindowFlag(Qt::Window, true);
@@ -106,6 +110,10 @@ AddBooksWindow::showWindow()
 
   TableView *table = new TableView;
   table->setObjectName("Table");
+  QAbstractItemDelegate *delegate = table->itemDelegate();
+  StyledItemDelegate *item_delegate = new StyledItemDelegate(table, settings);
+  table->setItemDelegate(item_delegate);
+  delete delegate;
   table->viewport()->setObjectName("TableViewport");
   connect(table, &TableView::signalResized, table,
           [table](const QSize &sz)
@@ -120,7 +128,17 @@ AddBooksWindow::showWindow()
       old->deleteLater();
     }
   table->setTextElideMode(Qt::ElideLeft);
-  table->setContextMenuPolicy(Qt::ActionsContextMenu);
+  table->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(table, &QTableView::customContextMenuRequested,
+          [table](const QPoint &pos)
+            {
+              table->setCurrentIndex(table->indexAt(pos));
+              QMenu *menu = new QMenu(table);
+              menu->setAttribute(Qt::WA_DeleteOnClose);
+              menu->setObjectName("Menu");
+              menu->addActions(table->actions());
+              menu->popup(table->viewport()->mapToGlobal(pos));
+            });
   v_box->addWidget(table);
 
   std::vector<QAction *> act_list;

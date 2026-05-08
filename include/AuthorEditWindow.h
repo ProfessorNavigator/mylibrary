@@ -22,12 +22,14 @@
 #include <QModelIndex>
 #include <QPaintEvent>
 #include <QWidget>
+#include <SettingsManager.h>
 
 class AuthorEditWindow : public QWidget
 {
   Q_OBJECT
 public:
-  AuthorEditWindow(QWidget *parent);
+  AuthorEditWindow(QWidget *parent,
+                   const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~AuthorEditWindow();
 
@@ -48,6 +50,8 @@ private:
 
   void
   paintEvent(QPaintEvent *event) override;
+
+  std::shared_ptr<SettingsManager> settings;
 
   QModelIndex index;
 

@@ -42,11 +42,13 @@
 #include <iostream>
 #include <thread>
 
-MainWindowRightWidget::MainWindowRightWidget(QWidget *parent,
-                                             const Bases &bases)
+MainWindowRightWidget::MainWindowRightWidget(
+    QWidget *parent, const Bases &bases,
+    const std::shared_ptr<SettingsManager> &settings)
     : QWidget(parent)
 {
   this->bases = bases;
+  this->settings = settings;
   book_info = new BookInfo(bases.mlbp);
   open_book = new OpenBook(bases.mlbp);
 
@@ -90,7 +92,8 @@ MainWindowRightWidget::setBookSearchResult(
   this->collection_base_path = collection_base_path;
 
   QAbstractItemDelegate *delegate = search_view->itemDelegate();
-  SearchResultItemDelegate *search_delegate = new SearchResultItemDelegate;
+  SearchResultItemDelegate *search_delegate
+      = new SearchResultItemDelegate(search_view, settings);
   search_view->setItemDelegate(search_delegate);
   delete delegate;
 
@@ -233,7 +236,8 @@ MainWindowRightWidget::setFilesSearchResult(
   this->collection_base_path = collection_base_path;
 
   QAbstractItemDelegate *delegate = search_view->itemDelegate();
-  QStyledItemDelegate *search_delegate = new QStyledItemDelegate;
+  StyledItemDelegate *search_delegate
+      = new StyledItemDelegate(search_view, settings);
   search_view->setItemDelegate(search_delegate);
   delete delegate;
 
@@ -336,7 +340,8 @@ MainWindowRightWidget::setAuthorsSearchResult(
   this->collection_base_path = collection_base_path;
 
   QAbstractItemDelegate *delegate = search_view->itemDelegate();
-  QStyledItemDelegate *search_delegate = new QStyledItemDelegate;
+  StyledItemDelegate *search_delegate
+      = new StyledItemDelegate(search_view, settings);
   search_view->setItemDelegate(search_delegate);
   delete delegate;
 
@@ -579,7 +584,7 @@ MainWindowRightWidget::createWidget()
                  const std::filesystem::path &collection_base_path)
             {
               MainWindowRightWidget *win
-                  = new MainWindowRightWidget(this->window(), bases);
+                  = new MainWindowRightWidget(this->window(), bases, settings);
               win->setWindowFlag(Qt::Window, true);
               win->setObjectName("Window");
               win->setAttribute(Qt::WA_DeleteOnClose);
@@ -835,7 +840,7 @@ MainWindowRightWidget::bookActions(const Qt::ItemFlags &editable)
 
                       BookDetailsWindow *bdw = new BookDetailsWindow(
                           this->window(), info, el->book_search_result,
-                          format_annotation, bases.genres_base);
+                          format_annotation, bases.genres_base, settings);
                       bdw->createWindow();
                       bdw->show();
                     }
@@ -1035,7 +1040,7 @@ MainWindowRightWidget::getBookInfo(const QModelIndex &index)
   UDBase info;
   try
     {
-      info = std::move(book_info->getBookInfo(el->book_search_result));
+      info = book_info->getBookInfo(el->book_search_result);
     }
   catch(std::exception &er)
     {
@@ -1414,7 +1419,7 @@ MainWindowRightWidget::showBooks(const bool &separate_window)
   SearchProcWindow *spw = new SearchProcWindow(this->window());
   spw->creatBookSearchWindow();
   connect(spw, &SearchProcWindow::signalCanceled, this,
-          [this, stop]
+          [stop]
             {
               stop->store(true, std::memory_order_relaxed);
             });

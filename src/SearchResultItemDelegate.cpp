@@ -22,8 +22,9 @@
 #include <SearchViewModel.h>
 #include <SeriesEditWindow.h>
 
-SearchResultItemDelegate::SearchResultItemDelegate(QObject *obj)
-    : QStyledItemDelegate(obj)
+SearchResultItemDelegate::SearchResultItemDelegate(
+    QObject *obj, const std::shared_ptr<SettingsManager> &settings)
+    : StyledItemDelegate(obj, settings)
 {
 }
 
@@ -37,7 +38,7 @@ SearchResultItemDelegate::createEditor(QWidget *parent,
     {
     case 0:
       {
-        result = new AuthorEditWindow(parent->window());
+        result = new AuthorEditWindow(parent->window(), settings);
         break;
       }
     case 1:
@@ -50,7 +51,7 @@ SearchResultItemDelegate::createEditor(QWidget *parent,
       }
     case 2:
       {
-        result = new SeriesEditWindow(parent->window());
+        result = new SeriesEditWindow(parent->window(), settings);
         break;
       }
     case 3:
@@ -191,4 +192,11 @@ SearchResultItemDelegate::setModelData(QWidget *editor,
         break;
       }
     }
+}
+
+void
+SearchResultItemDelegate::destroyEditor(QWidget *editor,
+                                        const QModelIndex &index) const
+{
+  editor->deleteLater();
 }

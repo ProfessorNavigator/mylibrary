@@ -21,13 +21,15 @@
 #include <QLineEdit>
 #include <QPaintEvent>
 #include <QWidget>
+#include <SettingsManager.h>
 
 class CreateCollectionWindow : public QWidget
 {
   Q_OBJECT
 public:
   CreateCollectionWindow(QWidget *parent,
-                         const std::shared_ptr<MLBookProc> &mlbp);
+                         const std::shared_ptr<MLBookProc> &mlbp,
+                         const std::shared_ptr<SettingsManager> &settings);
 
   virtual ~CreateCollectionWindow();
 
@@ -57,6 +59,7 @@ private:
   paintEvent(QPaintEvent *event) override;
 
   std::shared_ptr<MLBookProc> mlbp;
+  std::shared_ptr<SettingsManager> settings;
 
   QLineEdit *collection_name;
   QLineEdit *threads;
