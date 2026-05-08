@@ -83,9 +83,11 @@ if(BUILD_MLPLUGIN_DOCS)
     DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME}/html"
   )
 
-  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/man/"
-    DESTINATION "${CMAKE_INSTALL_MANDIR}"
-  )
+  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/man/"
+      DESTINATION "${CMAKE_INSTALL_MANDIR}"
+    )
+  endif()
 endif()
 
 include(CMakePackageConfigHelpers)
