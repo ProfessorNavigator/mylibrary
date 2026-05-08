@@ -530,7 +530,7 @@ SettingsManager::createStylesDatabase(const std::string &buf)
       str = std::string(buf.begin() + n, buf.begin() + n2);
       n = n2 + style_scope_end.size();
 
-      style.subelements = std::move(parseStyle(str));
+      style.subelements = parseStyle(str);
       if(style.subelements.size() > 0)
         {
           styles.addElement(style);
