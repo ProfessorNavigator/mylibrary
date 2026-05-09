@@ -6,8 +6,13 @@
     background-color: rgba(61, 152, 203, 255);
 }
 
+#MenuBar {
+    background-color: rgba(61, 152, 203, 0);
+}
+
 #MenuBar::item {
     color: rgba(0, 0, 0, 255);
+    background-color: rgba(61, 152, 203, 0);
 }
 
 #Label {

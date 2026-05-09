@@ -1847,147 +1847,152 @@
     </message>
     <message>
         <location filename="../src/SettingsWindow.cpp" line="243"/>
-        <location filename="../src/SettingsWindow.cpp" line="387"/>
-        <location filename="../src/SettingsWindow.cpp" line="455"/>
-        <location filename="../src/SettingsWindow.cpp" line="523"/>
-        <location filename="../src/SettingsWindow.cpp" line="591"/>
-        <location filename="../src/SettingsWindow.cpp" line="749"/>
-        <location filename="../src/SettingsWindow.cpp" line="817"/>
-        <location filename="../src/SettingsWindow.cpp" line="885"/>
-        <location filename="../src/SettingsWindow.cpp" line="1075"/>
-        <location filename="../src/SettingsWindow.cpp" line="1152"/>
-        <location filename="../src/SettingsWindow.cpp" line="1220"/>
-        <location filename="../src/SettingsWindow.cpp" line="1312"/>
-        <location filename="../src/SettingsWindow.cpp" line="1472"/>
+        <location filename="../src/SettingsWindow.cpp" line="410"/>
+        <location filename="../src/SettingsWindow.cpp" line="478"/>
+        <location filename="../src/SettingsWindow.cpp" line="546"/>
+        <location filename="../src/SettingsWindow.cpp" line="614"/>
+        <location filename="../src/SettingsWindow.cpp" line="772"/>
+        <location filename="../src/SettingsWindow.cpp" line="840"/>
+        <location filename="../src/SettingsWindow.cpp" line="908"/>
+        <location filename="../src/SettingsWindow.cpp" line="1098"/>
+        <location filename="../src/SettingsWindow.cpp" line="1175"/>
+        <location filename="../src/SettingsWindow.cpp" line="1243"/>
+        <location filename="../src/SettingsWindow.cpp" line="1335"/>
+        <location filename="../src/SettingsWindow.cpp" line="1495"/>
         <source>Background color:</source>
         <translation>Цвет фона:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="289"/>
+        <location filename="../src/SettingsWindow.cpp" line="266"/>
+        <source>Menu bar background color:</source>
+        <translation>Цвет фона панели меню:</translation>
+    </message>
+    <message>
+        <location filename="../src/SettingsWindow.cpp" line="312"/>
         <source>Background image path:</source>
         <translation>Путь к фоновому изображению:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="353"/>
+        <location filename="../src/SettingsWindow.cpp" line="376"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="381"/>
+        <location filename="../src/SettingsWindow.cpp" line="404"/>
         <source>Combo boxes style</source>
         <translation>Стиль выпадающих списков</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="517"/>
+        <location filename="../src/SettingsWindow.cpp" line="540"/>
         <source>Input lines style</source>
         <translation>Стиль полей ввода</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="585"/>
+        <location filename="../src/SettingsWindow.cpp" line="608"/>
         <source>&quot;Clear&quot; buttons style</source>
         <translation>Стиль кнопок &quot;Очистить&quot;</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="653"/>
+        <location filename="../src/SettingsWindow.cpp" line="676"/>
         <source>Sliders style</source>
         <translation>Стиль ползунков</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="659"/>
+        <location filename="../src/SettingsWindow.cpp" line="682"/>
         <source>&quot;Befor handle&quot; bar background color:</source>
         <translation>Стиль полосы до ползунка:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="682"/>
+        <location filename="../src/SettingsWindow.cpp" line="705"/>
         <source>&quot;After handle&quot; bar background color:</source>
         <translation>Стиль полосы после ползунка:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="704"/>
+        <location filename="../src/SettingsWindow.cpp" line="727"/>
         <source>Handle color:</source>
         <translation>Цвет ползунка:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="743"/>
+        <location filename="../src/SettingsWindow.cpp" line="766"/>
         <source>&quot;Apply&quot; buttons style</source>
         <translation>Стиль кнопок &quot;Применить&quot;</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="811"/>
+        <location filename="../src/SettingsWindow.cpp" line="834"/>
         <source>&quot;Cancel&quot; buttons style</source>
         <translation>Стиль кнопок &quot;Отмена&quot;</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="879"/>
+        <location filename="../src/SettingsWindow.cpp" line="902"/>
         <source>Tables style</source>
         <translation>Стиль таблиц</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="930"/>
+        <location filename="../src/SettingsWindow.cpp" line="953"/>
         <source>Selection backgorund color:</source>
         <translation>Цвет фона выбранного элемента:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="952"/>
+        <location filename="../src/SettingsWindow.cpp" line="975"/>
         <source>Selection font color:</source>
         <translation>Цвет шрифта выбранного элемента:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1000"/>
+        <location filename="../src/SettingsWindow.cpp" line="1023"/>
         <source>Tables auxiliary elements style</source>
         <translation>Стиль вспомогательных элементов таблиц</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1006"/>
+        <location filename="../src/SettingsWindow.cpp" line="1029"/>
         <source>Headers and scroll bars background color:</source>
         <translation>Цвет фона заголовков и полос перемотки:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1029"/>
+        <location filename="../src/SettingsWindow.cpp" line="1052"/>
         <source>Headers and scroll bars font color:</source>
         <translation>Цвет шрифта заголовков и полос перемотки:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1069"/>
+        <location filename="../src/SettingsWindow.cpp" line="1092"/>
         <source>Text fields style</source>
         <translation>Стиль полей отображения текста</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1146"/>
+        <location filename="../src/SettingsWindow.cpp" line="1169"/>
         <source>Text fields scroll bars style</source>
         <translation>Стиль полос перемотки полей отображения текста</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1175"/>
+        <location filename="../src/SettingsWindow.cpp" line="1198"/>
         <source>Arrows color:</source>
         <translation>Цвет стрелок:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1214"/>
+        <location filename="../src/SettingsWindow.cpp" line="1237"/>
         <source>Progress bars style</source>
         <translation>Стиль индикаторов прогресса</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1306"/>
+        <location filename="../src/SettingsWindow.cpp" line="1329"/>
         <source>Menus style</source>
         <translation>Стиль меню</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1374"/>
+        <location filename="../src/SettingsWindow.cpp" line="1397"/>
         <source>Check boxes style</source>
         <translation>Стиль чекбоксов</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1420"/>
+        <location filename="../src/SettingsWindow.cpp" line="1443"/>
         <source>Frames style</source>
         <translation>Стиль рамок</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="974"/>
-        <location filename="../src/SettingsWindow.cpp" line="1120"/>
-        <location filename="../src/SettingsWindow.cpp" line="1266"/>
-        <location filename="../src/SettingsWindow.cpp" line="1426"/>
-        <location filename="../src/SettingsWindow.cpp" line="1540"/>
+        <location filename="../src/SettingsWindow.cpp" line="997"/>
+        <location filename="../src/SettingsWindow.cpp" line="1143"/>
+        <location filename="../src/SettingsWindow.cpp" line="1289"/>
+        <location filename="../src/SettingsWindow.cpp" line="1449"/>
+        <location filename="../src/SettingsWindow.cpp" line="1563"/>
         <source>Border color:</source>
         <translation>Цвет рамки:</translation>
     </message>
@@ -1997,57 +2002,57 @@
         <translation>Шрифт:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1466"/>
+        <location filename="../src/SettingsWindow.cpp" line="1489"/>
         <source>Scroll areas style</source>
         <translation>Стиль полей прокрутки</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1495"/>
+        <location filename="../src/SettingsWindow.cpp" line="1518"/>
         <source>Scroll bars background color:</source>
         <translation>Цвет фона полос прокрутки:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1518"/>
+        <location filename="../src/SettingsWindow.cpp" line="1541"/>
         <source>Scroll bars arrows color:</source>
         <translation>Цвет стрелок полос прокрутки:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1676"/>
+        <location filename="../src/SettingsWindow.cpp" line="1699"/>
         <source>Are you sure?</source>
         <translation>Вы уверены?</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1684"/>
+        <location filename="../src/SettingsWindow.cpp" line="1707"/>
         <source>Yes</source>
         <translation>Да</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="1714"/>
+        <location filename="../src/SettingsWindow.cpp" line="1737"/>
         <source>No</source>
         <translation>Нет</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="266"/>
+        <location filename="../src/SettingsWindow.cpp" line="289"/>
         <source>Menu bar font color:</source>
         <translation>Цвет шрифта панели меню:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="410"/>
-        <location filename="../src/SettingsWindow.cpp" line="478"/>
-        <location filename="../src/SettingsWindow.cpp" line="546"/>
-        <location filename="../src/SettingsWindow.cpp" line="614"/>
-        <location filename="../src/SettingsWindow.cpp" line="772"/>
-        <location filename="../src/SettingsWindow.cpp" line="840"/>
-        <location filename="../src/SettingsWindow.cpp" line="908"/>
-        <location filename="../src/SettingsWindow.cpp" line="1098"/>
-        <location filename="../src/SettingsWindow.cpp" line="1243"/>
-        <location filename="../src/SettingsWindow.cpp" line="1335"/>
-        <location filename="../src/SettingsWindow.cpp" line="1380"/>
+        <location filename="../src/SettingsWindow.cpp" line="433"/>
+        <location filename="../src/SettingsWindow.cpp" line="501"/>
+        <location filename="../src/SettingsWindow.cpp" line="569"/>
+        <location filename="../src/SettingsWindow.cpp" line="637"/>
+        <location filename="../src/SettingsWindow.cpp" line="795"/>
+        <location filename="../src/SettingsWindow.cpp" line="863"/>
+        <location filename="../src/SettingsWindow.cpp" line="931"/>
+        <location filename="../src/SettingsWindow.cpp" line="1121"/>
+        <location filename="../src/SettingsWindow.cpp" line="1266"/>
+        <location filename="../src/SettingsWindow.cpp" line="1358"/>
+        <location filename="../src/SettingsWindow.cpp" line="1403"/>
         <source>Font color:</source>
         <translation>Цвет шрифта:</translation>
     </message>
     <message>
-        <location filename="../src/SettingsWindow.cpp" line="449"/>
+        <location filename="../src/SettingsWindow.cpp" line="472"/>
         <source>Labels style</source>
         <translation>Стиль надписей</translation>
     </message>

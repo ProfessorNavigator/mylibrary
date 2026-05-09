@@ -263,6 +263,29 @@ SettingsWindow::windowsWidget()
 
   lab = new QLabel;
   lab->setObjectName("Label");
+  lab->setText(tr("Menu bar background color:"));
+  grid->addWidget(lab, row, 0, Qt::AlignLeft | Qt::AlignVCenter);
+
+  cb = new ColorButton;
+  grid->addWidget(cb, row, 1, Qt::AlignVCenter | Qt::AlignLeft);
+  row++;
+
+  id = "MenuBar";
+  attr = "background-color";
+  str = settings->getStyleAttributeValue(id, attr);
+  cb->setBakcroundColor(str);
+
+  connect(cb, &ColorButton::clicked, this,
+          [this, attr, id, cb]
+            {
+              colorDialog(cb,
+                          settings->stringToColor(
+                              cb->getBackGroundColor().toStdString()),
+                          id, attr);
+            });
+
+  lab = new QLabel;
+  lab->setObjectName("Label");
   lab->setText(tr("Menu bar font color:"));
   grid->addWidget(lab, row, 0, Qt::AlignLeft | Qt::AlignVCenter);
 
