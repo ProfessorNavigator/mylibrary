@@ -747,12 +747,12 @@
         <translation>Сохранить как...</translation>
     </message>
     <message>
-        <location filename="../src/CoverWidget.cpp" line="567"/>
+        <location filename="../src/CoverWidget.cpp" line="575"/>
         <source>Error on cover saving!</source>
         <translation>Ошибка при сохранении обложки!</translation>
     </message>
     <message>
-        <location filename="../src/CoverWidget.cpp" line="577"/>
+        <location filename="../src/CoverWidget.cpp" line="585"/>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>

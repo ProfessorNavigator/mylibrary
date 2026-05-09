@@ -52,7 +52,7 @@ private:
   saveImageDialog();
 
   void
-  saveImage(const QString &result);
+  saveImage(const std::filesystem::path &result);
 
   void
   errorDialog(const std::string &er);

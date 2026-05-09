@@ -451,13 +451,22 @@ CoverWidget::saveImageDialog()
   fd->setDefaultSuffix(find_str.c_str());
   fd->selectFile("Cover");
 
-  connect(fd, &QFileDialog::fileSelected, this, &CoverWidget::saveImage);
+  connect(fd, &QFileDialog::fileSelected, this,
+          [fd, this](const QString &file)
+            {
+              std::string str = file.toStdString();
+              std::filesystem::path p = std::u8string(str.begin(), str.end());
+              QString ext = fd->defaultSuffix().toLower();
+              str = "." + ext.toStdString();
+              p.replace_extension(std::u8string(str.begin(), str.end()));
+              saveImage(p);
+            });
 
   fd->show();
 }
 
 void
-CoverWidget::saveImage(const QString &result)
+CoverWidget::saveImage(const std::filesystem::path &result)
 {
   QImage loc = original_image.convertToFormat(QImage::Format_RGBA8888);
 
@@ -518,17 +527,16 @@ CoverWidget::saveImage(const QString &result)
           return void();
         }
     }
-  std::string str = result.toStdString();
-  std::filesystem::path p = std::u8string(str.begin(), str.end());
-  std::filesystem::remove_all(p);
-  std::u8string u8str = p.extension().u8string();
+
+  std::filesystem::remove_all(result);
+  std::u8string u8str = result.extension().u8string();
   std::u8string find_str(u8".");
-  std::u8string::size_type n = u8str.find(find_str);
+  std::u8string::size_type n = u8str.rfind(find_str);
   if(n != std::u8string::npos)
     {
       u8str.erase(u8str.begin() + n, u8str.begin() + n + find_str.size());
     }
-  str = std::string(u8str.begin(), u8str.end());
+  std::string str(u8str.begin(), u8str.end());
 
   Magick::Blob blob;
   try
@@ -544,7 +552,7 @@ CoverWidget::saveImage(const QString &result)
     }
 
   std::fstream f;
-  f.open(p, std::ios_base::out | std::ios_base::binary);
+  f.open(result, std::ios_base::out | std::ios_base::binary);
   if(f.is_open())
     {
       f.write(reinterpret_cast<const char *>(blob.data()), blob.length());
