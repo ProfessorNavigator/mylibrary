@@ -422,37 +422,34 @@ CoverWidget::saveImageDialog()
     }
   filters.removeDuplicates();
 
-  std::shared_ptr<QString> default_suffix(new QString);
+  std::shared_ptr<std::string> default_suffix(new std::string);
 
   connect(fd, &QFileDialog::filterSelected,
           [fd, default_suffix](const QString &filter)
             {
-              QString local = filter;
-              QString search = " ";
-              qsizetype n = local.indexOf(search);
-              if(n >= 0)
+              std::string local = filter.toStdString();
+              std::string find_str("*.");
+              std::string::size_type n = local.find(find_str);
+              if(n != std::string::npos)
+                {
+                  local.erase(local.begin(),
+                              local.begin() + n + find_str.size());
+                }
+              find_str = " ";
+              n = local.find(find_str);
+              if(n != std::string::npos)
                 {
                   local.erase(local.begin() + n, local.end());
                 }
-              search = "*.";
-              n = local.indexOf(search);
-              if(n >= 0)
-                {
-                  local.erase(local.begin(),
-                              local.begin() + n + search.size());
-                }
-              if(!local.isEmpty())
-                {
-                  *default_suffix = local;
-                  fd->setDefaultSuffix(local);
-                }
+              *default_suffix = local;
+              fd->setDefaultSuffix(local.c_str());
             });
 
   fd->setMimeTypeFilters(filters);
   fd->selectMimeTypeFilter(default_filter);
   fd->setDirectory(QDir::homePath());
-  *default_suffix = find_str.c_str();
-  fd->setDefaultSuffix(default_suffix->toLower());
+  *default_suffix = find_str;
+  fd->setDefaultSuffix(find_str.c_str());
   fd->selectFile("Cover");
 
   connect(fd, &QFileDialog::fileSelected, this,
@@ -460,7 +457,7 @@ CoverWidget::saveImageDialog()
             {
               std::string str = file.toStdString();
               std::filesystem::path p = std::u8string(str.begin(), str.end());
-              str = "." + default_suffix->toLower().toStdString();
+              str = "." + *default_suffix;
               p.replace_extension(std::u8string(str.begin(), str.end()));
               saveImage(p);
             });
