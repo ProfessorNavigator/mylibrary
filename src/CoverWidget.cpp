@@ -422,8 +422,10 @@ CoverWidget::saveImageDialog()
     }
   filters.removeDuplicates();
 
+  std::shared_ptr<QString> default_suffix(new QString);
+
   connect(fd, &QFileDialog::filterSelected,
-          [fd](const QString &filter)
+          [fd, default_suffix](const QString &filter)
             {
               QString local = filter;
               QString search = " ";
@@ -441,6 +443,7 @@ CoverWidget::saveImageDialog()
                 }
               if(!local.isEmpty())
                 {
+                  *default_suffix = local;
                   fd->setDefaultSuffix(local);
                 }
             });
@@ -448,16 +451,16 @@ CoverWidget::saveImageDialog()
   fd->setMimeTypeFilters(filters);
   fd->selectMimeTypeFilter(default_filter);
   fd->setDirectory(QDir::homePath());
-  fd->setDefaultSuffix(find_str.c_str());
+  *default_suffix = find_str.c_str();
+  fd->setDefaultSuffix(default_suffix->toLower());
   fd->selectFile("Cover");
 
   connect(fd, &QFileDialog::fileSelected, this,
-          [fd, this](const QString &file)
+          [this, default_suffix](const QString &file)
             {
               std::string str = file.toStdString();
               std::filesystem::path p = std::u8string(str.begin(), str.end());
-              QString ext = fd->defaultSuffix().toLower();
-              str = "." + ext.toStdString();
+              str = "." + default_suffix->toLower().toStdString();
               p.replace_extension(std::u8string(str.begin(), str.end()));
               saveImage(p);
             });
