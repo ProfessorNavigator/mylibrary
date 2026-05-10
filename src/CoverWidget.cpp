@@ -422,51 +422,69 @@ CoverWidget::saveImageDialog()
     }
   filters.removeDuplicates();
 
-  std::shared_ptr<std::string> default_suffix(new std::string);
-
-  connect(fd, &QFileDialog::filterSelected,
-          [fd, default_suffix](const QString &filter)
+  std::shared_ptr<QString> format(new QString);
+  connect(
+      fd, &QFileDialog::filterSelected,
+      [fd, format](const QString &filter)
+        {
+          QString local = filter;
+          QString search = "(";
+          qsizetype n = local.indexOf(search);
+          if(n >= 0)
             {
-              std::string local = filter.toStdString();
-              std::string find_str("*.");
-              std::string::size_type n = local.find(find_str);
-              if(n != std::string::npos)
-                {
-                  local.erase(local.begin(),
-                              local.begin() + n + find_str.size());
-                }
-              find_str = " ";
-              n = local.find(find_str);
-              if(n != std::string::npos)
-                {
-                  local.erase(local.begin() + n, local.end());
-                }
-              *default_suffix = local;
-              fd->setDefaultSuffix(local.c_str());
-            });
+              local.erase(local.begin(), local.begin() + n + search.size());
+            }
+
+          search = ")";
+          n = local.indexOf(search);
+          if(n >= 0)
+            {
+              local.erase(local.begin() + n, local.end());
+            }
+
+          search = "*.";
+          n = local.indexOf(search);
+          if(n >= 0)
+            {
+              local.erase(local.begin(), local.begin() + n + search.size());
+            }
+
+          search = " ";
+          n = local.indexOf(search);
+          if(n >= 0)
+            {
+              local.erase(local.begin() + n, local.end());
+            }
+
+          if(!local.isEmpty())
+            {
+              *format = local;
+              fd->setDefaultSuffix(local);
+            }
+        });
 
   fd->setMimeTypeFilters(filters);
   fd->selectMimeTypeFilter(default_filter);
   fd->setDirectory(QDir::homePath());
-  *default_suffix = find_str;
   fd->setDefaultSuffix(find_str.c_str());
   fd->selectFile("Cover");
 
   connect(fd, &QFileDialog::fileSelected, this,
-          [this, default_suffix](const QString &file)
+          [this, format](const QString &file)
             {
               std::string str = file.toStdString();
               std::filesystem::path p = std::u8string(str.begin(), str.end());
-              str = "." + *default_suffix;
+              str = "." + format->toStdString();
               p.replace_extension(std::u8string(str.begin(), str.end()));
-              saveImage(p);
+              saveImage(p, format->toStdString());
             });
 
   fd->show();
 }
 
 void
-CoverWidget::saveImage(const std::filesystem::path &result)
+CoverWidget::saveImage(const std::filesystem::path &result,
+                       const std::string &format)
 {
   QImage loc = original_image.convertToFormat(QImage::Format_RGBA8888);
 
@@ -529,19 +547,11 @@ CoverWidget::saveImage(const std::filesystem::path &result)
     }
 
   std::filesystem::remove_all(result);
-  std::u8string u8str = result.extension().u8string();
-  std::u8string find_str(u8".");
-  std::u8string::size_type n = u8str.rfind(find_str);
-  if(n != std::u8string::npos)
-    {
-      u8str.erase(u8str.begin() + n, u8str.begin() + n + find_str.size());
-    }
-  std::string str(u8str.begin(), u8str.end());
 
   Magick::Blob blob;
   try
     {
-      img.write(&blob, str);
+      img.write(&blob, format);
     }
   catch(Magick::Exception &er)
     {

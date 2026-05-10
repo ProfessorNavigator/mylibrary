@@ -52,7 +52,7 @@ private:
   saveImageDialog();
 
   void
-  saveImage(const std::filesystem::path &result);
+  saveImage(const std::filesystem::path &result, const std::string &format);
 
   void
   errorDialog(const std::string &er);
